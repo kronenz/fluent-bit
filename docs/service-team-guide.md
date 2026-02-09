@@ -1,196 +1,187 @@
-# 서비스팀 개발자를 위한 HostPath 기반 로그 수집 가이드
+# 서비스팀을 위한 로그 수집 설정 가이드
 
-## 개요
-
-본 가이드는 Kubernetes 환경에서 애플리케이션 로그를 수집하는 방법을 설명합니다. 로그는 컨테이너의 stdout/stderr 대신 **HostPath를 통해 노드의 파일시스템에 직접 기록**되며, Fluent Bit이 이를 수집하여 OpenSearch에 전송합니다.
-
-### 아키텍처 개요
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Kubernetes Node                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  Your Service Pod (namespace: your-service)              │  │
-│  │  ┌──────────────────────────────────────────────────────┐│  │
-│  │  │ Container                                            ││  │
-│  │  │                                                      ││  │
-│  │  │  Log4j2 JSON 로그 작성                              ││  │
-│  │  │  ↓                                                   ││  │
-│  │  │  /var/log/your-service/app.log                      ││  │
-│  │  └──────────────────────────────────────────────────────┘│  │
-│  │          ↑ (HostPath Volume)                            │  │
-│  │          │                                              │  │
-│  │  hostPath: /var/log/your-service                        │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│          ↓ (Node의 실제 파일)                                 │
-│          │                                                     │
-│  /var/log/your-service/app.log (Node 파일시스템)            │
-│          ↓                                                     │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  Fluent Bit DaemonSet (namespace: logging)               │  │
-│  │  - ClusterFluentBitConfig: 전체 파이프라인 설정          │  │
-│  │  - ClusterInput: /var/log/*/app*.log 감시               │  │
-│  │  - ClusterFilter: 메타데이터 추가 + 속도 제한           │  │
-│  │  - ClusterOutput: OpenSearch 전송                       │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│          ↓                                                     │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  OpenSearch Cluster (namespace: logging)                 │  │
-│  │  Index: app-logs-YYYY.MM.DD                             │  │
-│  │  Document: { "log": "...", "namespace": "...", ... }    │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│          ↓                                                     │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  OpenSearch Dashboards (UI)                              │  │
-│  │  검색 및 시각화                                          │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                   │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### 핵심 개념
-
-- **HostPath 볼륨**: 노드의 파일시스템을 컨테이너에 마운트하여 파일 기반 로그를 저장
-- **ClusterFluentBitConfig**: Fluent Bit Operator의 설정 허브로, 모든 파이프라인 리소스를 label selector로 연결
-- **Multiline 파서**: JSON 로그가 여러 줄에 걸칠 때 (예: stacktrace) 자동으로 합치기
-- **메타데이터 추가**: Lua 스크립트로 파일 경로에서 네임스페이스 정보 자동 추출
+> 이 가이드는 **Kubernetes를 잘 모르는 개발자**도 따라할 수 있도록 작성되었습니다.
+> 복사-붙여넣기만으로 로그 수집을 설정할 수 있습니다.
 
 ---
 
-## 내 서비스에 로그 수집 적용하기
+## 한 줄 요약
 
-### Step 1: 네임스페이스 확인 및 요청
+여러분의 앱이 **정해진 경로에 로그 파일을 쓰면**, 나머지는 자동으로 OpenSearch에 수집됩니다.
 
-먼저 서비스가 배포될 네임스페이스를 확인합니다.
+```
+여러분의 앱 → /var/log/{네임스페이스}/app.log 파일에 로그 작성
+                    ↓ (자동)
+              Fluent Bit가 파일을 읽어감
+                    ↓ (자동)
+              OpenSearch에 저장 → Dashboards에서 검색
+```
+
+---
+
+## 이해해야 할 개념 (최소한만)
+
+### "볼륨(Volume)"이 뭔가요?
+
+Kubernetes에서 컨테이너는 **임시 공간**에서 실행됩니다. 컨테이너가 재시작되면 파일이 다 사라집니다.
+
+**볼륨**은 컨테이너 외부의 저장소를 컨테이너 안에 연결하는 것입니다.
+
+비유하면:
+- 컨테이너 = 호텔 방 (체크아웃하면 짐이 사라짐)
+- 볼륨 = USB 메모리 (방을 바꿔도 데이터 유지)
+
+우리가 사용하는 **HostPath 볼륨**은 서버(노드) 디스크의 폴더를 컨테이너 안에 그대로 연결하는 방식입니다.
+
+```
+서버 디스크: /var/log/my-service/app.log  ←── 실제 파일이 여기 저장됨
+                    ↕ (HostPath로 연결)
+컨테이너 안: /var/log/my-service/app.log  ←── 앱은 여기에 쓰면 됨 (같은 파일)
+```
+
+### "Deployment YAML"이 뭔가요?
+
+Kubernetes에서 앱을 배포하려면 **YAML 파일**에 "이 앱을 이렇게 실행해줘"라고 설정을 적어야 합니다.
+이 YAML 파일을 **Deployment**라고 부릅니다.
+
+아래에서 **복사-붙여넣기 할 수 있는 템플릿**을 제공합니다.
+
+---
+
+## 설정 방법 (3단계)
+
+### Step 1: 네임스페이스 이름 확인
+
+네임스페이스는 팀/서비스별로 분리된 공간입니다. 인프라팀에서 알려준 네임스페이스 이름을 사용하세요.
 
 ```bash
-# 현재 네임스페이스 확인
-kubectl config current-context
-kubectl get ns
-
-# 예시: your-service 네임스페이스에 배포하는 경우
-# 해당 네임스페이스가 없으면 요청하세요
+# 예시: payment-service, user-service, order-service 등
+# 모르겠으면 인프라팀에 문의하세요
 ```
 
-### Step 2: Deployment YAML에 필수 설정 추가
+### Step 2: Deployment YAML 작성
 
-Kubernetes의 Deployment 매니페스트에 다음 설정들을 추가해야 합니다:
-
-#### 2.1 volumes 섹션 (HostPath 볼륨)
+아래 템플릿을 복사한 후, **`YOUR_NAMESPACE`와 `YOUR_SERVICE_NAME`만 바꾸면** 됩니다.
 
 ```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: YOUR_SERVICE_NAME          # ← 서비스 이름 (예: payment-api)
+  namespace: YOUR_NAMESPACE         # ← 네임스페이스 (예: payment-service)
 spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: YOUR_SERVICE_NAME
   template:
+    metadata:
+      labels:
+        app: YOUR_SERVICE_NAME
     spec:
+      containers:
+        - name: YOUR_SERVICE_NAME
+          image: YOUR_IMAGE:TAG     # ← 도커 이미지 (예: myapp:1.0.0)
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+
+          # ──────────────────────────────────────
+          # [필수] 환경 변수 - 로그 경로를 앱에 전달
+          # ──────────────────────────────────────
+          env:
+            - name: LOG_PATH
+              value: "/var/log/YOUR_NAMESPACE"
+
+          # ──────────────────────────────────────
+          # [필수] 리소스 제한
+          # ──────────────────────────────────────
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          # ──────────────────────────────────────
+          # [필수] 보안 설정 - root로 실행
+          # 서버마다 별도 권한 설정 없이 바로 로그 쓰기 가능
+          # ──────────────────────────────────────
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+
+          # ──────────────────────────────────────
+          # [필수] 볼륨 마운트 - 로그 폴더를 컨테이너에 연결
+          # ──────────────────────────────────────
+          volumeMounts:
+            - name: hostpath-logs
+              mountPath: /var/log/YOUR_NAMESPACE
+
+      # ──────────────────────────────────────
+      # [필수] 볼륨 정의 - 서버 디스크 폴더를 지정
+      # ──────────────────────────────────────
       volumes:
-        # 로그 파일을 저장할 HostPath 볼륨
         - name: hostpath-logs
           hostPath:
-            path: /var/log/YOUR_NAMESPACE  # 네임스페이스별로 분리
-            type: DirectoryOrCreate         # 폴더가 없으면 자동 생성
+            path: /var/log/YOUR_NAMESPACE   # 서버 디스크의 실제 경로
+            type: DirectoryOrCreate          # 폴더 없으면 자동 생성
 ```
 
-**주요 옵션:**
-- `path`: 노드의 실제 경로 (예: `/var/log/your-service`)
-- `type: DirectoryOrCreate`: 폴더가 없으면 자동으로 생성
-  - `Directory`: 폴더가 반드시 존재해야 함
-  - `DirectoryOrCreate`: 폴더가 없으면 자동 생성 (권장)
-  - `File`: 파일이 반드시 존재해야 함
-  - `FileOrCreate`: 파일이 없으면 자동 생성
+#### 바꿔야 할 부분 정리
 
-#### 2.2 volumeMounts 섹션 (컨테이너에 마운트)
+| 플레이스홀더 | 설명 | 예시 |
+|---|---|---|
+| `YOUR_SERVICE_NAME` | 서비스 이름 | `payment-api` |
+| `YOUR_NAMESPACE` | 네임스페이스 | `payment-service` |
+| `YOUR_IMAGE:TAG` | 도커 이미지 | `mycompany/payment-api:1.2.3` |
 
-```yaml
-spec:
-  template:
-    spec:
-      containers:
-        - name: your-app
-          volumeMounts:
-            # HostPath를 컨테이너 내부의 /var/log/{namespace}에 마운트
-            - name: hostpath-logs
-              mountPath: /var/log/YOUR_NAMESPACE
-```
+#### 왜 root(runAsUser: 0)인가요?
 
-**주요 설정:**
-- `name`: volumes 섹션의 name과 일치해야 함
-- `mountPath`: 컨테이너 내부 경로 (로그 파일을 이곳에 기록)
-
-#### 2.3 securityContext 섹션 (권한 설정)
-
-```yaml
-spec:
-  template:
-    spec:
-      containers:
-        - name: your-app
-          securityContext:
-            runAsUser: 1000          # 일반 사용자 권한으로 실행
-            runAsGroup: 1000         # 일반 그룹으로 실행
-```
-
-**중요:**
-- `runAsUser: 1000`: root가 아닌 일반 사용자로 실행 (보안)
-- `runAsGroup: 1000`: 그룹 권한 설정
-
-#### 2.4 initContainers 섹션 (파일 권한 설정)
-
-```yaml
-spec:
-  template:
-    spec:
-      initContainers:
-        # 로그 디렉토리의 소유권을 1000:1000으로 변경
-        # Pod이 로그를 쓸 수 있도록 권한 설정
-        - name: fix-log-dir-ownership
-          image: busybox:1.36
-          command: ['sh', '-c', 'mkdir -p /var/log/YOUR_NAMESPACE && chown 1000:1000 /var/log/YOUR_NAMESPACE']
-          securityContext:
-            runAsUser: 0  # root 권한으로만 chown 가능
-          volumeMounts:
-            - name: hostpath-logs
-              mountPath: /var/log/YOUR_NAMESPACE
-```
-
-**중요:**
-- initContainer는 메인 컨테이너 실행 전에 실행됨
-- `chown 1000:1000`으로 소유권 변경 (chmod 777은 사용하지 않음!)
-- 디렉토리를 생성하고 즉시 소유권을 변경해야 함
+- root로 실행하면 **서버마다 일일히 `/var/log/` 폴더 권한을 설정할 필요가 없습니다**
+- HostPath 볼륨은 서버 디스크에 직접 쓰기 때문에, 일반 사용자(1000)로 실행하면 서버마다 `chown`으로 소유권을 바꿔줘야 합니다
+- root로 실행하면 어떤 서버에서든 바로 파일을 생성하고 쓸 수 있습니다
+- 이 설정은 **로그 수집 용도로만** 사용되며, 네트워크 권한과는 무관합니다
 
 ### Step 3: 로그 파일 경로 규칙
 
-로그 파일은 다음 규칙을 따라야 합니다:
+앱에서 로그를 쓸 때 아래 규칙을 지켜주세요:
 
 ```
-/var/log/{namespace}/app-{service-name}.log
+/var/log/{네임스페이스}/app-{서비스이름}.log
 ```
 
 **예시:**
 ```
-/var/log/payment-service/app-payment.log
-/var/log/user-service/app-user.log
-/var/log/order-service/app-order.log
+/var/log/payment-service/app-payment.log    ← payment 팀
+/var/log/user-service/app-user.log          ← user 팀
+/var/log/order-service/app-order.log        ← order 팀
 ```
 
 **규칙:**
-- 모든 로그는 `/var/log/{namespace}/` 디렉토리 아래
-- 파일명은 `app*.log` 패턴 (예: `app.log`, `app-service.log`, `app-payment.log`)
-- Fluent Bit이 `/var/log/*/app*.log`로 모든 로그를 자동 수집
+- 경로: `/var/log/{네임스페이스}/` 아래
+- 파일명: `app`으로 시작, `.log`로 끝남 (예: `app.log`, `app-payment.log`)
+- Fluent Bit이 `/var/log/*/app*.log` 패턴으로 자동 수집합니다
 
-### Step 4: Log4j2 JSON 포맷 설정
+---
 
-#### 4.1 log4j2.xml 설정 (Spring Boot 또는 Java 앱)
+## Log4j2 JSON 포맷 설정
+
+로그는 반드시 **JSON 형식**으로 작성해야 합니다. 일반 텍스트 로그는 수집되지 않습니다.
+
+### Spring Boot (log4j2.xml) 설정
+
+`src/main/resources/log4j2.xml` 파일에 다음을 추가하세요:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration packages="org.apache.logging.log4j.core,org.apache.logging.log4j.layout.template.json">
+<Configuration>
   <Appenders>
-    <!-- 파일 Appender: /var/log/{namespace}/app.log에 기록 -->
+    <!-- 파일에 JSON 형식으로 로그 기록 -->
     <File name="JsonFile" fileName="/var/log/YOUR_NAMESPACE/app.log">
-      <!-- JSON Layout: 각 로그 레코드를 JSON 형식으로 기록 -->
-      <JsonLayout compact="false" eventEol="true">
+      <JsonLayout compact="true" eventEol="true">
         <KeyValuePair key="timeMillis" value="$${log4j:timestamp}" />
         <KeyValuePair key="thread" value="$${log4j:thread}" />
         <KeyValuePair key="level" value="$${log4j:level}" />
@@ -208,306 +199,221 @@ spec:
 </Configuration>
 ```
 
-#### 4.2 Spring Boot application.yml 설정
+### 로그 출력 예시
 
-```yaml
-logging:
-  file:
-    name: /var/log/YOUR_NAMESPACE/app.log
-  pattern:
-    file: "%d{ISO8601} %level %logger{36} - %msg%n"
-  level:
-    root: INFO
-    com.example: DEBUG
-
-# 또는 logback-spring.xml 사용 (Spring Boot 기본)
-# logback-spring.xml에서 appender로 /var/log/{namespace}/app.log 설정
-```
-
-#### 4.3 Log4j2 JSON Layout 예시
-
-설정 후 생성되는 로그 파일 형식:
+설정 후 생성되는 로그 파일은 이렇게 생겼습니다:
 
 ```json
-{"timeMillis":1707460800000,"thread":"main","level":"INFO","loggerName":"com.example.PaymentService","message":"Processing payment request","contextMap":{"traceId":"abc-123","spanId":"def-456"}}
-{"timeMillis":1707460801000,"thread":"main","level":"ERROR","loggerName":"com.example.PaymentService","message":"Payment failed","exception":"java.lang.RuntimeException: Insufficient balance\n\tat com.example.PaymentService.processPayment(PaymentService.java:45)\n\tat com.example.PaymentController.pay(PaymentController.java:20)"}
+{"timeMillis":1707460800000,"thread":"main","level":"INFO","loggerName":"com.example.PaymentService","message":"결제 요청 처리 시작"}
+{"timeMillis":1707460801000,"thread":"main","level":"ERROR","loggerName":"com.example.PaymentService","message":"결제 실패\njava.lang.RuntimeException: 잔액 부족\n\tat com.example.PaymentService.process(PaymentService.java:45)"}
 ```
 
-**중요:**
-- 각 JSON 객체는 한 줄이지만, 예외(stacktrace)는 여러 줄에 걸칠 수 있음
-- Fluent Bit의 multiline 파서가 자동으로 합쳐줌
+- 한 줄에 하나의 JSON 객체
+- 에러의 스택트레이스(여러 줄)는 Fluent Bit이 자동으로 합쳐줍니다
 
 ---
 
-## 완전한 Deployment YAML 템플릿
+## 실제 적용 예시: payment-service
 
-다음 예시를 복사-붙여넣기 하여 사용할 수 있습니다. `YOUR_NAMESPACE`, `YOUR_SERVICE_NAME` 등의 플레이스홀더를 교체하세요.
+바로 복사해서 사용할 수 있는 실제 예시입니다.
 
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: YOUR_SERVICE_NAME
-  namespace: YOUR_NAMESPACE
+  name: payment-api
+  namespace: payment-service
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
-      app: YOUR_SERVICE_NAME
+      app: payment-api
   template:
     metadata:
       labels:
-        app: YOUR_SERVICE_NAME
+        app: payment-api
     spec:
-      # initContainer: 로그 디렉토리 권한 설정
-      initContainers:
-        - name: fix-log-dir-ownership
-          image: busybox:1.36
-          command:
-            - 'sh'
-            - '-c'
-            - 'mkdir -p /var/log/YOUR_NAMESPACE && chown 1000:1000 /var/log/YOUR_NAMESPACE'
-          securityContext:
-            runAsUser: 0  # root 권한
-          volumeMounts:
-            - name: hostpath-logs
-              mountPath: /var/log/YOUR_NAMESPACE
-
       containers:
-        - name: YOUR_SERVICE_NAME
-          image: YOUR_IMAGE:TAG
-          imagePullPolicy: IfNotPresent
+        - name: payment-api
+          image: mycompany/payment-api:1.2.3
           ports:
             - containerPort: 8080
-              name: http
-
-          # 환경 변수 (로그 경로)
           env:
             - name: LOG_PATH
-              value: "/var/log/YOUR_NAMESPACE"
-
-          # 리소스 요청 및 제한
+              value: "/var/log/payment-service"
           resources:
             requests:
-              cpu: 100m
-              memory: 256Mi
-            limits:
-              cpu: 500m
+              cpu: 200m
               memory: 512Mi
-
-          # 헬스체크
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-
-          # 보안: 일반 사용자 권한으로 실행
+            limits:
+              cpu: 1000m
+              memory: 1Gi
           securityContext:
-            runAsUser: 1000
-            runAsGroup: 1000
-            allowPrivilegeEscalation: false
-
-          # 볼륨 마운트
+            runAsUser: 0
+            runAsGroup: 0
           volumeMounts:
             - name: hostpath-logs
-              mountPath: /var/log/YOUR_NAMESPACE
-
-      # 볼륨 정의
+              mountPath: /var/log/payment-service
       volumes:
         - name: hostpath-logs
           hostPath:
-            path: /var/log/YOUR_NAMESPACE
+            path: /var/log/payment-service
             type: DirectoryOrCreate
 ```
 
+배포:
+```bash
+kubectl apply -f deployment.yaml
+```
+
+확인:
+```bash
+# Pod이 잘 떴는지 확인
+kubectl get pods -n payment-service
+
+# 로그 파일이 생겼는지 확인 (Pod 안에서)
+kubectl exec -n payment-service deploy/payment-api -- ls -la /var/log/payment-service/
+
+# 로그 내용 확인
+kubectl exec -n payment-service deploy/payment-api -- tail -5 /var/log/payment-service/app.log
+```
+
 ---
 
-## Volume / VolumeMount 상세 설명
+## 자주 묻는 질문 (FAQ)
 
-### hostPath vs emptyDir vs PVC
+### Q1: "로그 파일이 안 만들어져요"
 
-세 가지 볼륨 타입의 차이를 이해하는 것이 중요합니다:
+**확인 순서:**
 
-| 항목 | hostPath | emptyDir | PVC |
-|------|----------|----------|-----|
-| **저장 위치** | 노드의 파일시스템 | 노드의 임시 디렉토리 | Kubernetes PersistentVolume |
-| **데이터 지속성** | Pod 삭제 후에도 유지 | Pod 삭제 시 함께 삭제 | 영구적 저장 (별도 설정 필요) |
-| **노드 이동** | Pod이 다른 노드로 이동하면 데이터 액세스 불가 | 각 노드마다 별도의 디렉토리 | 클러스터 어디서든 액세스 가능 |
-| **로그 수집 용도** | ✓ (권장) | ✗ (로그 유실 위험) | ✓ (고비용) |
-| **사용 사례** | 노드 로그, 설정 파일 | 임시 캐시, 작업 디렉토리 | 데이터베이스, 상태저장 앱 |
+1. Pod이 정상 실행 중인지 확인:
+   ```bash
+   kubectl get pods -n YOUR_NAMESPACE
+   # STATUS가 Running인지 확인
+   ```
 
-**로그 수집을 위해서는 hostPath를 사용합니다** (Pod 삭제 후에도 로그 데이터 유지).
+2. 앱의 로그 경로 설정이 맞는지 확인:
+   ```bash
+   # log4j2.xml의 fileName이 /var/log/YOUR_NAMESPACE/app.log 인지 확인
+   ```
 
-### hostPath.type 옵션
+3. 볼륨 마운트가 되어 있는지 확인:
+   ```bash
+   kubectl describe pod -n YOUR_NAMESPACE POD_NAME | grep -A5 "Mounts"
+   ```
 
-hostPath 볼륨의 type 옵션:
+### Q2: "OpenSearch에서 우리 팀 로그가 안 보여요"
 
-| type | 설명 | 사용 사례 |
-|------|------|---------|
-| `Directory` | 폴더가 반드시 존재해야 함 | 이미 존재하는 폴더 마운트 |
-| `DirectoryOrCreate` | 폴더가 없으면 자동 생성 | **권장** (로그 수집용) |
-| `File` | 파일이 반드시 존재해야 함 | 특정 파일 마운트 |
-| `FileOrCreate` | 파일이 없으면 자동 생성 | 로그 파일 초기화 |
+**확인 순서:**
 
-**로그 수집을 위해서는 `DirectoryOrCreate`를 사용합니다** (폴더가 없을 때 자동 생성).
+1. 로그 파일이 서버에 존재하는지 확인:
+   ```bash
+   kubectl exec -n YOUR_NAMESPACE deploy/YOUR_SERVICE -- ls -la /var/log/YOUR_NAMESPACE/
+   ```
 
-### mountPath와 hostPath.path의 관계
+2. 파일명이 규칙에 맞는지 확인:
+   - `app*.log` 패턴이어야 합니다 (예: `app.log`, `app-payment.log`)
+   - `service.log`, `output.log` 같은 이름은 수집되지 않습니다
+
+3. 로그가 JSON 형식인지 확인:
+   ```bash
+   kubectl exec -n YOUR_NAMESPACE deploy/YOUR_SERVICE -- head -1 /var/log/YOUR_NAMESPACE/app.log
+   # {"timeMillis":..., "level":"INFO", ...} 형식이어야 합니다
+   ```
+
+4. 인프라팀에 Fluent Bit 상태 확인 요청:
+   ```bash
+   kubectl logs -n logging -l app.kubernetes.io/name=fluent-bit --tail=20
+   ```
+
+### Q3: "volumes, volumeMounts가 뭔지 모르겠어요"
+
+간단히 설명하면:
+
+- **volumes**: "이런 저장소를 사용하겠다"는 **선언** (= USB 메모리를 준비)
+- **volumeMounts**: "그 저장소를 컨테이너의 이 경로에 연결하겠다"는 **연결** (= USB를 꽂는 위치)
 
 ```yaml
+# 1단계: 볼륨 선언 ("hostpath-logs"라는 이름으로 서버 디스크 폴더 사용)
 volumes:
-  - name: hostpath-logs
+  - name: hostpath-logs              # 이름 (자유롭게 지정)
     hostPath:
-      path: /var/log/payment-service      # ← 노드의 실제 경로
-      type: DirectoryOrCreate
+      path: /var/log/my-service      # 서버 디스크의 어떤 폴더를 쓸 건지
 
-containers:
-  - name: payment-app
-    volumeMounts:
-      - name: hostpath-logs
-        mountPath: /var/log/payment-service  # ← 컨테이너 내부 경로
+# 2단계: 볼륨 연결 ("hostpath-logs"를 컨테이너 안의 특정 경로에 연결)
+volumeMounts:
+  - name: hostpath-logs              # 위에서 선언한 이름과 동일해야 함!
+    mountPath: /var/log/my-service   # 컨테이너 안에서 보이는 경로
 ```
 
-**비유:**
-- `hostPath.path`: 노드의 실제 주소
-- `mountPath`: 컨테이너가 그 폴더를 어디서 보는가
+**핵심:** `volumes.name`과 `volumeMounts.name`이 **반드시 같아야** 합니다.
+
+### Q4: "hostPath.type의 DirectoryOrCreate가 뭔가요?"
+
+| type | 의미 | 언제 사용 |
+|---|---|---|
+| `DirectoryOrCreate` | 폴더가 없으면 자동으로 만들어줌 | **이걸 쓰세요** (권장) |
+| `Directory` | 폴더가 반드시 미리 존재해야 함 | 이미 폴더가 있을 때만 |
+
+### Q5: "다른 팀 로그가 보여요 / 우리 로그만 보고 싶어요"
+
+OpenSearch Dashboards에서 검색할 때 `namespace` 필드로 필터링하세요:
 
 ```
-노드: /var/log/payment-service/app.log
-      ↓ (HostPath 마운트)
-컨테이너: /var/log/payment-service/app.log (동일한 파일)
+namespace: "payment-service"
 ```
 
-### 읽기/쓰기 권한 설정
+각 팀의 로그는 네임스페이스별로 자동 태깅됩니다.
+
+---
+
+## YAML 설정 요소 정리
+
+Deployment YAML에서 각 부분이 하는 역할:
 
 ```yaml
-volumeMounts:
-  - name: hostpath-logs
-    mountPath: /var/log/payment-service
-    readOnly: false  # 기본값: false (읽기+쓰기)
+spec:
+  template:
+    spec:
+      containers:
+        - name: ...
+          image: ...          # 어떤 앱을 실행할지
+          ports: ...          # 앱이 사용하는 포트
+          env: ...            # 환경변수 (로그 경로 등)
+          resources: ...      # CPU/메모리 제한
+          securityContext:     # 실행 권한 설정
+            runAsUser: 0      #   → root로 실행 (권한 문제 없음)
+            runAsGroup: 0     #   → root 그룹으로 실행
+          volumeMounts: ...   # 볼륨을 컨테이너에 연결
 
-# readOnly: true는 읽기만 허용 (로그는 쓰기 필요하므로 false)
+      volumes: ...            # 사용할 볼륨 선언
 ```
 
----
-
-## 자주 하는 실수와 해결 방법
-
-### 문제 1: "로그 파일이 안 써져요"
-
-**원인:**
-- securityContext의 runAsUser/runAsGroup 설정 누락
-- initContainer에서 디렉토리 권한 미설정
-
-**해결:**
-1. Deployment의 securityContext 확인:
-   ```yaml
-   securityContext:
-     runAsUser: 1000
-     runAsGroup: 1000
-   ```
-
-2. initContainer의 chown 실행 확인:
-   ```bash
-   kubectl logs -n YOUR_NAMESPACE POD_NAME -c fix-log-dir-ownership
-   ```
-
-3. 노드에서 디렉토리 권한 확인:
-   ```bash
-   ls -la /var/log/YOUR_NAMESPACE/
-   # 소유자가 1000:1000인지 확인
-   ```
-
-### 문제 2: "Permission denied 오류"
-
-**원인:**
-- 디렉토리의 소유자가 root이거나 다른 사용자
-- securityContext.runAsUser가 해당 사용자와 맞지 않음
-
-**해결:**
-1. initContainer에서 chown으로 소유권 변경:
-   ```yaml
-   initContainers:
-     - name: fix-log-dir-ownership
-       command: ['sh', '-c', 'chown 1000:1000 /var/log/YOUR_NAMESPACE']
-   ```
-
-2. chmod 777은 사용하지 않기 (보안 위험):
-   ```bash
-   # 잘못된 방법:
-   chmod 777 /var/log/YOUR_NAMESPACE  # ❌ 금지!
-
-   # 올바른 방법:
-   chown 1000:1000 /var/log/YOUR_NAMESPACE  # ✓
-   ```
-
-### 문제 3: "폴더가 없어요"
-
-**원인:**
-- hostPath.type이 `Directory`로 설정되어 있음
-- 또는 initContainer에서 mkdir을 실행하지 않음
-
-**해결:**
-1. hostPath.type을 DirectoryOrCreate로 변경:
-   ```yaml
-   hostPath:
-     path: /var/log/YOUR_NAMESPACE
-     type: DirectoryOrCreate  # Directory 대신 DirectoryOrCreate
-   ```
-
-2. 또는 initContainer에서 mkdir 실행:
-   ```yaml
-   command: ['sh', '-c', 'mkdir -p /var/log/YOUR_NAMESPACE && chown 1000:1000 /var/log/YOUR_NAMESPACE']
-   ```
-
-### 문제 4: "로그가 OpenSearch에 안 보여요"
-
-**원인:**
-- 파일명 패턴 불일치 (app*.log이 아님)
-- ClusterFluentBitConfig의 라벨 매칭 실패
-
-**해결:**
-1. 로그 파일명 확인:
-   ```bash
-   ls -la /var/log/YOUR_NAMESPACE/
-   # app*.log 패턴과 일치하는지 확인 (예: app.log, app-payment.log)
-   ```
-
-2. ClusterFluentBitConfig 라벨 확인:
-   ```bash
-   kubectl get clusterfluentbitconfig -o yaml
-   # inputSelector.matchLabels.fluentbit.fluent.io/enabled: "true" 확인
-
-   kubectl get clusterinput --show-labels
-   # 모든 CRD 리소스에 fluentbit.fluent.io/enabled=true 라벨 확인
-   ```
-
-3. Fluent Bit 로그 확인:
-   ```bash
-   kubectl logs -n logging -l app.kubernetes.io/name=fluent-bit
-   # "Input" 플러그인이 파일을 감지했는지 확인
-   ```
+**건드리지 않아도 되는 부분:** `apiVersion`, `kind`, `metadata`, `spec.selector`, `spec.template.metadata.labels`
+(템플릿에서 서비스 이름/네임스페이스만 바꾸면 됩니다)
 
 ---
 
-## 체크리스트
+## 체크리스트 (배포 전 확인)
 
-Deployment 설정 후 다음을 확인하세요:
+배포하기 전에 아래를 확인하세요:
 
-- [ ] volumes 섹션에 hostPath 설정 추가 (path, type: DirectoryOrCreate)
-- [ ] volumeMounts 섹션에 마운트 설정 추가
-- [ ] securityContext.runAsUser/runAsGroup = 1000
-- [ ] initContainers에서 chown 1000:1000 실행
-- [ ] 로그 파일 경로: /var/log/{namespace}/app*.log 규칙 준수
-- [ ] Log4j2 JSON Layout 또는 동등한 JSON 포맷 설정
-- [ ] Deployment 배포 후 Pod 로그 파일 생성 확인
-- [ ] Fluent Bit이 해당 파일을 감지하고 OpenSearch에 전송 확인
+- [ ] YAML에서 `YOUR_NAMESPACE`, `YOUR_SERVICE_NAME`, `YOUR_IMAGE:TAG`를 모두 바꿨는가?
+- [ ] `volumes` 섹션에 `hostPath`가 있는가?
+- [ ] `volumeMounts` 섹션에 마운트가 있는가?
+- [ ] `volumes.name`과 `volumeMounts.name`이 같은가? (둘 다 `hostpath-logs`)
+- [ ] `securityContext`에 `runAsUser: 0`이 있는가?
+- [ ] 로그 파일 경로가 `/var/log/{네임스페이스}/app*.log` 규칙을 따르는가?
+- [ ] 로그 형식이 JSON인가? (Log4j2 JsonLayout 등)
+
+모든 항목을 확인했으면 `kubectl apply -f deployment.yaml`로 배포하세요.
 
 ---
 
-## 추가 도움
+## 도움이 필요할 때
 
-문제가 발생하면 [troubleshooting.md](./troubleshooting.md)를 참조하세요.
-
-OOM 또는 대량 로그 처리 관련 튜닝이 필요하면 [oom-tuning-guide.md](./oom-tuning-guide.md)를 참조하세요.
+| 상황 | 참고 문서 |
+|---|---|
+| 로그가 안 나와요 / 에러가 나요 | [troubleshooting.md](./troubleshooting.md) |
+| 로그가 너무 많아서 메모리가 부족해요 | [oom-tuning-guide.md](./oom-tuning-guide.md) |
+| 그래도 모르겠어요 | 인프라팀에 문의 (Slack: #infra-support) |
