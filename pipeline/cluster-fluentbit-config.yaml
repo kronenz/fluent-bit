@@ -1,0 +1,35 @@
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFluentBitConfig
+metadata:
+  name: fluent-bit-config
+  labels:
+    app.kubernetes.io/name: fluent-bit
+spec:
+  service:
+    flushSeconds: 1
+    logLevel: info
+    httpServer: true
+    httpPort: 2020
+    storage:
+      path: /var/log/flb-storage/
+      sync: normal
+      maxChunksUp: 128
+      backlogMemLimit: "5M"
+      deleteIrrecoverableChunks: "on"
+    emitterMemBufLimit: "50M"
+    emitterStorageType: filesystem
+  inputSelector:
+    matchLabels:
+      fluentbit.fluent.io/enabled: "true"
+  filterSelector:
+    matchLabels:
+      fluentbit.fluent.io/enabled: "true"
+  outputSelector:
+    matchLabels:
+      fluentbit.fluent.io/enabled: "true"
+  parserSelector:
+    matchLabels:
+      fluentbit.fluent.io/enabled: "true"
+  multilineParserSelector:
+    matchLabels:
+      fluentbit.fluent.io/enabled: "true"

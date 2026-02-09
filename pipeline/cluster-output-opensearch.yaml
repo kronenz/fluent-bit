@@ -1,0 +1,19 @@
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterOutput
+metadata:
+  name: opensearch-output
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  match: "hostpath.*"
+  opensearch:
+    host: opensearch-cluster-master.logging.svc.cluster.local
+    port: 9200
+    index: "app-logs"
+    logstashFormat: true
+    logstashPrefix: "app-logs"
+    logstashDateFormat: "%Y.%m.%d"
+    replaceDots: true
+    suppressTypeName: true
+    traceError: true
+    bufferSize: "5MB"

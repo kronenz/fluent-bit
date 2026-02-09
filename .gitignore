@@ -1,0 +1,8 @@
+scripts/.env
+*.swp
+*.swo
+.DS_Store
+.omc/
+__pycache__/
+*.pyc
+connection.md

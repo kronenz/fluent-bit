@@ -1,0 +1,26 @@
+# Fluent Bit Operator Helm Values
+# Chart: fluent/fluent-operator v3.2.0
+
+Kubernetes: false
+
+operator:
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+fluentbit:
+  enable: true
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "500m"
+
+fluentd:
+  enable: false

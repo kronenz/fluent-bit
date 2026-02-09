@@ -1,0 +1,23 @@
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  name: add-metadata
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  match: "hostpath.*"
+  filters:
+    - lua:
+        script:
+          key: add_namespace.lua
+          name: fluent-bit-lua-scripts
+        call: add_namespace_from_path
+    - throttle:
+        rate: 1000
+        window: 5
+        interval: "1s"
+        printStatus: true
+    - modify:
+        rules:
+          - add:
+              cluster_name: "my-cluster"

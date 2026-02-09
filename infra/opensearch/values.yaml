@@ -1,0 +1,25 @@
+replicas: 1
+singleNode: true
+
+persistence:
+  size: 10Gi
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+
+extraEnvs:
+  - name: DISABLE_SECURITY_PLUGIN
+    value: "true"
+  - name: DISABLE_INSTALL_DEMO_CONFIG
+    value: "true"
+
+service:
+  type: ClusterIP
+
+securityConfig:
+  enabled: false

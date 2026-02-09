@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-generator
+  namespace: sample-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-generator
+  template:
+    metadata:
+      labels:
+        app: log-generator
+    spec:
+      initContainers:
+        - name: fix-log-dir-ownership
+          image: busybox:1.36
+          command: ['sh', '-c', 'chown 1000:1000 /var/log/sample-app']
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: hostpath-logs
+              mountPath: /var/log/sample-app
+      containers:
+        - name: log-generator
+          image: busybox:1.36
+          command: ['sh', '/scripts/log-generator.sh']
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: LOG_PATH
+              value: "/var/log/sample-app"
+          volumeMounts:
+            - name: hostpath-logs
+              mountPath: /var/log/sample-app
+            - name: script
+              mountPath: /scripts
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+      volumes:
+        - name: hostpath-logs
+          hostPath:
+            path: /var/log/sample-app
+            type: DirectoryOrCreate
+        - name: script
+          configMap:
+            name: log-generator-script
+            defaultMode: 0755

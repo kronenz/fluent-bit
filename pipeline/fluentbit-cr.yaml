@@ -1,0 +1,38 @@
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBit
+metadata:
+  name: fluent-bit
+  namespace: logging
+  labels:
+    app.kubernetes.io/name: fluent-bit
+spec:
+  image: ghcr.io/fluent/fluent-operator/fluent-bit:3.1.7
+  fluentBitConfigName: fluent-bit-config
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  volumes:
+    - name: varlog
+      hostPath:
+        path: /var/log
+        type: DirectoryOrCreate
+    - name: flb-storage
+      hostPath:
+        path: /var/log/flb-storage/
+        type: DirectoryOrCreate
+    - name: lua-scripts
+      configMap:
+        name: fluent-bit-lua-scripts
+  volumesMounts:
+    - name: varlog
+      mountPath: /var/log
+    - name: flb-storage
+      mountPath: /var/log/flb-storage/
+    - name: lua-scripts
+      mountPath: /fluent-bit/scripts
+  tolerations:
+    - operator: Exists

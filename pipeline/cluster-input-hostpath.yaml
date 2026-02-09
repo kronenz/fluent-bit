@@ -1,0 +1,18 @@
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterInput
+metadata:
+  name: hostpath-logs
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  tail:
+    tag: "hostpath.*"
+    path: "/var/log/*/app*.log"
+    pathKey: source_file
+    refreshIntervalSeconds: 5
+    memBufLimit: "10MB"
+    skipLongLines: true
+    db: "/var/log/flb-storage/tail-pos.db"
+    dbSync: Normal
+    readFromHead: false
+    storageType: filesystem

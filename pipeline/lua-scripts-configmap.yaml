@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-lua-scripts
+  namespace: logging
+data:
+  add_namespace.lua: |
+    -- 파일 경로에서 네임스페이스 추출
+    -- 예: /var/log/sample-app/app.log -> namespace = "sample-app"
+    function add_namespace_from_path(tag, timestamp, record)
+      local source = record["source_file"]
+      if source then
+        local namespace = string.match(source, "/var/log/([^/]+)/")
+        if namespace then
+          record["namespace"] = namespace
+        else
+          record["namespace"] = "unknown"
+        end
+      else
+        record["namespace"] = "unknown"
+      end
+      return 1, timestamp, record
+    end
