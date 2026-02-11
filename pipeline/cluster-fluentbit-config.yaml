@@ -1,3 +1,19 @@
+# ============================================================================
+# ClusterFluentBitConfig: 파이프라인 허브
+# ============================================================================
+# 역할: FluentBit 파이프라인의 중앙 설정
+#   - Service 섹션 (flush, 로그레벨, 파일시스템 버퍼 등)
+#   - Label Selector로 Input/Filter/Output/Parser CRD를 자동 연결
+#
+# 이 리소스의 이름(fluent-bit-config)은 values.yaml의
+# fluentbit.fluentBitConfigName과 반드시 일치해야 합니다.
+#
+# [OOM 방어 전략 - L1, L2 설정 위치]
+# L1: Input의 memBufLimit    → cluster-input-hostpath.yaml
+# L2: Service의 storage 설정 → 이 파일 (아래)
+# L3: Throttle filter        → cluster-filter-modify.yaml
+# L4: Pod memory limits      → values.yaml
+# ============================================================================
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: ClusterFluentBitConfig
 metadata:
@@ -6,18 +22,62 @@ metadata:
     app.kubernetes.io/name: fluent-bit
 spec:
   service:
-    flushSeconds: 1
-    logLevel: info
-    httpServer: true
-    httpPort: 2020
+    # ------------------------------------------------------------------
+    # [기본 설정]
+    # ------------------------------------------------------------------
+    flushSeconds: 1          # 출력 플러시 주기 (초)
+                             # 1 = 매초 OpenSearch로 전송
+                             # 5 = 5초마다 배치 전송 (네트워크 효율적)
+    logLevel: info           # debug | info | warn | error
+                             # 문제 발생 시 debug로 변경하여 상세 로그 확인
+
+    # 파서 파일 로드 (ClusterParser가 여기에 생성됨)
+    parsersFile: /fluent-bit/config/parsers.conf
+    parsersFiles:
+      - /fluent-bit/config/parsers_multiline.conf
+
+    # HTTP 서버 (메트릭 및 헬스체크)
+    httpServer: true         # Prometheus 메트릭 노출
+    httpPort: 2020           # GET /api/v1/metrics/prometheus
+
+    # ------------------------------------------------------------------
+    # [파일시스템 버퍼 설정] (OOM 방어 L2)
+    # ------------------------------------------------------------------
+    # memBufLimit(L1) 초과 시 메모리 대신 디스크에 임시 저장
+    # → OOM 방지의 핵심 메커니즘
+    #
+    # 동작 흐름:
+    #   1. Input이 로그 읽음 → 메모리 버퍼에 저장
+    #   2. 메모리 버퍼가 memBufLimit 도달 → 디스크(storage.path)로 스필오버
+    #   3. Output이 전송 성공 → 디스크에서 삭제
+    #   4. Output 장애 시 → 디스크에 계속 저장 (backlogMemLimit까지)
+    # ------------------------------------------------------------------
     storage:
-      path: /var/log/flb-storage/
-      sync: normal
-      maxChunksUp: 128
-      backlogMemLimit: "5M"
-      deleteIrrecoverableChunks: "on"
-    emitterMemBufLimit: "50M"
-    emitterStorageType: filesystem
+      path: /var/log/flb-storage/    # 버퍼 저장 경로 (values.yaml의 flb-storage 볼륨)
+      sync: normal                    # normal | full
+                                      # normal: 비동기 쓰기 (성능 우선)
+                                      # full: 동기 쓰기 (데이터 안전 우선)
+      maxChunksUp: 128                # 메모리에 올릴 최대 청크 수
+                                      # 청크 1개 ≈ 2MB → 128 × 2MB = ~256MB
+                                      # ⚠️ 이 값 × 2MB < Pod memory limit 이어야 함
+      backlogMemLimit: "5M"           # 백로그(미전송 데이터) 메모리 제한
+                                      # Output 장애 복구 후 재전송할 데이터 크기
+      deleteIrrecoverableChunks: "on" # 손상된 청크 자동 삭제 (on/off)
+                                      # on: 손상 데이터 버리고 계속 동작
+                                      # off: 손상 시 멈춤 (데이터 유실 없음)
+
+    # Emitter 설정 (multiline/rewrite_tag 등 내부 재전송)
+    # 대량 로그 + multiline 사용 시 emitter가 OOM 원인이 되는 경우가 많음
+    emitterMemBufLimit: "50M"         # Emitter 메모리 버퍼 제한
+    emitterStorageType: filesystem    # memory | filesystem
+                                      # filesystem: OOM 방지를 위해 디스크 사용 권장
+
+  # ------------------------------------------------------------------
+  # [라벨 셀렉터] - CRD 자동 연결
+  # ------------------------------------------------------------------
+  # fluentbit.fluent.io/enabled: "true" 라벨이 있는 모든 CRD를 자동 포함
+  # 새 CRD 추가 시 이 라벨만 붙이면 자동으로 파이프라인에 포함됨
+  # ------------------------------------------------------------------
   inputSelector:
     matchLabels:
       fluentbit.fluent.io/enabled: "true"

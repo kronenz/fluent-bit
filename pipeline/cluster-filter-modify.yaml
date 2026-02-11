@@ -1,22 +1,49 @@
+# ============================================================================
+# ClusterFilter: 02-add-metadata (메타데이터 추가)
+# ============================================================================
+# 실행 순서: 2번째 (이름 기준: 01-parse-json < 02-add-metadata)
+#
+# 역할 (3단계):
+#   1. Lua  → namespace 추출 + contextMap 필드 평탄화
+#   2. Throttle → 초당 레코드 수 제한 (OOM 방어 L3)
+#   3. Modify   → cluster_name 필드 추가
+#
+# 입력 (01-parse-json 통과 후):
+#   { "level": "INFO", "contextMap": {"traceId":"abc","namespace":"sample-app"},
+#     "source_file": "/var/log/sample-app/app.log" }
+#
+# 출력:
+#   { "level": "INFO", "traceId": "abc", "namespace": "sample-app",
+#     "source_file": "...", "cluster_name": "my-cluster" }
+# ============================================================================
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: ClusterFilter
 metadata:
-  name: add-metadata
+  name: 02-add-metadata
   labels:
     fluentbit.fluent.io/enabled: "true"
 spec:
   match: "hostpath.*"
   filters:
+    # [1단계] Lua: namespace 추출 + contextMap 평탄화
     - lua:
         script:
-          key: add_namespace.lua
+          key: enrich_metadata.lua
           name: fluent-bit-lua-scripts
-        call: add_namespace_from_path
+        call: enrich_metadata
+
+    # [2단계] Throttle: 초당 처리량 제한 (OOM 방어 L3)
+    # 환경별 권장값:
+    #   소규모 (~100 lines/sec):  rate: 500
+    #   중규모 (~1000 lines/sec): rate: 2000
+    #   대규모 (~5000 lines/sec): rate: 5000
     - throttle:
         rate: 1000
         window: 5
         interval: "1s"
         printStatus: true
+
+    # [3단계] Modify: 정적 필드 추가
     - modify:
         rules:
           - add:

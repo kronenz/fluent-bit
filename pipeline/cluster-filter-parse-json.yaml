@@ -1,0 +1,27 @@
+# ============================================================================
+# ClusterFilter: 01-parse-json (네이티브 JSON 파싱)
+# ============================================================================
+# 실행 순서: 1번째 (이름 기준: 01-parse-json < 02-add-metadata)
+#
+# 역할: tail input의 log 필드를 네이티브 JSON 파서로 파싱
+#   - Lua 대비 높은 성능 (C 구현)
+#   - Operator가 parsers.conf에 json-log-parser 자동 포함
+#
+# 입력: { "log": "{\"level\":\"INFO\",...}", "source_file": "..." }
+# 출력: { "level": "INFO", "message": "...", "contextMap": {...},
+#         "source_file": "..." }
+# ============================================================================
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  name: 01-parse-json
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  match: "hostpath.*"
+  filters:
+    - parser:
+        keyName: log                # 파싱 대상 키
+        parser: json-log-parser     # ClusterParser 이름 참조
+        reserveData: true           # 기존 필드 유지 (source_file 등)
+        preserveKey: false          # 파싱 후 원본 log 키 제거

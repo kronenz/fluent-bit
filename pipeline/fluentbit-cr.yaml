@@ -1,3 +1,17 @@
+# ============================================================================
+# FluentBit CR: DaemonSet 생성
+# ============================================================================
+# Operator가 이 CR을 감시하여 FluentBit DaemonSet을 자동 생성합니다.
+# DaemonSet은 모든 노드에 FluentBit Pod 1개씩 배포합니다.
+#
+# ⚠️ fluentBitConfigName은 ClusterFluentBitConfig의 이름과 일치해야 합니다.
+# ⚠️ volumes/volumesMounts는 ClusterInput, ClusterFilter의 경로와 일치해야 합니다.
+#
+# [볼륨 매핑]
+# varlog      → ClusterInput의 path: "/var/log/*/app*.log"
+# flb-storage → ClusterFluentBitConfig의 storage.path + tail DB
+# lua-scripts → ClusterFilter의 lua.script ConfigMap 참조
+# ============================================================================
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: FluentBit
 metadata:
@@ -6,33 +20,61 @@ metadata:
   labels:
     app.kubernetes.io/name: fluent-bit
 spec:
+  # FluentBit 컨테이너 이미지
+  # 폐쇄망: 내부 레지스트리로 변경 (예: harbor.example.com/fluent/fluent-bit:3.1.7)
   image: ghcr.io/fluent/fluent-operator/fluent-bit:3.1.7
+
+  # ClusterFluentBitConfig 참조 (파이프라인 설정 허브)
   fluentBitConfigName: fluent-bit-config
+
+  # --------------------------------------------------------------------------
+  # 리소스 제한 (OOM 방어 L4 - 최종 안전장치)
+  # --------------------------------------------------------------------------
+  # memory limits 계산 가이드:
+  #   소규모 (~100 lines/sec):  256Mi
+  #   중규모 (~1000 lines/sec): 512Mi
+  #   대규모 (~5000 lines/sec): 1Gi
+  # --------------------------------------------------------------------------
   resources:
     requests:
       cpu: 100m
       memory: 128Mi
     limits:
       cpu: 500m
-      memory: 256Mi
+      memory: 512Mi
+
+  # --------------------------------------------------------------------------
+  # 볼륨 정의
+  # --------------------------------------------------------------------------
   volumes:
+    # [1] 서비스팀 로그 디렉토리 (읽기)
     - name: varlog
       hostPath:
         path: /var/log
         type: DirectoryOrCreate
+
+    # [2] FluentBit 파일시스템 버퍼 + position DB (읽기/쓰기)
     - name: flb-storage
       hostPath:
-        path: /var/log/flb-storage/
+        path: /var/log/flb-storage
         type: DirectoryOrCreate
+
+    # [3] Lua 스크립트 ConfigMap (읽기 전용)
     - name: lua-scripts
       configMap:
         name: fluent-bit-lua-scripts
+
+  # --------------------------------------------------------------------------
+  # 볼륨 마운트 (⚠️ CRD 필드명: volumesMounts - s 주의)
+  # --------------------------------------------------------------------------
   volumesMounts:
     - name: varlog
       mountPath: /var/log
     - name: flb-storage
-      mountPath: /var/log/flb-storage/
+      mountPath: /var/log/flb-storage
     - name: lua-scripts
       mountPath: /fluent-bit/scripts
+
+  # 모든 노드에 배포 (taint 무시)
   tolerations:
     - operator: Exists

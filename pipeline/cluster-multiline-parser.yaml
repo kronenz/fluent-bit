@@ -1,3 +1,19 @@
+# ============================================================================
+# ClusterMultilineParser: Java Log4j2 JSON 멀티라인 파서
+# ============================================================================
+# 역할: 여러 줄에 걸친 Java stacktrace를 하나의 레코드로 합침
+#
+# 동작 원리:
+#   - start_state: { 로 시작하는 줄 → 새 레코드 시작
+#   - cont: { 로 시작하지 않는 줄 → 이전 레코드에 이어 붙임
+#
+# 예시 (3줄이 1개 레코드로 합쳐짐):
+#   {"level":"ERROR","message":"Payment failed
+#   java.lang.NullPointerException
+#       at com.example.Service.process(Service.java:45)"}
+#
+# 참조: ClusterFluentBitConfig의 multilineParserSelector로 자동 연결
+# ============================================================================
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: ClusterMultilineParser
 metadata:
@@ -8,11 +24,11 @@ spec:
   type: regex
   parser: json
   keyContent: log
-  flushTimeout: 5000
+  flushTimeout: 5000              # 5초 내 다음 줄이 없으면 현재 레코드 완료 (ms)
   rules:
     - start: "start_state"
-      regex: '/^\{.*/'
+      regex: '/^\{.*/'            # { 로 시작 → 새 JSON 레코드 시작
       next: "cont"
     - start: "cont"
-      regex: '/^[^\{].*/'
+      regex: '/^[^\{].*/'         # { 로 시작하지 않음 → 이전 레코드 계속
       next: "cont"

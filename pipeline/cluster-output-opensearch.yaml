@@ -1,3 +1,25 @@
+# ============================================================================
+# ClusterOutput: OpenSearch 출력
+# ============================================================================
+# 역할: 파이프라인의 최종 단계 - 가공된 로그를 OpenSearch에 전송
+#
+# 인덱스 패턴: app-logs-YYYY.MM.DD (일별 인덱스)
+#   예: app-logs-2026.02.11
+#
+# OpenSearch에 저장되는 최종 문서 구조:
+#   {
+#     "@timestamp": "2026-02-11T10:30:00Z",
+#     "timeMillis": 1707640200000,
+#     "level": "INFO",
+#     "loggerName": "com.example.PaymentService",
+#     "message": "결제 처리 완료",
+#     "thread": "http-nio-8080-exec-1",
+#     "contextMap": { "traceId": "abc123", "spanId": "def456" },
+#     "namespace": "payment-service",
+#     "source_file": "/var/log/payment-service/app-payment.log",
+#     "cluster_name": "my-cluster"
+#   }
+# ============================================================================
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: ClusterOutput
 metadata:
@@ -7,13 +29,40 @@ metadata:
 spec:
   match: "hostpath.*"
   opensearch:
+    # ------------------------------------------------------------------
+    # [접속 정보]
+    # ------------------------------------------------------------------
+    # OpenSearch 클러스터의 Service DNS
+    # 형식: {release-name}-{chart-name}.{namespace}.svc.cluster.local
+    # ------------------------------------------------------------------
     host: opensearch-cluster-master.logging.svc.cluster.local
     port: 9200
-    index: "app-logs"
-    logstashFormat: true
-    logstashPrefix: "app-logs"
-    logstashDateFormat: "%Y.%m.%d"
-    replaceDots: true
-    suppressTypeName: true
-    traceError: true
-    bufferSize: "5MB"
+
+    # TLS 설정 (보안 활성화 시)
+    # httpUser: "admin"
+    # httpPassword:
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: opensearch-credentials
+    #       key: password
+    # tls:
+    #   verify: false          # 자체 서명 인증서 시 false
+
+    # ------------------------------------------------------------------
+    # [인덱스 설정]
+    # ------------------------------------------------------------------
+    index: "app-logs"                    # 기본 인덱스 이름 (logstashFormat 사용 시 접두사)
+    logstashFormat: true                  # true: 인덱스명에 날짜 자동 추가
+    logstashPrefix: "app-logs"            # 인덱스 접두사
+    logstashDateFormat: "%Y.%m.%d"        # 날짜 형식 → app-logs-2026.02.11
+    suppressTypeName: true                # OpenSearch 2.x 호환 (_type 필드 제거)
+    replaceDots: true                     # 필드명의 . 을 _ 로 치환
+                                          # (OpenSearch 매핑 충돌 방지)
+
+    # ------------------------------------------------------------------
+    # [성능 설정]
+    # ------------------------------------------------------------------
+    bufferSize: "5MB"                     # HTTP 요청 버퍼 크기
+                                          # 문서 크기가 큰 경우 (stacktrace 등) 늘릴 것
+    traceError: true                      # 전송 에러 시 상세 로그 출력
+                                          # 디버깅 시 유용, 안정화 후 false 가능

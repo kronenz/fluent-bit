@@ -1,0 +1,29 @@
+# ============================================================================
+# Kustomization: 파이프라인 CRD 리소스
+# ============================================================================
+# 적용: kubectl apply -k pipeline/
+# 또는: kustomize build pipeline/ | kubectl apply -f -
+# ============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  # Lua 스크립트 (ConfigMap) - namespace 추출 + contextMap 평탄화
+  - lua-scripts-configmap.yaml
+
+  # 파이프라인 허브 (Service 설정 + Label Selector)
+  - cluster-fluentbit-config.yaml
+
+  # 파서
+  - cluster-parser-json.yaml            # 네이티브 JSON 파서
+  - cluster-multiline-parser.yaml       # Java stacktrace 멀티라인
+
+  # 입력
+  - cluster-input-hostpath.yaml         # tail: /var/log/*/app*.log
+
+  # 필터 (이름순 정렬로 실행 순서 결정)
+  - cluster-filter-parse-json.yaml      # 01: JSON 파싱 (네이티브)
+  - cluster-filter-modify.yaml          # 02: 메타데이터 추가 (Lua + throttle)
+
+  # 출력
+  - cluster-output-opensearch.yaml      # OpenSearch 전송

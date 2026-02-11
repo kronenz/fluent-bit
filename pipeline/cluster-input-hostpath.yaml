@@ -1,3 +1,15 @@
+# ============================================================================
+# ClusterInput: HostPath 파일 기반 로그 수집
+# ============================================================================
+# 역할: 노드의 /var/log/*/app*.log 파일을 tail로 읽어 파이프라인에 입력
+#
+# 서비스팀 로그 경로 규칙:
+#   /var/log/{namespace}/app-{service}.log
+#   예: /var/log/payment-service/app-payment.log
+#       /var/log/user-service/app-user.log
+#
+# [OOM 방어 L1 설정 위치]
+# ============================================================================
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: ClusterInput
 metadata:
@@ -6,13 +18,54 @@ metadata:
     fluentbit.fluent.io/enabled: "true"
 spec:
   tail:
-    tag: "hostpath.*"
-    path: "/var/log/*/app*.log"
-    pathKey: source_file
-    refreshIntervalSeconds: 5
-    memBufLimit: "10MB"
-    skipLongLines: true
+    # ------------------------------------------------------------------
+    # [기본 설정]
+    # ------------------------------------------------------------------
+    tag: "hostpath.*"                    # 레코드 태그 (Filter/Output의 match에서 사용)
+    path: "/var/log/*/app*.log"          # 수집 대상 파일 패턴
+                                          # /var/log/{namespace}/app*.log
+    pathKey: source_file                  # 레코드에 원본 파일 경로 추가
+                                          # → { "source_file": "/var/log/sample-app/app.log" }
+    refreshIntervalSeconds: 5             # 새 파일 감지 주기 (초)
+                                          # 5 = 5초마다 새 로그 파일 확인
+    skipLongLines: true                   # 2MB 초과 라인 건너뛰기
+                                          # false면 긴 라인으로 인해 멈출 수 있음
+
+    # ------------------------------------------------------------------
+    # [Position DB] - 재시작 시 중복 수집 방지
+    # ------------------------------------------------------------------
+    # FluentBit이 각 파일의 읽기 위치를 저장
+    # Pod 재시작 시 마지막 위치부터 이어서 읽음
+    # ⚠️ 이 경로는 flb-storage 볼륨 내에 있어야 함 (영구 저장)
+    # ------------------------------------------------------------------
     db: "/var/log/flb-storage/tail-pos.db"
-    dbSync: Normal
-    readFromHead: false
-    storageType: filesystem
+    dbSync: Normal                        # Normal | Off
+                                          # Normal: 주기적 DB 동기화 (권장)
+                                          # Off: 매번 즉시 동기화 (I/O 증가)
+
+    # ------------------------------------------------------------------
+    # [읽기 모드]
+    # ------------------------------------------------------------------
+    readFromHead: false                   # false: 현재 위치부터 읽기 (신규 로그만)
+                                          # true: 파일 처음부터 읽기 (기존 로그 포함)
+                                          # ⚠️ true 설정 시 대량 기존 로그 처리로 OOM 위험
+
+    # ------------------------------------------------------------------
+    # [메모리 버퍼 제한] (OOM 방어 L1)
+    # ------------------------------------------------------------------
+    # Input이 읽은 데이터를 메모리에 저장하는 최대 크기
+    # 이 한도 초과 시:
+    #   storageType: memory    → Input 일시 중단 (로그 유실 가능)
+    #   storageType: filesystem → 디스크로 스필오버 (권장)
+    #
+    # 환경별 권장값:
+    #   소규모 (~100 lines/sec):  5MB
+    #   중규모 (~1000 lines/sec): 10MB
+    #   대규모 (~5000 lines/sec): 20MB
+    # ------------------------------------------------------------------
+    memBufLimit: "10MB"
+
+    # storageType: filesystem 설정 시
+    # memBufLimit 초과 데이터를 ClusterFluentBitConfig의 storage.path로 저장
+    storageType: filesystem               # memory | filesystem
+                                          # filesystem: OOM 방어의 핵심 (권장)

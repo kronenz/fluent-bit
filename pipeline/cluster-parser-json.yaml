@@ -1,0 +1,21 @@
+# ============================================================================
+# ClusterParser: JSON 파서 (네이티브)
+# ============================================================================
+# 역할: tail input의 log 필드 JSON 문자열을 개별 필드로 파싱
+#
+# Fluent Bit 내장 JSON 파서를 사용하여 Lua보다 빠르고 안정적
+# Operator가 자동으로 parsers.conf에 포함시킴
+#   (helm values의 fluentbit.enable: true 필요)
+#
+# 파싱 전: { "log": "{\"level\":\"INFO\",...}", "source_file": "..." }
+# 파싱 후: { "level": "INFO", "message": "...", "contextMap": {...}, ... }
+# ============================================================================
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterParser
+metadata:
+  name: json-log-parser
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  json:
+    timeKeep: true        # @timestamp 유지 (Fluent Bit 내부 타임스탬프 덮어쓰지 않음)

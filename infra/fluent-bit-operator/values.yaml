@@ -1,26 +1,265 @@
+# ============================================================================
 # Fluent Bit Operator Helm Values
 # Chart: fluent/fluent-operator v3.2.0
+# ============================================================================
+#
+# 설치 방법:
+#   온라인:
+#     helm repo add fluent https://fluent.github.io/helm-charts
+#     helm install fluent-operator fluent/fluent-operator \
+#       --version 3.2.0 -f values.yaml -n logging --create-namespace
+#
+#   폐쇄망 (오프라인):
+#     helm install fluent-operator ./charts/fluent-operator-3.2.0.tgz \
+#       -f values.yaml -n logging --create-namespace
+#
+#   업그레이드:
+#     helm upgrade fluent-operator fluent/fluent-operator \
+#       --version 3.2.0 -f values.yaml -n logging
+#
+#   삭제:
+#     helm uninstall fluent-operator -n logging
+#
+# ============================================================================
 
+
+# ----------------------------------------------------------------------------
+# [글로벌] Kubernetes 메타데이터 필터
+# ----------------------------------------------------------------------------
+# true  = 컨테이너 stdout/stderr 기반 로그 수집
+#         → Kubernetes 필터가 pod name, namespace, container name 등을 자동 추가
+# false = HostPath 기반 파일 수집 (본 환경)
+#         → CRD(ClusterInput, ClusterFilter, ClusterOutput)로 직접 파이프라인 정의
+#         → 파일 경로에서 namespace를 Lua 스크립트로 추출
+# ----------------------------------------------------------------------------
 Kubernetes: false
 
+
+# ============================================================================
+# [Operator] Fluent Bit Operator 컨트롤러 설정
+# ============================================================================
+# Operator 역할:
+#   - CRD(ClusterFluentBitConfig, ClusterInput 등) 변경 감시
+#   - CRD 내용을 fluent-bit.conf로 자동 변환
+#   - ConfigMap으로 FluentBit DaemonSet에 설정 전달
+#   - CRD 변경 시 자동 재시작 (Rolling Update)
+# ============================================================================
 operator:
+  # --------------------------------------------------------------------------
+  # Operator 컨테이너 이미지
+  # --------------------------------------------------------------------------
+  # 폐쇄망: 내부 레지스트리로 변경
+  #   예: harbor.example.com/fluent/fluent-operator:v3.2.0
+  # --------------------------------------------------------------------------
+  image:
+    repository: "ghcr.io/fluent/fluent-operator/fluent-operator"
+    tag: "v3.2.0"
+    pullPolicy: "IfNotPresent"    # Always | IfNotPresent | Never
+
+  # initContainer 이미지 (CRD 스키마 검증용)
+  initImage:
+    repository: "docker.io/busybox"
+    tag: "latest"
+    pullPolicy: "IfNotPresent"
+
+  # --------------------------------------------------------------------------
+  # Operator 리소스 제한
+  # --------------------------------------------------------------------------
+  # Operator는 CRD watch + configmap 생성만 하므로 리소스 사용량이 적음
+  # 노드 수가 많거나 CRD가 자주 변경되면 memory를 늘릴 것
+  # --------------------------------------------------------------------------
   resources:
     requests:
-      memory: "128Mi"
-      cpu: "100m"
+      cpu: "100m"        # 0.1 CPU 코어
+      memory: "128Mi"    # 128MB
     limits:
-      memory: "256Mi"
-      cpu: "200m"
+      cpu: "200m"        # 0.2 CPU 코어 (초과 시 throttling)
+      memory: "256Mi"    # 256MB (초과 시 OOMKilled)
 
+  # Operator 로그 상세도 (0=Info, 1=Debug, 2=Trace)
+  logVerbosity: 0
+
+
+# ============================================================================
+# [FluentBit] FluentBit DaemonSet 설정
+# ============================================================================
+# fluentbit.enable: true 시 Helm이 FluentBit CR을 자동 생성
+# → Operator가 이 CR을 보고 DaemonSet을 생성
+# → 모든 노드에 FluentBit Pod가 1개씩 배포됨
+#
+# 파이프라인(Input/Filter/Output)은 별도 CRD YAML로 관리
+# 여기서는 DaemonSet의 인프라 설정만 정의
+# ============================================================================
 fluentbit:
+  # FluentBit DaemonSet 생성 여부
   enable: true
+
+  # --------------------------------------------------------------------------
+  # FluentBit 컨테이너 이미지
+  # --------------------------------------------------------------------------
+  # 폐쇄망: 내부 레지스트리로 변경
+  #   예: harbor.example.com/fluent/fluent-bit:3.1.7
+  # --------------------------------------------------------------------------
+  image:
+    repository: "ghcr.io/fluent/fluent-operator/fluent-bit"
+    tag: "3.1.7"
+    pullPolicy: "IfNotPresent"
+
+  # --------------------------------------------------------------------------
+  # ClusterFluentBitConfig 참조
+  # --------------------------------------------------------------------------
+  # pipeline/ 디렉토리의 ClusterFluentBitConfig 리소스 이름과 일치해야 함
+  # 이 설정으로 FluentBit DaemonSet이 어떤 파이프라인 설정을 사용할지 결정
+  # --------------------------------------------------------------------------
+  fluentBitConfigName: "fluent-bit-config"
+
+  # --------------------------------------------------------------------------
+  # FluentBit Pod 리소스 제한 (OOM 방어 4계층 중 최종 방어선)
+  # --------------------------------------------------------------------------
+  #
+  # [OOM 방어 전략]
+  # L1. Input memBufLimit    → 입력 단계에서 메모리 버퍼 크기 제한 (CRD에서 설정)
+  # L2. Storage filesystem   → 메모리 초과 시 디스크로 스필오버 (CRD에서 설정)
+  # L3. Throttle filter      → 초당 처리 레코드 수 제한 (CRD에서 설정)
+  # L4. Pod memory limit     → 최종 안전장치 (여기서 설정) ← 이 값
+  #
+  # memory limits 계산 가이드:
+  #   기본 (소규모, ~100 lines/sec):  256Mi
+  #   중간 (중규모, ~1000 lines/sec): 512Mi
+  #   대량 (대규모, ~5000 lines/sec): 1Gi
+  #
+  # ⚠️ 주의: limits.memory를 너무 작게 설정하면 대량 로그 발생 시 OOMKilled
+  #          너무 크게 설정하면 노드 메모리 낭비
+  # --------------------------------------------------------------------------
   resources:
     requests:
-      memory: "128Mi"
-      cpu: "100m"
+      cpu: "100m"        # 최소 0.1 CPU (idle 상태)
+      memory: "128Mi"    # 최소 128MB (시작 시 사용량)
     limits:
-      memory: "256Mi"
-      cpu: "500m"
+      cpu: "500m"        # 최대 0.5 CPU (burst 처리 시)
+      memory: "512Mi"    # 최대 512MB (OOM 방어 최종 방어선)
+                         # 대량 로그 환경에서는 1Gi로 증가 권장
 
+  # --------------------------------------------------------------------------
+  # 볼륨 설정 (HostPath 기반 로그 수집의 핵심)
+  # --------------------------------------------------------------------------
+  #
+  # [필수 볼륨 3개]
+  # 1. varlog      : /var/log 마운트 → 서비스팀 로그 파일 읽기
+  # 2. flb-storage : /var/log/flb-storage → 파일시스템 버퍼 (OOM 방어)
+  # 3. lua-scripts : Lua 스크립트 ConfigMap → 메타데이터 추출 로직
+  #
+  # [볼륨 타입 설명]
+  # hostPath:
+  #   path: 노드 디스크의 실제 경로
+  #   type:
+  #     DirectoryOrCreate - 없으면 자동 생성 (권장)
+  #     Directory         - 반드시 존재해야 함
+  # configMap:
+  #   name: ConfigMap 리소스 이름 (pipeline/lua-scripts-configmap.yaml)
+  # --------------------------------------------------------------------------
+  volumes:
+    # [1] 서비스팀 로그 디렉토리 (읽기)
+    # FluentBit이 /var/log/*/app*.log 패턴의 파일을 tail로 읽음
+    # 각 서비스팀은 /var/log/{namespace}/app-{service}.log 에 로그 작성
+    - name: varlog
+      hostPath:
+        path: /var/log
+        type: DirectoryOrCreate
+
+    # [2] FluentBit 파일시스템 버퍼 (읽기/쓰기)
+    # memBufLimit 초과 시 여기에 임시 저장 (디스크 스필오버)
+    # tail position DB도 여기에 저장 (Pod 재시작 시 중복 수집 방지)
+    # ⚠️ 이 경로가 없거나 쓰기 불가하면 OOM 발생 위험
+    - name: flb-storage
+      hostPath:
+        path: /var/log/flb-storage
+        type: DirectoryOrCreate
+
+    # [3] Lua 스크립트 (읽기 전용)
+    # pipeline/lua-scripts-configmap.yaml의 ConfigMap 참조
+    # 파일 경로에서 namespace 추출 + JSON 필드 가공 로직
+    - name: lua-scripts
+      configMap:
+        name: fluent-bit-lua-scripts
+
+  # --------------------------------------------------------------------------
+  # 볼륨 마운트 (컨테이너 내부 경로 매핑)
+  # --------------------------------------------------------------------------
+  # ⚠️ CRD 필드명은 'volumesMounts' (Kubernetes 표준과 다름, s 주의)
+  #
+  # [마운트 경로와 CRD 설정의 관계]
+  # - ClusterInput의 path: "/var/log/*/app*.log"  → varlog 마운트 필요
+  # - ClusterFluentBitConfig의 storage.path        → flb-storage 마운트 필요
+  # - ClusterFilter의 lua script.name 참조         → lua-scripts 마운트 필요
+  # --------------------------------------------------------------------------
+  volumesMounts:
+    # /var/log → 서비스팀 로그 파일 접근
+    - name: varlog
+      mountPath: /var/log
+
+    # /var/log/flb-storage → 파일시스템 버퍼 + position DB
+    - name: flb-storage
+      mountPath: /var/log/flb-storage
+
+    # /fluent-bit/scripts → Lua 스크립트 접근
+    # ClusterFilter의 lua.script.key와 경로 일치 필요
+    - name: lua-scripts
+      mountPath: /fluent-bit/scripts
+
+  # --------------------------------------------------------------------------
+  # Toleration 설정 (DaemonSet이 모든 노드에 배포되도록)
+  # --------------------------------------------------------------------------
+  # - operator: Exists → 모든 taint를 무시하고 배포
+  # - master/control-plane 노드에도 배포하려면 이 설정 필요
+  # - 특정 노드만 제외하려면 nodeSelector나 affinity 사용
+  # --------------------------------------------------------------------------
+  tolerations:
+    - operator: Exists
+
+  # --------------------------------------------------------------------------
+  # 보안 컨텍스트 (SecurityContext)
+  # --------------------------------------------------------------------------
+  # FluentBit은 /var/log 읽기 + /var/log/flb-storage 쓰기 필요
+  # root(0)로 실행하여 모든 노드에서 권한 문제 없이 동작
+  # --------------------------------------------------------------------------
+  securityContext:
+    runAsUser: 0
+    runAsGroup: 0
+
+  # --------------------------------------------------------------------------
+  # 서비스 (메트릭 수집용)
+  # --------------------------------------------------------------------------
+  # FluentBit의 HTTP 서버 (포트 2020)에서 Prometheus 메트릭 노출
+  # /api/v1/metrics/prometheus 엔드포인트로 수집 가능
+  # --------------------------------------------------------------------------
+  metricsPort: 2020
+
+
+# ============================================================================
+# [FluentD] FluentD 설정 (사용하지 않음)
+# ============================================================================
+# FluentBit으로 직접 OpenSearch에 전송하므로 FluentD 비활성화
+# FluentBit → FluentD → OpenSearch 구조가 필요하면 true로 변경
+# ============================================================================
 fluentd:
   enable: false
+
+
+# ============================================================================
+# [참고] 파이프라인 CRD 파일 목록
+# ============================================================================
+# 아래 CRD들은 별도 YAML로 관리 (pipeline/ 디렉토리):
+#
+#   cluster-fluentbit-config.yaml   - 파이프라인 허브 (Service 설정, 라벨 셀렉터)
+#   cluster-parser-json.yaml        - JSON 파서 (log 필드 → 개별 필드 파싱)
+#   cluster-input-hostpath.yaml     - 입력 (tail: /var/log/*/app*.log)
+#   cluster-filter-parse-json.yaml  - 필터 1단계 (JSON 파싱)
+#   cluster-filter-modify.yaml      - 필터 2단계 (namespace 추출, throttle, cluster_name)
+#   cluster-output-opensearch.yaml  - 출력 (OpenSearch)
+#   cluster-multiline-parser.yaml   - 멀티라인 파서 (Java stacktrace)
+#   lua-scripts-configmap.yaml      - Lua 스크립트 (메타데이터 가공)
+#
+# 적용: kubectl apply -k pipeline/
+# 또는:  kustomize build pipeline/ | kubectl apply -f -
+# ============================================================================

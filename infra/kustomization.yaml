@@ -1,0 +1,13 @@
+# ============================================================================
+# Kustomization: 인프라 리소스
+# ============================================================================
+# 적용: kubectl apply -k infra/
+#
+# ⚠️ Helm 차트(OpenSearch, Fluent Bit Operator)는 helm install로 별도 설치
+#    이 kustomization은 namespace 등 기본 리소스만 관리
+# ============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
