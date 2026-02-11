@@ -90,6 +90,6 @@ spec:
   parserSelector:
     matchLabels:
       fluentbit.fluent.io/enabled: "true"
-  multilineParserSelector:
-    matchLabels:
-      fluentbit.fluent.io/enabled: "true"
+  # multilineParserSelector:
+  #   matchLabels:
+  #     fluentbit.fluent.io/enabled: "true"

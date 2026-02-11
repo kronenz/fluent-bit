@@ -16,7 +16,6 @@ resources:
 
   # 파서
   - cluster-parser-json.yaml            # 네이티브 JSON 파서
-  - cluster-multiline-parser.yaml       # Java stacktrace 멀티라인
 
   # 입력
   - cluster-input-hostpath.yaml         # tail: /var/log/*/app*.log
