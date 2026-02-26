@@ -1,0 +1,35 @@
+{
+  "_comment": "SM(Snapshot Management) 정책 - OpenSearch API로 직접 등록합니다",
+  "_usage": "curl -X POST 'http://opensearch:9200/_plugins/_sm/policies/daily-all-logs-backup' -H 'Content-Type: application/json' -d @sm-policy-daily-snapshots.json",
+  "description": "전체 로그 일일 자동 스냅샷 - 30일 보관",
+  "creation": {
+    "schedule": {
+      "cron": {
+        "expression": "0 2 * * *",
+        "timezone": "Asia/Seoul"
+      }
+    }
+  },
+  "deletion": {
+    "schedule": {
+      "cron": {
+        "expression": "0 3 * * *",
+        "timezone": "Asia/Seoul"
+      }
+    },
+    "condition": {
+      "max_age": "30d",
+      "max_count": 30,
+      "min_count": 7
+    }
+  },
+  "snapshot_config": {
+    "date_format": "yyyy-MM-dd-HH:mm",
+    "timezone": "Asia/Seoul",
+    "indices": "container-logs-*,k8s-events-*,systemd-logs-*",
+    "repository": "s3-snapshot-repo",
+    "ignore_unavailable": true,
+    "include_global_state": false,
+    "partial": true
+  }
+}

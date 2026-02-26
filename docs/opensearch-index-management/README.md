@@ -42,6 +42,8 @@ Kubernetes 기반 빅데이터 서비스팀 클러스터에서 Fluent Bit으로 
 | [03-ism-policies.md](./03-ism-policies.md) | ISM 정책 설계 및 적용 방법 |
 | [04-fluent-bit-output-config.md](./04-fluent-bit-output-config.md) | Fluent Bit 멀티 인덱스 출력 설정 |
 | [05-operations-guide.md](./05-operations-guide.md) | 운영 가이드 (모니터링, 트러블슈팅, 백업) |
+| [06-s3-cold-storage.md](./06-s3-cold-storage.md) | S3 기반 Cold 데이터 저장 가이드 |
+| [07-snapshot-guide.md](./07-snapshot-guide.md) | OpenSearch 스냅샷 적용 가이드 (SM 자동화 포함) |
 
 ## 적용 템플릿 파일
 
@@ -49,12 +51,15 @@ Kubernetes 기반 빅데이터 서비스팀 클러스터에서 Fluent Bit으로 
 
 ```
 templates/
-├── ism-policy-container-logs.json       # Container 로그 ISM 정책
+├── ism-policy-container-logs.json       # Container 로그 ISM 정책 (로컬 전용)
+├── ism-policy-container-logs-s3.json    # Container 로그 ISM 정책 (S3 Cold tier)
 ├── ism-policy-k8s-events.json           # K8s Event 로그 ISM 정책
-├── ism-policy-systemd-logs.json         # Systemd 로그 ISM 정책
+├── ism-policy-systemd-logs.json         # Systemd 로그 ISM 정책 (로컬 전용)
+├── ism-policy-systemd-logs-s3.json      # Systemd 로그 ISM 정책 (S3 archive)
 ├── index-template-container-logs.json   # Container 로그 인덱스 템플릿
 ├── index-template-k8s-events.json       # K8s Event 로그 인덱스 템플릿
 ├── index-template-systemd-logs.json     # Systemd 로그 인덱스 템플릿
+├── sm-policy-daily-snapshots.json       # SM 자동 스냅샷 정책
 └── fluent-bit-outputs.yaml              # Fluent Bit CRD 출력 설정
 ```
 
