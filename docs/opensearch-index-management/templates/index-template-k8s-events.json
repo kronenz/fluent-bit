@@ -1,0 +1,96 @@
+{
+  "index_patterns": ["k8s-events-*"],
+  "priority": 100,
+  "template": {
+    "settings": {
+      "index": {
+        "number_of_shards": 1,
+        "number_of_replicas": 1,
+        "refresh_interval": "30s",
+        "codec": "best_compression",
+        "plugins": {
+          "index_state_management": {
+            "policy_id": "k8s-events-policy"
+          }
+        }
+      }
+    },
+    "mappings": {
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "cluster_name": {
+          "type": "keyword"
+        },
+        "namespace": {
+          "type": "keyword"
+        },
+        "kind": {
+          "type": "keyword"
+        },
+        "name": {
+          "type": "keyword"
+        },
+        "reason": {
+          "type": "keyword"
+        },
+        "type": {
+          "type": "keyword"
+        },
+        "message": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 512
+            }
+          }
+        },
+        "count": {
+          "type": "integer"
+        },
+        "source_component": {
+          "type": "keyword"
+        },
+        "source_host": {
+          "type": "keyword"
+        },
+        "first_timestamp": {
+          "type": "date"
+        },
+        "last_timestamp": {
+          "type": "date"
+        },
+        "involved_object": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "keyword"
+            },
+            "namespace": {
+              "type": "keyword"
+            },
+            "uid": {
+              "type": "keyword"
+            }
+          }
+        }
+      },
+      "dynamic_templates": [
+        {
+          "strings_as_keywords": {
+            "match_mapping_type": "string",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 512
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,204 @@
+# ============================================================
+# Fluent Bit CRD - 멀티 인덱스 출력 설정
+# ============================================================
+# 클러스터별로 logstashPrefix의 클러스터명을 변경하세요.
+# 예: bigdata-prod → bigdata-dev, ml-platform-prod 등
+# ============================================================
+
+---
+# ============================================================
+# Input: Container Log (표준 컨테이너 로그 경로)
+# ============================================================
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterInput
+metadata:
+  name: container-logs
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  tail:
+    tag: "container.*"
+    path: "/var/log/containers/*.log"
+    pathKey: source_file
+    refreshIntervalSeconds: 5
+    memBufLimit: "10MB"
+    skipLongLines: true
+    db: "/var/log/flb-storage/container-tail-pos.db"
+    dbSync: Normal
+    readFromHead: false
+    storageType: filesystem
+    parser: cri
+
+---
+# ============================================================
+# Input: Kubernetes Events
+# ============================================================
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterInput
+metadata:
+  name: k8s-events
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  kubernetesEvents:
+    tag: "k8sevt.*"
+    db: "/var/log/flb-storage/k8s-events-pos.db"
+    retentionTime: "1h"
+
+---
+# ============================================================
+# Input: Systemd Log
+# ============================================================
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterInput
+metadata:
+  name: systemd-logs
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  systemd:
+    tag: "systemd.*"
+    path: "/var/log/journal"
+    db: "/var/log/flb-storage/systemd-pos.db"
+    systemdFilter:
+      - "_SYSTEMD_UNIT=kubelet.service"
+      - "_SYSTEMD_UNIT=containerd.service"
+      - "_SYSTEMD_UNIT=docker.service"
+    stripUnderscores: true
+    storageType: filesystem
+
+---
+# ============================================================
+# Filter: Kubernetes 메타데이터 추가 (Container Log 전용)
+# ============================================================
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  name: container-kubernetes-metadata
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  match: "container.*"
+  filters:
+    - kubernetes:
+        kubeURL: "https://kubernetes.default.svc:443"
+        kubeCAFile: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        kubeTokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        mergeLog: true
+        keepLog: false
+        k8sLoggingParser: true
+        labels: true
+        annotations: false
+
+---
+# ============================================================
+# Filter: 클러스터명 추가 (전체 로그 공통)
+# ============================================================
+# ★ 클러스터별로 cluster_name 값을 변경하세요 ★
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  name: add-cluster-name
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  match: "*"
+  filters:
+    - modify:
+        rules:
+          - add:
+              cluster_name: "bigdata-prod"
+
+---
+# ============================================================
+# Filter: Throttle (Container Log 전용)
+# ============================================================
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  name: container-throttle
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  match: "container.*"
+  filters:
+    - throttle:
+        rate: 1000
+        window: 5
+        interval: "1s"
+        printStatus: true
+
+---
+# ============================================================
+# Output: Container Log → OpenSearch
+# ============================================================
+# ★ logstashPrefix의 클러스터명을 변경하세요 ★
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterOutput
+metadata:
+  name: opensearch-container-logs
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  match: "container.*"
+  opensearch:
+    host: opensearch-cluster-master.logging.svc.cluster.local
+    port: 9200
+    index: "container-logs-bigdata-prod"
+    logstashFormat: true
+    logstashPrefix: "container-logs-bigdata-prod"
+    logstashDateFormat: "%Y.%m.%d"
+    replaceDots: true
+    suppressTypeName: true
+    traceError: true
+    bufferSize: "5MB"
+
+---
+# ============================================================
+# Output: K8s Event Log → OpenSearch
+# ============================================================
+# ★ logstashPrefix의 클러스터명을 변경하세요 ★
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterOutput
+metadata:
+  name: opensearch-k8s-events
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  match: "k8sevt.*"
+  opensearch:
+    host: opensearch-cluster-master.logging.svc.cluster.local
+    port: 9200
+    index: "k8s-events-bigdata-prod"
+    logstashFormat: true
+    logstashPrefix: "k8s-events-bigdata-prod"
+    logstashDateFormat: "%Y.%m.%d"
+    replaceDots: true
+    suppressTypeName: true
+    traceError: true
+    bufferSize: "2MB"
+
+---
+# ============================================================
+# Output: Systemd Log → OpenSearch
+# ============================================================
+# ★ logstashPrefix의 클러스터명을 변경하세요 ★
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterOutput
+metadata:
+  name: opensearch-systemd-logs
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  match: "systemd.*"
+  opensearch:
+    host: opensearch-cluster-master.logging.svc.cluster.local
+    port: 9200
+    index: "systemd-logs-bigdata-prod"
+    logstashFormat: true
+    logstashPrefix: "systemd-logs-bigdata-prod"
+    logstashDateFormat: "%Y.%m.%d"
+    replaceDots: true
+    suppressTypeName: true
+    traceError: true
+    bufferSize: "2MB"

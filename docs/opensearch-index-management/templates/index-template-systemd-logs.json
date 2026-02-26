@@ -1,0 +1,79 @@
+{
+  "index_patterns": ["systemd-logs-*"],
+  "priority": 100,
+  "template": {
+    "settings": {
+      "index": {
+        "number_of_shards": 1,
+        "number_of_replicas": 1,
+        "refresh_interval": "15s",
+        "codec": "best_compression",
+        "plugins": {
+          "index_state_management": {
+            "policy_id": "systemd-logs-policy"
+          }
+        }
+      }
+    },
+    "mappings": {
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "cluster_name": {
+          "type": "keyword"
+        },
+        "node_name": {
+          "type": "keyword"
+        },
+        "hostname": {
+          "type": "keyword"
+        },
+        "systemd_unit": {
+          "type": "keyword"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 512
+            }
+          }
+        },
+        "pid": {
+          "type": "integer"
+        },
+        "uid": {
+          "type": "keyword"
+        },
+        "exe": {
+          "type": "keyword"
+        },
+        "cmdline": {
+          "type": "text"
+        },
+        "boot_id": {
+          "type": "keyword"
+        },
+        "transport": {
+          "type": "keyword"
+        }
+      },
+      "dynamic_templates": [
+        {
+          "strings_as_keywords": {
+            "match_mapping_type": "string",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 512
+            }
+          }
+        }
+      ]
+    }
+  }
+}
