@@ -14,24 +14,24 @@
 
 ### 사전 확인: 기본 이미지에 포함 여부
 
-`repository-s3` 플러그인은 OpenSearch **공식 Docker 이미지에 기본 포함**되어 있습니다.
+> **주의:** `repository-s3` 플러그인은 공식 Docker 이미지(`opensearchproject/opensearch:2.x`)에 **기본 포함되지 않습니다.** AWS Managed OpenSearch Service에서는 자동 포함되지만, 자체 배포(self-managed) 환경에서는 **반드시 별도 설치**가 필요합니다.
+
+현재 환경에서 설치 여부를 확인합니다:
 
 ```bash
-# 인터넷 환경 또는 이미 배포된 환경에서 확인
+# 이미 배포된 환경에서 확인
 kubectl exec -n logging opensearch-cluster-master-0 -- \
   /usr/share/opensearch/bin/opensearch-plugin list
 ```
 
-출력에 `repository-s3`이 있으면 별도 설치가 불필요합니다:
+출력에 `repository-s3`이 없으면 아래 절차에 따라 설치해야 합니다:
 ```
 opensearch-alerting
 opensearch-anomaly-detection
+opensearch-index-management
 ...
-repository-s3            ← 포함되어 있으면 설치 불필요
-...
+# repository-s3 가 목록에 없음 → 설치 필요
 ```
-
-> **공식 이미지 `opensearchproject/opensearch:2.x`에는 repository-s3가 기본 포함**되어 있습니다. 커스텀/경량 이미지를 사용하는 경우에만 아래 설치 절차가 필요합니다.
 
 ---
 
@@ -175,12 +175,20 @@ docker push ${REGISTRY}/opensearch-with-s3:${OPENSEARCH_VERSION}
 
 ### 3-3. Helm values.yaml 수정
 
+> **참고:** OpenSearch Helm chart에는 `plugins.installList` 옵션이 있지만, 이는 컨테이너 시작 시 인터넷에서 플러그인을 다운로드하므로 **폐쇄망에서는 사용할 수 없습니다.** 커스텀 이미지 방식을 사용하세요.
+
 ```yaml
 # infra/opensearch/values.yaml
 image:
   repository: registry.internal.example.com:5000/opensearch-with-s3
   tag: "2.19.0"
   pullPolicy: IfNotPresent
+
+# 주의: 폐쇄망에서는 plugins.installList 사용 불가 (인터넷 다운로드 시도)
+# plugins:
+#   enabled: true
+#   installList:
+#     - "repository-s3"    # ← 이 방식은 폐쇄망에서 실패함
 
 replicas: 1
 singleNode: true
