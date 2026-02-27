@@ -45,6 +45,7 @@ Kubernetes 기반 빅데이터 서비스팀 클러스터에서 Fluent Bit으로 
 | [06-s3-cold-storage.md](./06-s3-cold-storage.md) | S3 기반 Cold 데이터 저장 가이드 |
 | [07-snapshot-guide.md](./07-snapshot-guide.md) | OpenSearch 스냅샷 적용 가이드 (SM 자동화 포함) |
 | [08-dashboards-ui-guide.md](./08-dashboards-ui-guide.md) | **Dashboards UI 기반 ISM + Snapshot (MinIO S3) 설정 가이드** |
+| [09-airgapped-plugin-install.md](./09-airgapped-plugin-install.md) | **폐쇄망 환경 repository-s3 플러그인 설치 가이드** |
 
 ## 적용 템플릿 파일
 
