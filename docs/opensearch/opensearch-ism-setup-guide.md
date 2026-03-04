@@ -12,7 +12,8 @@
 6. [OpenSearch Dashboards UI에서 ISM 설정](#6-opensearch-dashboards-ui에서-ism-설정)
 7. [DevTools를 활용한 ISM 설정 및 관리](#7-devtools를-활용한-ism-설정-및-관리)
 8. [운영 환경별 설정 가이드](#8-운영-환경별-설정-가이드)
-9. [트러블슈팅](#9-트러블슈팅)
+9. [S3 스냅샷 전용 보관 전략 (디스크 절약형)](#9-s3-스냅샷-전용-보관-전략-디스크-절약형)
+10. [트러블슈팅](#10-트러블슈팅)
 
 ---
 
@@ -1634,9 +1635,964 @@ curl -sf -X POST "${OPENSEARCH_URL}/_plugins/_ism/add/systemd-logs-*" \
 
 ---
 
-## 9. 트러블슈팅
+## 9. S3 스냅샷 전용 보관 전략 (디스크 절약형)
 
-### 9-1. ISM 정책이 적용되지 않는 경우
+> **전략 요약:** Hot(7일)만 로컬 디스크에 유지하고, 이후 데이터는 S3 스냅샷으로 백업 후 로컬 인덱스를 즉시 삭제합니다. 디스크 용량을 최대한 절약하면서 데이터는 S3에 장기 보관합니다.
+
+### 9-0. 기존 전략과의 비교
+
+```
+[기존 전략] Hot → Warm → Cold → Delete
+  - 모든 단계에서 로컬 디스크에 데이터 존재
+  - 디스크 사용량: 높음
+  - 검색: 모든 기간 즉시 검색 가능
+
+[S3 전용 보관 전략] Hot → Snapshot & Delete
+  - Hot(7일)만 로컬 디스크 사용
+  - 디스크 사용량: 최소 (최근 7일분만)
+  - 검색: 7일 이전 데이터는 스냅샷 복원 후 검색
+```
+
+| 항목 | 기존 전략 (로컬 보관) | S3 전용 보관 전략 |
+|------|:---:|:---:|
+| 로컬 디스크 사용 | 전체 보관기간분 | **최근 7일분만** |
+| 7일 이내 검색 | 즉시 가능 | 즉시 가능 |
+| 7일 이후 검색 | 즉시 가능 | **복원 필요 (수분 소요)** |
+| S3 저장 비용 | 스냅샷 크기분 | 스냅샷 크기분 |
+| 데이터 안전성 | 로컬+S3 이중 보관 | S3 단일 보관 |
+| 적합한 환경 | 빈번한 과거 로그 검색 | **디스크 용량 제한, 과거 검색 드문 환경** |
+
+### 9-1. 사전 요구사항
+
+S3 스냅샷 전용 전략을 사용하려면 스냅샷 리포지토리가 먼저 설정되어 있어야 합니다.
+
+```
+# DevTools에서 리포지토리 등록 확인
+GET _snapshot/minio-s3-repo
+
+# 미등록 시 리포지토리 등록
+PUT _snapshot/minio-s3-repo
+{
+  "type": "s3",
+  "settings": {
+    "bucket": "opensearch-snapshots",
+    "base_path": "snapshots",
+    "path_style_access": true,
+    "compress": true
+  }
+}
+
+# 연결 검증
+POST _snapshot/minio-s3-repo/_verify
+```
+
+> 상세한 MinIO S3 연동 설정은 [08-dashboards-ui-guide.md §2](../opensearch-index-management/08-dashboards-ui-guide.md) 참고
+
+### 9-2. ISM 정책 JSON — Container Log (S3 전용)
+
+**흐름:** `Hot(7일)` → `snapshot_and_delete(스냅샷 생성 후 삭제)` — S3에 365일 보관
+
+파일: `templates/ism-policy-container-logs-s3only.json`
+
+```json
+{
+  "policy": {
+    "description": "Container log S3-only - Hot(7d) → Snapshot to S3 → Delete local (S3에 365일 보관)",
+    "default_state": "hot",
+    "ism_template": [
+      {
+        "index_patterns": ["container-logs-*"],
+        "priority": 200
+      }
+    ],
+    "states": [
+      {
+        "name": "hot",
+        "actions": [
+          {
+            "index_priority": { "priority": 100 }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "snapshot_and_delete",
+            "conditions": {
+              "min_index_age": "7d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "snapshot_and_delete",
+        "actions": [
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "read_only": {}
+          },
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "force_merge": {
+              "max_num_segments": 1
+            }
+          },
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "snapshot": {
+              "repository": "minio-s3-repo",
+              "snapshot": "container-logs-{{ctx.index}}-{{ctx.execution_time}}"
+            }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "delete",
+            "conditions": {
+              "min_index_age": "8d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "actions": [
+          {
+            "delete": {}
+          }
+        ],
+        "transitions": []
+      }
+    ]
+  }
+}
+```
+
+**주요 설계 포인트:**
+
+| 항목 | 설정 | 이유 |
+|------|------|------|
+| `ism_template.priority` | 200 | 기존 정책(100)보다 높게 설정하여 우선 적용 |
+| `hot` 기간 | 7일 | 최근 로그만 즉시 검색 가능하게 유지 |
+| `read_only` | 스냅샷 전 실행 | 스냅샷 중 데이터 변경 방지 |
+| `force_merge` | 1 세그먼트로 병합 | 스냅샷 크기 최소화, S3 저장 비용 절감 |
+| `snapshot` retry | 5회, 10분 간격 | S3 연결 실패 시 충분한 재시도 |
+| `delete` 전환 | 8일 (스냅샷 후 1일 여유) | 스냅샷 완료 확인 후 삭제 |
+| 스냅샷 이름 | `container-logs-{{ctx.index}}-{{ctx.execution_time}}` | 인덱스명+시간으로 고유 식별 |
+
+### 9-3. ISM 정책 JSON — K8s Event Log (S3 전용)
+
+파일: `templates/ism-policy-k8s-events-s3only.json`
+
+```json
+{
+  "policy": {
+    "description": "K8s event log S3-only - Hot(7d) → Snapshot to S3 → Delete local (S3에 90일 보관)",
+    "default_state": "hot",
+    "ism_template": [
+      {
+        "index_patterns": ["k8s-events-*"],
+        "priority": 200
+      }
+    ],
+    "states": [
+      {
+        "name": "hot",
+        "actions": [
+          {
+            "index_priority": { "priority": 100 }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "snapshot_and_delete",
+            "conditions": {
+              "min_index_age": "7d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "snapshot_and_delete",
+        "actions": [
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "read_only": {}
+          },
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "force_merge": {
+              "max_num_segments": 1
+            }
+          },
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "snapshot": {
+              "repository": "minio-s3-repo",
+              "snapshot": "k8s-events-{{ctx.index}}-{{ctx.execution_time}}"
+            }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "delete",
+            "conditions": {
+              "min_index_age": "8d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "actions": [
+          {
+            "delete": {}
+          }
+        ],
+        "transitions": []
+      }
+    ]
+  }
+}
+```
+
+### 9-4. ISM 정책 JSON — Systemd Log (S3 전용)
+
+파일: `templates/ism-policy-systemd-logs-s3only.json`
+
+```json
+{
+  "policy": {
+    "description": "Systemd log S3-only - Hot(7d) → Snapshot to S3 → Delete local (S3에 180일 보관)",
+    "default_state": "hot",
+    "ism_template": [
+      {
+        "index_patterns": ["systemd-logs-*"],
+        "priority": 200
+      }
+    ],
+    "states": [
+      {
+        "name": "hot",
+        "actions": [
+          {
+            "index_priority": { "priority": 100 }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "snapshot_and_delete",
+            "conditions": {
+              "min_index_age": "7d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "snapshot_and_delete",
+        "actions": [
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "read_only": {}
+          },
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "force_merge": {
+              "max_num_segments": 1
+            }
+          },
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "snapshot": {
+              "repository": "minio-s3-repo",
+              "snapshot": "systemd-logs-{{ctx.index}}-{{ctx.execution_time}}"
+            }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "delete",
+            "conditions": {
+              "min_index_age": "8d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "actions": [
+          {
+            "delete": {}
+          }
+        ],
+        "transitions": []
+      }
+    ]
+  }
+}
+```
+
+### 9-5. S3 스냅샷 보관기간 관리 (SM 정책)
+
+ISM의 `delete` 액션은 **로컬 인덱스만 삭제**하며, S3 스냅샷은 별도로 관리해야 합니다. SM(Snapshot Management) 정책으로 S3 스냅샷의 보관기간을 제어합니다.
+
+#### DevTools에서 SM 정책 생성
+
+```
+# Container Log 스냅샷 보관 정책 (365일)
+PUT _plugins/_sm/policies/container-logs-snapshot-retention
+{
+  "description": "Container log S3 스냅샷 365일 보관 후 자동 삭제",
+  "creation": {
+    "schedule": {
+      "cron": {
+        "expression": "0 3 * * *",
+        "timezone": "Asia/Seoul"
+      }
+    },
+    "time_limit": "1h"
+  },
+  "deletion": {
+    "schedule": {
+      "cron": {
+        "expression": "0 4 * * *",
+        "timezone": "Asia/Seoul"
+      }
+    },
+    "condition": {
+      "max_age": "365d",
+      "min_count": 7,
+      "max_count": 400
+    },
+    "time_limit": "1h"
+  },
+  "snapshot_config": {
+    "repository": "minio-s3-repo",
+    "indices": "container-logs-*",
+    "date_format": "yyyy-MM-dd-HH:mm"
+  }
+}
+
+# K8s Event 스냅샷 보관 정책 (90일)
+PUT _plugins/_sm/policies/k8s-events-snapshot-retention
+{
+  "description": "K8s event S3 스냅샷 90일 보관 후 자동 삭제",
+  "creation": {
+    "schedule": {
+      "cron": {
+        "expression": "0 3 * * *",
+        "timezone": "Asia/Seoul"
+      }
+    },
+    "time_limit": "1h"
+  },
+  "deletion": {
+    "schedule": {
+      "cron": {
+        "expression": "0 4 * * *",
+        "timezone": "Asia/Seoul"
+      }
+    },
+    "condition": {
+      "max_age": "90d",
+      "min_count": 3,
+      "max_count": 100
+    },
+    "time_limit": "1h"
+  },
+  "snapshot_config": {
+    "repository": "minio-s3-repo",
+    "indices": "k8s-events-*",
+    "date_format": "yyyy-MM-dd-HH:mm"
+  }
+}
+
+# Systemd Log 스냅샷 보관 정책 (180일)
+PUT _plugins/_sm/policies/systemd-logs-snapshot-retention
+{
+  "description": "Systemd log S3 스냅샷 180일 보관 후 자동 삭제",
+  "creation": {
+    "schedule": {
+      "cron": {
+        "expression": "0 3 * * *",
+        "timezone": "Asia/Seoul"
+      }
+    },
+    "time_limit": "1h"
+  },
+  "deletion": {
+    "schedule": {
+      "cron": {
+        "expression": "0 4 * * *",
+        "timezone": "Asia/Seoul"
+      }
+    },
+    "condition": {
+      "max_age": "180d",
+      "min_count": 7,
+      "max_count": 200
+    },
+    "time_limit": "1h"
+  },
+  "snapshot_config": {
+    "repository": "minio-s3-repo",
+    "indices": "systemd-logs-*",
+    "date_format": "yyyy-MM-dd-HH:mm"
+  }
+}
+```
+
+#### S3 전용 전략의 전체 데이터 수명주기
+
+```
+[로컬 OpenSearch]                    [S3 (MinIO)]
+
+Day 0   인덱스 생성 (hot)
+  │
+Day 7   read_only + force_merge
+  │     snapshot 생성 ──────────────→ 스냅샷 저장
+Day 8   로컬 인덱스 삭제               │
+        (디스크 해방)                  │
+                                     │
+                                     │ (SM 정책이 보관기간 관리)
+                                     │
+Day 365 ─────────────────────────────→ 스냅샷 자동 삭제 (container-logs)
+Day 90  ─────────────────────────────→ 스냅샷 자동 삭제 (k8s-events)
+Day 180 ─────────────────────────────→ 스냅샷 자동 삭제 (systemd-logs)
+```
+
+### 9-6. S3 전용 전략용 Kustomize 설정
+
+#### ConfigMap (ISM 정책)
+
+```yaml
+# infra/opensearch-ism/overlays/s3-only/configmap-ism-s3only.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opensearch-ism-policies-s3only
+  namespace: logging
+data:
+  container-logs-policy.json: |
+    {
+      "policy": {
+        "description": "Container log S3-only - Hot(7d) → Snapshot → Delete",
+        "default_state": "hot",
+        "ism_template": [
+          { "index_patterns": ["container-logs-*"], "priority": 200 }
+        ],
+        "states": [
+          {
+            "name": "hot",
+            "actions": [ { "index_priority": { "priority": 100 } } ],
+            "transitions": [
+              { "state_name": "snapshot_and_delete", "conditions": { "min_index_age": "7d" } }
+            ]
+          },
+          {
+            "name": "snapshot_and_delete",
+            "actions": [
+              { "retry": { "count": 5, "backoff": "exponential", "delay": "10m" }, "read_only": {} },
+              { "retry": { "count": 5, "backoff": "exponential", "delay": "10m" }, "force_merge": { "max_num_segments": 1 } },
+              { "retry": { "count": 5, "backoff": "exponential", "delay": "10m" }, "snapshot": { "repository": "minio-s3-repo", "snapshot": "container-logs-{{ctx.index}}-{{ctx.execution_time}}" } }
+            ],
+            "transitions": [
+              { "state_name": "delete", "conditions": { "min_index_age": "8d" } }
+            ]
+          },
+          {
+            "name": "delete",
+            "actions": [ { "delete": {} } ],
+            "transitions": []
+          }
+        ]
+      }
+    }
+  k8s-events-policy.json: |
+    {
+      "policy": {
+        "description": "K8s event S3-only - Hot(7d) → Snapshot → Delete",
+        "default_state": "hot",
+        "ism_template": [
+          { "index_patterns": ["k8s-events-*"], "priority": 200 }
+        ],
+        "states": [
+          {
+            "name": "hot",
+            "actions": [ { "index_priority": { "priority": 100 } } ],
+            "transitions": [
+              { "state_name": "snapshot_and_delete", "conditions": { "min_index_age": "7d" } }
+            ]
+          },
+          {
+            "name": "snapshot_and_delete",
+            "actions": [
+              { "retry": { "count": 5, "backoff": "exponential", "delay": "10m" }, "read_only": {} },
+              { "retry": { "count": 5, "backoff": "exponential", "delay": "10m" }, "force_merge": { "max_num_segments": 1 } },
+              { "retry": { "count": 5, "backoff": "exponential", "delay": "10m" }, "snapshot": { "repository": "minio-s3-repo", "snapshot": "k8s-events-{{ctx.index}}-{{ctx.execution_time}}" } }
+            ],
+            "transitions": [
+              { "state_name": "delete", "conditions": { "min_index_age": "8d" } }
+            ]
+          },
+          {
+            "name": "delete",
+            "actions": [ { "delete": {} } ],
+            "transitions": []
+          }
+        ]
+      }
+    }
+  systemd-logs-policy.json: |
+    {
+      "policy": {
+        "description": "Systemd log S3-only - Hot(7d) → Snapshot → Delete",
+        "default_state": "hot",
+        "ism_template": [
+          { "index_patterns": ["systemd-logs-*"], "priority": 200 }
+        ],
+        "states": [
+          {
+            "name": "hot",
+            "actions": [ { "index_priority": { "priority": 100 } } ],
+            "transitions": [
+              { "state_name": "snapshot_and_delete", "conditions": { "min_index_age": "7d" } }
+            ]
+          },
+          {
+            "name": "snapshot_and_delete",
+            "actions": [
+              { "retry": { "count": 5, "backoff": "exponential", "delay": "10m" }, "read_only": {} },
+              { "retry": { "count": 5, "backoff": "exponential", "delay": "10m" }, "force_merge": { "max_num_segments": 1 } },
+              { "retry": { "count": 5, "backoff": "exponential", "delay": "10m" }, "snapshot": { "repository": "minio-s3-repo", "snapshot": "systemd-logs-{{ctx.index}}-{{ctx.execution_time}}" } }
+            ],
+            "transitions": [
+              { "state_name": "delete", "conditions": { "min_index_age": "8d" } }
+            ]
+          },
+          {
+            "name": "delete",
+            "actions": [ { "delete": {} } ],
+            "transitions": []
+          }
+        ]
+      }
+    }
+```
+
+#### Kustomization 오버레이
+
+```yaml
+# infra/opensearch-ism/overlays/s3-only/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: logging
+
+resources:
+  - ../../base
+  - configmap-ism-s3only.yaml
+
+patches:
+  # base의 ISM 정책을 S3 전용으로 교체
+  - target:
+      kind: ConfigMap
+      name: opensearch-ism-policies
+    patch: |
+      $patch: replace
+
+commonAnnotations:
+  environment: s3-only
+  ism-strategy: snapshot-and-delete
+
+commonLabels:
+  app.kubernetes.io/component: opensearch-ism
+  ism-strategy: s3-only
+```
+
+#### 배포
+
+```bash
+# S3 전용 전략 배포
+kubectl apply -k infra/opensearch-ism/overlays/s3-only/
+
+# 매니페스트 미리보기
+kubectl kustomize infra/opensearch-ism/overlays/s3-only/
+```
+
+### 9-7. DevTools 전체 설정 절차
+
+DevTools 콘솔에서 순서대로 실행하는 전체 설정 절차입니다.
+
+```
+# ============================================================
+# Step 1: 스냅샷 리포지토리 확인/등록
+# ============================================================
+
+# 리포지토리 확인
+GET _snapshot/minio-s3-repo
+
+# 미등록 시 생성
+PUT _snapshot/minio-s3-repo
+{
+  "type": "s3",
+  "settings": {
+    "bucket": "opensearch-snapshots",
+    "base_path": "snapshots",
+    "path_style_access": true,
+    "compress": true
+  }
+}
+
+# 연결 검증
+POST _snapshot/minio-s3-repo/_verify
+
+
+# ============================================================
+# Step 2: 기존 ISM 정책 제거 (기존 정책과 충돌 방지)
+# ============================================================
+
+# 기존 인덱스에서 정책 제거
+POST _plugins/_ism/remove/container-logs-*
+POST _plugins/_ism/remove/k8s-events-*
+POST _plugins/_ism/remove/systemd-logs-*
+
+# 기존 정책 삭제 (필요 시)
+DELETE _plugins/_ism/policies/container-logs-policy
+DELETE _plugins/_ism/policies/k8s-events-policy
+DELETE _plugins/_ism/policies/systemd-logs-policy
+
+
+# ============================================================
+# Step 3: S3 전용 ISM 정책 생성 — Container Log
+# ============================================================
+
+PUT _plugins/_ism/policies/container-logs-policy
+{
+  "policy": {
+    "description": "Container log S3-only - Hot(7d) → Snapshot to S3 → Delete local (S3에 365일 보관)",
+    "default_state": "hot",
+    "ism_template": [
+      {
+        "index_patterns": ["container-logs-*"],
+        "priority": 200
+      }
+    ],
+    "states": [
+      {
+        "name": "hot",
+        "actions": [
+          { "index_priority": { "priority": 100 } }
+        ],
+        "transitions": [
+          {
+            "state_name": "snapshot_and_delete",
+            "conditions": { "min_index_age": "7d" }
+          }
+        ]
+      },
+      {
+        "name": "snapshot_and_delete",
+        "actions": [
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "read_only": {}
+          },
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "force_merge": { "max_num_segments": 1 }
+          },
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "snapshot": {
+              "repository": "minio-s3-repo",
+              "snapshot": "container-logs-{{ctx.index}}-{{ctx.execution_time}}"
+            }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "delete",
+            "conditions": { "min_index_age": "8d" }
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "actions": [ { "delete": {} } ],
+        "transitions": []
+      }
+    ]
+  }
+}
+
+
+# ============================================================
+# Step 4: S3 전용 ISM 정책 생성 — K8s Event Log
+# ============================================================
+
+PUT _plugins/_ism/policies/k8s-events-policy
+{
+  "policy": {
+    "description": "K8s event S3-only - Hot(7d) → Snapshot to S3 → Delete local (S3에 90일 보관)",
+    "default_state": "hot",
+    "ism_template": [
+      {
+        "index_patterns": ["k8s-events-*"],
+        "priority": 200
+      }
+    ],
+    "states": [
+      {
+        "name": "hot",
+        "actions": [
+          { "index_priority": { "priority": 100 } }
+        ],
+        "transitions": [
+          {
+            "state_name": "snapshot_and_delete",
+            "conditions": { "min_index_age": "7d" }
+          }
+        ]
+      },
+      {
+        "name": "snapshot_and_delete",
+        "actions": [
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "read_only": {}
+          },
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "force_merge": { "max_num_segments": 1 }
+          },
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "snapshot": {
+              "repository": "minio-s3-repo",
+              "snapshot": "k8s-events-{{ctx.index}}-{{ctx.execution_time}}"
+            }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "delete",
+            "conditions": { "min_index_age": "8d" }
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "actions": [ { "delete": {} } ],
+        "transitions": []
+      }
+    ]
+  }
+}
+
+
+# ============================================================
+# Step 5: S3 전용 ISM 정책 생성 — Systemd Log
+# ============================================================
+
+PUT _plugins/_ism/policies/systemd-logs-policy
+{
+  "policy": {
+    "description": "Systemd log S3-only - Hot(7d) → Snapshot to S3 → Delete local (S3에 180일 보관)",
+    "default_state": "hot",
+    "ism_template": [
+      {
+        "index_patterns": ["systemd-logs-*"],
+        "priority": 200
+      }
+    ],
+    "states": [
+      {
+        "name": "hot",
+        "actions": [
+          { "index_priority": { "priority": 100 } }
+        ],
+        "transitions": [
+          {
+            "state_name": "snapshot_and_delete",
+            "conditions": { "min_index_age": "7d" }
+          }
+        ]
+      },
+      {
+        "name": "snapshot_and_delete",
+        "actions": [
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "read_only": {}
+          },
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "force_merge": { "max_num_segments": 1 }
+          },
+          {
+            "retry": { "count": 5, "backoff": "exponential", "delay": "10m" },
+            "snapshot": {
+              "repository": "minio-s3-repo",
+              "snapshot": "systemd-logs-{{ctx.index}}-{{ctx.execution_time}}"
+            }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "delete",
+            "conditions": { "min_index_age": "8d" }
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "actions": [ { "delete": {} } ],
+        "transitions": []
+      }
+    ]
+  }
+}
+
+
+# ============================================================
+# Step 6: 기존 인덱스에 새 정책 적용
+# ============================================================
+
+POST _plugins/_ism/add/container-logs-*
+{ "policy_id": "container-logs-policy" }
+
+POST _plugins/_ism/add/k8s-events-*
+{ "policy_id": "k8s-events-policy" }
+
+POST _plugins/_ism/add/systemd-logs-*
+{ "policy_id": "systemd-logs-policy" }
+
+
+# ============================================================
+# Step 7: 적용 확인
+# ============================================================
+
+POST _plugins/_ism/explain/container-logs-*
+POST _plugins/_ism/explain/k8s-events-*
+POST _plugins/_ism/explain/systemd-logs-*
+```
+
+### 9-8. S3 스냅샷에서 데이터 복원하기
+
+7일이 지나 로컬에서 삭제된 인덱스를 검색해야 할 때, S3 스냅샷에서 복원하는 방법입니다.
+
+#### 스냅샷 목록 확인
+
+```
+# 전체 스냅샷 목록
+GET _snapshot/minio-s3-repo/_all?pretty
+
+# 특정 패턴의 스냅샷 검색
+GET _snapshot/minio-s3-repo/container-logs-*?pretty
+```
+
+#### 특정 인덱스 복원
+
+```
+# 원래 이름으로 복원 (동일 이름의 인덱스가 없어야 함)
+POST _snapshot/minio-s3-repo/container-logs-container-logs-bigdata-prod-2026.02.15-2026.02.22T03:00:00/_restore
+{
+  "indices": "container-logs-bigdata-prod-2026.02.15",
+  "include_global_state": false
+}
+
+# 이름 변경하여 복원 (기존 인덱스와 충돌 방지)
+POST _snapshot/minio-s3-repo/container-logs-container-logs-bigdata-prod-2026.02.15-2026.02.22T03:00:00/_restore
+{
+  "indices": "container-logs-bigdata-prod-2026.02.15",
+  "rename_pattern": "(.+)",
+  "rename_replacement": "restored-$1",
+  "include_global_state": false,
+  "index_settings": {
+    "index.number_of_replicas": 0
+  }
+}
+```
+
+> `rename_replacement`에서 `restored-` 접두사를 붙여 `restored-container-logs-bigdata-prod-2026.02.15`로 복원됩니다.
+
+#### 복원된 인덱스 사용 후 정리
+
+```
+# 복원된 인덱스에서 검색
+GET restored-container-logs-bigdata-prod-2026.02.15/_search
+{
+  "query": {
+    "match": { "message": "error" }
+  }
+}
+
+# 사용 완료 후 복원된 인덱스 삭제 (디스크 반환)
+DELETE restored-container-logs-bigdata-prod-2026.02.15
+```
+
+#### Dashboards UI에서 복원
+
+1. **Snapshot Management** → **Snapshots** 탭
+2. 복원할 스냅샷 선택 → **[Restore]**
+3. **Rename indices** 체크 → prefix: `restored-`
+4. **[Restore snapshot]** 클릭
+
+### 9-9. S3 전용 보관 전략 요약
+
+#### 디스크 사용량 비교 (일일 10GB 로그 기준)
+
+| 전략 | 로컬 디스크 사용량 | S3 사용량 |
+|------|:---:|:---:|
+| 기존 (90일 로컬 보관) | **~900GB** | 0 |
+| 기존 + S3 백업 (90일 로컬 + S3) | **~900GB** | ~600GB (압축) |
+| **S3 전용 (7일 로컬 + S3)** | **~70GB** | ~600GB (압축) |
+
+#### S3 스냅샷 보관기간 총정리
+
+| 로그 유형 | 로컬 보관 | S3 스냅샷 보관 | SM 정책 |
+|-----------|:---:|:---:|---------|
+| Container Log | 7일 | 365일 | `container-logs-snapshot-retention` |
+| K8s Event | 7일 | 90일 | `k8s-events-snapshot-retention` |
+| Systemd Log | 7일 | 180일 | `systemd-logs-snapshot-retention` |
+
+#### 주의사항
+
+1. **스냅샷 실패 시 데이터 유실 위험**: `snapshot` 액션이 실패하면 retry가 동작하지만, 모든 재시도가 실패하면 로컬 인덱스가 삭제될 수 있습니다. ISM 상태를 주기적으로 모니터링하세요.
+2. **복원 시간 고려**: S3에서 복원하는 데 인덱스 크기에 따라 수분~수십 분이 소요됩니다.
+3. **S3 가용성 의존**: MinIO가 다운되면 스냅샷 생성과 복원 모두 불가합니다. MinIO의 HA 구성을 권장합니다.
+4. **인덱스 템플릿에 ISM 정책 자동 연결**: 새 인덱스 생성 시 자동으로 S3 전용 정책이 적용되도록 인덱스 템플릿의 `policy_id`를 확인하세요.
+
+---
+
+## 10. 트러블슈팅
+
+### 10-1. 스냅샷이 실패한 채로 로컬 인덱스가 삭제되는 경우 (S3 전용 전략)
+
+**증상:** `snapshot_and_delete` 상태에서 스냅샷이 실패했으나 `min_index_age` 조건 충족으로 `delete` 상태로 전환
+
+**확인 방법 (DevTools):**
+```
+POST _plugins/_ism/explain/container-logs-*
+```
+
+**해결:**
+
+ISM은 **액션이 모두 성공**해야 transition이 발동됩니다. 스냅샷 액션이 실패 상태이면 delete로 넘어가지 않습니다. 다만 retry 횟수가 모두 소진되면 정책이 `failed` 상태가 됩니다.
+
+```
+# failed 상태인 인덱스 확인
+POST _plugins/_ism/explain/container-logs-*
+
+# 수동 재시도 (S3 연결 복구 후)
+POST _plugins/_ism/retry/container-logs-bigdata-prod-2026.02.20
+{
+  "state": "snapshot_and_delete"
+}
+```
+
+> **안전 장치:** ISM의 `snapshot` 액션에 `retry: count 5`를 설정하여 5회까지 자동 재시도합니다. 모든 재시도 실패 시 정책이 `failed` 상태에서 멈추므로 인덱스가 삭제되지 않습니다.
+
+### 10-2. ISM 정책이 적용되지 않는 경우
 
 **확인 방법 (DevTools):**
 ```
@@ -1651,7 +2607,7 @@ POST _plugins/_ism/explain/container-logs-*
 | `ism_template` 미매칭 | index_patterns 불일치 | 정책의 `ism_template.index_patterns` 확인 |
 | 정책 업데이트 반영 안됨 | 기존 인덱스 자동 반영 안됨 | `change_policy` API 사용 |
 
-### 9-2. 인덱스가 Yellow 상태인 경우
+### 10-3. 인덱스가 Yellow 상태인 경우
 
 **원인:** Replica 샤드를 할당할 노드가 부족 (단일 노드)
 
@@ -1663,7 +2619,7 @@ PUT container-logs-*/_settings
 }
 ```
 
-### 9-3. ISM 액션이 실패하는 경우
+### 10-4. ISM 액션이 실패하는 경우
 
 ```
 # 실패 상세 정보 확인
@@ -1676,7 +2632,7 @@ POST _plugins/_ism/retry/container-logs-bigdata-prod-2026.01.15
 }
 ```
 
-### 9-4. ConfigMap 업데이트 후 ISM이 반영되지 않는 경우
+### 10-5. ConfigMap 업데이트 후 ISM이 반영되지 않는 경우
 
 ConfigMap을 수정해도 기존 ISM 정책은 자동으로 업데이트되지 않습니다. ISM 초기화 Job을 재실행하세요.
 
@@ -1690,7 +2646,7 @@ kubectl apply -k infra/opensearch-ism/overlays/production/
 # { ... 업데이트된 정책 JSON ... }
 ```
 
-### 9-5. 자주 사용하는 디버깅 명령어
+### 10-6. 자주 사용하는 디버깅 명령어
 
 ```
 # 전체 ISM 정책 목록
