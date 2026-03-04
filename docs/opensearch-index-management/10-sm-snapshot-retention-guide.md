@@ -217,8 +217,38 @@ DELETE _plugins/_sm/policies/container-log-snapshot-retention
 
 ### 정책 수정 (보관기간 변경 예시)
 
+SM 정책을 수정(PUT)할 때는 **`seq_no`와 `primary_term`을 반드시 쿼리 파라미터로 전달**해야 합니다.
+이 값 없이 PUT하면 다음 오류가 발생합니다:
+
 ```
-PUT _plugins/_sm/policies/container-log-snapshot-retention
+action_request_validation_exception:
+  validation failed: 1: sequence number and primary term must be provided
+  when updating a snapshot management policy
+```
+
+#### Step 1: 현재 정책 조회하여 seq_no, primary_term 확인
+
+```
+GET _plugins/_sm/policies/container-log-snapshot-retention
+```
+
+응답 예시:
+
+```json
+{
+  "_id": "container-log-snapshot-retention",
+  "_seq_no": 8,
+  "_primary_term": 1,
+  "sm_policy": {
+    ...
+  }
+}
+```
+
+#### Step 2: seq_no, primary_term을 쿼리 파라미터에 포함하여 수정
+
+```
+PUT _plugins/_sm/policies/container-log-snapshot-retention?if_seq_no=8&if_primary_term=1
 {
   "description": "Container log S3 스냅샷 자동 생성 및 보관기간 관리 - 180일로 변경",
   "enabled": true,
@@ -255,10 +285,13 @@ PUT _plugins/_sm/policies/container-log-snapshot-retention
 }
 ```
 
+> **주의:** `seq_no`와 `primary_term` 값은 매 수정마다 변경됩니다. 수정 전에 항상 GET으로 최신 값을 확인하세요. 이는 OpenSearch의 낙관적 동시성 제어(Optimistic Concurrency Control) 메커니즘입니다.
+
 ## 6. 주의사항
 
 1. **`creation` 필수:** SM 정책은 `creation` 블록 없이 생성할 수 없습니다. 삭제만 원해도 반드시 `creation`을 포함해야 합니다.
-2. **ISM snapshot 중복 주의:** ISM에 `snapshot` 액션이 있고 SM에도 `creation`이 있으면 스냅샷이 중복 생성됩니다. 방법 A(SM 전담)를 사용하여 ISM에서 `snapshot` 액션을 제거하는 것을 권장합니다.
-3. **repository 이름 일치:** SM 정책의 `repository`는 기존에 등록된 snapshot repository와 **반드시 동일**해야 합니다.
-4. **삭제 대상 범위:** SM deletion은 해당 repository 안의 **모든 스냅샷**을 대상으로 합니다. Container log 전용 repository를 분리하면 더 정밀한 관리가 가능합니다.
-5. **S3 직접 삭제 금지:** S3에서 파일을 직접 삭제하면 리포지토리가 손상됩니다. 반드시 OpenSearch SM 정책 또는 API를 사용하세요.
+2. **정책 수정 시 `seq_no`/`primary_term` 필수:** SM 정책을 PUT으로 수정할 때 `?if_seq_no=N&if_primary_term=N` 파라미터를 생략하면 `action_request_validation_exception` 오류가 발생합니다. 수정 전 반드시 GET으로 최신 값을 확인하세요.
+3. **ISM snapshot 중복 주의:** ISM에 `snapshot` 액션이 있고 SM에도 `creation`이 있으면 스냅샷이 중복 생성됩니다. 방법 A(SM 전담)를 사용하여 ISM에서 `snapshot` 액션을 제거하는 것을 권장합니다.
+4. **repository 이름 일치:** SM 정책의 `repository`는 기존에 등록된 snapshot repository와 **반드시 동일**해야 합니다.
+5. **삭제 대상 범위:** SM deletion은 해당 repository 안의 **모든 스냅샷**을 대상으로 합니다. Container log 전용 repository를 분리하면 더 정밀한 관리가 가능합니다.
+6. **S3 직접 삭제 금지:** S3에서 파일을 직접 삭제하면 리포지토리가 손상됩니다. 반드시 OpenSearch SM 정책 또는 API를 사용하세요.
