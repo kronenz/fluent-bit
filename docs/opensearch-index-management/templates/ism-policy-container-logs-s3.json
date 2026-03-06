@@ -1,0 +1,102 @@
+{
+  "policy": {
+    "description": "Container log lifecycle with S3 Cold tier - 90일 보관 (Hot → Warm → Snapshot → Cold S3 → Delete)",
+    "default_state": "hot",
+    "ism_template": [
+      {
+        "index_patterns": ["container-logs-*"],
+        "priority": 100
+      }
+    ],
+    "states": [
+      {
+        "name": "hot",
+        "actions": [],
+        "transitions": [
+          {
+            "state_name": "warm",
+            "conditions": {
+              "min_index_age": "7d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "warm",
+        "actions": [
+          {
+            "retry": { "count": 3, "backoff": "exponential", "delay": "1m" },
+            "read_only": {}
+          },
+          {
+            "force_merge": {
+              "max_num_segments": 1
+            }
+          },
+          {
+            "replica_count": { "number_of_replicas": 1 }
+          },
+          {
+            "index_priority": { "priority": 50 }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "snapshot_to_s3",
+            "conditions": {
+              "min_index_age": "25d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "snapshot_to_s3",
+        "actions": [
+          {
+            "retry": { "count": 3, "backoff": "exponential", "delay": "10m" },
+            "snapshot": {
+              "repository": "s3-snapshot-repo",
+              "snapshot": "{{ctx.index}}-{{ctx.execution_time}}"
+            }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "cold_s3",
+            "conditions": {
+              "min_index_age": "30d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "cold_s3",
+        "actions": [
+          {
+            "retry": { "count": 3, "backoff": "exponential", "delay": "10m" },
+            "convert_index_to_remote": {
+              "repository": "s3-snapshot-repo"
+            }
+          }
+        ],
+        "transitions": [
+          {
+            "state_name": "delete",
+            "conditions": {
+              "min_index_age": "90d"
+            }
+          }
+        ]
+      },
+      {
+        "name": "delete",
+        "actions": [
+          {
+            "delete": {}
+          }
+        ],
+        "transitions": []
+      }
+    ]
+  }
+}
