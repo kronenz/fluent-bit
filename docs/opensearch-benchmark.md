@@ -849,3 +849,448 @@ OSB 2.x에서는 일부 명령어 용어가 변경되었다:
 ---
 
 > **끝.**
+
+# opensearch-benchmark 2.0.0 + http_logs Dockerfile 구성 가이드
+
+---
+
+## 1. 전체 흐름
+
+```
+[인터넷 PC]                    [폐쇄망]
+                                
+ ① git clone workloads         ④ docker build
+ ② 데이터 다운로드               ⑤ docker push → Private Registry
+ ③ base-url 제거               ⑥ K8s Pod 배포 → 테스트 실행
+      │                              │
+      └── USB/SCP 이관 ──────────────┘
+```
+
+---
+
+## 2. 인터넷 PC에서 준비
+
+### 2.1 http_logs workload 파일 가져오기
+
+```powershell
+# ── Windows PowerShell ──
+
+# workloads 프로젝트 clone
+git clone https://github.com/opensearch-project/opensearch-benchmark-workloads.git
+
+# http_logs만 추출
+mkdir osb-build\workloads
+Copy-Item -Recurse opensearch-benchmark-workloads\http_logs osb-build\workloads\http_logs
+```
+
+http_logs 디렉토리 구조 확인:
+
+```
+osb-build\workloads\http_logs\
+├── workload.json           # ★ 메인 정의 (corpora, base-url 포함)
+├── workload.py             # 동적 기능 (파라미터 처리)
+├── index.json              # 인덱스 매핑/설정
+├── _operations/
+│   └── default.json        # 색인/검색 오퍼레이션 정의
+├── _test-procedures/
+│   └── default.json        # append-no-conflicts 등 테스트 프로시저
+├── files.txt               # 데이터 파일 목록
+└── README.md
+```
+
+### 2.2 데이터 다운로드
+
+http_logs의 `workload.json`을 열어서 `corpora` → `documents` 항목을 확인한다. http_logs는 **여러 파일로 분할**되어 있다.
+
+```powershell
+# workload.json에서 데이터 URL 확인
+# 아래 명령으로 base-url과 source-file 목록을 추출
+python3 -c "
+import json
+with open('osb-build/workloads/http_logs/workload.json') as f:
+    wl = json.load(f)
+for corpus in wl.get('corpora', []):
+    for doc in corpus.get('documents', []):
+        base = doc.get('base-url', '???')
+        src = doc.get('source-file', '???')
+        size = doc.get('compressed-bytes', 0)
+        print(f'{base}/{src}  ({size/1024/1024:.0f}MB)')
+"
+```
+
+데이터 다운로드:
+
+```powershell
+$ProgressPreference = 'SilentlyContinue'
+mkdir osb-build\data\http_logs -Force
+
+# ── workload.json에 나온 모든 파일을 다운로드 ──
+# (아래는 예시 — 실제 URL과 파일명은 workload.json에서 확인)
+
+# 방법 1: curl.exe (Windows 10+ 내장)
+curl.exe -L -o osb-build\data\http_logs\documents-181998.json.bz2 `
+  "https://dbyiw3u3rf9yr.cloudfront.net/corpora/http_logs/documents-181998.json.bz2"
+
+curl.exe -L -o osb-build\data\http_logs\documents-191998.json.bz2 `
+  "https://dbyiw3u3rf9yr.cloudfront.net/corpora/http_logs/documents-191998.json.bz2"
+
+curl.exe -L -o osb-build\data\http_logs\documents-201998.json.bz2 `
+  "https://dbyiw3u3rf9yr.cloudfront.net/corpora/http_logs/documents-201998.json.bz2"
+
+curl.exe -L -o osb-build\data\http_logs\documents-211998.json.bz2 `
+  "https://dbyiw3u3rf9yr.cloudfront.net/corpora/http_logs/documents-211998.json.bz2"
+
+curl.exe -L -o osb-build\data\http_logs\documents-221998.json.bz2 `
+  "https://dbyiw3u3rf9yr.cloudfront.net/corpora/http_logs/documents-221998.json.bz2"
+
+# ... workload.json에 명시된 모든 파일
+
+# 다운로드 확인
+Get-ChildItem osb-build\data\http_logs\ | Format-Table Name, @{N='MB';E={[math]::Round($_.Length/1MB,1)}}
+```
+
+> **중요**: http_logs는 총 약 **1.6GB** (압축), 비압축 시 **~31GB**. 파일이 여러 개로 나뉘어 있으므로 workload.json의 documents 배열에 있는 파일을 **빠짐없이** 모두 받아야 한다.
+
+### 2.3 workload.json에서 base-url 제거
+
+```powershell
+cd osb-build
+
+python3 -c "
+import json
+
+with open('workloads/http_logs/workload.json', 'r') as f:
+    wl = json.load(f)
+
+count = 0
+for corpus in wl.get('corpora', []):
+    for doc in corpus.get('documents', []):
+        if 'base-url' in doc:
+            del doc['base-url']
+            count += 1
+
+with open('workloads/http_logs/workload.json', 'w') as f:
+    json.dump(wl, f, indent=2)
+
+print(f'Done. Removed base-url from {count} document entries.')
+"
+```
+
+---
+
+## 3. 빌드 디렉토리 구조
+
+```
+osb-build/
+├── Dockerfile
+├── entrypoint.sh
+├── run-test.sh
+├── workloads/
+│   └── http_logs/
+│       ├── workload.json        ← base-url 제거됨
+│       ├── workload.py
+│       ├── index.json
+│       ├── _operations/
+│       │   └── default.json
+│       ├── _test-procedures/
+│       │   └── default.json
+│       └── files.txt
+└── data/
+    └── http_logs/
+        ├── documents-181998.json.bz2
+        ├── documents-191998.json.bz2
+        ├── documents-201998.json.bz2
+        ├── documents-211998.json.bz2
+        ├── documents-221998.json.bz2
+        └── ...                  ← workload.json에 명시된 전체 파일
+```
+
+---
+
+## 4. Dockerfile
+
+```dockerfile
+# ============================================================
+# OpenSearch Benchmark 2.0.0 + http_logs dataset
+# ============================================================
+FROM <private-registry>/opensearch-benchmark:2.0.0
+
+USER root
+
+# ── http_logs workload 정의 복사 ──
+COPY workloads/http_logs/ /opt/osb/workloads/http_logs/
+
+# ── http_logs 데이터 복사 ──
+# OSB가 데이터를 찾는 경로: ~/.benchmark/benchmarks/data/<workload명>/
+RUN mkdir -p /root/.benchmark/benchmarks/data/http_logs
+COPY data/http_logs/ /root/.benchmark/benchmarks/data/http_logs/
+
+# ── 테스트 스크립트 ──
+COPY entrypoint.sh /opt/osb/entrypoint.sh
+COPY run-test.sh   /opt/osb/run-test.sh
+RUN chmod +x /opt/osb/entrypoint.sh /opt/osb/run-test.sh
+
+RUN mkdir -p /opt/osb/results
+
+ENTRYPOINT ["/opt/osb/entrypoint.sh"]
+```
+
+> 이미지 크기: base(~500MB) + 데이터(~1.6GB) ≈ **약 2.1GB**
+
+---
+
+## 5. entrypoint.sh
+
+```bash
+#!/bin/bash
+
+echo "============================================"
+echo " OSB 2.0.0 + http_logs (append-no-conflicts)"
+echo "============================================"
+echo ""
+echo " OS_ENDPOINT : ${OS_ENDPOINT:-not set}"
+echo " OS_USER     : ${OS_USER:-admin}"
+echo " OS_USE_SSL  : ${OS_USE_SSL:-false}"
+echo " STORAGE_TYPE: ${STORAGE_TYPE:-not set}"
+echo ""
+echo " Workload    : /opt/osb/workloads/http_logs/"
+echo " Data        :"
+ls -lh /root/.benchmark/benchmarks/data/http_logs/ 2>/dev/null | head -10
+echo ""
+echo " Usage:"
+echo "   /opt/osb/run-test.sh                    # 3회 반복 실행"
+echo "   /opt/osb/run-test.sh 1                  # 1회만 실행"
+echo ""
+
+exec tail -f /dev/null
+```
+
+---
+
+## 6. run-test.sh
+
+```bash
+#!/bin/bash
+set -e
+
+# ── 환경변수 (K8s ConfigMap/env로 주입) ──
+OS_ENDPOINT="${OS_ENDPOINT:?'OS_ENDPOINT 환경변수 필요 (예: opensearch-cluster:9200)'}"
+OS_USER="${OS_USER:-admin}"
+OS_PASS="${OS_PASS:-admin}"
+OS_USE_SSL="${OS_USE_SSL:-false}"
+STORAGE_TYPE="${STORAGE_TYPE:-unknown}"
+RUNS="${1:-3}"
+COOLDOWN="${COOLDOWN:-60}"
+
+# ── client-options 구성 ──
+CLIENT_OPTS="basic_auth_user:${OS_USER},basic_auth_password:${OS_PASS}"
+if [ "${OS_USE_SSL}" = "true" ]; then
+  CLIENT_OPTS="${CLIENT_OPTS},use_ssl:true,verify_certs:false"
+fi
+
+RESULT_DIR="/opt/osb/results/${STORAGE_TYPE}"
+mkdir -p "${RESULT_DIR}"
+
+echo "╔═══════════════════════════════════════════╗"
+echo "║  http_logs — append-no-conflicts          ║"
+echo "║  Storage : ${STORAGE_TYPE}"
+echo "║  Target  : ${OS_ENDPOINT}"
+echo "║  Runs    : ${RUNS}"
+echo "╚═══════════════════════════════════════════╝"
+
+PROTO="http"
+[ "${OS_USE_SSL}" = "true" ] && PROTO="https"
+
+for i in $(seq 1 ${RUNS}); do
+  TS=$(date +%Y%m%d_%H%M%S)
+  echo ""
+  echo "━━━ Run ${i}/${RUNS} ━━━"
+
+  # 인덱스 정리
+  echo "[1/3] 인덱스 정리..."
+  curl -sk -X DELETE "${PROTO}://${OS_USER}:${OS_PASS}@${OS_ENDPOINT}/logs-*" || true
+  curl -sk -X POST "${PROTO}://${OS_USER}:${OS_PASS}@${OS_ENDPOINT}/_cache/clear" || true
+  sleep 5
+
+  # 벤치마크 실행
+  echo "[2/3] opensearch-benchmark 실행..."
+  opensearch-benchmark execute-test \
+    --workload-path=/opt/osb/workloads/http_logs \
+    --pipeline=benchmark-only \
+    --target-hosts="${OS_ENDPOINT}" \
+    --client-options="${CLIENT_OPTS}" \
+    --test-procedure=append-no-conflicts \
+    --on-error=abort \
+    --kill-running-processes \
+    2>&1 | tee "${RESULT_DIR}/run${i}_${TS}.log"
+
+  echo "[3/3] 결과 저장: ${RESULT_DIR}/run${i}_${TS}.log"
+
+  if [ ${i} -lt ${RUNS} ]; then
+    echo "Cooldown ${COOLDOWN}초..."
+    sleep ${COOLDOWN}
+  fi
+done
+
+echo ""
+echo "═══ 완료 ═══"
+echo "결과 파일:"
+ls -la ${RESULT_DIR}/*.log
+```
+
+---
+
+## 7. Docker Build
+
+```bash
+# ── 폐쇄망 빌드 서버 ──
+cd osb-build/
+
+docker build -t <private-registry>/osb-http-logs:2.0.0 .
+
+# 크기 확인
+docker images | grep osb-http-logs
+
+# Push
+docker push <private-registry>/osb-http-logs:2.0.0
+```
+
+---
+
+## 8. K8s 배포
+
+```yaml
+# osb-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: osb-config
+  namespace: os-perf-test
+data:
+  OS_ENDPOINT: "opensearch-cluster-master.opensearch.svc.cluster.local:9200"
+  OS_USER: "admin"
+  OS_USE_SSL: "false"
+  COOLDOWN: "60"
+---
+# osb-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: osb-secret
+  namespace: os-perf-test
+type: Opaque
+stringData:
+  OS_PASS: "admin"
+---
+# osb-deploy.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: osb-client
+  namespace: os-perf-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: osb-client
+  template:
+    metadata:
+      labels:
+        app: osb-client
+    spec:
+      containers:
+      - name: osb
+        image: <private-registry>/osb-http-logs:2.0.0
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: osb-config
+        - secretRef:
+            name: osb-secret
+        env:
+        - name: STORAGE_TYPE
+          value: "local-path"      # ← 테스트마다 변경
+        resources:
+          requests:
+            cpu: "2"
+            memory: 4Gi
+          limits:
+            cpu: "4"
+            memory: 8Gi
+        volumeMounts:
+        - name: results
+          mountPath: /opt/osb/results
+      volumes:
+      - name: results
+        emptyDir: {}
+      imagePullSecrets:
+      - name: registry-secret
+```
+
+---
+
+## 9. 실행
+
+```bash
+# 배포
+kubectl create namespace os-perf-test 2>/dev/null || true
+kubectl apply -f osb-configmap.yaml
+kubectl apply -f osb-secret.yaml
+kubectl apply -f osb-deploy.yaml
+
+# Pod 확인
+kubectl get pods -n os-perf-test -w
+
+# Pod 이름
+OSB=$(kubectl get pod -n os-perf-test -l app=osb-client -o jsonpath='{.items[0].metadata.name}')
+
+# ── 테스트 실행 ──
+# 3회 반복 (기본값)
+kubectl exec -n os-perf-test $OSB -- /opt/osb/run-test.sh
+
+# 1회만 테스트 (빠른 확인용)
+kubectl exec -n os-perf-test $OSB -- /opt/osb/run-test.sh 1
+
+# Pod 접속 후 직접 실행
+kubectl exec -it -n os-perf-test $OSB -- bash
+opensearch-benchmark execute-test \
+  --workload-path=/opt/osb/workloads/http_logs \
+  --pipeline=benchmark-only \
+  --target-hosts=$OS_ENDPOINT \
+  --client-options="basic_auth_user:$OS_USER,basic_auth_password:$OS_PASS" \
+  --test-procedure=append-no-conflicts
+
+# ── 스토리지 교체 후 반복 ──
+# OpenSearch StorageClass 변경 후:
+kubectl set env deploy/osb-client STORAGE_TYPE=isilon-hdd -n os-perf-test
+kubectl exec -n os-perf-test $OSB -- /opt/osb/run-test.sh
+
+kubectl set env deploy/osb-client STORAGE_TYPE=ssd -n os-perf-test
+kubectl exec -n os-perf-test $OSB -- /opt/osb/run-test.sh
+
+# ── 결과 수집 ──
+kubectl cp os-perf-test/$OSB:/opt/osb/results ./results/
+```
+
+---
+
+## 10. append-no-conflicts에서 나오는 측정 항목
+
+테스트 완료 시 OSB가 출력하는 주요 지표:
+
+| 측정 항목 | 설명 | 스토리지 비교 포인트 |
+|----------|------|:---:|
+| **Indexing throughput** (docs/sec) | 초당 색인 문서 수 | ★★★★★ |
+| **Indexing latency** (p50/p90/p99) | 색인 지연시간 | ★★★★ |
+| **Merge time** | Segment merge 소요 시간 | ★★★★★ |
+| **Refresh time** | Index refresh 소요 시간 | ★★★★ |
+| **Flush time** | Translog flush 소요 시간 | ★★★★ |
+| **Index size** (GB) | 최종 인덱스 크기 | ★★★ |
+| **Segment count** | 최종 segment 수 | ★★★ |
+| Query latency (default) | 기본 검색 쿼리 지연시간 | ★★★★ |
+| Query latency (term/range/agg) | 각 쿼리 유형별 지연시간 | ★★★★ |
+
+---
+
+> **끝.**
+
