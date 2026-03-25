@@ -1,0 +1,282 @@
+{
+  "version": 2,
+  "description": "HTTP server access log benchmark - bulk indexing + search queries for storage performance comparison",
+  "indices": [
+    {
+      "name": "logs-181998",
+      "body": "index.json"
+    },
+    {
+      "name": "logs-191998",
+      "body": "index.json"
+    },
+    {
+      "name": "logs-201998",
+      "body": "index.json"
+    },
+    {
+      "name": "logs-211998",
+      "body": "index.json"
+    },
+    {
+      "name": "logs-221998",
+      "body": "index.json"
+    },
+    {
+      "name": "logs-231998",
+      "body": "index.json"
+    },
+    {
+      "name": "logs-241998",
+      "body": "index.json"
+    }
+  ],
+  "corpora": [
+    {
+      "name": "http_logs_181998",
+      "target-index": "logs-181998",
+      "documents": [
+        {
+          "source-file": "documents-181998.json.bz2",
+          "document-count": 2708746,
+          "compressed-bytes": 13064317,
+          "uncompressed-bytes": 303920342
+        }
+      ]
+    },
+    {
+      "name": "http_logs_191998",
+      "target-index": "logs-191998",
+      "documents": [
+        {
+          "source-file": "documents-191998.json.bz2",
+          "document-count": 9697882,
+          "compressed-bytes": 47211781,
+          "uncompressed-bytes": 1088378738
+        }
+      ]
+    },
+    {
+      "name": "http_logs_201998",
+      "target-index": "logs-201998",
+      "documents": [
+        {
+          "source-file": "documents-201998.json.bz2",
+          "document-count": 13053463,
+          "compressed-bytes": 63174979,
+          "uncompressed-bytes": 1456836090
+        }
+      ]
+    },
+    {
+      "name": "http_logs_211998",
+      "target-index": "logs-211998",
+      "documents": [
+        {
+          "source-file": "documents-211998.json.bz2",
+          "document-count": 17647279,
+          "compressed-bytes": 85382801,
+          "uncompressed-bytes": 1977038237
+        }
+      ]
+    },
+    {
+      "name": "http_logs_221998",
+      "target-index": "logs-221998",
+      "documents": [
+        {
+          "source-file": "documents-221998.json.bz2",
+          "document-count": 10716760,
+          "compressed-bytes": 52396490,
+          "uncompressed-bytes": 1204790600
+        }
+      ]
+    },
+    {
+      "name": "http_logs_231998",
+      "target-index": "logs-231998",
+      "documents": [
+        {
+          "source-file": "documents-231998.json.bz2",
+          "document-count": 11961342,
+          "compressed-bytes": 57894196,
+          "uncompressed-bytes": 1340196517
+        }
+      ]
+    },
+    {
+      "name": "http_logs_241998",
+      "target-index": "logs-241998",
+      "documents": [
+        {
+          "source-file": "documents-241998.json.bz2",
+          "document-count": 13742784,
+          "compressed-bytes": 66539174,
+          "uncompressed-bytes": 1540724501
+        }
+      ]
+    }
+  ],
+  "schedule": [
+    {
+      "operation": {
+        "operation-type": "delete-index"
+      }
+    },
+    {
+      "operation": {
+        "operation-type": "create-index"
+      }
+    },
+    {
+      "operation": {
+        "operation-type": "cluster-health",
+        "request-params": {
+          "wait_for_status": "green"
+        },
+        "retry-until-success": true
+      }
+    },
+    {
+      "operation": {
+        "operation-type": "bulk",
+        "bulk-size": 5000
+      },
+      "warmup-time-period": 120,
+      "clients": 8
+    },
+    {
+      "operation": {
+        "operation-type": "force-merge"
+      }
+    },
+    {
+      "name": "search-match-all",
+      "operation": {
+        "operation-type": "search",
+        "index": "logs-*",
+        "body": {
+          "query": {
+            "match_all": {}
+          }
+        }
+      },
+      "warmup-iterations": 100,
+      "iterations": 500,
+      "target-throughput": 20
+    },
+    {
+      "name": "search-term-status200",
+      "operation": {
+        "operation-type": "search",
+        "index": "logs-*",
+        "body": {
+          "query": {
+            "term": {
+              "status": "200"
+            }
+          }
+        }
+      },
+      "warmup-iterations": 100,
+      "iterations": 500,
+      "target-throughput": 20
+    },
+    {
+      "name": "search-range-timestamp",
+      "operation": {
+        "operation-type": "search",
+        "index": "logs-*",
+        "body": {
+          "query": {
+            "range": {
+              "@timestamp": {
+                "gte": "1998-06-01",
+                "lte": "1998-06-30"
+              }
+            }
+          }
+        }
+      },
+      "warmup-iterations": 100,
+      "iterations": 500,
+      "target-throughput": 20
+    },
+    {
+      "name": "search-hourly-agg",
+      "operation": {
+        "operation-type": "search",
+        "index": "logs-*",
+        "body": {
+          "size": 0,
+          "aggs": {
+            "by_hour": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "hour"
+              }
+            }
+          }
+        }
+      },
+      "warmup-iterations": 50,
+      "iterations": 200,
+      "target-throughput": 10
+    },
+    {
+      "name": "search-status-code-agg",
+      "operation": {
+        "operation-type": "search",
+        "index": "logs-*",
+        "body": {
+          "size": 0,
+          "aggs": {
+            "status_codes": {
+              "terms": {
+                "field": "status"
+              }
+            }
+          }
+        }
+      },
+      "warmup-iterations": 50,
+      "iterations": 200,
+      "target-throughput": 10
+    },
+    {
+      "name": "search-request-keyword",
+      "operation": {
+        "operation-type": "search",
+        "index": "logs-*",
+        "body": {
+          "query": {
+            "match": {
+              "request": "GET"
+            }
+          }
+        }
+      },
+      "warmup-iterations": 100,
+      "iterations": 500,
+      "target-throughput": 20
+    },
+    {
+      "name": "search-clientip",
+      "operation": {
+        "operation-type": "search",
+        "index": "logs-*",
+        "body": {
+          "query": {
+            "term": {
+              "clientip": "211.11.9.0"
+            }
+          }
+        }
+      },
+      "warmup-iterations": 100,
+      "iterations": 500,
+      "target-throughput": 20
+    }
+  ]
+}
+p
