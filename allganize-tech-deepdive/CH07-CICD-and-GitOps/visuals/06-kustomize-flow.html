@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kustomize Overlay Pattern - Kustomize 오버레이 패턴</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1300px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#bc8cff,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:24px;overflow:hidden}
+.section h2{font-size:1.1rem;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.badge{padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:600}
+
+/* Overlay Flow */
+.overlay-flow{display:flex;align-items:stretch;gap:0;justify-content:center;flex-wrap:wrap;padding:16px 0}
+.ov-stage{display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0;transform:translateY(16px);transition:all .5s ease;min-width:140px;max-width:200px}
+.ov-stage.visible{opacity:1;transform:translateY(0)}
+.ov-box{width:100%;padding:14px;border-radius:10px;border:2px solid;text-align:center;transition:all .3s}
+.ov-box.active{box-shadow:0 0 20px var(--glow);transform:scale(1.05)}
+.ov-icon{font-size:1.5rem;margin-bottom:4px}
+.ov-title{font-size:.78rem;font-weight:600}
+.ov-sub{font-size:.65rem;color:#8b949e;margin-top:2px}
+.ov-arrow{display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#30363d;opacity:0;transition:all .3s;padding:0 6px}
+.ov-arrow.visible{opacity:1;color:#bc8cff}
+
+.s-base .ov-box{border-color:#58a6ff60;background:#58a6ff08;--glow:#58a6ff30}
+.s-overlay .ov-box{border-color:#bc8cff60;background:#bc8cff08;--glow:#bc8cff30}
+.s-merge .ov-box{border-color:#f0883e60;background:#f0883e08;--glow:#f0883e30}
+.s-output .ov-box{border-color:#3fb95060;background:#3fb95008;--glow:#3fb95030}
+
+/* Environment Separation */
+.env-container{display:flex;flex-direction:column;align-items:center;gap:0;margin-top:12px}
+.env-base{padding:14px 28px;border-radius:10px;border:2px solid #58a6ff60;background:#58a6ff08;text-align:center;opacity:0;transform:scale(.9);transition:all .5s ease;position:relative;z-index:2}
+.env-base.visible{opacity:1;transform:scale(1)}
+.env-base.active{border-color:#58a6ff;box-shadow:0 0 16px #58a6ff30}
+.env-base h4{font-size:.85rem;color:#58a6ff}
+.env-base p{font-size:.7rem;color:#8b949e}
+.env-lines{display:flex;justify-content:center;gap:0;height:40px;position:relative}
+.env-line{width:2px;height:40px;background:#30363d;margin:0 40px;opacity:0;transition:all .3s}
+.env-line.visible{opacity:1;background:#bc8cff}
+.env-overlays{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.env-card{padding:14px 20px;border-radius:10px;border:2px solid;text-align:center;min-width:140px;opacity:0;transform:translateY(12px);transition:all .5s ease}
+.env-card.visible{opacity:1;transform:translateY(0)}
+.env-card.active{box-shadow:0 0 16px var(--glow)}
+.env-card h4{font-size:.82rem;margin-bottom:2px}
+.env-card p{font-size:.68rem;color:#8b949e;line-height:1.3}
+.env-card .env-tag{font-size:.6rem;padding:2px 6px;border-radius:4px;margin-top:6px;display:inline-block}
+.env-dev{border-color:#3fb95060;--glow:#3fb95030}
+.env-dev .env-tag{background:#3fb95020;color:#3fb950}
+.env-staging{border-color:#f0883e60;--glow:#f0883e30}
+.env-staging .env-tag{background:#f0883e20;color:#f0883e}
+.env-prod{border-color:#f8514960;--glow:#f8514930}
+.env-prod .env-tag{background:#f8514920;color:#f85149}
+
+/* Patch Comparison */
+.patch-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:12px}
+.patch-card{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:16px;opacity:0;transform:translateY(12px);transition:all .5s ease}
+.patch-card.visible{opacity:1;transform:translateY(0)}
+.patch-card h3{font-size:.9rem;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.patch-tag{padding:2px 8px;border-radius:10px;font-size:.68rem;font-weight:600}
+.tag-smp{background:#58a6ff20;color:#58a6ff;border:1px solid #58a6ff40}
+.tag-json{background:#f0883e20;color:#f0883e;border:1px solid #f0883e40}
+.patch-desc{font-size:.75rem;color:#8b949e;margin-bottom:12px;line-height:1.4}
+
+.code-block{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:14px;font-family:'Consolas','Monaco',monospace;font-size:.7rem;line-height:1.6;overflow-x:auto;color:#8b949e}
+.code-block .ck{color:#ff7b72}
+.code-block .cv{color:#79c0ff}
+.code-block .cs{color:#a5d6ff}
+.code-block .cc{color:#6e7681}
+.code-block .ca{color:#3fb950}
+.code-block .cr{color:#f85149}
+
+.patch-result{margin-top:10px;padding:10px;background:#161b22;border-radius:6px;border:1px solid #21262d}
+.patch-result h5{font-size:.75rem;color:#3fb950;margin-bottom:6px}
+
+/* Pros/Cons table */
+.pc-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.73rem}
+.pc-table th{background:#0d1117;border:1px solid #21262d;padding:8px;text-align:left;color:#8b949e}
+.pc-table td{border:1px solid #21262d;padding:8px}
+.pc-table tr:hover td{background:#161b2280}
+
+/* Directory tree */
+.dir-tree{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:14px;font-family:monospace;font-size:.72rem;line-height:1.8;color:#8b949e;margin-top:12px}
+.dir-tree .dir{color:#58a6ff}
+.dir-tree .file{color:#e6edf3}
+.dir-tree .comment{color:#6e7681}
+
+.info-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-top:20px}
+.info-box h3{font-size:1rem;margin-bottom:12px;color:#bc8cff}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.info-item{padding:12px;background:#0d1117;border-radius:6px;border:1px solid #21262d}
+.info-item strong{color:#e6edf3;font-size:.85rem}
+.info-item p{color:#8b949e;font-size:.78rem;margin-top:4px;line-height:1.4}
+
+@media(max-width:768px){.container{padding:12px}.patch-grid{grid-template-columns:1fr}.env-overlays{flex-direction:column;align-items:center}.overlay-flow{flex-direction:column;align-items:center}.ov-arrow{transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+<h1>Kustomize Overlay Pattern</h1>
+<p class="subtitle">Base + Overlay 패턴으로 환경별 Kubernetes 매니페스트 관리</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnim()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pauseAnim()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restartAnim()">&#8635; 다시시작 Restart</button>
+</div>
+
+<!-- Main Overlay Flow -->
+<div class="section">
+  <h2><span class="badge" style="background:#bc8cff30;color:#bc8cff;border:1px solid #bc8cff40">FLOW</span> Kustomize 렌더링 흐름</h2>
+  <div class="overlay-flow" id="overlayFlow">
+    <div class="ov-stage s-base" data-step="0">
+      <div class="ov-box"><div class="ov-icon">&#128193;</div><div class="ov-title">Base Resources</div><div class="ov-sub">공통 리소스 정의</div></div>
+    </div>
+    <div class="ov-arrow">+</div>
+    <div class="ov-stage s-overlay" data-step="1">
+      <div class="ov-box"><div class="ov-icon">&#128203;</div><div class="ov-title">Overlay Patches</div><div class="ov-sub">환경별 패치</div></div>
+    </div>
+    <div class="ov-arrow">&#10132;</div>
+    <div class="ov-stage s-merge" data-step="2">
+      <div class="ov-box"><div class="ov-icon">&#9881;</div><div class="ov-title">kustomize build</div><div class="ov-sub">패치 병합</div></div>
+    </div>
+    <div class="ov-arrow">&#10132;</div>
+    <div class="ov-stage s-output" data-step="3">
+      <div class="ov-box"><div class="ov-icon">&#128220;</div><div class="ov-title">Final Output</div><div class="ov-sub">최종 매니페스트</div></div>
+    </div>
+  </div>
+
+  <div class="dir-tree">
+    <span class="dir">k8s/</span><br>
+    &#9500;&#9472; <span class="dir">base/</span> <span class="comment"># 공통 리소스</span><br>
+    &#9474;&nbsp;&nbsp;&#9500;&#9472; <span class="file">kustomization.yaml</span><br>
+    &#9474;&nbsp;&nbsp;&#9500;&#9472; <span class="file">deployment.yaml</span><br>
+    &#9474;&nbsp;&nbsp;&#9500;&#9472; <span class="file">service.yaml</span><br>
+    &#9474;&nbsp;&nbsp;&#9492;&#9472; <span class="file">configmap.yaml</span><br>
+    &#9492;&#9472; <span class="dir">overlays/</span> <span class="comment"># 환경별 오버레이</span><br>
+    &nbsp;&nbsp;&nbsp;&#9500;&#9472; <span class="dir">dev/</span><br>
+    &nbsp;&nbsp;&nbsp;&#9474;&nbsp;&nbsp;&#9500;&#9472; <span class="file">kustomization.yaml</span><br>
+    &nbsp;&nbsp;&nbsp;&#9474;&nbsp;&nbsp;&#9492;&#9472; <span class="file">replica-patch.yaml</span><br>
+    &nbsp;&nbsp;&nbsp;&#9500;&#9472; <span class="dir">staging/</span><br>
+    &nbsp;&nbsp;&nbsp;&#9474;&nbsp;&nbsp;&#9500;&#9472; <span class="file">kustomization.yaml</span><br>
+    &nbsp;&nbsp;&nbsp;&#9474;&nbsp;&nbsp;&#9492;&#9472; <span class="file">resource-patch.yaml</span><br>
+    &nbsp;&nbsp;&nbsp;&#9492;&#9472; <span class="dir">prod/</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#9500;&#9472; <span class="file">kustomization.yaml</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#9500;&#9472; <span class="file">hpa.yaml</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#9492;&#9472; <span class="file">replica-patch.yaml</span>
+  </div>
+</div>
+
+<!-- Environment Separation -->
+<div class="section">
+  <h2><span class="badge" style="background:#3fb95030;color:#3fb950;border:1px solid #3fb95040">ENV</span> 환경 분리 Environment Separation</h2>
+  <div class="env-container" id="envContainer">
+    <div class="env-base" id="envBase">
+      <h4>&#128193; Base</h4>
+      <p>deployment.yaml, service.yaml, configmap.yaml</p>
+    </div>
+    <div class="env-lines" id="envLines">
+      <div class="env-line"></div>
+      <div class="env-line"></div>
+      <div class="env-line"></div>
+    </div>
+    <div class="env-overlays" id="envOverlays">
+      <div class="env-card env-dev" data-env="0">
+        <h4>&#128421; Dev</h4>
+        <p>replicas: 1<br>resources: 256Mi<br>log: debug</p>
+        <div class="env-tag">개발 환경</div>
+      </div>
+      <div class="env-card env-staging" data-env="1">
+        <h4>&#128296; Staging</h4>
+        <p>replicas: 2<br>resources: 512Mi<br>log: info</p>
+        <div class="env-tag">스테이징 환경</div>
+      </div>
+      <div class="env-card env-prod" data-env="2">
+        <h4>&#127759; Production</h4>
+        <p>replicas: 5<br>resources: 1Gi<br>log: warn<br>HPA enabled</p>
+        <div class="env-tag">프로덕션 환경</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Patch Comparison -->
+<div class="section">
+  <h2><span class="badge" style="background:#f0883e30;color:#f0883e;border:1px solid #f0883e40">PATCH</span> Strategic Merge Patch vs JSON Patch</h2>
+  <div class="patch-grid" id="patchGrid">
+    <div class="patch-card" id="smpCard">
+      <h3><span class="patch-tag tag-smp">Strategic Merge Patch</span></h3>
+      <div class="patch-desc">Kubernetes 리소스 구조를 이해하고 지능적으로 병합. 리스트는 전략적으로 처리 (merge key 기반).<br>Kubernetes-aware intelligent merge. Lists handled by merge keys.</div>
+      <div class="code-block">
+        <span class="cc"># strategic-merge-patch.yaml</span><br>
+        <span class="ck">apiVersion</span>: <span class="cs">apps/v1</span><br>
+        <span class="ck">kind</span>: <span class="cs">Deployment</span><br>
+        <span class="ck">metadata</span>:<br>
+        &nbsp;&nbsp;<span class="ck">name</span>: <span class="cs">my-app</span><br>
+        <span class="ck">spec</span>:<br>
+        &nbsp;&nbsp;<span class="ck">replicas</span>: <span class="ca">5</span> <span class="cc"># 변경</span><br>
+        &nbsp;&nbsp;<span class="ck">template</span>:<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="ck">spec</span>:<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ck">containers</span>:<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="ck">name</span>: <span class="cs">my-app</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ck">resources</span>:<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ck">limits</span>:<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ck">memory</span>: <span class="ca">"1Gi"</span>
+      </div>
+      <div class="patch-result">
+        <h5>&#10003; 장점 Pros</h5>
+        <div style="font-size:.7rem;color:#8b949e;line-height:1.4">
+          - YAML 형태로 직관적, 읽기 쉬움<br>
+          - 부분 수정만 명시하면 나머지 보존<br>
+          - Kubernetes 기본 패치 전략
+        </div>
+      </div>
+    </div>
+
+    <div class="patch-card" id="jsonCard">
+      <h3><span class="patch-tag tag-json">JSON Patch (RFC 6902)</span></h3>
+      <div class="patch-desc">명시적 연산(add/remove/replace)으로 정밀 수정. 배열 인덱스 접근 가능.<br>Explicit operations for precise modifications. Array index access supported.</div>
+      <div class="code-block">
+        <span class="cc"># json-patch.yaml</span><br>
+        - <span class="ck">op</span>: <span class="cr">replace</span><br>
+        &nbsp;&nbsp;<span class="ck">path</span>: <span class="cs">/spec/replicas</span><br>
+        &nbsp;&nbsp;<span class="ck">value</span>: <span class="ca">5</span><br>
+        - <span class="ck">op</span>: <span class="ca">add</span><br>
+        &nbsp;&nbsp;<span class="ck">path</span>: <span class="cs">/spec/template/spec/containers/0/resources/limits</span><br>
+        &nbsp;&nbsp;<span class="ck">value</span>:<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="ck">memory</span>: <span class="ca">"1Gi"</span><br>
+        - <span class="ck">op</span>: <span class="cr">remove</span><br>
+        &nbsp;&nbsp;<span class="ck">path</span>: <span class="cs">/spec/template/metadata/annotations/debug</span>
+      </div>
+      <div class="patch-result">
+        <h5>&#10003; 장점 Pros</h5>
+        <div style="font-size:.7rem;color:#8b949e;line-height:1.4">
+          - add/remove/replace 등 명시적 연산<br>
+          - 배열 인덱스로 정밀 제어 가능<br>
+          - 필드 삭제가 가능 (SMP는 불가)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <table class="pc-table" style="margin-top:16px">
+    <thead>
+      <tr><th>비교 항목</th><th>Strategic Merge Patch</th><th>JSON Patch (RFC 6902)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>형식 Format</td><td>YAML (리소스 일부)</td><td>JSON 연산 배열</td></tr>
+      <tr><td>필드 삭제 Delete</td><td style="color:#f85149">불가 (null 제한적)</td><td style="color:#3fb950">op: remove 가능</td></tr>
+      <tr><td>배열 처리 Arrays</td><td>Merge key 기반 병합</td><td>인덱스로 정밀 접근</td></tr>
+      <tr><td>가독성 Readability</td><td style="color:#3fb950">높음 (YAML 구조)</td><td style="color:#f0883e">중간 (연산 목록)</td></tr>
+      <tr><td>사용 케이스</td><td>일반적인 값 변경</td><td>정밀한 배열/삭제 작업</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Info -->
+<div class="info-box">
+  <h3>Kustomize 핵심 개념 Key Concepts</h3>
+  <div class="info-grid">
+    <div class="info-item">
+      <strong>Template-Free</strong>
+      <p>Helm과 달리 템플릿 언어 없이 순수 YAML 패칭. kubectl에 내장되어 별도 설치 불필요. Pure YAML patching without template language, built into kubectl.</p>
+    </div>
+    <div class="info-item">
+      <strong>Overlay Pattern</strong>
+      <p>Base에 공통 리소스, Overlay에 환경별 차이만 정의. DRY 원칙 준수로 중복 제거. Define common resources in base, differences in overlays.</p>
+    </div>
+    <div class="info-item">
+      <strong>Transformers</strong>
+      <p>namePrefix, nameSuffix, commonLabels, commonAnnotations 등 전역 변환기로 일괄 수정. Global transformers for bulk modifications.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+let paused=false,timers=[];
+function clearTimers(){timers.forEach(t=>clearTimeout(t));timers=[];}
+function schedule(fn,delay){const t=setTimeout(()=>{if(!paused)fn()},delay);timers.push(t);}
+
+const ovStages=document.querySelectorAll('.ov-stage');
+const ovArrows=document.querySelectorAll('.ov-arrow');
+const envBase=document.getElementById('envBase');
+const envLines=document.querySelectorAll('.env-line');
+const envCards=document.querySelectorAll('.env-card');
+const patchCards=document.querySelectorAll('.patch-card');
+
+function reset(){
+  clearTimers();paused=false;
+  ovStages.forEach(s=>{s.classList.remove('visible');s.querySelector('.ov-box').classList.remove('active')});
+  ovArrows.forEach(a=>a.classList.remove('visible'));
+  envBase.classList.remove('visible','active');
+  envLines.forEach(l=>l.classList.remove('visible'));
+  envCards.forEach(c=>{c.classList.remove('visible','active')});
+  patchCards.forEach(c=>c.classList.remove('visible'));
+}
+
+function animateOverlayFlow(){
+  let d=0;
+  ovStages.forEach((s,i)=>{
+    schedule(()=>{s.classList.add('visible');s.querySelector('.ov-box').classList.add('active')},d);
+    if(i>0)schedule(()=>ovStages[i-1].querySelector('.ov-box').classList.remove('active'),d);
+    if(i>0)schedule(()=>ovArrows[i-1].classList.add('visible'),d-200);
+    d+=700;
+  });
+  schedule(()=>ovStages[ovStages.length-1].querySelector('.ov-box').classList.remove('active'),d);
+}
+
+function animateEnv(){
+  const offset=3200;
+  schedule(()=>{envBase.classList.add('visible','active')},offset);
+  schedule(()=>{envBase.classList.remove('active')},offset+600);
+  schedule(()=>{envLines.forEach((l,i)=>setTimeout(()=>{if(!paused)l.classList.add('visible')},i*150))},offset+800);
+  envCards.forEach((c,i)=>{
+    schedule(()=>{c.classList.add('visible')},offset+1200+i*400);
+    schedule(()=>{c.classList.add('active')},offset+1500+i*400);
+    schedule(()=>{c.classList.remove('active')},offset+2000+i*400);
+  });
+}
+
+function animatePatches(){
+  const offset=6500;
+  patchCards.forEach((c,i)=>{
+    schedule(()=>c.classList.add('visible'),offset+i*400);
+  });
+}
+
+function startAnim(){
+  if(paused){paused=false;return;}
+  reset();animateOverlayFlow();animateEnv();animatePatches();
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+}
+function pauseAnim(){paused=true;document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active');}
+function restartAnim(){reset();startAnim();}
+startAnim();
+</script>
+</body>
+</html>

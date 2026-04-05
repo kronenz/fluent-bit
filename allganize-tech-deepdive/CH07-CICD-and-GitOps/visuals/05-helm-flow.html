@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Helm Chart Rendering Flow - Helm 차트 렌더링 흐름</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1300px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#0d6efd,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:24px;overflow:hidden}
+.section h2{font-size:1.1rem;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.badge{padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:600}
+
+/* Helm Render Flow */
+.helm-flow{display:flex;align-items:stretch;gap:0;justify-content:center;flex-wrap:wrap;padding:16px 0}
+.helm-stage{display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0;transform:translateY(16px);transition:all .5s ease;min-width:140px;max-width:180px}
+.helm-stage.visible{opacity:1;transform:translateY(0)}
+.stage-box{width:100%;padding:14px;border-radius:10px;border:2px solid;text-align:center;position:relative;transition:all .3s}
+.stage-box.active{box-shadow:0 0 20px var(--glow);transform:scale(1.05)}
+.stage-box .stage-icon{font-size:1.6rem;margin-bottom:4px}
+.stage-box .stage-title{font-size:.78rem;font-weight:600}
+.stage-box .stage-sub{font-size:.65rem;color:#8b949e;margin-top:2px}
+.helm-arrow{display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#30363d;opacity:0;transition:all .3s;padding:0 4px}
+.helm-arrow.visible{opacity:1;color:#0d6efd}
+
+.s-values .stage-box{border-color:#f0883e60;background:#f0883e08;--glow:#f0883e30}
+.s-templates .stage-box{border-color:#58a6ff60;background:#58a6ff08;--glow:#58a6ff30}
+.s-render .stage-box{border-color:#bc8cff60;background:#bc8cff08;--glow:#bc8cff30}
+.s-manifests .stage-box{border-color:#3fb95060;background:#3fb95008;--glow:#3fb95030}
+.s-install .stage-box{border-color:#0d6efd60;background:#0d6efd08;--glow:#0d6efd30}
+.s-k8s .stage-box{border-color:#2ea04360;background:#2ea04308;--glow:#2ea04330}
+
+/* Values Override Hierarchy */
+.override-container{margin-top:12px}
+.override-stack{display:flex;flex-direction:column;gap:0;align-items:center}
+.override-layer{width:100%;max-width:600px;padding:14px 20px;border-radius:8px;border:1px solid #30363d;position:relative;opacity:0;transform:scale(.95);transition:all .4s ease;display:flex;align-items:center;gap:12px}
+.override-layer.visible{opacity:1;transform:scale(1)}
+.override-layer.active{border-color:#f0883e;box-shadow:0 0 12px #f0883e20}
+.override-priority{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0}
+.override-content{flex:1}
+.override-content h4{font-size:.82rem}
+.override-content p{font-size:.7rem;color:#8b949e;line-height:1.3;margin-top:2px}
+.override-code{font-family:monospace;font-size:.7rem;background:#0d1117;padding:6px 10px;border-radius:4px;margin-top:6px;color:#e6edf3;border:1px solid #21262d}
+.layer-arrow{color:#30363d;font-size:1rem;opacity:0;transition:all .3s;padding:4px 0}
+.layer-arrow.visible{opacity:1;color:#f0883e}
+
+.layer-1{background:#f8514910}
+.layer-1 .override-priority{background:#f8514930;color:#f85149}
+.layer-2{background:#f0883e10}
+.layer-2 .override-priority{background:#f0883e30;color:#f0883e}
+.layer-3{background:#58a6ff10}
+.layer-3 .override-priority{background:#58a6ff30;color:#58a6ff}
+
+/* Helm Hooks */
+.hooks-container{margin-top:12px}
+.hook-timeline{display:flex;align-items:center;gap:0;justify-content:center;flex-wrap:wrap;padding:12px 0}
+.hook-node{padding:12px 16px;border-radius:8px;border:1px solid #30363d;background:#0d1117;text-align:center;font-size:.75rem;opacity:0;transform:translateY(8px);transition:all .4s ease;min-width:120px}
+.hook-node.visible{opacity:1;transform:translateY(0)}
+.hook-node.active{box-shadow:0 0 12px var(--glow);border-color:var(--border)}
+.hook-node.done{opacity:.7;border-color:#3fb950}
+.hook-icon{font-size:1.2rem;margin-bottom:4px}
+.hook-name{font-weight:600;font-size:.78rem}
+.hook-desc{font-size:.65rem;color:#8b949e;margin-top:2px}
+.hook-arrow{font-size:.9rem;color:#30363d;opacity:0;transition:all .3s;padding:0 6px}
+.hook-arrow.visible{opacity:1;color:#bc8cff}
+
+.h-pre{--glow:#bc8cff30;--border:#bc8cff}
+.h-install{--glow:#58a6ff30;--border:#58a6ff}
+.h-post{--glow:#3fb95030;--border:#3fb950}
+
+/* Code Preview */
+.code-block{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:14px;font-family:'Consolas','Monaco',monospace;font-size:.72rem;line-height:1.6;overflow-x:auto;margin-top:12px;color:#8b949e}
+.code-block .ck{color:#ff7b72}
+.code-block .cv{color:#79c0ff}
+.code-block .cs{color:#a5d6ff}
+.code-block .cc{color:#6e7681}
+
+.info-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-top:20px}
+.info-box h3{font-size:1rem;margin-bottom:12px;color:#0d6efd}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.info-item{padding:12px;background:#0d1117;border-radius:6px;border:1px solid #21262d}
+.info-item strong{color:#e6edf3;font-size:.85rem}
+.info-item p{color:#8b949e;font-size:.78rem;margin-top:4px;line-height:1.4}
+
+@media(max-width:768px){.container{padding:12px}.helm-flow{flex-direction:column;align-items:center}.helm-arrow{transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+<h1>Helm Chart Rendering Flow</h1>
+<p class="subtitle">values.yaml + templates 에서 Kubernetes 배포까지의 Helm 차트 렌더링 과정</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnim()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pauseAnim()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restartAnim()">&#8635; 다시시작 Restart</button>
+</div>
+
+<!-- Main Flow -->
+<div class="section">
+  <h2><span class="badge" style="background:#0d6efd30;color:#0d6efd;border:1px solid #0d6efd40">FLOW</span> Helm 렌더링 흐름 Render Pipeline</h2>
+  <div class="helm-flow" id="helmFlow">
+    <div class="helm-stage s-values" data-step="0">
+      <div class="stage-box"><div class="stage-icon">&#128196;</div><div class="stage-title">values.yaml</div><div class="stage-sub">설정 값 정의</div></div>
+    </div>
+    <div class="helm-arrow">+</div>
+    <div class="helm-stage s-templates" data-step="1">
+      <div class="stage-box"><div class="stage-icon">&#128220;</div><div class="stage-title">Templates/</div><div class="stage-sub">Go 템플릿</div></div>
+    </div>
+    <div class="helm-arrow">&#10132;</div>
+    <div class="helm-stage s-render" data-step="2">
+      <div class="stage-box"><div class="stage-icon">&#9881;</div><div class="stage-title">helm template</div><div class="stage-sub">렌더링 엔진</div></div>
+    </div>
+    <div class="helm-arrow">&#10132;</div>
+    <div class="helm-stage s-manifests" data-step="3">
+      <div class="stage-box"><div class="stage-icon">&#128203;</div><div class="stage-title">Rendered YAML</div><div class="stage-sub">최종 매니페스트</div></div>
+    </div>
+    <div class="helm-arrow">&#10132;</div>
+    <div class="helm-stage s-install" data-step="4">
+      <div class="stage-box"><div class="stage-icon">&#128230;</div><div class="stage-title">helm install</div><div class="stage-sub">릴리스 생성</div></div>
+    </div>
+    <div class="helm-arrow">&#10132;</div>
+    <div class="helm-stage s-k8s" data-step="5">
+      <div class="stage-box"><div class="stage-icon">&#9784;</div><div class="stage-title">Kubernetes</div><div class="stage-sub">클러스터 적용</div></div>
+    </div>
+  </div>
+
+  <div class="code-block">
+    <span class="cc"># values.yaml</span><br>
+    <span class="ck">replicaCount</span>: <span class="cv">3</span><br>
+    <span class="ck">image</span>:<br>
+    &nbsp;&nbsp;<span class="ck">repository</span>: <span class="cs">nginx</span><br>
+    &nbsp;&nbsp;<span class="ck">tag</span>: <span class="cs">"1.25"</span><br>
+    <span class="ck">service</span>:<br>
+    &nbsp;&nbsp;<span class="ck">type</span>: <span class="cs">ClusterIP</span><br>
+    &nbsp;&nbsp;<span class="ck">port</span>: <span class="cv">80</span>
+  </div>
+</div>
+
+<!-- Values Override Hierarchy -->
+<div class="section">
+  <h2><span class="badge" style="background:#f0883e30;color:#f0883e;border:1px solid #f0883e40">OVERRIDE</span> Values 우선순위 Override Hierarchy</h2>
+  <p style="font-size:.8rem;color:#8b949e;margin-bottom:12px">높은 우선순위가 낮은 우선순위를 덮어씀 (Higher priority overrides lower)</p>
+  <div class="override-stack" id="overrideStack">
+    <div class="override-layer layer-1" data-layer="0">
+      <div class="override-priority">1</div>
+      <div class="override-content">
+        <h4>--set / --set-string (최고 우선순위 Highest)</h4>
+        <p>CLI에서 직접 값 지정. CI/CD 파이프라인에서 동적 값 전달에 유용</p>
+        <div class="override-code">helm install my-app ./chart <span style="color:#f85149">--set image.tag=v2.0.0</span></div>
+      </div>
+    </div>
+    <div class="layer-arrow" id="layerArrow0">&#11015; overrides</div>
+    <div class="override-layer layer-2" data-layer="1">
+      <div class="override-priority">2</div>
+      <div class="override-content">
+        <h4>-f / --values (사용자 Values 파일)</h4>
+        <p>환경별 values 파일로 오버라이드. 여러 파일 지정 가능 (뒤가 우선)</p>
+        <div class="override-code">helm install my-app ./chart <span style="color:#f0883e">-f values-prod.yaml</span></div>
+      </div>
+    </div>
+    <div class="layer-arrow" id="layerArrow1">&#11015; overrides</div>
+    <div class="override-layer layer-3" data-layer="2">
+      <div class="override-priority">3</div>
+      <div class="override-content">
+        <h4>values.yaml (차트 기본값 Chart Defaults)</h4>
+        <p>차트에 포함된 기본 값. 모든 사용자에게 공통 적용되는 베이스라인</p>
+        <div class="override-code">
+          <span class="cc"># chart/values.yaml (defaults)</span><br>
+          replicaCount: <span style="color:#58a6ff">1</span><br>
+          image.tag: <span style="color:#58a6ff">"latest"</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Helm Hooks -->
+<div class="section">
+  <h2><span class="badge" style="background:#bc8cff30;color:#bc8cff;border:1px solid #bc8cff40">HOOKS</span> Helm Hooks 라이프사이클</h2>
+  <p style="font-size:.8rem;color:#8b949e;margin-bottom:12px">helm.sh/hook 어노테이션으로 설치/업그레이드 전후 작업 정의</p>
+  <div class="hook-timeline" id="hookTimeline">
+    <div class="hook-node h-pre" data-hook="0">
+      <div class="hook-icon">&#128295;</div>
+      <div class="hook-name">pre-install</div>
+      <div class="hook-desc">DB 마이그레이션<br>시크릿 생성</div>
+    </div>
+    <div class="hook-arrow">&#10132;</div>
+    <div class="hook-node h-pre" data-hook="1">
+      <div class="hook-icon">&#128270;</div>
+      <div class="hook-name">pre-upgrade</div>
+      <div class="hook-desc">백업 생성<br>상태 확인</div>
+    </div>
+    <div class="hook-arrow">&#10132;</div>
+    <div class="hook-node h-install" data-hook="2">
+      <div class="hook-icon">&#128230;</div>
+      <div class="hook-name">install / upgrade</div>
+      <div class="hook-desc">리소스 배포<br>메인 작업</div>
+    </div>
+    <div class="hook-arrow">&#10132;</div>
+    <div class="hook-node h-post" data-hook="3">
+      <div class="hook-icon">&#10003;</div>
+      <div class="hook-name">post-install</div>
+      <div class="hook-desc">테스트 실행<br>알림 전송</div>
+    </div>
+    <div class="hook-arrow">&#10132;</div>
+    <div class="hook-node h-post" data-hook="4">
+      <div class="hook-icon">&#128202;</div>
+      <div class="hook-name">post-upgrade</div>
+      <div class="hook-desc">검증 작업<br>캐시 워밍</div>
+    </div>
+  </div>
+
+  <div class="code-block" style="margin-top:16px">
+    <span class="cc"># Hook Job 예시</span><br>
+    <span class="ck">apiVersion</span>: <span class="cs">batch/v1</span><br>
+    <span class="ck">kind</span>: <span class="cs">Job</span><br>
+    <span class="ck">metadata</span>:<br>
+    &nbsp;&nbsp;<span class="ck">annotations</span>:<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="cs">"helm.sh/hook"</span>: <span class="cv">pre-install</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="cs">"helm.sh/hook-weight"</span>: <span class="cv">"-5"</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="cs">"helm.sh/hook-delete-policy"</span>: <span class="cv">hook-succeeded</span>
+  </div>
+</div>
+
+<!-- Info -->
+<div class="info-box">
+  <h3>Helm 핵심 개념 Key Concepts</h3>
+  <div class="info-grid">
+    <div class="info-item">
+      <strong>Chart</strong>
+      <p>Kubernetes 리소스를 패키징한 단위. templates/, values.yaml, Chart.yaml로 구성. A package of pre-configured Kubernetes resources.</p>
+    </div>
+    <div class="info-item">
+      <strong>Release</strong>
+      <p>Chart를 클러스터에 설치한 인스턴스. 같은 Chart를 여러 번 설치 가능. 각 Release는 독립적. An instance of a chart running in a cluster.</p>
+    </div>
+    <div class="info-item">
+      <strong>Go Templates</strong>
+      <p>{{ .Values.key }} 구문으로 values를 참조. if/range/include 등 제어 구문 지원. Template functions with sprig library support.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+let paused=false,timers=[];
+function clearTimers(){timers.forEach(t=>clearTimeout(t));timers=[];}
+function schedule(fn,delay){const t=setTimeout(()=>{if(!paused)fn()},delay);timers.push(t);}
+
+const stages=document.querySelectorAll('.helm-stage');
+const helmArrows=document.querySelectorAll('.helm-arrow');
+const layers=document.querySelectorAll('.override-layer');
+const layerArrows=document.querySelectorAll('.layer-arrow');
+const hookNodes=document.querySelectorAll('.hook-node');
+const hookArrows=document.querySelectorAll('.hook-arrow');
+
+function reset(){
+  clearTimers();paused=false;
+  stages.forEach(s=>{s.classList.remove('visible');s.querySelector('.stage-box').classList.remove('active')});
+  helmArrows.forEach(a=>a.classList.remove('visible'));
+  layers.forEach(l=>{l.classList.remove('visible','active')});
+  layerArrows.forEach(a=>a.classList.remove('visible'));
+  hookNodes.forEach(n=>{n.classList.remove('visible','active','done')});
+  hookArrows.forEach(a=>a.classList.remove('visible'));
+}
+
+function animateFlow(){
+  let d=0;
+  stages.forEach((s,i)=>{
+    schedule(()=>{s.classList.add('visible');s.querySelector('.stage-box').classList.add('active')},d);
+    if(i>0){
+      schedule(()=>stages[i-1].querySelector('.stage-box').classList.remove('active'),d);
+    }
+    if(i>0)schedule(()=>helmArrows[i-1].classList.add('visible'),d-200);
+    d+=700;
+  });
+  schedule(()=>stages[stages.length-1].querySelector('.stage-box').classList.remove('active'),d);
+}
+
+function animateOverrides(){
+  const offset=4500;
+  // Bottom to top
+  for(let i=layers.length-1;i>=0;i--){
+    const delay=offset+(layers.length-1-i)*800;
+    ((idx,del)=>{
+      schedule(()=>{layers[idx].classList.add('visible')},del);
+      schedule(()=>{layers[idx].classList.add('active')},del+200);
+      schedule(()=>{layers[idx].classList.remove('active')},del+600);
+      if(idx>0)schedule(()=>{layerArrows[idx-1].classList.add('visible')},del+400);
+    })(i,delay);
+  }
+}
+
+function animateHooks(){
+  const offset=7500;
+  let d=0;
+  const allHookEls=[...document.querySelectorAll('#hookTimeline > *')];
+  allHookEls.forEach((el)=>{
+    const isArrow=el.classList.contains('hook-arrow');
+    schedule(()=>{
+      el.classList.add('visible');
+      if(!isArrow)el.classList.add('active');
+    },offset+d);
+    if(!isArrow){
+      schedule(()=>{el.classList.remove('active');el.classList.add('done')},offset+d+500);
+    }
+    d+=isArrow?200:600;
+  });
+}
+
+function startAnim(){
+  if(paused){paused=false;return;}
+  reset();animateFlow();animateOverrides();animateHooks();
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+}
+function pauseAnim(){paused=true;document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active');}
+function restartAnim(){reset();startAnim();}
+startAnim();
+</script>
+</body>
+</html>

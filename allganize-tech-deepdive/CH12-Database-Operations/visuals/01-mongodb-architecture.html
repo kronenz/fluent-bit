@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MongoDB Architecture & K8s Operation</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1400px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#3fb950,#58a6ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.tab-bar{display:flex;justify-content:center;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+.tab-btn{padding:6px 16px;border:1px solid #30363d;border-radius:20px;background:#161b22;color:#8b949e;cursor:pointer;font-size:0.82rem;transition:all .3s}
+.tab-btn:hover{border-color:#58a6ff;color:#e6edf3}
+.tab-btn.active{background:#1f6feb;border-color:#58a6ff;color:#fff}
+.scene{display:none;animation:fadeIn .4s ease}
+.scene.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.card h2{font-size:1.1rem;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card-desc{color:#8b949e;font-size:0.82rem;margin-bottom:16px}
+.step-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:0.72rem;font-weight:700;margin-right:6px}
+.badge-green{background:#2ea04340;color:#3fb950;border:1px solid #3fb95040}
+.badge-yellow{background:#d2992140;color:#e3b341;border:1px solid #e3b34140}
+.badge-red{background:#da363340;color:#f85149;border:1px solid #f8514940}
+.badge-blue{background:#1f6feb40;color:#58a6ff;border:1px solid #58a6ff40}
+.badge-purple{background:#8957e540;color:#bc8cff;border:1px solid #bc8cff40}
+
+/* Animation canvas */
+.anim-area{position:relative;min-height:340px;background:#0d1117;border-radius:8px;border:1px solid #21262d;overflow:hidden;padding:16px}
+
+/* Nodes */
+.node{position:absolute;border-radius:10px;padding:10px 14px;text-align:center;font-size:0.75rem;font-weight:600;transition:all .5s ease;z-index:2}
+.node-primary{background:#2ea04330;border:2px solid #3fb950;color:#3fb950}
+.node-secondary{background:#d2992130;border:2px solid #e3b341;color:#e3b341}
+.node-failed{background:#da363330;border:2px solid #f85149;color:#f85149}
+.node-client{background:#1f6feb30;border:2px solid #58a6ff;color:#58a6ff}
+.node-router{background:#8957e530;border:2px solid #bc8cff;color:#bc8cff}
+.node-config{background:#79c0ff30;border:2px solid #79c0ff;color:#79c0ff}
+.node-shard{background:#2ea04330;border:2px solid #3fb950;color:#3fb950}
+.node-pod{background:#161b22;border:2px solid #58a6ff;color:#58a6ff;border-radius:8px}
+.node-pv{background:#d2992120;border:1px dashed #e3b341;color:#e3b341;border-radius:6px;font-size:0.68rem}
+.node-operator{background:#8957e530;border:2px solid #bc8cff;color:#bc8cff;border-radius:8px}
+
+/* Animated connections */
+.conn-line{position:absolute;height:2px;transform-origin:left center;z-index:1;opacity:0}
+.conn-line.show{opacity:1;transition:opacity .3s}
+
+/* Data packets */
+.packet{position:absolute;width:10px;height:10px;border-radius:50%;z-index:3;opacity:0}
+.packet-write{background:#3fb950;box-shadow:0 0 8px #3fb95080}
+.packet-read{background:#58a6ff;box-shadow:0 0 8px #58a6ff80}
+.packet-oplog{background:#e3b341;box-shadow:0 0 8px #e3b34180}
+.packet-ack{background:#bc8cff;box-shadow:0 0 8px #bc8cff80}
+
+@keyframes movePacket{
+  0%{opacity:0;offset-distance:0%}
+  10%{opacity:1}
+  90%{opacity:1}
+  100%{opacity:0;offset-distance:100%}
+}
+@keyframes pulse{
+  0%,100%{transform:scale(1);opacity:1}
+  50%{transform:scale(1.15);opacity:.8}
+}
+@keyframes failPulse{
+  0%,100%{opacity:1;box-shadow:0 0 0 0 #f8514960}
+  50%{opacity:.6;box-shadow:0 0 0 12px #f8514900}
+}
+@keyframes slideIn{
+  from{opacity:0;transform:translateX(-20px)}
+  to{opacity:1;transform:translateX(0)}
+}
+@keyframes flowRight{
+  0%{left:var(--fx);top:var(--fy);opacity:0}
+  10%{opacity:1}
+  90%{opacity:1}
+  100%{left:var(--tx);top:var(--ty);opacity:0}
+}
+@keyframes flowRightReturn{
+  0%{left:var(--tx);top:var(--ty);opacity:0}
+  10%{opacity:1}
+  90%{opacity:1}
+  100%{left:var(--fx);top:var(--fy);opacity:0}
+}
+
+.step-info{position:absolute;bottom:12px;left:12px;right:12px;background:#21262d;border-radius:8px;padding:10px 14px;font-size:0.78rem;color:#e6edf3;border:1px solid #30363d;opacity:0;transition:opacity .4s;z-index:10}
+.step-info.show{opacity:1}
+.step-info .step-num{display:inline-block;background:#1f6feb;color:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;font-size:0.72rem;font-weight:700;margin-right:8px}
+
+.legend{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:16px;padding:12px;background:#161b22;border-radius:8px;border:1px solid #30363d}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:0.78rem;color:#8b949e}
+.legend-dot{width:12px;height:12px;border-radius:3px}
+
+.progress-bar{width:100%;height:4px;background:#21262d;border-radius:2px;margin-top:12px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#3fb950,#58a6ff);width:0%;transition:width .5s ease}
+
+.paused .packet,.paused [class*="anim-"]{animation-play-state:paused!important}
+
+@media(max-width:768px){.anim-area{min-height:300px}.container{padding:12px}.node{font-size:0.68rem;padding:7px 10px}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>MongoDB Architecture & K8s Operation</h1>
+<p class="subtitle">MongoDB 아키텍처 및 쿠버네티스 운영 - ReplicaSet, Sharding, Percona Operator</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="play()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8635; 다시시작 Restart</button>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showScene(0,this)">1. ReplicaSet 복제</button>
+  <button class="tab-btn" onclick="showScene(1,this)">2. 선출 Election</button>
+  <button class="tab-btn" onclick="showScene(2,this)">3. Write Concern</button>
+  <button class="tab-btn" onclick="showScene(3,this)">4. Sharding 샤딩</button>
+  <button class="tab-btn" onclick="showScene(4,this)">5. Percona Operator</button>
+</div>
+
+<!-- Scene 1: ReplicaSet Replication -->
+<div class="scene active" id="scene0">
+<div class="card">
+  <h2><span class="step-badge badge-green">ReplicaSet</span> Primary → Secondary 복제 (Oplog Replication)</h2>
+  <p class="card-desc">Primary가 쓰기를 처리하고 oplog를 통해 Secondary로 복제합니다</p>
+  <div class="anim-area" id="repl-area" style="height:360px">
+    <!-- Primary -->
+    <div class="node node-primary" style="left:42%;top:8%;width:140px" id="r-primary">
+      <div>&#9733; PRIMARY</div>
+      <div style="font-size:0.65rem;margin-top:2px">프라이머리</div>
+    </div>
+    <!-- Secondary 1 -->
+    <div class="node node-secondary" style="left:8%;top:55%;width:130px" id="r-sec1">
+      <div>SECONDARY 1</div>
+      <div style="font-size:0.65rem;margin-top:2px">세컨더리 1</div>
+    </div>
+    <!-- Secondary 2 -->
+    <div class="node node-secondary" style="right:8%;top:55%;width:130px" id="r-sec2">
+      <div>SECONDARY 2</div>
+      <div style="font-size:0.65rem;margin-top:2px">세컨더리 2</div>
+    </div>
+    <!-- Oplog -->
+    <div class="node" style="left:38%;top:38%;width:150px;background:#e3b34115;border:1px dashed #e3b34160;color:#e3b341;font-size:0.7rem" id="r-oplog">
+      Oplog (작업 로그)
+    </div>
+    <!-- Client -->
+    <div class="node node-client" style="left:2%;top:8%;width:90px" id="r-client">
+      <div>CLIENT</div>
+      <div style="font-size:0.65rem">클라이언트</div>
+    </div>
+    <div class="step-info" id="repl-step">
+      <span class="step-num">1</span> 클라이언트가 Primary에 쓰기 요청을 전송합니다
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="repl-progress"></div></div>
+</div>
+</div>
+
+<!-- Scene 2: Election -->
+<div class="scene" id="scene1">
+<div class="card">
+  <h2><span class="step-badge badge-red">Election</span> Primary 장애 → 선출 → 새 Primary</h2>
+  <p class="card-desc">Primary 장애 시 Secondary 간 투표를 통해 새로운 Primary를 선출합니다</p>
+  <div class="anim-area" id="elect-area" style="height:380px">
+    <div class="node node-primary" style="left:38%;top:6%;width:150px" id="e-primary">
+      <div>&#9733; PRIMARY</div>
+      <div style="font-size:0.65rem;margin-top:2px">프라이머리 (현재)</div>
+    </div>
+    <div class="node node-secondary" style="left:4%;top:50%;width:140px" id="e-sec1">
+      <div>SECONDARY 1</div>
+      <div style="font-size:0.65rem;margin-top:2px">세컨더리 1</div>
+    </div>
+    <div class="node node-secondary" style="right:4%;top:50%;width:140px" id="e-sec2">
+      <div>SECONDARY 2</div>
+      <div style="font-size:0.65rem;margin-top:2px">세컨더리 2</div>
+    </div>
+    <div class="node" style="left:35%;top:88%;width:180px;background:#21262d;border:1px solid #30363d;color:#8b949e;font-size:0.7rem" id="e-heartbeat">
+      &#9829; Heartbeat 모니터링
+    </div>
+    <div class="step-info" id="elect-step">
+      <span class="step-num">1</span> 모든 멤버가 Heartbeat으로 서로의 상태를 확인합니다
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="elect-progress"></div></div>
+</div>
+</div>
+
+<!-- Scene 3: Write Concern -->
+<div class="scene" id="scene2">
+<div class="card">
+  <h2><span class="step-badge badge-blue">Write Concern</span> 클라이언트 쓰기 → 복제 → 응답</h2>
+  <p class="card-desc">Write Concern 레벨에 따라 응답 시점이 달라집니다 (w:1, w:majority, w:all)</p>
+  <div class="anim-area" id="wc-area" style="height:380px">
+    <div class="node node-client" style="left:2%;top:40%;width:100px" id="wc-client">
+      <div>CLIENT</div>
+      <div style="font-size:0.65rem">클라이언트</div>
+    </div>
+    <div class="node node-primary" style="left:30%;top:10%;width:130px" id="wc-primary">
+      <div>&#9733; PRIMARY</div>
+      <div style="font-size:0.65rem;margin-top:2px">프라이머리</div>
+    </div>
+    <div class="node node-secondary" style="right:14%;top:10%;width:120px" id="wc-sec1">
+      <div>SECONDARY 1</div>
+      <div style="font-size:0.65rem;margin-top:2px">세컨더리 1</div>
+    </div>
+    <div class="node node-secondary" style="right:14%;top:52%;width:120px" id="wc-sec2">
+      <div>SECONDARY 2</div>
+      <div style="font-size:0.65rem;margin-top:2px">세컨더리 2</div>
+    </div>
+    <!-- w levels -->
+    <div class="node" style="left:28%;top:70%;width:200px;background:#1f6feb15;border:1px dashed #58a6ff40;color:#58a6ff;font-size:0.72rem" id="wc-level">
+      Write Concern: <strong>w:majority</strong>
+    </div>
+    <div class="step-info" id="wc-step">
+      <span class="step-num">1</span> 클라이언트가 쓰기 요청을 Primary에 전송합니다
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="wc-progress"></div></div>
+</div>
+</div>
+
+<!-- Scene 4: Sharding -->
+<div class="scene" id="scene3">
+<div class="card">
+  <h2><span class="step-badge badge-purple">Sharding</span> mongos → Config Server → Shard 분산</h2>
+  <p class="card-desc">mongos 라우터가 config server에서 메타데이터를 조회하여 적절한 shard로 라우팅합니다</p>
+  <div class="anim-area" id="shard-area" style="height:420px">
+    <div class="node node-client" style="left:2%;top:38%;width:90px" id="s-client">
+      <div>CLIENT</div>
+      <div style="font-size:0.65rem">클라이언트</div>
+    </div>
+    <div class="node node-router" style="left:18%;top:38%;width:100px" id="s-mongos">
+      <div>&#9672; mongos</div>
+      <div style="font-size:0.65rem;margin-top:2px">라우터</div>
+    </div>
+    <div class="node node-config" style="left:40%;top:4%;width:140px" id="s-config">
+      <div>Config Server</div>
+      <div style="font-size:0.6rem;margin-top:2px">설정 서버 (메타데이터)</div>
+    </div>
+    <div class="node node-shard" style="right:8%;top:8%;width:120px" id="s-shard1">
+      <div>Shard 1</div>
+      <div style="font-size:0.6rem;margin-top:2px">chunks: A-M</div>
+    </div>
+    <div class="node node-shard" style="right:8%;top:38%;width:120px" id="s-shard2">
+      <div>Shard 2</div>
+      <div style="font-size:0.6rem;margin-top:2px">chunks: N-S</div>
+    </div>
+    <div class="node node-shard" style="right:8%;top:68%;width:120px" id="s-shard3">
+      <div>Shard 3</div>
+      <div style="font-size:0.6rem;margin-top:2px">chunks: T-Z</div>
+    </div>
+    <!-- Balancer -->
+    <div class="node" style="left:38%;top:82%;width:180px;background:#21262d;border:1px dashed #bc8cff40;color:#bc8cff;font-size:0.7rem" id="s-balancer">
+      &#9881; Balancer (청크 밸런서)
+    </div>
+    <div class="step-info" id="shard-step">
+      <span class="step-num">1</span> 클라이언트가 mongos 라우터에 쿼리를 전송합니다
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="shard-progress"></div></div>
+</div>
+</div>
+
+<!-- Scene 5: Percona Operator on K8s -->
+<div class="scene" id="scene4">
+<div class="card">
+  <h2><span class="step-badge badge-blue">Percona Operator</span> K8s에서 MongoDB 운영</h2>
+  <p class="card-desc">Percona Operator가 StatefulSet, PersistentVolume을 관리하여 MongoDB를 자동 운영합니다</p>
+  <div class="anim-area" id="k8s-area" style="height:440px">
+    <!-- Operator -->
+    <div class="node node-operator" style="left:4%;top:4%;width:160px" id="k-operator">
+      <div>&#9881; Percona Operator</div>
+      <div style="font-size:0.6rem;margin-top:2px">CRD: PerconaServerMongoDB</div>
+    </div>
+    <!-- K8s API -->
+    <div class="node" style="right:4%;top:4%;width:130px;background:#58a6ff20;border:1px solid #58a6ff60;color:#58a6ff" id="k-api">
+      <div>K8s API Server</div>
+      <div style="font-size:0.6rem;margin-top:2px">API 서버</div>
+    </div>
+    <!-- StatefulSet pods -->
+    <div class="node node-pod" style="left:6%;top:40%;width:130px" id="k-pod0">
+      <div>Pod: mongo-0</div>
+      <div style="font-size:0.6rem;color:#3fb950;margin-top:2px">&#9733; PRIMARY</div>
+    </div>
+    <div class="node node-pod" style="left:38%;top:40%;width:130px" id="k-pod1">
+      <div>Pod: mongo-1</div>
+      <div style="font-size:0.6rem;color:#e3b341;margin-top:2px">SECONDARY</div>
+    </div>
+    <div class="node node-pod" style="right:6%;top:40%;width:130px" id="k-pod2">
+      <div>Pod: mongo-2</div>
+      <div style="font-size:0.6rem;color:#e3b341;margin-top:2px">SECONDARY</div>
+    </div>
+    <!-- PVs -->
+    <div class="node node-pv" style="left:8%;top:72%;width:110px" id="k-pv0">
+      PVC: mongo-data-0<br>PV: 100Gi
+    </div>
+    <div class="node node-pv" style="left:40%;top:72%;width:110px" id="k-pv1">
+      PVC: mongo-data-1<br>PV: 100Gi
+    </div>
+    <div class="node node-pv" style="right:8%;top:72%;width:110px" id="k-pv2">
+      PVC: mongo-data-2<br>PV: 100Gi
+    </div>
+    <!-- Service -->
+    <div class="node" style="left:30%;top:92%;width:250px;background:#21262d;border:1px solid #30363d;color:#8b949e;font-size:0.7rem" id="k-svc">
+      Service: mongo-rs0 (Headless) / mongo-rs0-primary (ClusterIP)
+    </div>
+    <div class="step-info" id="k8s-step">
+      <span class="step-num">1</span> Operator가 CRD를 감시하고 K8s API를 통해 리소스를 관리합니다
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="k8s-progress"></div></div>
+</div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div> Primary / 정상</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e3b341"></div> Secondary / 복제</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f85149"></div> 장애 Failure</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div> Client / 라우팅</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#bc8cff"></div> Config / Operator</div>
+</div>
+</div>
+
+<script>
+let currentScene=0,isPaused=false,timers=[];
+function clearTimers(){timers.forEach(t=>clearTimeout(t));timers=[];}
+function showScene(idx,btn){
+  clearTimers();
+  document.querySelectorAll('.scene').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('scene'+idx).classList.add('active');
+  if(btn)btn.classList.add('active');
+  else document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  currentScene=idx;
+  isPaused=false;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  runScene(idx);
+}
+function play(){
+  isPaused=false;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  document.body.classList.remove('paused');
+}
+function pause(){
+  isPaused=true;
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+  document.body.classList.add('paused');
+}
+function restart(){showScene(currentScene);}
+
+function setStep(id,num,text){
+  const el=document.getElementById(id);
+  if(el){el.innerHTML='<span class="step-num">'+num+'</span> '+text;el.classList.add('show');}
+}
+function setProgress(id,pct){
+  const el=document.getElementById(id);
+  if(el)el.style.width=pct+'%';
+}
+function addPacket(areaId,cls,fx,fy,tx,ty,dur,delay){
+  const area=document.getElementById(areaId);if(!area)return;
+  const p=document.createElement('div');
+  p.className='packet '+cls;
+  p.style.cssText='--fx:'+fx+';--fy:'+fy+';--tx:'+tx+';--ty:'+ty+';width:10px;height:10px;position:absolute;animation:flowRight '+dur+'s '+delay+'s ease forwards;';
+  area.appendChild(p);
+  timers.push(setTimeout(()=>{if(p.parentNode)p.parentNode.removeChild(p);},((dur+delay)*1000)+500));
+  return p;
+}
+function addPacketReturn(areaId,cls,fx,fy,tx,ty,dur,delay){
+  const area=document.getElementById(areaId);if(!area)return;
+  const p=document.createElement('div');
+  p.className='packet '+cls;
+  p.style.cssText='--fx:'+fx+';--fy:'+fy+';--tx:'+tx+';--ty:'+ty+';width:10px;height:10px;position:absolute;animation:flowRightReturn '+dur+'s '+delay+'s ease forwards;';
+  area.appendChild(p);
+  timers.push(setTimeout(()=>{if(p.parentNode)p.parentNode.removeChild(p);},((dur+delay)*1000)+500));
+}
+function t(fn,ms){timers.push(setTimeout(()=>{if(!isPaused)fn();else{const i=setInterval(()=>{if(!isPaused){clearInterval(i);fn();}},100);timers.push(i);}},ms));}
+
+/* Scene 0: Replication */
+function runRepl(){
+  setProgress('repl-progress',0);
+  setStep('repl-step',1,'클라이언트가 Primary에 쓰기 요청을 전송합니다 (Client writes to Primary)');
+  setProgress('repl-progress',10);
+  addPacket('repl-area','packet-write','2%','14%','44%','14%',1.2,0.3);
+
+  t(()=>{
+    setStep('repl-step',2,'Primary가 데이터를 저장하고 Oplog에 기록합니다 (Write to oplog)');
+    setProgress('repl-progress',30);
+    const p=document.getElementById('r-primary');
+    p.style.animation='pulse 0.6s ease 2';
+    addPacket('repl-area','packet-oplog','50%','22%','44%','42%',0.8,0.2);
+  },2000);
+
+  t(()=>{
+    setStep('repl-step',3,'Secondary 1이 Oplog를 가져와 복제합니다 (Replicate via oplog tailing)');
+    setProgress('repl-progress',55);
+    addPacket('repl-area','packet-oplog','42%','44%','14%','58%',1.0,0);
+    document.getElementById('r-oplog').style.boxShadow='0 0 12px #e3b34140';
+  },4000);
+
+  t(()=>{
+    setStep('repl-step',4,'Secondary 2도 Oplog를 가져와 복제합니다 (Second replica catches up)');
+    setProgress('repl-progress',75);
+    addPacket('repl-area','packet-oplog','52%','44%','78%','58%',1.0,0);
+  },5800);
+
+  t(()=>{
+    setStep('repl-step',5,'모든 멤버가 동기화 완료 - 데이터 일관성 확보 (All members in sync)');
+    setProgress('repl-progress',100);
+    document.getElementById('r-sec1').style.boxShadow='0 0 12px #3fb95040';
+    document.getElementById('r-sec2').style.boxShadow='0 0 12px #3fb95040';
+  },7600);
+}
+
+/* Scene 1: Election */
+function runElect(){
+  setProgress('elect-progress',0);
+  setStep('elect-step',1,'모든 멤버가 Heartbeat으로 서로의 상태를 확인합니다 (Heartbeat monitoring)');
+  setProgress('elect-progress',10);
+  const hb=document.getElementById('e-heartbeat');
+  hb.style.animation='pulse 1s ease infinite';
+
+  t(()=>{
+    setStep('elect-step',2,'Primary에 장애가 발생합니다! (Primary failure detected!)');
+    setProgress('elect-progress',30);
+    const p=document.getElementById('e-primary');
+    p.classList.remove('node-primary');p.classList.add('node-failed');
+    p.innerHTML='<div>&#10006; PRIMARY DOWN</div><div style="font-size:0.65rem;margin-top:2px">장애 발생!</div>';
+    p.style.animation='failPulse 1s ease infinite';
+  },2500);
+
+  t(()=>{
+    setStep('elect-step',3,'Secondary들이 선출 투표를 시작합니다 (Election begins - voting)');
+    setProgress('elect-progress',50);
+    addPacket('elect-area','packet-oplog','14%','55%','78%','55%',1.0,0);
+    addPacketReturn('elect-area','packet-oplog','14%','55%','78%','55%',1.0,0.5);
+    document.getElementById('e-sec1').style.boxShadow='0 0 16px #e3b34150';
+    document.getElementById('e-sec2').style.boxShadow='0 0 16px #e3b34150';
+  },5000);
+
+  t(()=>{
+    setStep('elect-step',4,'Secondary 1이 새로운 Primary로 선출됩니다! (New primary elected!)');
+    setProgress('elect-progress',80);
+    const s1=document.getElementById('e-sec1');
+    s1.classList.remove('node-secondary');s1.classList.add('node-primary');
+    s1.innerHTML='<div>&#9733; NEW PRIMARY</div><div style="font-size:0.65rem;margin-top:2px">새 프라이머리!</div>';
+    s1.style.animation='pulse 0.5s ease 3';
+    s1.style.boxShadow='0 0 20px #3fb95060';
+  },7500);
+
+  t(()=>{
+    setStep('elect-step',5,'트래픽이 새 Primary로 리다이렉트됩니다 (Traffic redirected)');
+    setProgress('elect-progress',100);
+    const old=document.getElementById('e-primary');
+    old.style.opacity='0.4';old.style.animation='none';
+  },9500);
+}
+
+/* Scene 2: Write Concern */
+function runWC(){
+  setProgress('wc-progress',0);
+  setStep('wc-step',1,'클라이언트가 쓰기 요청을 Primary에 전송합니다 (Client sends write)');
+  setProgress('wc-progress',10);
+  addPacket('wc-area','packet-write','6%','44%','34%','16%',1.0,0.3);
+
+  t(()=>{
+    setStep('wc-step',2,'Primary가 로컬에 쓰기 완료 (w:1이면 여기서 ACK) (Primary writes locally)');
+    setProgress('wc-progress',30);
+    document.getElementById('wc-primary').style.boxShadow='0 0 12px #3fb95040';
+    document.getElementById('wc-level').innerHTML='Write Concern: <strong>w:1</strong> → &#10003; 여기서 즉시 응답';
+    document.getElementById('wc-level').style.borderColor='#3fb95060';
+  },2000);
+
+  t(()=>{
+    setStep('wc-step',3,'Primary가 Secondary들에 복제 시작 (Replication to secondaries)');
+    setProgress('wc-progress',50);
+    addPacket('wc-area','packet-oplog','38%','16%','76%','16%',0.8,0);
+    addPacket('wc-area','packet-oplog','38%','20%','76%','56%',0.8,0.2);
+    document.getElementById('wc-level').innerHTML='Write Concern: <strong>w:majority</strong> → 과반 복제 후 응답';
+    document.getElementById('wc-level').style.borderColor='#58a6ff60';
+  },3800);
+
+  t(()=>{
+    setStep('wc-step',4,'Secondary 1 복제 완료 - majority 달성! (Majority acknowledged)');
+    setProgress('wc-progress',75);
+    document.getElementById('wc-sec1').style.boxShadow='0 0 12px #3fb95040';
+    addPacketReturn('wc-area','packet-ack','6%','44%','34%','16%',0.8,0);
+    document.getElementById('wc-level').innerHTML='Write Concern: <strong>w:majority &#10003;</strong> → 과반 확인 완료!';
+    document.getElementById('wc-level').style.background='#2ea04315';
+    document.getElementById('wc-level').style.borderColor='#3fb95060';
+  },5800);
+
+  t(()=>{
+    setStep('wc-step',5,'w:all은 모든 멤버 복제 후 응답 (가장 안전하지만 느림) (All replicated)');
+    setProgress('wc-progress',100);
+    document.getElementById('wc-sec2').style.boxShadow='0 0 12px #3fb95040';
+    document.getElementById('wc-level').innerHTML='Write Concern: <strong>w:all &#10003;</strong> → 모든 멤버 확인! (가장 안전)';
+  },7800);
+}
+
+/* Scene 3: Sharding */
+function runShard(){
+  setProgress('shard-progress',0);
+  setStep('shard-step',1,'클라이언트가 mongos 라우터에 쿼리를 전송합니다 (Client → mongos)');
+  setProgress('shard-progress',10);
+  addPacket('shard-area','packet-write','4%','42%','20%','42%',0.8,0.2);
+
+  t(()=>{
+    setStep('shard-step',2,'mongos가 Config Server에서 메타데이터 조회 (Query routing info)');
+    setProgress('shard-progress',25);
+    addPacket('shard-area','packet-read','22%','40%','44%','8%',0.8,0);
+    addPacketReturn('shard-area','packet-ack','22%','40%','44%','8%',0.8,0.6);
+    document.getElementById('s-config').style.boxShadow='0 0 12px #79c0ff40';
+  },2000);
+
+  t(()=>{
+    setStep('shard-step',3,'Shard Key 기반으로 대상 Shard를 결정합니다 (Shard key routing: "user_name: Park")');
+    setProgress('shard-progress',45);
+    document.getElementById('s-mongos').style.boxShadow='0 0 12px #bc8cff40';
+    document.getElementById('s-shard2').style.boxShadow='0 0 16px #3fb95060';
+  },4200);
+
+  t(()=>{
+    setStep('shard-step',4,'해당 Shard에 데이터를 전송합니다 (Route to Shard 2: N-S range)');
+    setProgress('shard-progress',70);
+    addPacket('shard-area','packet-write','24%','42%','78%','42%',1.0,0);
+  },5800);
+
+  t(()=>{
+    setStep('shard-step',5,'결과를 수집하여 클라이언트에 반환합니다 (Gather & return results)');
+    setProgress('shard-progress',85);
+    addPacketReturn('shard-area','packet-ack','4%','42%','78%','42%',1.2,0);
+  },7500);
+
+  t(()=>{
+    setStep('shard-step',6,'Balancer가 청크 불균형을 감지하면 자동으로 재분배합니다 (Auto-balancing)');
+    setProgress('shard-progress',100);
+    document.getElementById('s-balancer').style.animation='pulse 1s ease 3';
+    document.getElementById('s-balancer').style.boxShadow='0 0 12px #bc8cff30';
+    addPacket('shard-area','packet-oplog','64%','72%','78%','12%',1.0,0);
+    addPacket('shard-area','packet-oplog','64%','72%','78%','72%',1.0,0.3);
+  },9500);
+}
+
+/* Scene 4: K8s Percona Operator */
+function runK8s(){
+  setProgress('k8s-progress',0);
+  setStep('k8s-step',1,'Operator가 CRD를 감시하고 K8s API를 통해 리소스를 관리합니다 (Watch & Reconcile)');
+  setProgress('k8s-progress',10);
+  addPacket('k8s-area','packet-ack','14%','10%','82%','10%',1.0,0);
+
+  t(()=>{
+    setStep('k8s-step',2,'StatefulSet으로 MongoDB Pod 3개를 순서대로 생성합니다 (Create StatefulSet pods)');
+    setProgress('k8s-progress',30);
+    ['k-pod0','k-pod1','k-pod2'].forEach((id,i)=>{
+      const el=document.getElementById(id);
+      el.style.opacity='0';
+      setTimeout(()=>{el.style.opacity='1';el.style.animation='slideIn 0.5s ease forwards';},i*600);
+    });
+  },2200);
+
+  t(()=>{
+    setStep('k8s-step',3,'각 Pod에 PersistentVolumeClaim을 바인딩합니다 (Bind PVC → PV)');
+    setProgress('k8s-progress',50);
+    ['k-pv0','k-pv1','k-pv2'].forEach((id,i)=>{
+      const el=document.getElementById(id);
+      el.style.opacity='0';
+      setTimeout(()=>{el.style.opacity='1';el.style.animation='slideIn 0.4s ease forwards';el.style.boxShadow='0 0 8px #e3b34130';},i*500);
+    });
+  },5000);
+
+  t(()=>{
+    setStep('k8s-step',4,'Operator가 ReplicaSet을 초기화하고 Primary를 선출합니다 (Init ReplicaSet)');
+    setProgress('k8s-progress',75);
+    document.getElementById('k-pod0').style.boxShadow='0 0 16px #3fb95050';
+    document.getElementById('k-pod1').style.boxShadow='0 0 10px #e3b34130';
+    document.getElementById('k-pod2').style.boxShadow='0 0 10px #e3b34130';
+    addPacket('k8s-area','packet-write','14%','44%','40%','44%',0.7,0);
+    addPacket('k8s-area','packet-write','52%','44%','78%','44%',0.7,0.3);
+  },7500);
+
+  t(()=>{
+    setStep('k8s-step',5,'Headless Service로 각 Pod에 직접 접근, ClusterIP로 Primary에 접근 가능 (Services ready)');
+    setProgress('k8s-progress',100);
+    document.getElementById('k-svc').style.boxShadow='0 0 12px #58a6ff30';
+    document.getElementById('k-svc').style.borderColor='#58a6ff60';
+    document.getElementById('k-operator').style.boxShadow='0 0 12px #bc8cff30';
+  },10000);
+}
+
+function runScene(idx){
+  clearTimers();
+  // Reset styles
+  document.querySelectorAll('#scene'+idx+' .node').forEach(n=>{n.style.animation='';n.style.boxShadow='';n.style.opacity='';});
+  document.querySelectorAll('#scene'+idx+' .step-info').forEach(s=>{s.classList.remove('show');});
+  document.querySelectorAll('#scene'+idx+' .packet').forEach(p=>p.remove());
+  // Reset specific nodes for election scene
+  if(idx===1){
+    const p=document.getElementById('e-primary');
+    p.classList.remove('node-failed');p.classList.add('node-primary');
+    p.innerHTML='<div>&#9733; PRIMARY</div><div style="font-size:0.65rem;margin-top:2px">프라이머리 (현재)</div>';
+    const s1=document.getElementById('e-sec1');
+    s1.classList.remove('node-primary');s1.classList.add('node-secondary');
+    s1.innerHTML='<div>SECONDARY 1</div><div style="font-size:0.65rem;margin-top:2px">세컨더리 1</div>';
+  }
+  if(idx===2){
+    const wl=document.getElementById('wc-level');
+    wl.innerHTML='Write Concern: <strong>w:majority</strong>';
+    wl.style.background='';wl.style.borderColor='';
+  }
+  t(()=>{
+    document.querySelectorAll('#scene'+idx+' .step-info').forEach(s=>s.classList.add('show'));
+    [runRepl,runElect,runWC,runShard,runK8s][idx]();
+  },200);
+}
+
+// Auto-start
+showScene(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coderbyte Test Strategy - 코딩테스트 전략 시각화</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1300px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:24px;overflow:hidden}
+.section h2{font-size:1.1rem;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.badge{padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:600}
+.progress-bar{height:4px;background:#21262d;border-radius:2px;margin-top:16px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#58a6ff,#bc8cff);width:0%;transition:width .3s;border-radius:2px}
+.op-label{text-align:center;color:#8b949e;font-size:.82rem;margin-top:8px;min-height:24px}
+
+/* Time allocation bar */
+.time-bar-container{margin:16px 0}
+.time-bar{display:flex;height:56px;border-radius:10px;overflow:hidden;border:1px solid #21262d;background:#0d1117}
+.time-segment{display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .6s ease;opacity:.3;position:relative;overflow:hidden}
+.time-segment.active{opacity:1}
+.time-segment.done{opacity:.6}
+.time-segment .seg-label{font-size:.72rem;font-weight:600;white-space:nowrap}
+.time-segment .seg-time{font-size:.62rem;opacity:.8;margin-top:2px}
+.time-segment .seg-fill{position:absolute;left:0;bottom:0;height:4px;width:0;transition:width 1.5s ease}
+.time-segment.active .seg-fill{width:100%}
+.seg-reading{background:#58a6ff30;color:#58a6ff}.seg-reading .seg-fill{background:#58a6ff}
+.seg-easy{background:#3fb95030;color:#3fb950}.seg-easy .seg-fill{background:#3fb950}
+.seg-medium{background:#f0883e30;color:#f0883e}.seg-medium .seg-fill{background:#f0883e}
+.seg-open{background:#bc8cff30;color:#bc8cff}.seg-open .seg-fill{background:#bc8cff}
+.seg-review{background:#d2a8ff30;color:#d2a8ff}.seg-review .seg-fill{background:#d2a8ff}
+.time-legend{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:12px}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:.72rem;color:#8b949e}
+.legend-dot{width:10px;height:10px;border-radius:3px}
+
+/* Timer visualization */
+.timer-display{text-align:center;margin:20px 0}
+.timer-clock{font-size:3rem;font-weight:800;font-family:'Fira Code',monospace;color:#58a6ff;letter-spacing:2px;transition:color .3s}
+.timer-clock.warning{color:#f0883e}
+.timer-clock.danger{color:#f85149}
+.timer-phase{font-size:1rem;color:#8b949e;margin-top:4px}
+.timer-progress{height:8px;background:#21262d;border-radius:4px;margin-top:12px;overflow:hidden;max-width:600px;margin-left:auto;margin-right:auto}
+.timer-fill{height:100%;border-radius:4px;transition:width .5s linear}
+.timer-fill.c-blue{background:linear-gradient(90deg,#1f6feb,#58a6ff)}
+.timer-fill.c-green{background:linear-gradient(90deg,#2ea043,#3fb950)}
+.timer-fill.c-orange{background:linear-gradient(90deg,#d29922,#f0883e)}
+.timer-fill.c-purple{background:linear-gradient(90deg,#6e40c9,#bc8cff)}
+.timer-fill.c-lavender{background:linear-gradient(90deg,#8b5cf6,#d2a8ff)}
+
+/* Decision tree */
+.tree-container{display:flex;flex-direction:column;align-items:center;gap:0;padding:16px 0}
+.tree-node{padding:14px 20px;border-radius:10px;font-size:.82rem;font-weight:600;text-align:center;border:2px solid;transition:all .5s ease;opacity:0;transform:scale(.8);max-width:320px;width:100%}
+.tree-node.visible{opacity:1;transform:scale(1)}
+.tree-node.active{box-shadow:0 0 20px var(--glow)}
+.tn-question{background:#f0883e15;border-color:#f0883e60;color:#f0883e;--glow:#f0883e30}
+.tn-yes{background:#f8514915;border-color:#f8514960;color:#f85149;--glow:#f8514930}
+.tn-no{background:#3fb95015;border-color:#3fb95060;color:#3fb950;--glow:#3fb95030}
+.tn-action{background:#58a6ff15;border-color:#58a6ff60;color:#58a6ff;--glow:#58a6ff30}
+.tn-result{background:#bc8cff15;border-color:#bc8cff60;color:#bc8cff;--glow:#bc8cff30}
+.tree-branch{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;width:100%;max-width:680px}
+.tree-connector{width:2px;height:24px;background:#30363d;margin:0 auto;opacity:0;transition:opacity .3s}
+.tree-connector.visible{opacity:1;background:#58a6ff}
+.tree-fork{display:flex;justify-content:center;gap:20px;width:100%;max-width:680px}
+.tree-fork-branch{display:flex;flex-direction:column;align-items:center;gap:0;flex:1;max-width:320px}
+.tree-fork-label{font-size:.7rem;color:#8b949e;margin:4px 0}
+
+/* Scoring */
+.score-container{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:16px 0}
+.score-card{background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:16px;text-align:center;transition:all .5s;opacity:0;transform:translateY(16px)}
+.score-card.visible{opacity:1;transform:translateY(0)}
+.score-card.highlight{border-color:#3fb950}
+.score-type{font-size:.85rem;font-weight:700;margin-bottom:8px}
+.score-bar-track{height:12px;background:#21262d;border-radius:6px;overflow:hidden;margin:8px 0}
+.score-bar-fill{height:100%;border-radius:6px;width:0;transition:width 1s ease}
+.score-pct{font-size:1.2rem;font-weight:800;font-family:'Fira Code',monospace;margin:4px 0}
+.score-detail{font-size:.7rem;color:#8b949e;line-height:1.4}
+
+/* Tips grid */
+.tips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:16px}
+.tip-card{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:14px;transition:border-color .3s}
+.tip-card:hover{border-color:#58a6ff40}
+.tip-card h3{font-size:.85rem;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.tip-card p{font-size:.72rem;color:#8b949e;line-height:1.5}
+.tip-card .tip-icon{font-size:1.1rem}
+
+.paused .time-segment,.paused .tree-node,.paused .score-card{transition:none!important}
+@media(max-width:768px){.container{padding:12px}.time-bar{height:auto;flex-wrap:wrap}.time-segment{min-height:44px;min-width:80px}.tree-fork{flex-direction:column;align-items:center}}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+<h1>Coderbyte Test Strategy - 코딩테스트 전략 시각화</h1>
+<p class="subtitle">120분 시간 배분, 의사결정 트리, 점수 전략 가이드</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnim()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pauseAnim()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restartAnim()">&#8635; 다시시작 Restart</button>
+</div>
+
+<!-- TIME ALLOCATION -->
+<div class="section">
+  <h2><span class="badge" style="background:#58a6ff30;color:#58a6ff;border:1px solid #58a6ff40">TIME</span> 120분 시간 배분 전략 Time Allocation Strategy</h2>
+  <div class="time-bar-container">
+    <div class="time-bar" id="timeBar">
+      <div class="time-segment seg-reading" style="flex:10" data-t="0">
+        <span class="seg-label">&#128214; 문제 읽기 Reading</span><span class="seg-time">10분</span><div class="seg-fill"></div>
+      </div>
+      <div class="time-segment seg-easy" style="flex:30" data-t="1">
+        <span class="seg-label">&#128994; Easy 문제 (2문제)</span><span class="seg-time">30분</span><div class="seg-fill"></div>
+      </div>
+      <div class="time-segment seg-medium" style="flex:40" data-t="2">
+        <span class="seg-label">&#128992; Medium 문제 (2문제)</span><span class="seg-time">40분</span><div class="seg-fill"></div>
+      </div>
+      <div class="time-segment seg-open" style="flex:30" data-t="3">
+        <span class="seg-label">&#128995; Open-Ended</span><span class="seg-time">30분</span><div class="seg-fill"></div>
+      </div>
+      <div class="time-segment seg-review" style="flex:10" data-t="4">
+        <span class="seg-label">&#128270; 검토 Review</span><span class="seg-time">10분</span><div class="seg-fill"></div>
+      </div>
+    </div>
+    <div class="time-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div>문제 읽기 10분</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div>Easy 30분</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f0883e"></div>Medium 40분</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#bc8cff"></div>Open-Ended 30분</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#d2a8ff"></div>검토 10분</div>
+    </div>
+  </div>
+
+  <!-- Timer -->
+  <div class="timer-display">
+    <div class="timer-clock" id="timerClock">02:00:00</div>
+    <div class="timer-phase" id="timerPhase">시작 대기 중... Waiting to start</div>
+    <div class="timer-progress"><div class="timer-fill c-blue" id="timerFill" style="width:0%"></div></div>
+  </div>
+  <div class="op-label" id="timeLabel">시간 배분 애니메이션 시작 대기 중...</div>
+  <div class="progress-bar"><div class="progress-fill" id="timeProgress"></div></div>
+</div>
+
+<!-- DECISION TREE -->
+<div class="section">
+  <h2><span class="badge" style="background:#f0883e30;color:#f0883e;border:1px solid #f0883e40">DECIDE</span> 의사결정 트리 Decision Tree: 막혔을 때 When Stuck</h2>
+  <div class="tree-container" id="treeContainer">
+    <div class="tree-node tn-question" data-d="0">&#129300; 문제를 읽고 5분이 지났나요?<br><em>Have 5 minutes passed on this problem?</em></div>
+    <div class="tree-connector" data-d="1"></div>
+    <div class="tree-fork" data-d="1">
+      <div class="tree-fork-branch">
+        <div class="tree-fork-label">&#10003; Yes 예</div>
+        <div class="tree-node tn-yes" data-d="2">접근법이 떠오르지 않으면<br><em>No approach in mind?</em></div>
+        <div class="tree-connector" data-d="3"></div>
+        <div class="tree-node tn-action" data-d="3">&#9193; 건너뛰고 다음 문제로!<br><em>Skip and move to next problem!</em></div>
+        <div class="tree-connector" data-d="5"></div>
+        <div class="tree-node tn-result" data-d="5">&#128260; 남은 시간에 다시 돌아오기<br><em>Come back with remaining time</em></div>
+      </div>
+      <div class="tree-fork-branch">
+        <div class="tree-fork-label">&#10007; No 아니오</div>
+        <div class="tree-node tn-no" data-d="2">계속 시도하세요!<br><em>Keep trying!</em></div>
+        <div class="tree-connector" data-d="4"></div>
+        <div class="tree-node tn-action" data-d="4">&#9997; 부분 해법이라도 작성<br><em>Write partial solution at minimum</em></div>
+        <div class="tree-connector" data-d="6"></div>
+        <div class="tree-node tn-result" data-d="6">&#127919; 부분 점수 획득 가능!<br><em>Partial credit is possible!</em></div>
+      </div>
+    </div>
+  </div>
+  <div class="op-label" id="treeLabel">의사결정 트리 애니메이션 시작 대기 중...</div>
+</div>
+
+<!-- SCORING STRATEGY -->
+<div class="section">
+  <h2><span class="badge" style="background:#3fb95030;color:#3fb950;border:1px solid #3fb95040">SCORE</span> 점수 전략 Scoring Strategy: 부분 점수 활용 Partial Credit</h2>
+  <div class="score-container" id="scoreGrid">
+    <div class="score-card" data-sc="0">
+      <div class="score-type" style="color:#3fb950">&#128994; Easy 문제 (x2)</div>
+      <div class="score-bar-track"><div class="score-bar-fill" style="background:linear-gradient(90deg,#2ea043,#3fb950)" data-w="100"></div></div>
+      <div class="score-pct" style="color:#3fb950">100%</div>
+      <div class="score-detail">완전히 풀 수 있는 문제<br>Must solve completely<br><strong>전략: 15분 이내에 각각 해결</strong></div>
+    </div>
+    <div class="score-card" data-sc="1">
+      <div class="score-type" style="color:#f0883e">&#128992; Medium 문제 (x2)</div>
+      <div class="score-bar-track"><div class="score-bar-fill" style="background:linear-gradient(90deg,#d29922,#f0883e)" data-w="70"></div></div>
+      <div class="score-pct" style="color:#f0883e">60-80%</div>
+      <div class="score-detail">부분 해법도 점수 획득 가능<br>Partial solutions earn credit<br><strong>전략: 기본 케이스 먼저 해결</strong></div>
+    </div>
+    <div class="score-card" data-sc="2">
+      <div class="score-type" style="color:#bc8cff">&#128995; Open-Ended</div>
+      <div class="score-bar-track"><div class="score-bar-fill" style="background:linear-gradient(90deg,#6e40c9,#bc8cff)" data-w="85"></div></div>
+      <div class="score-pct" style="color:#bc8cff">80-100%</div>
+      <div class="score-detail">구조화된 답변이 핵심<br>Structured answer is key<br><strong>전략: STAR-T 프레임워크 활용</strong></div>
+    </div>
+    <div class="score-card" data-sc="3">
+      <div class="score-type" style="color:#58a6ff">&#128270; 코드 품질 보너스</div>
+      <div class="score-bar-track"><div class="score-bar-fill" style="background:linear-gradient(90deg,#1f6feb,#58a6ff)" data-w="50"></div></div>
+      <div class="score-pct" style="color:#58a6ff">+10-20%</div>
+      <div class="score-detail">변수명, 주석, 에러 핸들링<br>Naming, comments, error handling<br><strong>전략: 마지막 10분 검토 시 개선</strong></div>
+    </div>
+  </div>
+  <div class="op-label" id="scoreLabel">점수 전략 애니메이션 시작 대기 중...</div>
+</div>
+
+<!-- TIPS -->
+<div class="section">
+  <h2><span class="badge" style="background:#d2a8ff30;color:#d2a8ff;border:1px solid #d2a8ff40">TIPS</span> 핵심 팁 Key Tips</h2>
+  <div class="tips-grid">
+    <div class="tip-card">
+      <h3><span class="tip-icon">&#128214;</span> 문제 먼저 전부 읽기</h3>
+      <p>10분 투자하여 모든 문제를 읽고 난이도를 파악합니다. 쉬운 문제부터 풀어서 자신감을 확보하세요.<br><em>Read all problems first (10 min). Start with easy ones for confidence.</em></p>
+    </div>
+    <div class="tip-card">
+      <h3><span class="tip-icon">&#9997;</span> 의사코드 먼저 작성</h3>
+      <p>바로 코딩하지 말고 주석으로 로직을 먼저 작성합니다. 구조가 잡히면 코드 변환이 쉬워집니다.<br><em>Write pseudocode in comments first. Structure makes coding easier.</em></p>
+    </div>
+    <div class="tip-card">
+      <h3><span class="tip-icon">&#128736;</span> 엣지 케이스 체크리스트</h3>
+      <p>빈 입력, 단일 요소, 최대값, 음수, 중복값을 항상 체크합니다. 테스트 케이스 통과의 핵심입니다.<br><em>Always check: empty input, single element, max value, negatives, duplicates.</em></p>
+    </div>
+    <div class="tip-card">
+      <h3><span class="tip-icon">&#128337;</span> 5분 룰 적용</h3>
+      <p>5분 안에 접근법이 안 떠오르면 과감히 건너뛰세요. 쉬운 문제를 확실히 풀고 돌아오는 것이 유리합니다.<br><em>No approach in 5 min? Skip it. Secure easy points first.</em></p>
+    </div>
+    <div class="tip-card">
+      <h3><span class="tip-icon">&#128221;</span> Open-Ended 는 구조가 점수</h3>
+      <p>정답이 없는 문제는 논리적 구조와 구체적 예시가 핵심입니다. STAR-T 프레임워크를 활용하세요.<br><em>For open-ended: logical structure + specific examples = high score.</em></p>
+    </div>
+    <div class="tip-card">
+      <h3><span class="tip-icon">&#128270;</span> 마지막 10분 리뷰</h3>
+      <p>변수명 개선, 불필요한 코드 제거, 주석 추가, print/debug 문 삭제를 최종 점검합니다.<br><em>Final 10 min: improve naming, remove debug code, add comments.</em></p>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+let animTimer=null,paused=false,phase=0,stepInPhase=0;
+
+/* ===== TIME ALLOCATION ===== */
+const timePhases=[
+  {idx:0,name:'문제 읽기 Reading',min:10,elapsed:'01:50:00',color:'c-blue',pct:8},
+  {idx:1,name:'Easy 문제 풀기',min:30,elapsed:'01:20:00',color:'c-green',pct:33},
+  {idx:2,name:'Medium 문제 풀기',min:40,elapsed:'00:40:00',color:'c-orange',pct:67},
+  {idx:3,name:'Open-Ended 답변 작성',min:30,elapsed:'00:10:00',color:'c-purple',pct:92},
+  {idx:4,name:'최종 검토 Review',min:10,elapsed:'00:00:00',color:'c-lavender',pct:100},
+];
+let tPhase=0;
+function timeAllocStep(){
+  if(tPhase>=timePhases.length)return true;
+  const tp=timePhases[tPhase];
+  const segs=document.querySelectorAll('#timeBar .time-segment');
+  segs.forEach((s,i)=>{
+    s.classList.remove('active','done');
+    if(i<tPhase)s.classList.add('done');
+    if(i===tPhase)s.classList.add('active');
+  });
+  const clock=document.getElementById('timerClock');
+  clock.textContent=tp.elapsed;
+  clock.className='timer-clock'+(tPhase>=3?' warning':'')+(tPhase>=4?' danger':'');
+  document.getElementById('timerPhase').textContent=tp.name+' ('+tp.min+'분 / 120분)';
+  const fill=document.getElementById('timerFill');
+  fill.style.width=tp.pct+'%';
+  fill.className='timer-fill '+tp.color;
+  document.getElementById('timeLabel').textContent='Phase '+(tPhase+1)+'/5: '+tp.name;
+  document.getElementById('timeProgress').style.width=((tPhase+1)/5*100)+'%';
+  tPhase++;
+  return tPhase>=timePhases.length;
+}
+
+/* ===== DECISION TREE ===== */
+let dStep=0;
+function treeStep(){
+  if(dStep>6)return true;
+  const allNodes=document.querySelectorAll('#treeContainer .tree-node');
+  const allConns=document.querySelectorAll('#treeContainer .tree-connector');
+  allNodes.forEach(n=>{
+    if(parseInt(n.dataset.d)<=dStep){n.classList.add('visible');n.classList.remove('active');}
+    if(parseInt(n.dataset.d)===dStep)n.classList.add('active');
+  });
+  allConns.forEach(c=>{if(parseInt(c.dataset.d)<=dStep)c.classList.add('visible');});
+  const labels=['5분 경과 여부 판단 중...','분기: Yes/No 경로 결정','상황별 다음 단계 확인','행동 지침 표시','행동 지침 표시','최종 결과 확인','최종 결과 확인'];
+  document.getElementById('treeLabel').textContent=labels[dStep]||'';
+  dStep++;
+  return dStep>6;
+}
+
+/* ===== SCORING ===== */
+let sStep=0;
+function scoreStep(){
+  if(sStep>3)return true;
+  const cards=document.querySelectorAll('#scoreGrid .score-card');
+  for(let i=0;i<=sStep;i++){
+    const card=cards[i];
+    card.classList.add('visible');
+    if(i===sStep)card.classList.add('highlight');
+    else card.classList.remove('highlight');
+    const fill=card.querySelector('.score-bar-fill');
+    fill.style.width=fill.dataset.w+'%';
+  }
+  const labels=['Easy 문제: 반드시 만점을 목표로!','Medium 문제: 부분 점수도 소중합니다','Open-Ended: 구조화된 답변으로 고득점','코드 품질 보너스: 리뷰 시간에 개선'];
+  document.getElementById('scoreLabel').textContent=labels[sStep];
+  sStep++;
+  return sStep>3;
+}
+
+/* ===== MAIN CONTROLLER ===== */
+const phases=[
+  {name:'time',steps:6,fn:timeAllocStep},
+  {name:'tree',steps:8,fn:treeStep},
+  {name:'score',steps:5,fn:scoreStep},
+];
+
+function initAll(){
+  tPhase=0;dStep=0;sStep=0;
+  document.querySelectorAll('#timeBar .time-segment').forEach(s=>s.classList.remove('active','done'));
+  document.getElementById('timerClock').textContent='02:00:00';
+  document.getElementById('timerClock').className='timer-clock';
+  document.getElementById('timerPhase').textContent='시작 대기 중... Waiting to start';
+  document.getElementById('timerFill').style.width='0%';
+  document.getElementById('timeProgress').style.width='0%';
+  document.querySelectorAll('#treeContainer .tree-node').forEach(n=>{n.classList.remove('visible','active');});
+  document.querySelectorAll('#treeContainer .tree-connector').forEach(c=>c.classList.remove('visible'));
+  document.querySelectorAll('#scoreGrid .score-card').forEach(c=>{c.classList.remove('visible','highlight');c.querySelector('.score-bar-fill').style.width='0%';});
+}
+
+function runStep(){
+  if(paused)return;
+  if(phase>=phases.length)return;
+  const p=phases[phase];
+  const done=p.fn();
+  stepInPhase++;
+  if(done||stepInPhase>=p.steps){phase++;stepInPhase=0;}
+  if(phase<phases.length){animTimer=setTimeout(runStep,1200);}
+}
+
+function startAnim(){
+  paused=false;document.getElementById('app').classList.remove('paused');
+  document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');
+  if(!animTimer)runStep();
+}
+function pauseAnim(){
+  paused=true;clearTimeout(animTimer);animTimer=null;
+  document.getElementById('app').classList.add('paused');
+  document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active');
+}
+function restartAnim(){
+  clearTimeout(animTimer);animTimer=null;phase=0;stepInPhase=0;paused=false;
+  document.getElementById('app').classList.remove('paused');
+  document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');
+  initAll();setTimeout(()=>runStep(),400);
+}
+
+initAll();
+setTimeout(()=>startAnim(),800);
+</script>
+</body>
+</html>

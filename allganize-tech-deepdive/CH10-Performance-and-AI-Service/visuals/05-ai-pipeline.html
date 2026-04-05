@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI/ML 배포 파이프라인 - AI/ML Deployment Pipeline</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;margin-bottom:20px;overflow:hidden}
+.section h2{font-size:1.05rem;margin-bottom:16px;color:#58a6ff;display:flex;align-items:center;gap:8px}
+.badge{padding:2px 10px;border-radius:12px;font-size:0.7rem;font-weight:600;background:#1f6feb30;border:1px solid #58a6ff40;color:#58a6ff}
+.badge.green{background:#2ea04330;border-color:#3fb95040;color:#3fb950}
+.badge.purple{background:#bc8cff30;border-color:#bc8cff40;color:#bc8cff}
+.badge.orange{background:#f0883e30;border-color:#f0883e40;color:#f0883e}
+
+/* Pipeline Flow */
+.pipeline-flow{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding-bottom:8px}
+.pf-stage{flex:1;min-width:120px;text-align:center;padding:14px 10px;border:1px solid #30363d;background:#0d1117;transition:all .6s;opacity:0.25;position:relative}
+.pf-stage:first-child{border-radius:8px 0 0 8px}
+.pf-stage:last-child{border-radius:0 8px 8px 0}
+.pf-stage.active{opacity:1}
+.pf-stage .pf-icon{font-size:1.4rem;margin-bottom:6px}
+.pf-stage .pf-name{font-size:0.78rem;font-weight:600}
+.pf-stage .pf-desc{font-size:0.6rem;color:#8b949e;margin-top:2px}
+.pf-stage .pf-check{position:absolute;top:6px;right:8px;font-size:0.8rem;opacity:0;transition:opacity .4s}
+.pf-stage.done .pf-check{opacity:1}
+.pf-stage:nth-child(1).active{border-color:#58a6ff;background:#58a6ff08}
+.pf-stage:nth-child(2).active{border-color:#bc8cff;background:#bc8cff08}
+.pf-stage:nth-child(3).active{border-color:#3fb950;background:#3fb95008}
+.pf-stage:nth-child(4).active{border-color:#f0883e;background:#f0883e08}
+.pf-stage:nth-child(5).active{border-color:#76e4f7;background:#76e4f708}
+.pf-stage:nth-child(6).active{border-color:#f85149;background:#f8514908}
+
+.pf-progress{height:4px;background:#21262d;border-radius:2px;margin-top:12px;overflow:hidden}
+.pf-progress-fill{height:100%;background:linear-gradient(90deg,#58a6ff,#bc8cff,#3fb950,#f0883e);border-radius:2px;transition:width .5s ease;width:0}
+
+/* A/B Testing */
+.ab-container{display:flex;gap:20px;align-items:stretch;flex-wrap:wrap}
+.ab-model{flex:1;min-width:200px;background:#0d1117;border-radius:8px;border:1px solid #21262d;padding:16px;transition:all .5s}
+.ab-model.winner{border-color:#3fb950;box-shadow:0 0 16px rgba(63,185,80,0.15)}
+.ab-model .am-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.ab-model .am-name{font-size:0.85rem;font-weight:600}
+.ab-model .am-version{padding:2px 8px;border-radius:10px;font-size:0.65rem;font-weight:600}
+.ab-model:nth-child(1) .am-version{background:#58a6ff20;color:#58a6ff;border:1px solid #58a6ff40}
+.ab-model:nth-child(3) .am-version{background:#3fb95020;color:#3fb950;border:1px solid #3fb95040}
+
+.ab-traffic{text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:80px}
+.ab-traffic .at-label{font-size:0.7rem;color:#8b949e;margin-bottom:4px}
+.ab-split-bar{width:100%;height:30px;background:#21262d;border-radius:6px;display:flex;overflow:hidden;margin:8px 0}
+.ab-split-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:600;color:#fff;transition:width 1s ease}
+
+.ab-metric{display:flex;justify-content:space-between;margin-bottom:6px;font-size:0.75rem}
+.ab-metric .label{color:#8b949e}
+.ab-metric .val{font-weight:600}
+.ab-metric .val.good{color:#3fb950}
+.ab-metric .val.warn{color:#f0883e}
+
+/* Shadow Deployment */
+.shadow-visual{position:relative;background:#0d1117;border-radius:8px;border:1px solid #21262d;padding:16px}
+.shadow-flow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.sf-node{text-align:center;padding:10px 16px;border-radius:8px;border:1px solid #30363d;transition:all .5s;opacity:0.3;min-width:100px}
+.sf-node.active{opacity:1}
+.sf-node .sf-icon{font-size:1.2rem;margin-bottom:4px}
+.sf-node .sf-name{font-size:0.75rem;font-weight:600}
+.sf-node .sf-desc{font-size:0.6rem;color:#8b949e}
+.sf-arrow{color:#30363d;font-size:0.9rem;transition:color .5s}
+.sf-arrow.active{color:#58a6ff}
+.sf-node.prod.active{border-color:#3fb950;background:#3fb95010}
+.sf-node.shadow.active{border-color:#bc8cff;background:#bc8cff10}
+.sf-node.compare.active{border-color:#f0883e;background:#f0883e10}
+
+.shadow-results{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sr-card{padding:12px;border-radius:6px;border:1px solid #21262d;background:#161b22}
+.sr-card .sr-title{font-size:0.75rem;font-weight:600;margin-bottom:8px}
+.sr-card .sr-bar{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.sr-card .sr-bar-label{width:60px;font-size:0.65rem;color:#8b949e}
+.sr-card .sr-bar-track{flex:1;height:10px;background:#21262d;border-radius:4px;overflow:hidden}
+.sr-card .sr-bar-fill{height:100%;border-radius:4px;transition:width 1.5s ease;width:0}
+.sr-card .sr-bar-val{width:40px;text-align:right;font-size:0.65rem;font-weight:600}
+
+/* Model Versioning */
+.version-timeline{position:relative;padding-left:30px}
+.vt-line{position:absolute;left:14px;top:0;bottom:0;width:2px;background:#30363d}
+.vt-entry{position:relative;margin-bottom:16px;padding:12px;background:#0d1117;border-radius:8px;border:1px solid #21262d;transition:all .5s;opacity:0.3;transform:translateX(10px)}
+.vt-entry.active{opacity:1;transform:translateX(0)}
+.vt-entry.current{border-color:#3fb950;box-shadow:0 0 12px rgba(63,185,80,0.1)}
+.vt-entry.rollback{border-color:#f85149;box-shadow:0 0 12px rgba(248,81,73,0.1)}
+.vt-dot{position:absolute;left:-24px;top:16px;width:12px;height:12px;border-radius:50%;border:2px solid #30363d;background:#0d1117;transition:all .5s}
+.vt-entry.active .vt-dot{border-color:#58a6ff;background:#58a6ff}
+.vt-entry.current .vt-dot{border-color:#3fb950;background:#3fb950}
+.vt-entry.rollback .vt-dot{border-color:#f85149;background:#f85149}
+.vt-entry .vt-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.vt-entry .vt-version{font-size:0.8rem;font-weight:600}
+.vt-entry .vt-status{padding:2px 8px;border-radius:10px;font-size:0.6rem;font-weight:600}
+.vt-entry .vt-desc{font-size:0.7rem;color:#8b949e}
+
+.paused *{animation-play-state:paused!important}
+@media(max-width:768px){.container{padding:12px}.ab-container{flex-direction:column}.shadow-results{grid-template-columns:1fr}.pipeline-flow{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>AI/ML 배포 파이프라인 - Deployment Pipeline</h1>
+<p class="subtitle">Model Training → Registry → CI/CD → Canary → Monitor → Rollout</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnimation()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pauseAnimation()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restartAnimation()">&#8635; 다시시작 Restart</button>
+</div>
+
+<!-- Pipeline Flow -->
+<div class="section">
+  <h2><span class="badge">PIPELINE</span> ML 배포 파이프라인 Deployment Flow</h2>
+  <div class="pipeline-flow" id="pipelineFlow">
+    <div class="pf-stage" id="ps0"><div class="pf-check">&#10003;</div><div class="pf-icon">🔬</div><div class="pf-name">Training</div><div class="pf-desc">모델 학습</div></div>
+    <div class="pf-stage" id="ps1"><div class="pf-check">&#10003;</div><div class="pf-icon">📦</div><div class="pf-name">Registry</div><div class="pf-desc">모델 저장소</div></div>
+    <div class="pf-stage" id="ps2"><div class="pf-check">&#10003;</div><div class="pf-icon">🔄</div><div class="pf-name">CI/CD</div><div class="pf-desc">자동 빌드/테스트</div></div>
+    <div class="pf-stage" id="ps3"><div class="pf-check">&#10003;</div><div class="pf-icon">🐤</div><div class="pf-name">Canary</div><div class="pf-desc">카나리 배포</div></div>
+    <div class="pf-stage" id="ps4"><div class="pf-check">&#10003;</div><div class="pf-icon">📊</div><div class="pf-name">Monitor</div><div class="pf-desc">성능 모니터링</div></div>
+    <div class="pf-stage" id="ps5"><div class="pf-check">&#10003;</div><div class="pf-icon">🚀</div><div class="pf-name">Full Rollout</div><div class="pf-desc">전체 배포</div></div>
+  </div>
+  <div class="pf-progress"><div class="pf-progress-fill" id="pfBar"></div></div>
+</div>
+
+<!-- A/B Testing -->
+<div class="section">
+  <h2><span class="badge green">A/B</span> A/B 테스트 Traffic Split</h2>
+  <div class="ab-container">
+    <div class="ab-model" id="modelA">
+      <div class="am-header"><span class="am-name">Model v1 (기존)</span><span class="am-version">v1.2.0</span></div>
+      <div class="ab-metric"><span class="label">Accuracy</span><span class="val" id="accA">-</span></div>
+      <div class="ab-metric"><span class="label">Latency p99</span><span class="val" id="latA">-</span></div>
+      <div class="ab-metric"><span class="label">Error Rate</span><span class="val" id="errA">-</span></div>
+    </div>
+    <div class="ab-traffic">
+      <div class="at-label">Traffic Split 트래픽 분배</div>
+      <div class="ab-split-bar" id="abSplit">
+        <div class="ab-split-seg" id="splitA" style="background:#58a6ff;width:100%">100%</div>
+        <div class="ab-split-seg" id="splitB" style="background:#3fb950;width:0%"></div>
+      </div>
+      <div style="font-size:0.65rem;color:#8b949e" id="abPhase">초기 상태</div>
+    </div>
+    <div class="ab-model" id="modelB">
+      <div class="am-header"><span class="am-name">Model v2 (신규)</span><span class="am-version">v2.0.0</span></div>
+      <div class="ab-metric"><span class="label">Accuracy</span><span class="val" id="accB">-</span></div>
+      <div class="ab-metric"><span class="label">Latency p99</span><span class="val" id="latB">-</span></div>
+      <div class="ab-metric"><span class="label">Error Rate</span><span class="val" id="errB">-</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Shadow Deployment -->
+<div class="section">
+  <h2><span class="badge purple">SHADOW</span> 섀도우 배포 Shadow Deployment</h2>
+  <div class="shadow-visual">
+    <div class="shadow-flow" id="shadowFlow">
+      <div class="sf-node" id="sf0"><div class="sf-icon">👤</div><div class="sf-name">Traffic</div><div class="sf-desc">실제 트래픽</div></div>
+      <div class="sf-arrow" id="sfa0">→</div>
+      <div class="sf-node prod" id="sf1"><div class="sf-icon">🟢</div><div class="sf-name">Prod Model</div><div class="sf-desc">v1 (응답 반환)</div></div>
+      <div class="sf-arrow" id="sfa1">↗</div>
+      <div class="sf-node shadow" id="sf2"><div class="sf-icon">👻</div><div class="sf-name">Shadow Model</div><div class="sf-desc">v2 (응답 폐기)</div></div>
+      <div class="sf-arrow" id="sfa2">→</div>
+      <div class="sf-node compare" id="sf3"><div class="sf-icon">⚖️</div><div class="sf-name">Compare</div><div class="sf-desc">결과 비교 분석</div></div>
+    </div>
+    <div class="shadow-results" id="shadowResults">
+      <div class="sr-card">
+        <div class="sr-title" style="color:#3fb950">Production v1 결과</div>
+        <div class="sr-bar"><span class="sr-bar-label">정확도</span><div class="sr-bar-track"><div class="sr-bar-fill" id="srProdAcc" style="background:#3fb950"></div></div><span class="sr-bar-val" id="srProdAccV">0%</span></div>
+        <div class="sr-bar"><span class="sr-bar-label">지연</span><div class="sr-bar-track"><div class="sr-bar-fill" id="srProdLat" style="background:#58a6ff"></div></div><span class="sr-bar-val" id="srProdLatV">0ms</span></div>
+      </div>
+      <div class="sr-card">
+        <div class="sr-title" style="color:#bc8cff">Shadow v2 결과</div>
+        <div class="sr-bar"><span class="sr-bar-label">정확도</span><div class="sr-bar-track"><div class="sr-bar-fill" id="srShadAcc" style="background:#bc8cff"></div></div><span class="sr-bar-val" id="srShadAccV">0%</span></div>
+        <div class="sr-bar"><span class="sr-bar-label">지연</span><div class="sr-bar-track"><div class="sr-bar-fill" id="srShadLat" style="background:#f0883e"></div></div><span class="sr-bar-val" id="srShadLatV">0ms</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Model Versioning -->
+<div class="section">
+  <h2><span class="badge orange">VERSION</span> 모델 버전 관리 및 롤백</h2>
+  <div class="version-timeline" id="versionTimeline">
+    <div class="vt-line"></div>
+    <div class="vt-entry" id="vt0"><div class="vt-dot"></div><div class="vt-header"><span class="vt-version">v1.0.0</span><span class="vt-status" style="background:#3fb95020;color:#3fb950;border:1px solid #3fb95040">Stable</span></div><div class="vt-desc">초기 모델 배포 - Base LLM fine-tuned</div></div>
+    <div class="vt-entry" id="vt1"><div class="vt-dot"></div><div class="vt-header"><span class="vt-version">v1.2.0</span><span class="vt-status" style="background:#58a6ff20;color:#58a6ff;border:1px solid #58a6ff40">Previous</span></div><div class="vt-desc">RAG 파이프라인 개선 - 정확도 +5%</div></div>
+    <div class="vt-entry" id="vt2"><div class="vt-dot"></div><div class="vt-header"><span class="vt-version">v2.0.0</span><span class="vt-status" id="vt2status" style="background:#f0883e20;color:#f0883e;border:1px solid #f0883e40">Canary</span></div><div class="vt-desc">새 모델 아키텍처 - 추론 속도 2x 향상</div></div>
+    <div class="vt-entry" id="vt3"><div class="vt-dot"></div><div class="vt-header"><span class="vt-version">v2.0.1</span><span class="vt-status" id="vt3status" style="background:#f8514920;color:#f85149;border:1px solid #f8514940">Rollback</span></div><div class="vt-desc">핫픽스 → 에러율 증가 감지 → v1.2.0 롤백</div></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+let animTimer=null,isPaused=false,step=0;
+const totalSteps=100;
+function setActive(id){document.querySelectorAll('.controls button').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active')}
+
+function updatePipeline(progress){
+  const stages=6;
+  const activeIdx=Math.floor(progress*stages*1.2);
+  for(let i=0;i<stages;i++){
+    const el=document.getElementById('ps'+i);
+    if(i<activeIdx){el.classList.add('active','done')}
+    else if(i===activeIdx){el.classList.add('active');el.classList.remove('done')}
+    else{el.classList.remove('active','done')}
+  }
+  document.getElementById('pfBar').style.width=Math.min(progress*120,100)+'%';
+}
+
+function updateAB(progress){
+  // Phase 1: 100/0 (0-0.2), Phase 2: 90/10 (0.2-0.4), Phase 3: 70/30 (0.4-0.6), Phase 4: 50/50 (0.6-0.8), Phase 5: 0/100 winner (0.8-1)
+  let splitA,splitB,phase;
+  if(progress<0.2){splitA=100;splitB=0;phase='초기 상태 Initial'}
+  else if(progress<0.4){splitA=90;splitB=10;phase='카나리 10% Canary'}
+  else if(progress<0.6){splitA=70;splitB=30;phase='확장 30% Expanding'}
+  else if(progress<0.8){splitA=50;splitB=50;phase='50/50 평가 중 Evaluating'}
+  else{splitA=0;splitB=100;phase='v2 승리 Winner!'}
+
+  document.getElementById('splitA').style.width=splitA+'%';
+  document.getElementById('splitA').textContent=splitA>0?splitA+'%':'';
+  document.getElementById('splitB').style.width=splitB+'%';
+  document.getElementById('splitB').textContent=splitB>0?splitB+'%':'';
+  document.getElementById('abPhase').textContent=phase;
+
+  if(progress>0.3){
+    document.getElementById('accA').textContent='92.1%';document.getElementById('accA').className='val';
+    document.getElementById('latA').textContent='180ms';document.getElementById('latA').className='val warn';
+    document.getElementById('errA').textContent='1.2%';document.getElementById('errA').className='val';
+    document.getElementById('accB').textContent='95.7%';document.getElementById('accB').className='val good';
+    document.getElementById('latB').textContent='120ms';document.getElementById('latB').className='val good';
+    document.getElementById('errB').textContent='0.8%';document.getElementById('errB').className='val good';
+  }
+  if(progress>0.8){document.getElementById('modelB').classList.add('winner')}
+  else{document.getElementById('modelB').classList.remove('winner')}
+}
+
+function updateShadow(progress){
+  const nodes=4,arrows=3;
+  for(let i=0;i<nodes;i++){
+    const el=document.getElementById('sf'+i);
+    const a=document.getElementById('sfa'+i);
+    if(progress>i*0.2){el.classList.add('active');if(a)a.classList.add('active')}
+    else{el.classList.remove('active');if(a)a.classList.remove('active')}
+  }
+
+  const t=Math.min(progress*1.5,1);
+  document.getElementById('srProdAcc').style.width=(92*t)+'%';document.getElementById('srProdAccV').textContent=Math.round(92*t)+'%';
+  document.getElementById('srProdLat').style.width=(60*t)+'%';document.getElementById('srProdLatV').textContent=Math.round(180*t)+'ms';
+  document.getElementById('srShadAcc').style.width=(96*t)+'%';document.getElementById('srShadAccV').textContent=Math.round(96*t)+'%';
+  document.getElementById('srShadLat').style.width=(40*t)+'%';document.getElementById('srShadLatV').textContent=Math.round(120*t)+'ms';
+}
+
+function updateVersioning(progress){
+  const times=[0.1,0.3,0.6,0.8];
+  for(let i=0;i<4;i++){
+    const el=document.getElementById('vt'+i);
+    if(progress>=times[i]){
+      el.classList.add('active');
+      if(i===2&&progress>=0.6&&progress<0.8)el.classList.add('current');
+      else el.classList.remove('current');
+      if(i===3&&progress>=0.8)el.classList.add('rollback');
+      else el.classList.remove('rollback');
+    }else{
+      el.classList.remove('active','current','rollback');
+    }
+  }
+  // Update v2 status text based on progress
+  if(progress>=0.8){
+    document.getElementById('vt2status').textContent='Rolled Back';
+    document.getElementById('vt2status').style.background='#f8514920';document.getElementById('vt2status').style.color='#f85149';document.getElementById('vt2status').style.borderColor='#f8514940';
+  }else if(progress>=0.6){
+    document.getElementById('vt2status').textContent='Current';
+    document.getElementById('vt2status').style.background='#3fb95020';document.getElementById('vt2status').style.color='#3fb950';document.getElementById('vt2status').style.borderColor='#3fb95040';
+  }else{
+    document.getElementById('vt2status').textContent='Canary';
+    document.getElementById('vt2status').style.background='#f0883e20';document.getElementById('vt2status').style.color='#f0883e';document.getElementById('vt2status').style.borderColor='#f0883e40';
+  }
+}
+
+function tick(){
+  if(isPaused)return;
+  step++;
+  const p=step/totalSteps;
+  updatePipeline(p);updateAB(p);updateShadow(p);updateVersioning(p);
+  if(step>=totalSteps)clearInterval(animTimer);
+}
+
+function startAnimation(){
+  if(isPaused){isPaused=false;setActive('btnPlay');document.body.classList.remove('paused');return}
+  step=0;isPaused=false;setActive('btnPlay');
+  if(animTimer)clearInterval(animTimer);
+  animTimer=setInterval(tick,100);
+}
+function pauseAnimation(){isPaused=true;setActive('btnPause');document.body.classList.add('paused')}
+function restartAnimation(){if(animTimer)clearInterval(animTimer);isPaused=false;step=0;document.body.classList.remove('paused');startAnimation()}
+
+startAnimation();
+</script>
+</body>
+</html>

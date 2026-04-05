@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resource Management & QoS | 리소스 관리와 QoS</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+.hdr{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.hdr h1{font-size:1.5rem;color:#d29922;margin-bottom:4px}
+.hdr p{font-size:.85rem;color:#8b949e}
+.ctrls{display:flex;justify-content:center;gap:10px;padding:14px}
+.ctrls button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:7px 18px;cursor:pointer;font-size:.85rem;transition:background .2s}
+.ctrls button:hover{background:#30363d}
+.ctrls button.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.si{text-align:center;font-size:.8rem;color:#8b949e;padding:2px}
+.si .c{color:#d29922;font-weight:600}
+
+.tabs{display:flex;justify-content:center;gap:8px;padding:8px;flex-wrap:wrap}
+.tab{background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:5px 14px;font-size:.72rem;cursor:pointer;transition:all .2s}
+.tab:hover{background:#30363d}
+.tab.on{background:#1f6feb;color:#fff;border-color:#1f6feb}
+
+.canvas{max-width:960px;margin:0 auto;padding:10px 16px}
+.scene{display:none}.scene.active{display:block}
+
+/* === QoS Classes === */
+.qos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.qos-card{background:#161b22;border:2px solid #30363d;border-radius:10px;padding:14px;opacity:0;transform:translateY(10px);transition:all .5s;text-align:center}
+.qos-card.vis{opacity:1;transform:translateY(0)}
+.qos-card.guaranteed{border-color:#3fb950}.qos-card.guaranteed .qos-name{color:#3fb950}
+.qos-card.burstable{border-color:#d29922}.qos-card.burstable .qos-name{color:#d29922}
+.qos-card.besteffort{border-color:#f85149}.qos-card.besteffort .qos-name{color:#f85149}
+.qos-name{font-size:.9rem;font-weight:700;margin-bottom:6px}
+.qos-rule{font-size:.65rem;color:#8b949e;text-align:left;line-height:1.5;margin-bottom:8px}
+.qos-rule strong{color:#c9d1d9}
+.qos-priority{font-size:.7rem;font-weight:600;padding:4px 10px;border-radius:4px;display:inline-block}
+.qos-priority.high{background:#0c2d1e;color:#3fb950}
+.qos-priority.mid{background:#2d1a0c;color:#d29922}
+.qos-priority.low{background:#2d0c0c;color:#f85149}
+.qos-yaml{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:8px;font-size:.58rem;font-family:monospace;color:#c9d1d9;text-align:left;margin-top:8px;line-height:1.4}
+.qos-yaml .key{color:#79c0ff}.qos-yaml .val{color:#a5d6ff}.qos-yaml .comment{color:#6e7681}
+
+/* === CPU Throttling === */
+.cpu-section{padding:10px 0}
+.meter-wrap{margin:10px 0}
+.meter-label{display:flex;justify-content:space-between;font-size:.7rem;margin-bottom:4px}
+.meter-name{color:#c9d1d9;font-weight:600}
+.meter-val{color:#8b949e}
+.meter{height:24px;background:#21262d;border-radius:6px;overflow:hidden;position:relative}
+.meter-fill{height:100%;border-radius:6px;transition:width 1.5s ease-out;width:0;position:relative}
+.meter-fill.cpu{background:linear-gradient(90deg,#0c2d6b,#58a6ff)}
+.meter-fill.mem{background:linear-gradient(90deg,#0c2d1e,#3fb950)}
+.meter-fill.warn{background:linear-gradient(90deg,#2d1a0c,#d29922)}
+.meter-fill.danger{background:linear-gradient(90deg,#2d0c0c,#f85149)}
+.meter-limit{position:absolute;top:0;bottom:0;width:3px;background:#f85149;z-index:2}
+.meter-limit-label{position:absolute;top:-14px;font-size:.55rem;color:#f85149;white-space:nowrap}
+
+.throttle-indicator{text-align:center;margin:10px 0;opacity:0;transition:all .5s}
+.throttle-indicator.vis{opacity:1}
+.throttle-badge{display:inline-block;padding:6px 16px;border-radius:8px;font-size:.8rem;font-weight:700}
+.throttle-badge.throttled{background:#2d1a0c;color:#d29922;border:2px solid #d29922;animation:pulse 1s infinite}
+.throttle-badge.oom{background:#2d0c0c;color:#f85149;border:2px solid #f85149;animation:pulse .6s infinite}
+.throttle-badge.normal{background:#0c2d1e;color:#3fb950;border:2px solid #3fb950}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+.cpu-explain{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;margin:10px 0;font-size:.7rem;line-height:1.5;opacity:0;transition:opacity .4s}
+.cpu-explain.vis{opacity:1}
+.cpu-explain h4{color:#58a6ff;margin-bottom:4px;font-size:.78rem}
+
+/* === Eviction Order === */
+.eviction{padding:10px 0}
+.ev-title{font-size:.85rem;font-weight:600;color:#f85149;margin-bottom:10px}
+.ev-bar{display:flex;align-items:center;gap:10px;margin:8px 0;opacity:0;transform:translateX(-10px);transition:all .5s}
+.ev-bar.vis{opacity:1;transform:translateX(0)}
+.ev-order{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0}
+.ev-content{flex:1;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px;display:flex;align-items:center;justify-content:space-between}
+.ev-name{font-size:.78rem;font-weight:600}
+.ev-reason{font-size:.62rem;color:#8b949e}
+.ev-usage{width:120px}
+.ev-usage-bar{height:8px;background:#21262d;border-radius:4px;overflow:hidden;margin-top:4px}
+.ev-usage-fill{height:100%;border-radius:4px;transition:width 1s}
+
+/* Node pressure */
+.node-pressure{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;margin:10px 0;opacity:0;transition:opacity .4s}
+.node-pressure.vis{opacity:1}
+.np-title{font-size:.8rem;font-weight:600;color:#d29922;margin-bottom:8px}
+.np-row{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:.68rem}
+.np-label{width:140px;color:#8b949e}
+.np-bar{flex:1;height:10px;background:#21262d;border-radius:5px;overflow:hidden}
+.np-fill{height:100%;border-radius:5px;transition:width 1.5s}
+.np-fill.ok{background:#3fb950}.np-fill.warn{background:#d29922}.np-fill.crit{background:#f85149}
+.np-val{width:50px;text-align:right;font-size:.62rem;color:#8b949e}
+.np-thresh{font-size:.55rem;color:#f85149;width:80px;text-align:right}
+
+.info{max-width:960px;margin:10px auto;padding:0 16px}
+.info-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;font-size:.78rem;line-height:1.6;min-height:60px}
+.info-box .st{color:#d29922;font-weight:700;margin-bottom:4px}
+.info-box .d{color:#c9d1d9}
+.info-box .dk{color:#8b949e;font-size:.72rem}
+
+@media(max-width:700px){.qos-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>Resource Management &amp; QoS</h1>
+  <p>리소스 관리, QoS 클래스, CPU Throttling, OOM Kill, Eviction</p>
+</div>
+<div class="ctrls">
+  <button id="bp" class="on" onclick="play()">&#9654; Play</button>
+  <button id="bpa" onclick="pause()">&#10074;&#10074; Pause</button>
+  <button id="br" onclick="restart()">&#8635; Restart</button>
+</div>
+<div class="si">Step <span id="cs" class="c">0</span> / <span id="ts">0</span></div>
+<div class="tabs">
+  <button class="tab on" id="tb0" onclick="sw(0)">QoS Classes</button>
+  <button class="tab" id="tb1" onclick="sw(1)">CPU Throttling</button>
+  <button class="tab" id="tb2" onclick="sw(2)">OOM Kill</button>
+  <button class="tab" id="tb3" onclick="sw(3)">Eviction Order</button>
+</div>
+
+<div class="canvas">
+  <!-- Scene 0: QoS Classes -->
+  <div class="scene active" id="sc0">
+    <div class="qos-grid">
+      <div class="qos-card guaranteed" id="q0">
+        <div class="qos-name">Guaranteed</div>
+        <div class="qos-rule"><strong>Rule:</strong> Every container has requests = limits for BOTH CPU and memory. No overcommit.</div>
+        <div class="qos-priority high">Eviction Priority: LAST (highest protection)</div>
+        <div class="qos-yaml">
+          <span class="key">resources</span>:<br>
+          &nbsp;&nbsp;<span class="key">requests</span>:<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">cpu</span>: <span class="val">"500m"</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">memory</span>: <span class="val">"256Mi"</span><br>
+          &nbsp;&nbsp;<span class="key">limits</span>:<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">cpu</span>: <span class="val">"500m"</span> <span class="comment"># = request</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">memory</span>: <span class="val">"256Mi"</span> <span class="comment"># = request</span>
+        </div>
+      </div>
+      <div class="qos-card burstable" id="q1">
+        <div class="qos-name">Burstable</div>
+        <div class="qos-rule"><strong>Rule:</strong> At least one container has requests or limits set, but they are NOT equal. Can burst above requests up to limits.</div>
+        <div class="qos-priority mid">Eviction Priority: MIDDLE</div>
+        <div class="qos-yaml">
+          <span class="key">resources</span>:<br>
+          &nbsp;&nbsp;<span class="key">requests</span>:<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">cpu</span>: <span class="val">"250m"</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">memory</span>: <span class="val">"128Mi"</span><br>
+          &nbsp;&nbsp;<span class="key">limits</span>:<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">cpu</span>: <span class="val">"1000m"</span> <span class="comment"># &gt; request</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">memory</span>: <span class="val">"512Mi"</span> <span class="comment"># &gt; request</span>
+        </div>
+      </div>
+      <div class="qos-card besteffort" id="q2">
+        <div class="qos-name">BestEffort</div>
+        <div class="qos-rule"><strong>Rule:</strong> No requests or limits set on ANY container. Uses whatever resources are available. Highest risk.</div>
+        <div class="qos-priority low">Eviction Priority: FIRST (evicted first)</div>
+        <div class="qos-yaml">
+          <span class="comment"># No resources section at all</span><br>
+          <span class="key">containers</span>:<br>
+          &nbsp;&nbsp;- <span class="key">name</span>: <span class="val">app</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">image</span>: <span class="val">nginx</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># no resources: {}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scene 1: CPU Throttling -->
+  <div class="scene" id="sc1">
+    <div class="cpu-section">
+      <div class="meter-wrap" id="cpuM">
+        <div class="meter-label"><span class="meter-name">CPU Usage</span><span class="meter-val" id="cpuVal">0m / 1000m limit</span></div>
+        <div class="meter" style="position:relative">
+          <div class="meter-fill cpu" id="cpuFill"></div>
+          <div class="meter-limit" id="cpuLimit" style="left:100%;display:none"><div class="meter-limit-label">Limit: 1000m</div></div>
+        </div>
+      </div>
+      <div class="throttle-indicator" id="cpuThrottle"></div>
+      <div class="cpu-explain" id="cpuEx">
+        <h4>CPU Throttling Mechanism / CPU 쓰로틀링 메커니즘</h4>
+        CPU is a <strong>compressible resource</strong>. When a container hits its CPU limit, the kernel CFS (Completely Fair Scheduler) throttles it by limiting CPU time slices.<br><br>
+        <strong>CFS Period:</strong> 100ms (default)<br>
+        <strong>CPU Limit 500m:</strong> Container gets 50ms of CPU time per 100ms period<br>
+        <strong>CPU Limit 1000m:</strong> Container gets 100ms (full core) per period<br><br>
+        Throttled containers are NOT killed - they just run slower. Check <code>container_cpu_cfs_throttled_periods_total</code> metric.
+        <br><br>
+        CPU는 <strong>압축 가능한(compressible) 리소스</strong>입니다. 컨테이너가 CPU 제한에 도달하면 커널 CFS가 CPU 시간 슬라이스를 제한하여 쓰로틀링합니다. 쓰로틀링된 컨테이너는 죽지 않고 느려집니다.
+      </div>
+    </div>
+  </div>
+
+  <!-- Scene 2: OOM Kill -->
+  <div class="scene" id="sc2">
+    <div class="cpu-section">
+      <div class="meter-wrap" id="memM">
+        <div class="meter-label"><span class="meter-name">Memory Usage</span><span class="meter-val" id="memVal">0Mi / 512Mi limit</span></div>
+        <div class="meter" style="position:relative">
+          <div class="meter-fill mem" id="memFill"></div>
+          <div class="meter-limit" id="memLimit" style="left:100%;display:none"><div class="meter-limit-label">Limit: 512Mi</div></div>
+        </div>
+      </div>
+      <div class="throttle-indicator" id="memThrottle"></div>
+      <div class="cpu-explain" id="memEx">
+        <h4>OOM Kill Mechanism / OOM Kill 메커니즘</h4>
+        Memory is an <strong>incompressible resource</strong>. Unlike CPU, memory cannot be throttled - when a container exceeds its memory limit, the kernel OOM killer terminates it.<br><br>
+        <strong>Container OOM:</strong> Container exceeds its own memory limit -> killed by cgroup OOM<br>
+        <strong>Node OOM:</strong> Node runs out of memory -> kubelet evicts pods by QoS priority<br><br>
+        Container exit code: <strong>137</strong> (128 + SIGKILL=9). Reason: OOMKilled.<br>
+        <code>kubectl describe pod</code> shows: <code>Last State: Terminated, Reason: OOMKilled, Exit Code: 137</code>
+        <br><br>
+        메모리는 <strong>비압축(incompressible) 리소스</strong>입니다. CPU와 달리 쓰로틀링이 불가능하여, 컨테이너가 메모리 제한을 초과하면 커널 OOM killer가 종료시킵니다. Exit code: 137.
+      </div>
+    </div>
+  </div>
+
+  <!-- Scene 3: Eviction Order -->
+  <div class="scene" id="sc3">
+    <div class="eviction">
+      <div class="node-pressure" id="np">
+        <div class="np-title">Node Resource Pressure / 노드 리소스 압박</div>
+        <div class="np-row"><span class="np-label">Memory Available</span><div class="np-bar"><div class="np-fill warn" id="npMem" style="width:0"></div></div><span class="np-val" id="npMemV">--</span><span class="np-thresh">Threshold: 100Mi</span></div>
+        <div class="np-row"><span class="np-label">Disk Available</span><div class="np-bar"><div class="np-fill ok" id="npDisk" style="width:0"></div></div><span class="np-val" id="npDiskV">--</span><span class="np-thresh">Threshold: 15%</span></div>
+        <div class="np-row"><span class="np-label">inode Available</span><div class="np-bar"><div class="np-fill ok" id="npInode" style="width:0"></div></div><span class="np-val" id="npInodeV">--</span><span class="np-thresh">Threshold: 5%</span></div>
+      </div>
+
+      <div class="ev-title" id="evTitle">Eviction Priority Order / 축출 우선순위</div>
+
+      <div class="ev-bar" id="ev0">
+        <div class="ev-order" style="background:#f85149;color:#fff">1</div>
+        <div class="ev-content">
+          <div><div class="ev-name" style="color:#f85149">BestEffort Pods</div><div class="ev-reason">No requests/limits. Exceeding node resources. Evicted FIRST.</div></div>
+          <div class="ev-usage"><div style="font-size:.6rem;color:#8b949e">Usage vs Node</div><div class="ev-usage-bar"><div class="ev-usage-fill" id="euf0" style="width:0;background:#f85149"></div></div></div>
+        </div>
+      </div>
+      <div class="ev-bar" id="ev1">
+        <div class="ev-order" style="background:#d29922;color:#fff">2</div>
+        <div class="ev-content">
+          <div><div class="ev-name" style="color:#d29922">Burstable Pods (over request)</div><div class="ev-reason">Using more than requested. Sorted by usage/request ratio. Higher ratio evicted first.</div></div>
+          <div class="ev-usage"><div style="font-size:.6rem;color:#8b949e">Usage/Request ratio</div><div class="ev-usage-bar"><div class="ev-usage-fill" id="euf1" style="width:0;background:#d29922"></div></div></div>
+        </div>
+      </div>
+      <div class="ev-bar" id="ev2">
+        <div class="ev-order" style="background:#58a6ff;color:#fff">3</div>
+        <div class="ev-content">
+          <div><div class="ev-name" style="color:#58a6ff">Burstable Pods (under request)</div><div class="ev-reason">Using less than requested. Lower priority for eviction.</div></div>
+          <div class="ev-usage"><div style="font-size:.6rem;color:#8b949e">Usage/Request ratio</div><div class="ev-usage-bar"><div class="ev-usage-fill" id="euf2" style="width:0;background:#58a6ff"></div></div></div>
+        </div>
+      </div>
+      <div class="ev-bar" id="ev3">
+        <div class="ev-order" style="background:#3fb950;color:#fff">4</div>
+        <div class="ev-content">
+          <div><div class="ev-name" style="color:#3fb950">Guaranteed Pods</div><div class="ev-reason">Protected. Only evicted if exceeding their own limits (which shouldn't happen) or system-critical resources needed.</div></div>
+          <div class="ev-usage"><div style="font-size:.6rem;color:#8b949e">Usage = Request = Limit</div><div class="ev-usage-bar"><div class="ev-usage-fill" id="euf3" style="width:0;background:#3fb950"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="info"><div class="info-box" id="ib">
+  <div class="st">Ready</div><div class="d">Press Play to start the resource management animation.</div><div class="dk">Play를 눌러 리소스 관리 애니메이션을 시작하세요.</div>
+</div></div>
+
+<script>
+const g=id=>document.getElementById(id);
+let curScene=0,cur=0,timer=null,paused=false;
+
+const scenes=[
+  // Scene 0: QoS
+  [
+    {t:"QoS Class: Guaranteed",d:"All containers have requests = limits for BOTH CPU and memory. Highest priority. Last to be evicted. Ideal for production critical workloads.",k:"모든 컨테이너가 CPU와 메모리 모두 requests = limits를 설정. 가장 높은 우선순위. 가장 마지막에 축출됩니다. 프로덕션 핵심 워크로드에 이상적.",fn(){g('q0').classList.add('vis')}},
+    {t:"QoS Class: Burstable",d:"At least one container has requests or limits, but they differ. Can burst above requests up to limits. Middle eviction priority. Most common in practice.",k:"최소 하나의 컨테이너에 requests/limits가 있지만 다릅니다. requests 이상으로 burst 가능. 중간 축출 우선순위. 실무에서 가장 일반적.",fn(){g('q1').classList.add('vis')}},
+    {t:"QoS Class: BestEffort",d:"No resources set at all. Uses whatever is available. First to be evicted under node pressure. Avoid in production - use for dev/test only.",k:"리소스가 전혀 설정되지 않음. 사용 가능한 리소스를 사용. 노드 압박 시 가장 먼저 축출. 프로덕션에서는 피하고 dev/test에서만 사용.",fn(){g('q2').classList.add('vis')}}
+  ],
+  // Scene 1: CPU Throttling
+  [
+    {t:"CPU Usage: Normal (400m / 1000m)",d:"Container using 400m CPU against 1000m limit. Well within limits. CFS gives full CPU time slices. No throttling.",k:"컨테이너가 1000m 제한 대비 400m CPU를 사용 중. 제한 내에 여유가 있음. CFS가 전체 CPU 시간 슬라이스를 부여. 쓰로틀링 없음.",fn(){showCPU(40,'400m','normal','Normal - No Throttling')}},
+    {t:"CPU Usage: Approaching Limit (850m)",d:"Usage rising to 850m. Getting close to the 1000m limit. CFS may start light throttling as we approach the quota boundary.",k:"사용량이 850m으로 상승 중. 1000m 제한에 근접. CFS가 쿼터 경계에 근접하면서 가벼운 쓰로틀링을 시작할 수 있음.",fn(){showCPU(85,'850m','normal','Normal - Approaching Limit')}},
+    {t:"CPU Usage: At Limit - THROTTLED (1000m)",d:"Container hit its 1000m CPU limit! CFS throttles: container gets 100ms per 100ms period (1 full core). Cannot exceed. Process slows down but is NOT killed.",k:"컨테이너가 1000m CPU 제한에 도달! CFS 쓰로틀링: 100ms 주기당 100ms 사용 (1 풀코어). 초과 불가. 프로세스가 느려지지만 죽지 않음.",fn(){showCPU(100,'1000m','throttled','CPU THROTTLED - CFS Limiting');g('cpuEx').classList.add('vis')}},
+    {t:"CPU Throttling Impact",d:"Throttled container has increased latency. Monitor container_cpu_cfs_throttled_periods_total / container_cpu_cfs_periods_total for throttle ratio. Consider increasing CPU limit if consistently throttled.",k:"쓰로틀링된 컨테이너의 지연이 증가합니다. container_cpu_cfs_throttled_periods_total 메트릭으로 쓰로틀링 비율을 모니터링하세요. 지속적으로 쓰로틀링되면 CPU limit 증가를 고려.",fn(){}}
+  ],
+  // Scene 2: OOM Kill
+  [
+    {t:"Memory Usage: Normal (200Mi / 512Mi)",d:"Container using 200Mi memory against 512Mi limit. Healthy state. RSS (Resident Set Size) well within cgroup memory limit.",k:"컨테이너가 512Mi 제한 대비 200Mi 메모리 사용 중. 정상 상태. RSS가 cgroup 메모리 제한 내에 여유가 있음.",fn(){showMem(39,'200Mi','normal','Normal - Memory OK')}},
+    {t:"Memory Usage: Rising (420Mi)",d:"Memory usage climbing to 420Mi. Possible memory leak or heavy load. Memory is incompressible - cannot be throttled unlike CPU.",k:"메모리 사용량이 420Mi로 상승 중. 메모리 누수 또는 과부하 가능. 메모리는 비압축 리소스 - CPU와 달리 쓰로틀링 불가.",fn(){showMem(82,'420Mi','warn','Warning - Memory Rising')}},
+    {t:"Memory Exceeds Limit - OOM KILLED!",d:"Container tried to allocate beyond 512Mi limit! Kernel cgroup OOM killer terminates the process. Exit code: 137 (128 + SIGKILL). Container will be restarted (if restartPolicy allows).",k:"컨테이너가 512Mi 제한을 초과하여 메모리 할당을 시도! 커널 cgroup OOM killer가 프로세스를 종료합니다. Exit code: 137. 컨테이너가 재시작됩니다(restartPolicy 허용 시).",fn(){showMem(105,'520Mi','oom','OOM KILLED! Exit Code: 137');g('memEx').classList.add('vis')}},
+    {t:"Recovery After OOM",d:"kubelet restarts the container with CrashLoopBackOff if OOMs repeat. Fix: increase memory limit, fix memory leak, optimize application. Check: kubectl describe pod, kubectl logs --previous.",k:"OOM이 반복되면 kubelet이 CrashLoopBackOff로 컨테이너를 재시작합니다. 해결: 메모리 limit 증가, 메모리 누수 수정, 앱 최적화. 확인: kubectl describe pod, kubectl logs --previous.",fn(){}}
+  ],
+  // Scene 3: Eviction
+  [
+    {t:"Node Under Memory Pressure",d:"Node available memory drops below eviction threshold (memory.available < 100Mi). kubelet starts eviction process. Signals: MemoryPressure condition set on Node.",k:"노드 가용 메모리가 축출 임계값(memory.available < 100Mi) 이하로 하락. kubelet이 축출 프로세스를 시작합니다. 신호: Node에 MemoryPressure 조건이 설정됩니다.",
+     fn(){g('np').classList.add('vis');setTimeout(()=>{g('npMem').style.width='8%';g('npMemV').textContent='80Mi';g('npMem').className='np-fill crit';g('npDisk').style.width='45%';g('npDiskV').textContent='45%';g('npInode').style.width='60%';g('npInodeV').textContent='60%'},200)}},
+    {t:"Eviction Priority 1: BestEffort Pods",d:"BestEffort pods evicted FIRST. They have no resource guarantees. Sorted by memory usage - highest memory consumers go first.",k:"BestEffort Pod가 가장 먼저 축출됩니다. 리소스 보장이 없습니다. 메모리 사용량 순으로 정렬 - 가장 많이 사용하는 것부터.",
+     fn(){g('ev0').classList.add('vis');setTimeout(()=>g('euf0').style.width='90%',200)}},
+    {t:"Eviction Priority 2: Burstable Pods (over request)",d:"If still under pressure, Burstable pods exceeding their requests are next. Sorted by (usage - request) / request ratio. Highest over-request ratio evicted first.",k:"여전히 압박이 있으면, requests를 초과하는 Burstable Pod가 다음입니다. (사용량 - request) / request 비율로 정렬. 초과 비율이 높은 것부터 축출.",
+     fn(){g('ev1').classList.add('vis');setTimeout(()=>g('euf1').style.width='75%',200)}},
+    {t:"Eviction Priority 3: Burstable Pods (under request)",d:"Burstable pods using less than their requests. Lower eviction priority since they're within their guaranteed allocation.",k:"requests 미만을 사용하는 Burstable Pod. 보장된 할당량 내이므로 축출 우선순위가 낮습니다.",
+     fn(){g('ev2').classList.add('vis');setTimeout(()=>g('euf2').style.width='40%',200)}},
+    {t:"Eviction Priority 4: Guaranteed Pods (Protected)",d:"Guaranteed pods are evicted LAST. They have the strongest protection. Only evicted if they somehow exceed limits or system-critical resources are needed. This is why Guaranteed QoS is recommended for production.",k:"Guaranteed Pod가 가장 마지막에 축출됩니다. 가장 강한 보호를 받습니다. limit을 초과하거나 시스템 핵심 리소스가 필요한 경우에만 축출. 프로덕션에서 Guaranteed QoS를 권장하는 이유입니다.",
+     fn(){g('ev3').classList.add('vis');setTimeout(()=>g('euf3').style.width='50%',200)}}
+  ]
+];
+
+function showCPU(pct,val,type,badge){
+  g('cpuFill').style.width=Math.min(pct,100)+'%';
+  g('cpuFill').className='meter-fill '+(pct>=100?'danger':pct>=80?'warn':'cpu');
+  g('cpuVal').textContent=val+' / 1000m limit';
+  g('cpuLimit').style.display='block';
+  const ti=g('cpuThrottle');ti.classList.add('vis');
+  ti.innerHTML=`<div class="throttle-badge ${type==='throttled'?'throttled':type==='oom'?'oom':'normal'}">${badge}</div>`;
+}
+function showMem(pct,val,type,badge){
+  g('memFill').style.width=Math.min(pct,100)+'%';
+  g('memFill').className='meter-fill '+(pct>=100?'danger':pct>=75?'warn':'mem');
+  g('memVal').textContent=val+' / 512Mi limit';
+  g('memLimit').style.display='block';
+  const ti=g('memThrottle');ti.classList.add('vis');
+  ti.innerHTML=`<div class="throttle-badge ${type==='oom'?'oom':type==='warn'?'throttled':'normal'}">${badge}</div>`;
+}
+
+function sw(idx){
+  if(timer){clearInterval(timer);timer=null}
+  curScene=idx;cur=0;paused=false;
+  document.querySelectorAll('.scene').forEach((s,i)=>s.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',i===idx));
+  resetSc(idx);
+  g('ts').textContent=scenes[idx].length;g('cs').textContent='0';
+  g('ib').innerHTML='<div class="st">Ready</div><div class="d">Press Play.</div><div class="dk">Play를 누르세요.</div>';
+  g('bp').classList.add('on');g('bpa').classList.remove('on');
+  setTimeout(play,300);
+}
+
+function resetSc(idx){
+  if(idx===0){['q0','q1','q2'].forEach(id=>g(id).classList.remove('vis'))}
+  if(idx===1){g('cpuFill').style.width='0';g('cpuVal').textContent='0m / 1000m limit';g('cpuThrottle').classList.remove('vis');g('cpuThrottle').innerHTML='';g('cpuLimit').style.display='none';g('cpuEx').classList.remove('vis')}
+  if(idx===2){g('memFill').style.width='0';g('memVal').textContent='0Mi / 512Mi limit';g('memThrottle').classList.remove('vis');g('memThrottle').innerHTML='';g('memLimit').style.display='none';g('memEx').classList.remove('vis')}
+  if(idx===3){g('np').classList.remove('vis');g('npMem').style.width='0';g('npDisk').style.width='0';g('npInode').style.width='0';
+    for(let i=0;i<4;i++){g('ev'+i).classList.remove('vis');g('euf'+i).style.width='0'}}
+}
+
+function info(s){g('ib').innerHTML=`<div class="st">${s.t}</div><div class="d">${s.d}</div><div class="dk">${s.k}</div>`}
+function runStep(){const ss=scenes[curScene];if(cur>=ss.length){clearInterval(timer);timer=null;return}const s=ss[cur];s.fn();info(s);g('cs').textContent=cur+1;cur++}
+function play(){if(timer)return;paused=false;g('bp').classList.add('on');g('bpa').classList.remove('on');runStep();timer=setInterval(()=>{if(!paused)runStep()},2800)}
+function pause(){paused=true;g('bpa').classList.add('on');g('bp').classList.remove('on')}
+function restart(){clearInterval(timer);timer=null;resetSc(curScene);cur=0;g('cs').textContent='0';g('ib').innerHTML='<div class="st">Ready</div><div class="d">Press Play.</div><div class="dk">Play를 누르세요.</div>';g('bp').classList.remove('on');setTimeout(play,300)}
+document.addEventListener('DOMContentLoaded',()=>{g('ts').textContent=scenes[0].length;setTimeout(play,600)});
+</script>
+</body>
+</html>

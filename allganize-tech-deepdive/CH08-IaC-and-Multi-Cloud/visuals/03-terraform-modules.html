@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terraform Module 아키텍처 - Module Architecture</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.progress-bar{width:100%;height:4px;background:#21262d;border-radius:2px;margin-bottom:20px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#58a6ff,#bc8cff);width:0%;transition:width 0.5s ease;border-radius:2px}
+
+/* Module tree */
+.module-area{position:relative;background:#161b22;border:1px solid #30363d;border-radius:12px;min-height:500px;padding:20px;overflow:hidden}
+
+.mod-box{position:absolute;border-radius:10px;padding:12px 16px;border:2px solid #30363d;background:#0d1117;font-size:0.78rem;text-align:center;opacity:0;transform:translateY(15px);transition:all 0.6s ease}
+.mod-box.show{opacity:1;transform:translateY(0)}
+.mod-box.active{border-color:var(--clr,#58a6ff);box-shadow:0 0 16px color-mix(in srgb,var(--clr,#58a6ff) 30%,transparent)}
+.mod-title{font-weight:700;font-size:0.85rem;margin-bottom:3px}
+.mod-sub{color:#8b949e;font-size:0.68rem}
+.mod-icon{font-size:1.6rem;margin-bottom:4px}
+
+/* Data flow particles */
+.var-flow{position:absolute;width:8px;height:8px;border-radius:50%;opacity:0;z-index:5}
+.var-flow.input{background:#58a6ff;box-shadow:0 0 8px #58a6ff80}
+.var-flow.output{background:#3fb950;box-shadow:0 0 8px #3fb95080}
+.var-flow.animate{animation:particleMove var(--dur,2s) var(--delay,0s) ease-in-out forwards}
+
+@keyframes particleMove{
+  0%{opacity:0;transform:translate(var(--sx,0),var(--sy,0))}
+  15%{opacity:1}
+  85%{opacity:1}
+  100%{opacity:0;transform:translate(var(--ex,0),var(--ey,0))}
+}
+
+/* Connection lines via SVG */
+svg.connections{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+svg.connections line,svg.connections path{stroke:#30363d;stroke-width:2;fill:none;stroke-dasharray:6,4;transition:all 0.5s}
+svg.connections .active-line{stroke:#58a6ff;stroke-dasharray:none;filter:drop-shadow(0 0 4px #58a6ff60)}
+svg.connections .output-line{stroke:#3fb950;stroke-dasharray:none;filter:drop-shadow(0 0 4px #3fb95060)}
+
+/* Registry lookup */
+.registry-popup{position:absolute;top:10px;right:10px;width:220px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;font-size:0.72rem;opacity:0;transform:translateX(20px);transition:all 0.5s ease}
+.registry-popup.show{opacity:1;transform:translateX(0)}
+.registry-popup h4{color:#bc8cff;margin-bottom:6px;font-size:0.8rem}
+.registry-item{padding:4px 0;border-bottom:1px solid #21262d;color:#8b949e}
+.registry-item:last-child{border-bottom:none}
+.registry-item .ver{color:#3fb950;font-weight:700}
+
+/* Legend */
+.legend{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-top:16px;padding:12px;background:#161b22;border-radius:8px;border:1px solid #30363d}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#8b949e}
+.legend-dot{width:12px;height:12px;border-radius:3px}
+
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:20px}
+.info-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px}
+.info-card h3{font-size:0.85rem;margin-bottom:6px}
+.info-card p{font-size:0.78rem;color:#8b949e;line-height:1.5}
+
+@media(max-width:768px){.module-area{min-height:560px}.mod-box{padding:8px 10px;font-size:0.7rem}.container{padding:12px}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Terraform Module 아키텍처</h1>
+<p class="subtitle">Module Architecture - Root Module / Child Modules / Variables / Outputs / Registry</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="play()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8635; 다시시작 Restart</button>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="module-area" id="moduleArea">
+  <svg class="connections" id="connSvg"></svg>
+
+  <!-- Root module -->
+  <div class="mod-box" id="m-root" style="left:38%;top:2%;width:180px;--clr:#bc8cff">
+    <div class="mod-icon">&#128230;</div>
+    <div class="mod-title" style="color:#bc8cff">Root Module</div>
+    <div class="mod-sub">main.tf / variables.tf / outputs.tf</div>
+  </div>
+
+  <!-- Child modules -->
+  <div class="mod-box" id="m-vpc" style="left:5%;top:25%;width:160px;--clr:#58a6ff">
+    <div class="mod-icon">&#127760;</div>
+    <div class="mod-title" style="color:#58a6ff">module "vpc"</div>
+    <div class="mod-sub">terraform-aws-vpc v5.4.0</div>
+  </div>
+  <div class="mod-box" id="m-eks" style="left:38%;top:25%;width:160px;--clr:#f0883e">
+    <div class="mod-icon">&#9784;&#65039;</div>
+    <div class="mod-title" style="color:#f0883e">module "eks"</div>
+    <div class="mod-sub">terraform-aws-eks v19.21</div>
+  </div>
+  <div class="mod-box" id="m-rds" style="left:70%;top:25%;width:160px;--clr:#d29922">
+    <div class="mod-icon">&#128451;</div>
+    <div class="mod-title" style="color:#d29922">module "rds"</div>
+    <div class="mod-sub">terraform-aws-rds v6.3.0</div>
+  </div>
+
+  <!-- Resources under VPC -->
+  <div class="mod-box" id="r-vpc" style="left:1%;top:52%;width:110px;--clr:#58a6ff">
+    <div class="mod-title">aws_vpc</div>
+    <div class="mod-sub">VPC</div>
+  </div>
+  <div class="mod-box" id="r-sub" style="left:14%;top:52%;width:110px;--clr:#58a6ff">
+    <div class="mod-title">aws_subnet</div>
+    <div class="mod-sub">Subnets x4</div>
+  </div>
+
+  <!-- Resources under EKS -->
+  <div class="mod-box" id="r-cluster" style="left:33%;top:52%;width:110px;--clr:#f0883e">
+    <div class="mod-title">aws_eks_cluster</div>
+    <div class="mod-sub">Control Plane</div>
+  </div>
+  <div class="mod-box" id="r-ng" style="left:47%;top:52%;width:110px;--clr:#f0883e">
+    <div class="mod-title">aws_eks_node_group</div>
+    <div class="mod-sub">Workers</div>
+  </div>
+
+  <!-- Resources under RDS -->
+  <div class="mod-box" id="r-rds" style="left:66%;top:52%;width:110px;--clr:#d29922">
+    <div class="mod-title">aws_db_instance</div>
+    <div class="mod-sub">PostgreSQL</div>
+  </div>
+  <div class="mod-box" id="r-sg" style="left:80%;top:52%;width:110px;--clr:#d29922">
+    <div class="mod-title">aws_security_group</div>
+    <div class="mod-sub">DB SG</div>
+  </div>
+
+  <!-- Input variables -->
+  <div class="mod-box" id="v-in" style="left:2%;top:78%;width:200px;--clr:#58a6ff;background:#161b22">
+    <div class="mod-title" style="color:#58a6ff">Input Variables</div>
+    <div class="mod-sub">var.region, var.env, var.vpc_cidr, var.cluster_name, var.db_engine</div>
+  </div>
+
+  <!-- Output values -->
+  <div class="mod-box" id="v-out" style="right:2%;top:78%;width:200px;--clr:#3fb950;background:#161b22">
+    <div class="mod-title" style="color:#3fb950">Output Values</div>
+    <div class="mod-sub">vpc_id, cluster_endpoint, db_connection_string</div>
+  </div>
+
+  <!-- Registry popup -->
+  <div class="registry-popup" id="registryPopup">
+    <h4>&#128270; Terraform Registry</h4>
+    <div class="registry-item">terraform-aws-vpc <span class="ver">v5.4.0</span></div>
+    <div class="registry-item">terraform-aws-eks <span class="ver">v19.21.0</span></div>
+    <div class="registry-item">terraform-aws-rds <span class="ver">v6.3.0</span></div>
+    <div class="registry-item">Source: registry.terraform.io</div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#bc8cff"></div> Root Module</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div> VPC Module</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f0883e"></div> EKS Module</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d29922"></div> RDS Module</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div> Outputs</div>
+</div>
+
+<div class="info-grid">
+  <div class="info-card">
+    <h3 style="color:#bc8cff">Root Module 루트 모듈</h3>
+    <p>terraform apply를 실행하는 디렉토리가 Root Module입니다. Child Module을 호출하고 변수를 전달하며 Output을 수집합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#58a6ff">Child Module 자식 모듈</h3>
+    <p>재사용 가능한 인프라 단위입니다. source로 Registry, GitHub, 로컬 경로를 지정할 수 있습니다. version으로 특정 버전을 고정합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#f0883e">Input Variables 입력 변수</h3>
+    <p>variable 블록으로 정의하며, 모듈 호출 시 값을 전달합니다. type, default, validation, description으로 안전하게 설계합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#3fb950">Output Values 출력 값</h3>
+    <p>output 블록으로 모듈의 결과를 외부에 노출합니다. 다른 모듈의 입력으로 연결하거나 CLI에서 확인할 수 있습니다.</p>
+  </div>
+</div>
+</div>
+
+<script>
+let timer=null,paused=false,step=0;
+const TOTAL=20;
+
+const EDGES=[
+  ['m-root','m-vpc'],['m-root','m-eks'],['m-root','m-rds'],
+  ['m-vpc','r-vpc'],['m-vpc','r-sub'],
+  ['m-eks','r-cluster'],['m-eks','r-ng'],
+  ['m-rds','r-rds'],['m-rds','r-sg']
+];
+
+// Build SVG lines
+const svg=document.getElementById('connSvg');
+EDGES.forEach(([fromId,toId])=>{
+  const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+  line.id='edge-'+fromId+'-'+toId;
+  // positions set dynamically
+  svg.appendChild(line);
+});
+
+function updateEdges(){
+  const area=document.getElementById('moduleArea');
+  const rect=area.getBoundingClientRect();
+  EDGES.forEach(([fromId,toId])=>{
+    const f=document.getElementById(fromId);
+    const t=document.getElementById(toId);
+    const line=document.getElementById('edge-'+fromId+'-'+toId);
+    if(!f||!t||!line)return;
+    const fr=f.getBoundingClientRect();
+    const tr=t.getBoundingClientRect();
+    const fx=((fr.left+fr.width/2-rect.left)/rect.width)*100;
+    const fy=((fr.top+fr.height-rect.top)/rect.height)*100;
+    const tx=((tr.left+tr.width/2-rect.left)/rect.width)*100;
+    const ty=((tr.top-rect.top)/rect.height)*100;
+    line.setAttribute('x1',fx+'%');line.setAttribute('y1',fy+'%');
+    line.setAttribute('x2',tx+'%');line.setAttribute('y2',ty+'%');
+  });
+}
+
+function showMod(id,cls){const el=document.getElementById(id);el.classList.add('show');if(cls)el.classList.add(cls);setTimeout(updateEdges,100);}
+function activateEdge(fromId,toId){const l=document.getElementById('edge-'+fromId+'-'+toId);if(l)l.classList.add('active-line');}
+function outputEdge(fromId,toId){const l=document.getElementById('edge-'+fromId+'-'+toId);if(l){l.classList.remove('active-line');l.classList.add('output-line');}}
+
+function tick(){
+  if(paused)return;
+  const pct=Math.min(100,((step+1)/TOTAL)*100);
+  document.getElementById('progressFill').style.width=pct+'%';
+
+  if(step===0){showMod('m-root','active');}
+  if(step===2){showMod('m-vpc');activateEdge('m-root','m-vpc');}
+  if(step===3){showMod('m-eks');activateEdge('m-root','m-eks');}
+  if(step===4){showMod('m-rds');activateEdge('m-root','m-rds');document.getElementById('registryPopup').classList.add('show');}
+  if(step===5){showMod('v-in','active');}
+  if(step===7){showMod('r-vpc');showMod('r-sub');activateEdge('m-vpc','r-vpc');activateEdge('m-vpc','r-sub');document.getElementById('m-vpc').classList.add('active');}
+  if(step===9){showMod('r-cluster');showMod('r-ng');activateEdge('m-eks','r-cluster');activateEdge('m-eks','r-ng');document.getElementById('m-eks').classList.add('active');}
+  if(step===11){showMod('r-rds');showMod('r-sg');activateEdge('m-rds','r-rds');activateEdge('m-rds','r-sg');document.getElementById('m-rds').classList.add('active');}
+  if(step===13){
+    EDGES.forEach(([f,t])=>outputEdge(f,t));
+    showMod('v-out','active');
+  }
+  if(step>=TOTAL){clearInterval(timer);timer=null;return;}
+  step++;
+}
+
+function play(){if(timer)return;paused=false;document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');timer=setInterval(tick,800);}
+function pause(){paused=!paused;document.getElementById('btnPause').classList.toggle('active',paused);document.getElementById('btnPlay').classList.toggle('active',!paused);}
+function restart(){
+  clearInterval(timer);timer=null;step=0;paused=false;
+  document.getElementById('progressFill').style.width='0%';
+  document.querySelectorAll('.mod-box').forEach(b=>{b.classList.remove('show','active');});
+  document.querySelectorAll('#connSvg line').forEach(l=>{l.classList.remove('active-line','output-line');});
+  document.getElementById('registryPopup').classList.remove('show');
+  play();
+}
+window.addEventListener('resize',updateEdges);
+play();
+</script>
+</body>
+</html>

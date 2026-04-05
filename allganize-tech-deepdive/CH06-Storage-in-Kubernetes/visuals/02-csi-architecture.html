@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSI Architecture - Container Storage Interface</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --blue: #58a6ff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --cyan: #39d2c0;
+    --pink: #f778ba;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; min-height: 100vh; }
+
+  .header { text-align: center; padding: 24px 16px 8px; border-bottom: 1px solid var(--border); }
+  .header h1 { font-size: 1.5rem; color: var(--blue); }
+  .header p { font-size: 0.85rem; color: var(--text-dim); margin-top: 4px; }
+
+  .controls { display: flex; justify-content: center; gap: 10px; padding: 16px; flex-wrap: wrap; }
+  .controls button {
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
+  }
+  .controls button:hover { border-color: var(--blue); color: var(--blue); }
+  .controls button.active { background: var(--blue); color: var(--bg); border-color: var(--blue); }
+
+  .tabs { display: flex; justify-content: center; gap: 4px; padding: 0 16px 16px; flex-wrap: wrap; }
+  .tab {
+    background: var(--surface); color: var(--text-dim); border: 1px solid var(--border);
+    padding: 6px 16px; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 0.8rem; transition: all 0.2s;
+  }
+  .tab.active { background: var(--border); color: var(--blue); border-bottom-color: var(--bg); }
+
+  .scene-container { max-width: 1000px; margin: 0 auto; padding: 0 16px 32px; }
+  .scene {
+    display: none; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 32px 24px; min-height: 500px; position: relative; overflow: hidden;
+  }
+  .scene.active { display: block; }
+  .scene-title { font-size: 1rem; color: var(--cyan); margin-bottom: 20px; text-align: center; }
+
+  .steps { display: flex; justify-content: center; gap: 8px; margin-bottom: 16px; }
+  .step-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); transition: background 0.3s; }
+  .step-dot.done { background: var(--green); }
+  .step-dot.current { background: var(--blue); box-shadow: 0 0 8px var(--blue); }
+
+  /* Shared node */
+  .node {
+    position: absolute; border-radius: 10px; padding: 12px 14px; font-size: 0.76rem;
+    text-align: center; opacity: 0; transform: scale(0.85); transition: all 0.5s ease;
+  }
+  .node.vis { opacity: 1; transform: scale(1); }
+  .node.glow-blue { box-shadow: 0 0 18px rgba(88,166,255,0.35); }
+  .node.glow-green { box-shadow: 0 0 18px rgba(63,185,80,0.35); }
+  .node.glow-purple { box-shadow: 0 0 18px rgba(188,140,255,0.35); }
+
+  /* SVG */
+  .svg-ov { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+  .fl { stroke-dasharray: 8 4; stroke-dashoffset: 200; transition: stroke-dashoffset 1s ease; }
+  .fl.on { stroke-dashoffset: 0; }
+
+  /* === Scene 1: Plugin Model === */
+  .cp-box { left: 6%; top: 50px; width: 40%; min-height: 180px; background: #141d2b; border: 2px solid var(--blue); }
+  .np-box { left: 54%; top: 50px; width: 40%; min-height: 180px; background: #141d2b; border: 2px solid var(--green); }
+  .ctrl-plane { left: 20%; top: 260px; width: 60%; min-height: 70px; background: #0f1923; border: 2px solid var(--cyan); }
+  .storage-be { left: 25%; top: 370px; width: 50%; min-height: 60px; background: #1a1520; border: 2px solid var(--purple); }
+
+  /* === Scene 2: Volume Lifecycle === */
+  .lc-step {
+    position: absolute; border-radius: 8px; padding: 10px 14px; font-size: 0.74rem;
+    text-align: center; opacity: 0; transform: translateY(12px); transition: all 0.45s ease;
+    min-width: 100px;
+  }
+  .lc-step.vis { opacity: 1; transform: translateY(0); }
+  .lc-step.done-step { box-shadow: 0 0 12px rgba(63,185,80,0.3); }
+
+  @keyframes arrowPulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+  .lc-arrow {
+    position: absolute; font-size: 1.2rem; color: var(--text-dim);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .lc-arrow.vis { opacity: 1; animation: arrowPulse 1.5s infinite; }
+
+  /* === Scene 3: Comparison === */
+  .cmp-card {
+    position: absolute; border-radius: 10px; padding: 16px; font-size: 0.74rem;
+    opacity: 0; transform: translateY(15px); transition: all 0.5s ease; width: 44%;
+  }
+  .cmp-card.vis { opacity: 1; transform: translateY(0); }
+  .cmp-card h3 { margin-bottom: 10px; font-size: 0.95rem; }
+  .cmp-item { padding: 6px 10px; margin: 5px 0; border-radius: 6px; font-size: 0.72rem; line-height: 1.5; }
+
+  @media (max-width: 700px) {
+    .scene { padding: 20px 12px; min-height: 550px; }
+    .cp-box, .np-box { width: 90%; position: relative; left: auto !important; top: auto !important; margin: 8px auto; }
+    .ctrl-plane, .storage-be { width: 90%; position: relative; left: auto !important; top: auto !important; margin: 8px auto; }
+    .cmp-card { width: 90%; position: relative; left: auto !important; top: auto !important; margin: 10px auto; }
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>CSI Driver Architecture</h1>
+  <p>Container Storage Interface 드라이버 아키텍처 시각화</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="sw(0)">Plugin Model<br><small>플러그인 모델</small></div>
+  <div class="tab" onclick="sw(1)">Volume Lifecycle<br><small>볼륨 라이프사이클</small></div>
+  <div class="tab" onclick="sw(2)">Cloud vs On-Prem<br><small>클라우드 vs 온프레미스</small></div>
+</div>
+
+<div class="controls">
+  <button id="btnPlay" onclick="play()" class="active">&#9654; Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8634; Restart</button>
+</div>
+
+<div class="scene-container">
+  <!-- Scene 0: Plugin Model -->
+  <div class="scene active" id="scene0">
+    <div class="steps" id="steps0"></div>
+    <div class="scene-title">CSI Plugin Model: Controller Plugin + Node Plugin</div>
+    <svg class="svg-ov" id="svg0"></svg>
+    <div class="node cp-box" id="cp">
+      <b style="color:var(--blue)">Controller Plugin</b><br><small>(Deployment)</small>
+      <hr style="border-color:var(--border);margin:8px 0">
+      <div style="text-align:left;color:var(--text-dim);line-height:1.7">
+        CreateVolume / DeleteVolume<br>
+        ControllerPublish (Attach)<br>
+        ControllerUnpublish (Detach)<br>
+        CreateSnapshot / DeleteSnapshot
+      </div>
+    </div>
+    <div class="node np-box" id="np">
+      <b style="color:var(--green)">Node Plugin</b><br><small>(DaemonSet - 모든 노드)</small>
+      <hr style="border-color:var(--border);margin:8px 0">
+      <div style="text-align:left;color:var(--text-dim);line-height:1.7">
+        NodeStageVolume (Stage)<br>
+        NodePublishVolume (Mount)<br>
+        NodeUnpublishVolume (Unmount)<br>
+        NodeUnstageVolume (Unstage)
+      </div>
+    </div>
+    <div class="node ctrl-plane" id="ctrlp">
+      <b style="color:var(--cyan)">Kubernetes Control Plane</b><br>
+      <small style="color:var(--text-dim)">PV Controller → Attach/Detach Controller → CSI Sidecar (external-provisioner, external-attacher)</small>
+    </div>
+    <div class="node storage-be" id="stbe">
+      <b style="color:var(--purple)">Storage Backend</b><br>
+      <small style="color:var(--text-dim)">AWS EBS | Azure Disk | Ceph | NFS | Longhorn</small>
+    </div>
+  </div>
+
+  <!-- Scene 1: Volume Lifecycle -->
+  <div class="scene" id="scene1">
+    <div class="steps" id="steps1"></div>
+    <div class="scene-title">Volume Lifecycle: Create → Attach → Stage → Mount → Unmount → Unstage → Detach → Delete</div>
+
+    <div class="lc-step" id="lc0" style="left:4%;top:70px;background:#122a1e;border:2px solid var(--green);color:var(--green)"><b>Create</b><br>볼륨 생성</div>
+    <div class="lc-arrow" id="la0" style="left:16%;top:78px">&#8594;</div>
+    <div class="lc-step" id="lc1" style="left:20%;top:70px;background:#1a2332;border:2px solid var(--blue);color:var(--blue)"><b>Attach</b><br>노드에 연결</div>
+    <div class="lc-arrow" id="la1" style="left:33%;top:78px">&#8594;</div>
+    <div class="lc-step" id="lc2" style="left:37%;top:70px;background:#1a2332;border:2px solid var(--cyan);color:var(--cyan)"><b>Stage</b><br>디바이스 준비</div>
+    <div class="lc-arrow" id="la2" style="left:50%;top:78px">&#8594;</div>
+    <div class="lc-step" id="lc3" style="left:54%;top:70px;background:#1a1d2e;border:2px solid var(--purple);color:var(--purple)"><b>Mount</b><br>Pod에 마운트</div>
+
+    <div style="position:absolute;left:50%;top:155px;transform:translateX(-50%);color:var(--text-dim);font-size:0.8rem;opacity:0;transition:opacity 0.4s" id="lc-mid">&#11015; Pod 사용 중... &#11015;</div>
+
+    <div class="lc-step" id="lc4" style="left:54%;top:210px;background:#1a1d2e;border:2px solid var(--purple);color:var(--purple)"><b>Unmount</b><br>Pod에서 분리</div>
+    <div class="lc-arrow" id="la4" style="left:50%;top:218px">&#8592;</div>
+    <div class="lc-step" id="lc5" style="left:37%;top:210px;background:#1a2332;border:2px solid var(--cyan);color:var(--cyan)"><b>Unstage</b><br>디바이스 해제</div>
+    <div class="lc-arrow" id="la5" style="left:33%;top:218px">&#8592;</div>
+    <div class="lc-step" id="lc6" style="left:20%;top:210px;background:#1a2332;border:2px solid var(--blue);color:var(--blue)"><b>Detach</b><br>노드에서 분리</div>
+    <div class="lc-arrow" id="la6" style="left:16%;top:218px">&#8592;</div>
+    <div class="lc-step" id="lc7" style="left:4%;top:210px;background:#2a1419;border:2px solid var(--red);color:var(--red)"><b>Delete</b><br>볼륨 삭제</div>
+
+    <div style="position:absolute;left:5%;top:310px;right:5%;opacity:0;transition:opacity 0.5s" id="lc-legend">
+      <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;font-size:0.72rem">
+        <span style="color:var(--green)">&#9632; Controller RPC (Create/Delete)</span>
+        <span style="color:var(--blue)">&#9632; Controller RPC (Attach/Detach)</span>
+        <span style="color:var(--cyan)">&#9632; Node RPC (Stage/Unstage)</span>
+        <span style="color:var(--purple)">&#9632; Node RPC (Mount/Unmount)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scene 2: Comparison -->
+  <div class="scene" id="scene2">
+    <div class="steps" id="steps2"></div>
+    <div class="scene-title">Cloud CSI vs On-Premises CSI 비교</div>
+    <div class="cmp-card" id="cmp-cloud" style="left:3%;top:50px;background:#0f1923;border:2px solid var(--blue)">
+      <h3 style="color:var(--blue)">&#9729; Cloud CSI Drivers</h3>
+      <div class="cmp-item" style="background:rgba(88,166,255,0.08);border:1px solid rgba(88,166,255,0.2)">
+        <b style="color:var(--blue)">AWS EBS CSI Driver</b><br>
+        Block storage, gp3/io2<br>
+        IRSA로 권한 부여<br>
+        RWO only, AZ 제한
+      </div>
+      <div class="cmp-item" style="background:rgba(188,140,255,0.08);border:1px solid rgba(188,140,255,0.2)">
+        <b style="color:var(--purple)">Azure Disk CSI Driver</b><br>
+        Managed Disk, Premium SSD<br>
+        Workload Identity 사용<br>
+        RWO, Zone-redundant 가능
+      </div>
+      <div class="cmp-item" style="background:rgba(57,210,192,0.08);border:1px solid rgba(57,210,192,0.2)">
+        <b style="color:var(--cyan)">AWS EFS CSI Driver</b><br>
+        NFS-based file storage<br>
+        RWX 지원, 크로스 AZ<br>
+        Throughput 모드 선택
+      </div>
+    </div>
+    <div class="cmp-card" id="cmp-onprem" style="left:53%;top:50px;background:#1a1520;border:2px solid var(--orange)">
+      <h3 style="color:var(--orange)">&#127970; On-Premises CSI Drivers</h3>
+      <div class="cmp-item" style="background:rgba(210,153,34,0.08);border:1px solid rgba(210,153,34,0.2)">
+        <b style="color:var(--orange)">Rook-Ceph</b><br>
+        분산 스토리지 (Block/File/Object)<br>
+        자체 복제 & 자동 복구<br>
+        RWO + RWX, 높은 안정성
+      </div>
+      <div class="cmp-item" style="background:rgba(63,185,80,0.08);border:1px solid rgba(63,185,80,0.2)">
+        <b style="color:var(--green)">Longhorn</b><br>
+        경량 분산 블록 스토리지<br>
+        SUSE/Rancher 에코시스템<br>
+        간편 설치, UI 제공
+      </div>
+      <div class="cmp-item" style="background:rgba(247,120,186,0.08);border:1px solid rgba(247,120,186,0.2)">
+        <b style="color:var(--pink)">OpenEBS / TopoLVM</b><br>
+        Local PV + 복제 옵션<br>
+        낮은 레이턴시<br>
+        노드 로컬 스토리지 활용
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let cur = 0, timer = null, paused = false, step = 0;
+  const scenes = [
+    // Scene 0: Plugin Model
+    [
+      () => { v('ctrlp'); },
+      () => { v('cp'); v('np'); },
+      () => { gl('cp','glow-blue'); gl('np','glow-green'); svg('svg0',26,255,16,230,'var(--cyan)'); svg('svg0',74,255,84,230,'var(--cyan)'); },
+      () => { v('stbe'); svg('svg0',26,335,30,370,'var(--blue)'); svg('svg0',74,335,70,370,'var(--green)'); },
+    ],
+    // Scene 1: Lifecycle
+    [
+      () => { v('lc0'); },
+      () => { v('la0'); v('lc1'); },
+      () => { v('la1'); v('lc2'); },
+      () => { v('la2'); v('lc3'); gl('lc3','done-step'); },
+      () => { document.getElementById('lc-mid').style.opacity='1'; },
+      () => { v('lc4'); },
+      () => { v('la4'); v('lc5'); },
+      () => { v('la5'); v('lc6'); },
+      () => { v('la6'); v('lc7'); gl('lc7','done-step'); },
+      () => { document.getElementById('lc-legend').style.opacity='1'; }
+    ],
+    // Scene 2: Comparison
+    [
+      () => { v('cmp-cloud'); },
+      () => { v('cmp-onprem'); }
+    ]
+  ];
+
+  function v(id) { document.getElementById(id).classList.add('vis'); }
+  function gl(id,c) { document.getElementById(id).classList.add(c); }
+
+  function svg(sid,x1,y1,x2,y2,col) {
+    const s = document.getElementById(sid), ns='http://www.w3.org/2000/svg';
+    const l = document.createElementNS(ns,'line');
+    l.setAttribute('x1',x1+'%'); l.setAttribute('y1',y1);
+    l.setAttribute('x2',x2+'%'); l.setAttribute('y2',y2);
+    l.setAttribute('stroke',col); l.setAttribute('stroke-width','2');
+    l.setAttribute('class','fl'); s.appendChild(l);
+    requestAnimationFrame(()=>l.classList.add('on'));
+  }
+
+  function dots(i) {
+    const c=document.getElementById('steps'+i); c.innerHTML='';
+    scenes[i].forEach(()=>{const d=document.createElement('div');d.className='step-dot';c.appendChild(d);});
+  }
+  function upDots() {
+    document.querySelectorAll('#steps'+cur+' .step-dot').forEach((d,i)=>{
+      d.className='step-dot';
+      if(i<step)d.classList.add('done'); else if(i===step)d.classList.add('current');
+    });
+  }
+  function reset(i) {
+    const sc=document.getElementById('scene'+i);
+    sc.querySelectorAll('.vis,.glow-blue,.glow-green,.glow-purple,.done-step').forEach(e=>{e.classList.remove('vis','glow-blue','glow-green','glow-purple','done-step');});
+    const sv=document.getElementById('svg'+i); if(sv)sv.innerHTML='';
+    const mid=document.getElementById('lc-mid'); if(mid)mid.style.opacity='0';
+    const leg=document.getElementById('lc-legend'); if(leg)leg.style.opacity='0';
+  }
+
+  function sw(i) {
+    clearInterval(timer); cur=i; step=0;
+    document.querySelectorAll('.scene').forEach((s,j)=>s.classList.toggle('active',j===i));
+    document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+    reset(i); dots(i); paused=false; play();
+  }
+  function play() {
+    paused=false;
+    document.getElementById('btnPlay').classList.add('active');
+    document.getElementById('btnPause').classList.remove('active');
+    clearInterval(timer);
+    timer=setInterval(()=>{
+      if(paused)return;
+      if(step<scenes[cur].length){scenes[cur][step]();upDots();step++;}
+      else clearInterval(timer);
+    },900);
+  }
+  function pause() { paused=true; document.getElementById('btnPause').classList.add('active'); document.getElementById('btnPlay').classList.remove('active'); }
+  function restart() { clearInterval(timer); step=0; reset(cur); dots(cur); play(); }
+
+  dots(0); play();
+</script>
+</body>
+</html>

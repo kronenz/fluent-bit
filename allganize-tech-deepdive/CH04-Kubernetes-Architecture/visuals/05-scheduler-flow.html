@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pod Scheduling Algorithm | Pod 스케줄링 알고리즘</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+.hdr{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.hdr h1{font-size:1.5rem;color:#3fb950;margin-bottom:4px}
+.hdr p{font-size:.85rem;color:#8b949e}
+.ctrls{display:flex;justify-content:center;gap:10px;padding:14px}
+.ctrls button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:7px 18px;cursor:pointer;font-size:.85rem;transition:background .2s}
+.ctrls button:hover{background:#30363d}
+.ctrls button.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.si{text-align:center;font-size:.8rem;color:#8b949e;padding:2px}
+.si .c{color:#3fb950;font-weight:600}
+
+.canvas{max-width:960px;margin:0 auto;padding:16px}
+
+/* Pod to schedule */
+.pod-req{display:flex;align-items:center;gap:12px;background:#161b22;border:1px solid #30363d;border-radius:10px;padding:12px 16px;margin-bottom:16px;opacity:0;transform:translateY(-10px);transition:all .5s}
+.pod-req.vis{opacity:1;transform:translateY(0)}
+.pod-req .pod-icon{font-size:1.5rem}
+.pod-req .pod-info{flex:1}
+.pod-req .pod-name{font-size:.85rem;font-weight:600;color:#58a6ff}
+.pod-req .pod-spec{font-size:.65rem;color:#8b949e;margin-top:2px}
+.pod-req .pod-spec span{background:#21262d;padding:1px 6px;border-radius:3px;margin-right:4px}
+
+/* Phase headers */
+.phase{margin:12px 0 8px;opacity:0;transition:opacity .4s}
+.phase.vis{opacity:1}
+.phase-title{font-size:.9rem;font-weight:700;padding:8px 14px;border-radius:8px;display:inline-flex;align-items:center;gap:6px}
+.phase-title.filter{background:#2d0c0c33;color:#f85149;border:1px solid #f8514944}
+.phase-title.score{background:#0c2d1e33;color:#3fb950;border:1px solid #3fb95044}
+.phase-title.bind{background:#0c2d6b33;color:#58a6ff;border:1px solid #1f6feb44}
+.phase-desc{font-size:.68rem;color:#8b949e;margin-top:4px;padding-left:14px}
+
+/* Nodes grid */
+.nodes{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin:10px 0}
+.node{background:#161b22;border:2px solid #30363d;border-radius:10px;padding:12px;transition:all .5s;opacity:0;transform:scale(.9)}
+.node.vis{opacity:1;transform:scale(1)}
+.node.eliminated{opacity:.35;border-color:#f85149;background:#1a0c0c}
+.node.eliminated .node-status{color:#f85149}
+.node.candidate{border-color:#3fb950;background:#0c2d1e11}
+.node.winner{border-color:#3fb950;background:#0c2d1e;box-shadow:0 0 20px rgba(63,185,80,.3)}
+.node-name{font-size:.78rem;font-weight:600;color:#58a6ff;margin-bottom:4px}
+.node-specs{font-size:.6rem;color:#8b949e;line-height:1.5}
+.node-specs span{display:block}
+.node-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.node-tag{font-size:.55rem;padding:1px 5px;border-radius:3px;background:#21262d;border:1px solid #30363d;color:#c9d1d9}
+.node-tag.taint{background:#2d0c0c;border-color:#f85149;color:#f85149}
+.node-tag.affinity{background:#0c2d6b;border-color:#1f6feb;color:#58a6ff}
+.node-status{font-size:.62rem;margin-top:6px;font-weight:600;color:#8b949e;transition:color .3s}
+
+/* Score bar */
+.score-bar-wrap{margin-top:8px;opacity:0;transition:opacity .4s}
+.node.candidate .score-bar-wrap,.node.winner .score-bar-wrap{opacity:1}
+.score-label{font-size:.6rem;color:#8b949e;margin-bottom:2px}
+.score-bar{height:8px;background:#21262d;border-radius:4px;overflow:hidden}
+.score-fill{height:100%;border-radius:4px;transition:width 1s ease-out;width:0}
+.score-fill.green{background:linear-gradient(90deg,#0c2d1e,#3fb950)}
+.score-fill.blue{background:linear-gradient(90deg,#0c2d6b,#58a6ff)}
+
+/* Filter reasons */
+.filter-reasons{margin:8px 0;padding:8px 14px;background:#161b22;border:1px solid #30363d;border-radius:8px;opacity:0;transition:opacity .4s}
+.filter-reasons.vis{opacity:1}
+.filter-reasons h4{font-size:.72rem;color:#f85149;margin-bottom:6px}
+.fr-item{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:.65rem}
+.fr-x{color:#f85149;font-weight:700;width:16px}
+.fr-check{color:#3fb950;font-weight:700;width:16px}
+.fr-node{color:#58a6ff;min-width:60px}
+.fr-reason{color:#8b949e}
+
+/* Binding result */
+.bind-result{background:#0c2d1e;border:2px solid #3fb950;border-radius:10px;padding:14px;text-align:center;margin-top:12px;opacity:0;transition:all .5s}
+.bind-result.vis{opacity:1}
+.bind-result .br-title{font-size:.9rem;font-weight:700;color:#3fb950;margin-bottom:4px}
+.bind-result .br-desc{font-size:.72rem;color:#c9d1d9}
+
+.info{max-width:960px;margin:10px auto;padding:0 16px}
+.info-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;font-size:.78rem;line-height:1.6;min-height:60px}
+.info-box .st{color:#3fb950;font-weight:700;margin-bottom:4px}
+.info-box .d{color:#c9d1d9}
+.info-box .dk{color:#8b949e;font-size:.72rem}
+
+@media(max-width:600px){.nodes{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>Pod Scheduling Algorithm</h1>
+  <p>kube-scheduler 스케줄링 알고리즘 - Filtering &amp; Scoring</p>
+</div>
+<div class="ctrls">
+  <button id="bp" class="on" onclick="play()">&#9654; Play</button>
+  <button id="bpa" onclick="pause()">&#10074;&#10074; Pause</button>
+  <button id="br" onclick="restart()">&#8635; Restart</button>
+</div>
+<div class="si">Step <span id="cs" class="c">0</span> / <span id="ts">6</span></div>
+
+<div class="canvas" id="canvas">
+  <div class="pod-req" id="podReq">
+    <div class="pod-icon">&#9898;</div>
+    <div class="pod-info">
+      <div class="pod-name">nginx-deployment-7d4f8b (Unscheduled Pod)</div>
+      <div class="pod-spec">
+        <span>CPU: 500m</span><span>Memory: 256Mi</span><span>nodeSelector: disk=ssd</span><span>tolerations: gpu=true:NoSchedule</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase" id="ph1">
+    <div class="phase-title filter">&#9888; Phase 1: Filtering (Predicates) - &#48512;&#51201;&#54633; &#45432;&#46300; &#51228;&#44144;</div>
+    <div class="phase-desc">Eliminate nodes that cannot run the Pod. Multiple filter plugins run in sequence.</div>
+  </div>
+
+  <div class="nodes" id="nodesGrid">
+    <div class="node" id="n1">
+      <div class="node-name">node-1</div>
+      <div class="node-specs">
+        <span>CPU: 2000m avail</span><span>Mem: 4Gi avail</span><span>Zone: us-east-1a</span>
+      </div>
+      <div class="node-tags"><span class="node-tag">disk=ssd</span><span class="node-tag affinity">zone-a</span></div>
+      <div class="node-status" id="ns1"></div>
+      <div class="score-bar-wrap"><div class="score-label" id="sl1"></div><div class="score-bar"><div class="score-fill green" id="sf1"></div></div></div>
+    </div>
+    <div class="node" id="n2">
+      <div class="node-name">node-2</div>
+      <div class="node-specs">
+        <span>CPU: 100m avail</span><span>Mem: 128Mi avail</span><span>Zone: us-east-1b</span>
+      </div>
+      <div class="node-tags"><span class="node-tag">disk=ssd</span></div>
+      <div class="node-status" id="ns2"></div>
+      <div class="score-bar-wrap"><div class="score-label" id="sl2"></div><div class="score-bar"><div class="score-fill green" id="sf2"></div></div></div>
+    </div>
+    <div class="node" id="n3">
+      <div class="node-name">node-3</div>
+      <div class="node-specs">
+        <span>CPU: 3000m avail</span><span>Mem: 8Gi avail</span><span>Zone: us-east-1a</span>
+      </div>
+      <div class="node-tags"><span class="node-tag">disk=hdd</span></div>
+      <div class="node-status" id="ns3"></div>
+      <div class="score-bar-wrap"><div class="score-label" id="sl3"></div><div class="score-bar"><div class="score-fill green" id="sf3"></div></div></div>
+    </div>
+    <div class="node" id="n4">
+      <div class="node-name">node-4</div>
+      <div class="node-specs">
+        <span>CPU: 1500m avail</span><span>Mem: 2Gi avail</span><span>Zone: us-east-1b</span>
+      </div>
+      <div class="node-tags"><span class="node-tag">disk=ssd</span><span class="node-tag taint">gpu=true:NoSchedule</span></div>
+      <div class="node-status" id="ns4"></div>
+      <div class="score-bar-wrap"><div class="score-label" id="sl4"></div><div class="score-bar"><div class="score-fill green" id="sf4"></div></div></div>
+    </div>
+    <div class="node" id="n5">
+      <div class="node-name">node-5</div>
+      <div class="node-specs">
+        <span>CPU: 4000m avail</span><span>Mem: 16Gi avail</span><span>Zone: us-east-1a</span>
+      </div>
+      <div class="node-tags"><span class="node-tag">disk=ssd</span><span class="node-tag affinity">zone-a</span></div>
+      <div class="node-status" id="ns5"></div>
+      <div class="score-bar-wrap"><div class="score-label" id="sl5"></div><div class="score-bar"><div class="score-fill green" id="sf5"></div></div></div>
+    </div>
+  </div>
+
+  <div class="filter-reasons" id="filterReasons">
+    <h4>Filtering Results:</h4>
+    <div class="fr-item"><span class="fr-check">&#10003;</span><span class="fr-node">node-1</span><span class="fr-reason">PASS - resources OK, nodeSelector(disk=ssd) matched</span></div>
+    <div class="fr-item"><span class="fr-x">&#10007;</span><span class="fr-node">node-2</span><span class="fr-reason">FAIL - Insufficient CPU (100m &lt; 500m required)</span></div>
+    <div class="fr-item"><span class="fr-x">&#10007;</span><span class="fr-node">node-3</span><span class="fr-reason">FAIL - nodeSelector mismatch (disk=hdd, need ssd)</span></div>
+    <div class="fr-item"><span class="fr-check">&#10003;</span><span class="fr-node">node-4</span><span class="fr-reason">PASS - resources OK, nodeSelector matched, taint tolerated</span></div>
+    <div class="fr-item"><span class="fr-check">&#10003;</span><span class="fr-node">node-5</span><span class="fr-reason">PASS - resources OK, nodeSelector(disk=ssd) matched</span></div>
+  </div>
+
+  <div class="phase" id="ph2">
+    <div class="phase-title score">&#9733; Phase 2: Scoring (Priorities) - &#45224;&#51008; &#45432;&#46300; &#51216;&#49688; &#48512;&#50668;</div>
+    <div class="phase-desc">Rank remaining nodes by multiple scoring plugins. Each plugin scores 0-100, weighted sum determines final score.</div>
+  </div>
+
+  <div class="phase" id="ph3">
+    <div class="phase-title bind">&#128279; Binding - &#52572;&#51333; &#45432;&#46300; &#49440;&#53469;</div>
+  </div>
+
+  <div class="bind-result" id="bindResult">
+    <div class="br-title">&#10003; Pod Bound to node-5</div>
+    <div class="br-desc">kube-scheduler creates a Binding object: Pod.spec.nodeName = "node-5" via API server. kubelet on node-5 picks up the Pod.</div>
+  </div>
+</div>
+
+<div class="info"><div class="info-box" id="ib">
+  <div class="st">Ready</div><div class="d">Press Play to see the scheduling algorithm in action.</div><div class="dk">Play를 눌러 스케줄링 알고리즘을 확인하세요.</div>
+</div></div>
+
+<script>
+const g=id=>document.getElementById(id);
+let cur=0,timer=null,paused=false;
+
+const steps=[
+  {t:"Unscheduled Pod Detected",d:"kube-scheduler watches API server and detects a new Pod with empty spec.nodeName. It starts the scheduling cycle.",k:"kube-scheduler가 API 서버를 watch하여 spec.nodeName이 비어있는 새 Pod를 감지합니다. 스케줄링 사이클을 시작합니다.",
+   fn(){g('podReq').classList.add('vis');['n1','n2','n3','n4','n5'].forEach(id=>g(id).classList.add('vis'))}},
+  {t:"Phase 1: Filtering - Eliminate Unfit Nodes",d:"Filter plugins run: NodeResourcesFit (check CPU/memory), NodeSelector (match labels), TaintToleration (check tolerations). node-2 fails resources, node-3 fails nodeSelector.",k:"필터 플러그인 실행: NodeResourcesFit(CPU/메모리 확인), NodeSelector(레이블 매칭), TaintToleration(toleration 확인). node-2는 리소스 부족, node-3은 nodeSelector 불일치로 탈락.",
+   fn(){g('ph1').classList.add('vis');setTimeout(()=>{g('n2').classList.add('eliminated');g('ns2').textContent='ELIMINATED: Insufficient CPU';g('n3').classList.add('eliminated');g('ns3').textContent='ELIMINATED: nodeSelector mismatch';['n1','n4','n5'].forEach(id=>{g(id).classList.add('candidate');g('ns'+id.slice(1)).textContent='PASSED FILTERS'});g('filterReasons').classList.add('vis')},400)}},
+  {t:"Phase 2: Scoring - NodeResourcesBalancedAllocation",d:"Score how well resource usage would be balanced. node-5 has most resources (4000m CPU, 16Gi) - using 500m/256Mi would leave it well-balanced. Scores: node-1=65, node-4=70, node-5=85.",k:"리소스 사용이 얼마나 균형 잡히는지 점수를 매깁니다. node-5가 가장 많은 리소스를 보유하여 균형 점수가 높습니다.",
+   fn(){g('ph2').classList.add('vis');setScore('n1','sl1','sf1','Balance: 65',65);setScore('n4','sl4','sf4','Balance: 70',70);setScore('n5','sl5','sf5','Balance: 85',85)}},
+  {t:"Phase 2: Scoring - InterPodAffinity + NodeAffinity",d:"Additional scoring: preferred node affinity (zone-a preference) adds points. node-1 and node-5 are in zone-a. Anti-affinity spreads pods. Final: node-1=78, node-4=70, node-5=92.",k:"추가 점수: 선호 노드 어피니티(zone-a 선호)가 점수를 추가합니다. node-1과 node-5가 zone-a에 있습니다. 최종: node-1=78, node-4=70, node-5=92.",
+   fn(){setScore('n1','sl1','sf1','Final: 78/100',78);setScore('n4','sl4','sf4','Final: 70/100',70);setScore('n5','sl5','sf5','Final: 92/100',92)}},
+  {t:"Phase 2: Score Summary",d:"Scoring complete. node-5 wins with highest score (92). Scoring plugins used: NodeResourcesBalancedAllocation, InterPodAffinity, NodeAffinity, ImageLocality, TaintToleration.",k:"스코어링 완료. node-5가 최고 점수(92)로 선정됩니다. 사용된 스코어링 플러그인: NodeResourcesBalancedAllocation, InterPodAffinity, NodeAffinity, ImageLocality, TaintToleration.",
+   fn(){g('n5').classList.add('winner');g('ns5').textContent='WINNER: Score 92/100';g('ns5').style.color='#3fb950'}},
+  {t:"Binding: Pod -> node-5",d:"Scheduler creates a Binding object via API server, setting Pod.spec.nodeName='node-5'. API server writes to etcd. kubelet on node-5 detects the binding and starts Pod creation.",k:"스케줄러가 API 서버를 통해 Binding 오브젝트를 생성하여 Pod.spec.nodeName='node-5'를 설정합니다. API 서버가 etcd에 기록하고, node-5의 kubelet이 바인딩을 감지하여 Pod 생성을 시작합니다.",
+   fn(){g('ph3').classList.add('vis');g('bindResult').classList.add('vis')}}
+];
+
+function setScore(nodeId,labelId,fillId,label,score){
+  g(labelId).textContent=label;
+  setTimeout(()=>g(fillId).style.width=score+'%',100);
+}
+
+function info(s){g('ib').innerHTML=`<div class="st">${s.t}</div><div class="d">${s.d}</div><div class="dk">${s.k}</div>`}
+function runStep(){if(cur>=steps.length){clearInterval(timer);timer=null;return}const s=steps[cur];s.fn();info(s);g('cs').textContent=cur+1;cur++}
+function play(){if(timer)return;paused=false;g('bp').classList.add('on');g('bpa').classList.remove('on');runStep();timer=setInterval(()=>{if(!paused)runStep()},2800)}
+function pause(){paused=true;g('bpa').classList.add('on');g('bp').classList.remove('on')}
+function restart(){
+  clearInterval(timer);timer=null;cur=0;paused=false;
+  g('bp').classList.remove('on');g('bpa').classList.remove('on');
+  g('podReq').classList.remove('vis');
+  ['ph1','ph2','ph3'].forEach(id=>g(id).classList.remove('vis'));
+  g('filterReasons').classList.remove('vis');
+  g('bindResult').classList.remove('vis');
+  for(let i=1;i<=5;i++){
+    const n=g('n'+i);n.className='node';n.classList.remove('vis','eliminated','candidate','winner');
+    g('ns'+i).textContent='';g('ns'+i).style.color='';
+    g('sl'+i).textContent='';g('sf'+i).style.width='0';
+  }
+  g('cs').textContent='0';
+  g('ib').innerHTML='<div class="st">Ready</div><div class="d">Press Play.</div><div class="dk">Play를 누르세요.</div>';
+  setTimeout(play,300);
+}
+document.addEventListener('DOMContentLoaded',()=>{g('ts').textContent=steps.length;setTimeout(play,600)});
+</script>
+</body>
+</html>

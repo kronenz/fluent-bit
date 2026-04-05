@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>인증서 체인 (Certificate Chain of Trust)</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh}
+.container{max-width:1100px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#f0883e,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.section-title{font-size:1.1rem;color:#58a6ff;margin:24px 0 16px;padding-left:12px;border-left:3px solid #58a6ff}
+/* Chain visualization */
+.chain-area{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;position:relative;overflow:hidden}
+.chain-flow{display:flex;flex-direction:column;align-items:center;gap:0;position:relative}
+.cert-node{width:min(90%,500px);padding:16px 20px;border-radius:10px;border:2px solid #30363d;background:#0d1117;position:relative;opacity:0;transform:translateY(20px);transition:all 0.6s ease}
+.cert-node.visible{opacity:1;transform:translateY(0)}
+.cert-node.verified{border-color:#3fb950;box-shadow:0 0 20px #3fb95020}
+.cert-node.verifying{border-color:#f0883e;box-shadow:0 0 20px #f0883e20;animation:pulseVerify 1s ease infinite}
+@keyframes pulseVerify{0%,100%{box-shadow:0 0 20px #f0883e20}50%{box-shadow:0 0 30px #f0883e40}}
+.cert-level{font-size:0.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.cert-name{font-size:1rem;font-weight:600;margin-bottom:8px}
+.cert-details{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:0.75rem}
+.cert-details dt{color:#8b949e}
+.cert-details dd{color:#e6edf3}
+.cert-icon{position:absolute;right:16px;top:16px;font-size:1.5rem;opacity:0;transition:all 0.4s}
+.cert-icon.show{opacity:1}
+.chain-arrow{width:2px;height:40px;background:linear-gradient(180deg,#30363d,#30363d);position:relative;opacity:0;transition:all 0.4s}
+.chain-arrow.visible{opacity:1}
+.chain-arrow.verified{background:linear-gradient(180deg,#3fb950,#3fb95080)}
+.chain-arrow::before,.chain-arrow::after{content:'';position:absolute;left:50%;transform:translateX(-50%)}
+.chain-arrow::after{bottom:-6px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid #30363d}
+.chain-arrow.verified::after{border-top-color:#3fb950}
+.verify-label{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:0.65rem;color:#f0883e;white-space:nowrap;opacity:0;transition:all 0.4s}
+.verify-label.show{opacity:1;color:#3fb950}
+.trust-store{margin-top:12px;padding:12px 16px;background:#2ea04310;border:1px dashed #3fb95040;border-radius:8px;font-size:0.8rem;color:#3fb950;text-align:center;opacity:0;transition:all 0.6s}
+.trust-store.visible{opacity:1}
+/* Cert-manager flow */
+.cm-flow{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;padding:20px 0}
+.cm-node{padding:10px 14px;border-radius:8px;border:1px solid #30363d;background:#0d1117;font-size:0.75rem;text-align:center;min-width:100px;opacity:0;transform:scale(0.8);transition:all 0.5s}
+.cm-node.visible{opacity:1;transform:scale(1)}
+.cm-node .cm-type{color:#8b949e;font-size:0.6rem;display:block;margin-bottom:2px}
+.cm-node .cm-name{color:#e6edf3;font-weight:600}
+.cm-arrow{width:30px;height:2px;background:#30363d;position:relative;opacity:0;transition:all 0.3s;flex-shrink:0}
+.cm-arrow.visible{opacity:1}
+.cm-arrow::after{content:'';position:absolute;right:-2px;top:-4px;width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:5px solid #30363d}
+.cm-arrow.active{background:#58a6ff}
+.cm-arrow.active::after{border-left-color:#58a6ff}
+.cm-node.active{border-color:#58a6ff;box-shadow:0 0 12px #58a6ff20}
+.cm-node.done{border-color:#3fb950;box-shadow:0 0 12px #3fb95020}
+/* Step indicator */
+.step-num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#21262d;border:1px solid #30363d;font-size:0.7rem;font-weight:700;margin-right:8px;transition:all 0.3s}
+.step-num.active{background:#1f6feb;border-color:#58a6ff}
+.step-num.done{background:#2ea043;border-color:#3fb950}
+.steps-list{margin-top:16px}
+.step-item{display:flex;align-items:flex-start;padding:8px 0;font-size:0.85rem;color:#8b949e;transition:color 0.3s}
+.step-item.active{color:#e6edf3}
+.step-item p{margin-left:8px;line-height:1.4}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px}
+.info-card{padding:12px;background:#0d1117;border:1px solid #21262d;border-radius:6px}
+.info-card strong{font-size:0.85rem;color:#e6edf3}
+.info-card p{font-size:0.78rem;color:#8b949e;margin-top:4px;line-height:1.4}
+.paused .cert-node,.paused .chain-arrow,.paused .cm-node,.paused .cm-arrow{transition-duration:0s !important}
+@media(max-width:600px){.cm-flow{flex-direction:column;align-items:center}.cm-arrow{width:2px;height:20px;transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>인증서 체인 (Certificate Chain of Trust)</h1>
+<p class="subtitle">Leaf Certificate -> Intermediate CA -> Root CA 검증 흐름</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnim()">&#9654; 재생</button>
+  <button id="btnPause" onclick="pauseAnim()">&#10074;&#10074; 일시정지</button>
+  <button id="btnRestart" onclick="restartAnim()">&#8635; 다시시작</button>
+</div>
+
+<div class="section-title">1단계: 인증서 체인 검증 (Chain Verification)</div>
+
+<div class="chain-area">
+<div class="chain-flow">
+  <!-- Root CA -->
+  <div class="cert-node" id="certRoot">
+    <div class="cert-level">Root CA (루트 인증기관)</div>
+    <div class="cert-name">DigiCert Global Root G2</div>
+    <dl class="cert-details">
+      <dt>Subject:</dt><dd>CN=DigiCert Global Root G2</dd>
+      <dt>Issuer:</dt><dd>Self-signed (자체 서명)</dd>
+      <dt>Valid:</dt><dd>2013 ~ 2038</dd>
+    </dl>
+    <div class="cert-icon" id="iconRoot">&#9989;</div>
+  </div>
+
+  <div class="chain-arrow" id="arrow1">
+    <div class="verify-label" id="vl1">&#10003; 서명 검증 완료</div>
+  </div>
+
+  <!-- Intermediate CA -->
+  <div class="cert-node" id="certInter">
+    <div class="cert-level">Intermediate CA (중간 인증기관)</div>
+    <div class="cert-name">DigiCert SHA2 Secure Server CA</div>
+    <dl class="cert-details">
+      <dt>Subject:</dt><dd>CN=DigiCert SHA2 Secure Server CA</dd>
+      <dt>Issuer:</dt><dd>CN=DigiCert Global Root G2</dd>
+      <dt>Valid:</dt><dd>2020 ~ 2030</dd>
+    </dl>
+    <div class="cert-icon" id="iconInter">&#9989;</div>
+  </div>
+
+  <div class="chain-arrow" id="arrow2">
+    <div class="verify-label" id="vl2">&#10003; 서명 검증 완료</div>
+  </div>
+
+  <!-- Leaf -->
+  <div class="cert-node" id="certLeaf">
+    <div class="cert-level">Leaf Certificate (리프 인증서)</div>
+    <div class="cert-name">*.allganize.ai</div>
+    <dl class="cert-details">
+      <dt>Subject:</dt><dd>CN=*.allganize.ai</dd>
+      <dt>Issuer:</dt><dd>CN=DigiCert SHA2 Secure Server CA</dd>
+      <dt>SAN:</dt><dd>*.allganize.ai, allganize.ai</dd>
+    </dl>
+    <div class="cert-icon" id="iconLeaf">&#9989;</div>
+  </div>
+</div>
+
+<div class="trust-store" id="trustStore">
+  &#128274; OS/Browser Trust Store에서 Root CA 발견 - 체인 검증 완료!
+</div>
+
+<div class="steps-list" id="stepsList">
+  <div class="step-item" id="s1"><span class="step-num" id="sn1">1</span><p>서버가 Leaf + Intermediate 인증서를 전송</p></div>
+  <div class="step-item" id="s2"><span class="step-num" id="sn2">2</span><p>Leaf 인증서의 Issuer 필드로 Intermediate CA 확인</p></div>
+  <div class="step-item" id="s3"><span class="step-num" id="sn3">3</span><p>Intermediate CA의 공개키로 Leaf 인증서 서명 검증</p></div>
+  <div class="step-item" id="s4"><span class="step-num" id="sn4">4</span><p>Intermediate CA의 Issuer 필드로 Root CA 확인</p></div>
+  <div class="step-item" id="s5"><span class="step-num" id="sn5">5</span><p>Trust Store에서 Root CA를 찾아 서명 검증 - 체인 완성!</p></div>
+</div>
+</div>
+
+<div class="section-title">2단계: cert-manager 자동화 흐름 (K8s Certificate Automation)</div>
+
+<div class="chain-area">
+<div class="cm-flow" id="cmFlow">
+  <div class="cm-node" id="cm1"><span class="cm-type">Resource</span><span class="cm-name">Issuer</span></div>
+  <div class="cm-arrow" id="cma1"></div>
+  <div class="cm-node" id="cm2"><span class="cm-type">Resource</span><span class="cm-name">Certificate</span></div>
+  <div class="cm-arrow" id="cma2"></div>
+  <div class="cm-node" id="cm3"><span class="cm-type">Auto-created</span><span class="cm-name">CertificateRequest</span></div>
+  <div class="cm-arrow" id="cma3"></div>
+  <div class="cm-node" id="cm4"><span class="cm-type">ACME</span><span class="cm-name">Order</span></div>
+  <div class="cm-arrow" id="cma4"></div>
+  <div class="cm-node" id="cm5"><span class="cm-type">Validation</span><span class="cm-name">Challenge</span></div>
+  <div class="cm-arrow" id="cma5"></div>
+  <div class="cm-node" id="cm6"><span class="cm-type">Result</span><span class="cm-name">TLS Secret</span></div>
+</div>
+
+<div class="info-grid">
+  <div class="info-card">
+    <strong>Issuer 발급자</strong>
+    <p>Let's Encrypt, Vault 등 CA 설정. ClusterIssuer는 네임스페이스 무관.</p>
+  </div>
+  <div class="info-card">
+    <strong>Certificate 인증서</strong>
+    <p>원하는 도메인, 유효기간 등 명세. cert-manager가 자동 갱신.</p>
+  </div>
+  <div class="info-card">
+    <strong>Order & Challenge</strong>
+    <p>ACME 프로토콜로 도메인 소유권 검증. HTTP-01 또는 DNS-01 방식.</p>
+  </div>
+  <div class="info-card">
+    <strong>TLS Secret</strong>
+    <p>발급된 인증서가 K8s Secret에 저장. Ingress에서 자동 참조.</p>
+  </div>
+</div>
+</div>
+</div>
+
+<script>
+let state='stopped',timers=[];
+function clear(){timers.forEach(t=>clearTimeout(t));timers=[];
+  ['certRoot','certInter','certLeaf'].forEach(id=>{const e=document.getElementById(id);e.classList.remove('visible','verified','verifying')});
+  ['arrow1','arrow2'].forEach(id=>{const e=document.getElementById(id);e.classList.remove('visible','verified')});
+  ['iconRoot','iconInter','iconLeaf'].forEach(id=>document.getElementById(id).classList.remove('show'));
+  ['vl1','vl2'].forEach(id=>document.getElementById(id).classList.remove('show'));
+  document.getElementById('trustStore').classList.remove('visible');
+  for(let i=1;i<=5;i++){document.getElementById('s'+i).classList.remove('active');document.getElementById('sn'+i).classList.remove('active','done')}
+  for(let i=1;i<=6;i++){document.getElementById('cm'+i).classList.remove('visible','active','done')}
+  for(let i=1;i<=5;i++){document.getElementById('cma'+i).classList.remove('visible','active')}
+}
+function step(fn,delay){const t=setTimeout(fn,delay);timers.push(t)}
+function startAnim(){
+  if(state==='running')return;
+  if(state==='paused'){state='running';return}
+  clear();state='running';
+  let d=200;
+  // Step 1: Show leaf cert
+  step(()=>{document.getElementById('certLeaf').classList.add('visible');document.getElementById('s1').classList.add('active');document.getElementById('sn1').classList.add('active')},d);d+=600;
+  // Step 2: Show intermediate
+  step(()=>{document.getElementById('certLeaf').classList.add('verifying');document.getElementById('arrow2').classList.add('visible');document.getElementById('certInter').classList.add('visible');document.getElementById('sn1').classList.remove('active');document.getElementById('sn1').classList.add('done');document.getElementById('s2').classList.add('active');document.getElementById('sn2').classList.add('active')},d);d+=800;
+  // Step 3: Verify leaf
+  step(()=>{document.getElementById('certLeaf').classList.remove('verifying');document.getElementById('certLeaf').classList.add('verified');document.getElementById('arrow2').classList.add('verified');document.getElementById('iconLeaf').classList.add('show');document.getElementById('vl2').classList.add('show');document.getElementById('sn2').classList.remove('active');document.getElementById('sn2').classList.add('done');document.getElementById('s3').classList.add('active');document.getElementById('sn3').classList.add('active')},d);d+=800;
+  // Step 4: Show root
+  step(()=>{document.getElementById('certInter').classList.add('verifying');document.getElementById('arrow1').classList.add('visible');document.getElementById('certRoot').classList.add('visible');document.getElementById('sn3').classList.remove('active');document.getElementById('sn3').classList.add('done');document.getElementById('s4').classList.add('active');document.getElementById('sn4').classList.add('active')},d);d+=800;
+  // Step 5: Verify all
+  step(()=>{document.getElementById('certInter').classList.remove('verifying');document.getElementById('certInter').classList.add('verified');document.getElementById('certRoot').classList.add('verified');document.getElementById('arrow1').classList.add('verified');document.getElementById('iconInter').classList.add('show');document.getElementById('iconRoot').classList.add('show');document.getElementById('vl1').classList.add('show');document.getElementById('trustStore').classList.add('visible');document.getElementById('sn4').classList.remove('active');document.getElementById('sn4').classList.add('done');document.getElementById('s5').classList.add('active');document.getElementById('sn5').classList.add('active');document.getElementById('sn5').classList.add('done')},d);d+=1000;
+  // Cert-manager flow
+  const cmNodes=['cm1','cm2','cm3','cm4','cm5','cm6'];
+  const cmArrows=['cma1','cma2','cma3','cma4','cma5'];
+  cmNodes.forEach((id,i)=>{
+    step(()=>{document.getElementById(id).classList.add('visible','active');if(i>0){document.getElementById(cmNodes[i-1]).classList.remove('active');document.getElementById(cmNodes[i-1]).classList.add('done')}},d);
+    if(i<cmArrows.length){d+=400;step(()=>{document.getElementById(cmArrows[i]).classList.add('visible','active')},d);d+=300}else{d+=400}
+  });
+  step(()=>{document.getElementById('cm6').classList.remove('active');document.getElementById('cm6').classList.add('done')},d);
+}
+function pauseAnim(){state='paused';document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active')}
+function restartAnim(){state='stopped';clear();setTimeout(startAnim,100)}
+startAnim();
+</script>
+</body>
+</html>

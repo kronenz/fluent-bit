@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>커널 파라미터 튜닝 대시보드 - CH02</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:1.8rem;margin-bottom:8px;background:linear-gradient(90deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{background:#21262d;border:1px solid #30363d;color:#e6edf3;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.step-indicator{display:flex;justify-content:center;gap:6px;margin-bottom:24px;flex-wrap:wrap}
+.step-dot{width:28px;height:28px;border-radius:50%;background:#21262d;border:2px solid #30363d;display:flex;align-items:center;justify-content:center;font-size:.65rem;transition:all .3s}
+.step-dot.active{background:#1f6feb;border-color:#58a6ff;transform:scale(1.15)}
+.step-dot.done{background:#238636;border-color:#3fb950}
+.sections{display:grid;gap:24px}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;overflow:hidden}
+.section h2{font-size:1.15rem;margin-bottom:16px;color:#58a6ff}
+.section h2 span{color:#8b949e;font-size:.85rem;font-weight:normal}
+
+/* Sysctl Dashboard */
+.sysctl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.sysctl-card{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:14px;opacity:0;transform:translateY(15px);transition:all .5s}
+.sysctl-card.visible{opacity:1;transform:translateY(0)}
+.sysctl-card.highlight{border-color:#58a6ff;box-shadow:0 0 15px rgba(88,166,255,.2)}
+.sc-name{font-family:monospace;font-size:.8rem;color:#79c0ff;margin-bottom:4px}
+.sc-desc{font-size:.72rem;color:#8b949e;margin-bottom:8px}
+.sc-value{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sc-default{font-size:.72rem;padding:3px 8px;border-radius:4px;background:rgba(139,148,158,.1);color:#8b949e}
+.sc-tuned{font-size:.72rem;padding:3px 8px;border-radius:4px;background:rgba(63,185,80,.15);color:#3fb950;font-weight:bold}
+.sc-meter{height:6px;background:#21262d;border-radius:3px;overflow:hidden;margin-top:8px}
+.sc-meter-fill{height:100%;border-radius:3px;transition:width .8s ease}
+
+/* TCP Connection Animation */
+.tcp-scene{min-height:320px;position:relative}
+.tcp-endpoints{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:16px}
+.tcp-ep{text-align:center;padding:16px;border-radius:10px;min-width:140px;flex:0 0 auto}
+.tcp-client{background:rgba(88,166,255,.1);border:2px solid #58a6ff}
+.tcp-server{background:rgba(63,185,80,.1);border:2px solid #3fb950}
+.tcp-ep .ep-name{font-weight:bold;font-size:.9rem;margin-bottom:4px}
+.tcp-ep .ep-detail{font-size:.7rem;color:#8b949e}
+.tcp-packets{display:flex;flex-direction:column;gap:6px;margin:16px 0;min-height:180px}
+.tcp-pkt{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:6px;font-size:.78rem;opacity:0;transition:all .5s}
+.tcp-pkt.visible{opacity:1}
+.tcp-pkt.right{flex-direction:row;transform:translateX(-40px)}
+.tcp-pkt.right.visible{transform:translateX(0)}
+.tcp-pkt.left{flex-direction:row-reverse;transform:translateX(40px)}
+.tcp-pkt.left.visible{transform:translateX(0)}
+.pkt-arrow-r{color:#58a6ff}
+.pkt-arrow-l{color:#3fb950}
+.pkt-syn{background:rgba(88,166,255,.1);border:1px solid #58a6ff}
+.pkt-synack{background:rgba(63,185,80,.1);border:1px solid #3fb950}
+.pkt-ack{background:rgba(188,140,255,.1);border:1px solid #bc8cff}
+.pkt-data{background:rgba(210,153,34,.1);border:1px solid #d29922}
+.pkt-fin{background:rgba(248,81,73,.1);border:1px solid #f85149}
+.tcp-param-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;justify-content:center}
+.param-tag{padding:4px 10px;border-radius:4px;font-size:.7rem;font-family:monospace;opacity:0;transition:all .4s}
+.param-tag.visible{opacity:1}
+.param-tag.blue{background:rgba(88,166,255,.15);color:#58a6ff;border:1px solid #58a6ff}
+.param-tag.green{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid #3fb950}
+.param-tag.yellow{background:rgba(210,153,34,.15);color:#d29922;border:1px solid #d29922}
+.param-tag.purple{background:rgba(188,140,255,.15);color:#bc8cff;border:1px solid #bc8cff}
+
+/* File Descriptor */
+.fd-visual{display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;min-height:160px}
+.fd-bar-container{flex:1;min-width:280px;max-width:500px}
+.fd-bar{height:32px;background:#21262d;border-radius:8px;overflow:hidden;position:relative;margin-bottom:6px}
+.fd-fill{height:100%;border-radius:8px;transition:width 1s ease}
+.fd-soft{background:linear-gradient(90deg,#1f6feb,#58a6ff);width:0%}
+.fd-hard{position:absolute;top:0;height:100%;border-right:3px dashed #f85149;transition:left 1s ease;left:0%}
+.fd-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:.72rem;font-weight:bold;z-index:1}
+.fd-info{flex:0 0 200px;font-size:.78rem;line-height:1.8}
+.fd-info .key{color:#8b949e}
+.fd-info .val{font-family:monospace;color:#79c0ff}
+.fd-legend{display:flex;gap:16px;font-size:.72rem;color:#8b949e;margin-top:6px}
+.fd-legend .item{display:flex;align-items:center;gap:4px}
+
+/* Network Buffer */
+.buf-scene{min-height:200px}
+.buf-container{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+.buf-panel{flex:1;min-width:240px;max-width:400px;background:#0d1117;border-radius:10px;padding:16px;opacity:0;transform:translateY(15px);transition:all .5s}
+.buf-panel.visible{opacity:1;transform:translateY(0)}
+.buf-panel h3{font-size:.9rem;margin-bottom:10px;text-align:center}
+.buf-meter{display:flex;flex-direction:column;gap:6px}
+.buf-row{display:flex;align-items:center;gap:8px;font-size:.75rem}
+.buf-row .buf-label{min-width:80px;color:#8b949e;text-align:right}
+.buf-row .buf-bar{flex:1;height:12px;background:#21262d;border-radius:4px;overflow:hidden}
+.buf-row .buf-fill{height:100%;border-radius:4px;transition:width .8s ease}
+.buf-fill-min{background:#58a6ff}
+.buf-fill-default{background:#3fb950}
+.buf-fill-max{background:#d29922}
+.buf-row .buf-val{min-width:60px;font-family:monospace;font-size:.7rem}
+.buf-auto{text-align:center;margin-top:10px;padding:8px;border-radius:6px;font-size:.78rem;opacity:0;transition:all .4s}
+.buf-auto.visible{opacity:1}
+
+@media(max-width:768px){
+  h1{font-size:1.4rem}
+  .sysctl-grid{grid-template-columns:1fr}
+  .tcp-endpoints{flex-direction:column;align-items:center}
+  .fd-visual{flex-direction:column}
+  .fd-info{flex:unset;width:100%}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>커널 파라미터 튜닝 대시보드</h1>
+  <p class="subtitle">sysctl 파라미터, TCP 튜닝, File Descriptor, 네트워크 버퍼 시각화</p>
+  <div class="controls">
+    <button id="btnPlay" class="active" onclick="play()">&#9654; 재생</button>
+    <button id="btnPause" onclick="pause()">&#10074;&#10074; 일시정지</button>
+    <button id="btnRestart" onclick="restart()">&#8634; 처음부터</button>
+  </div>
+  <div class="step-indicator" id="stepIndicator"></div>
+
+  <div class="sections">
+    <!-- Sysctl Dashboard -->
+    <div class="section">
+      <h2>Step 1. sysctl 파라미터 <span>(핵심 튜닝 항목)</span></h2>
+      <div class="sysctl-grid" id="sysctlGrid">
+        <div class="sysctl-card" id="sc1">
+          <div class="sc-name">net.core.somaxconn</div>
+          <div class="sc-desc">Listen backlog 최대 크기 (TCP 연결 대기열)</div>
+          <div class="sc-value"><span class="sc-default">기본: 128</span><span class="sc-tuned">튜닝: 65535</span></div>
+          <div class="sc-meter"><div class="sc-meter-fill" id="sm1" style="width:0%;background:#3fb950"></div></div>
+        </div>
+        <div class="sysctl-card" id="sc2">
+          <div class="sc-name">net.ipv4.tcp_tw_reuse</div>
+          <div class="sc-desc">TIME_WAIT 소켓 재사용 허용</div>
+          <div class="sc-value"><span class="sc-default">기본: 0 (OFF)</span><span class="sc-tuned">튜닝: 1 (ON)</span></div>
+          <div class="sc-meter"><div class="sc-meter-fill" id="sm2" style="width:0%;background:#58a6ff"></div></div>
+        </div>
+        <div class="sysctl-card" id="sc3">
+          <div class="sc-name">vm.swappiness</div>
+          <div class="sc-desc">Swap 사용 적극성 (0=최소, 100=적극)</div>
+          <div class="sc-value"><span class="sc-default">기본: 60</span><span class="sc-tuned">튜닝: 10</span></div>
+          <div class="sc-meter"><div class="sc-meter-fill" id="sm3" style="width:0%;background:#d29922"></div></div>
+        </div>
+        <div class="sysctl-card" id="sc4">
+          <div class="sc-name">vm.overcommit_memory</div>
+          <div class="sc-desc">메모리 오버커밋 정책 (0=휴리스틱, 1=항상, 2=제한)</div>
+          <div class="sc-value"><span class="sc-default">기본: 0</span><span class="sc-tuned">튜닝: 0 또는 2</span></div>
+          <div class="sc-meter"><div class="sc-meter-fill" id="sm4" style="width:0%;background:#bc8cff"></div></div>
+        </div>
+        <div class="sysctl-card" id="sc5">
+          <div class="sc-name">net.ipv4.ip_local_port_range</div>
+          <div class="sc-desc">로컬 포트 범위 (클라이언트 연결 시)</div>
+          <div class="sc-value"><span class="sc-default">기본: 32768-60999</span><span class="sc-tuned">튜닝: 1024-65535</span></div>
+          <div class="sc-meter"><div class="sc-meter-fill" id="sm5" style="width:0%;background:#79c0ff"></div></div>
+        </div>
+        <div class="sysctl-card" id="sc6">
+          <div class="sc-name">fs.file-max</div>
+          <div class="sc-desc">시스템 전체 파일 디스크립터 최대 수</div>
+          <div class="sc-value"><span class="sc-default">기본: ~100000</span><span class="sc-tuned">튜닝: 2097152</span></div>
+          <div class="sc-meter"><div class="sc-meter-fill" id="sm6" style="width:0%;background:#f85149"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TCP Connection -->
+    <div class="section">
+      <h2>Step 2. TCP 연결과 튜닝 파라미터 <span>(3-Way Handshake &amp; Data Transfer)</span></h2>
+      <div class="tcp-scene">
+        <div class="tcp-endpoints">
+          <div class="tcp-ep tcp-client"><div class="ep-name">Client</div><div class="ep-detail">클라이언트</div></div>
+          <div style="flex:1;text-align:center;color:#8b949e;font-size:.75rem;padding-top:20px">--- 네트워크 ---</div>
+          <div class="tcp-ep tcp-server"><div class="ep-name">Server</div><div class="ep-detail">서버 (nginx)</div></div>
+        </div>
+        <div class="tcp-packets" id="tcpPackets">
+          <div class="tcp-pkt pkt-syn right" id="tp1"><span class="pkt-arrow-r">&#10132;</span> SYN (seq=0)</div>
+          <div class="tcp-pkt pkt-synack left" id="tp2"><span class="pkt-arrow-l">&#10132;</span> SYN+ACK (seq=0, ack=1)</div>
+          <div class="tcp-pkt pkt-ack right" id="tp3"><span class="pkt-arrow-r">&#10132;</span> ACK (ack=1) - 연결 수립</div>
+          <div class="tcp-pkt pkt-data right" id="tp4"><span class="pkt-arrow-r">&#10132;</span> DATA (HTTP Request)</div>
+          <div class="tcp-pkt pkt-data left" id="tp5"><span class="pkt-arrow-l">&#10132;</span> DATA (HTTP Response)</div>
+          <div class="tcp-pkt pkt-fin right" id="tp6"><span class="pkt-arrow-r">&#10132;</span> FIN - 연결 종료</div>
+        </div>
+        <div class="tcp-param-tags" id="tcpTags">
+          <div class="param-tag blue" id="pt1">somaxconn (backlog)</div>
+          <div class="param-tag green" id="pt2">tcp_syn_retries</div>
+          <div class="param-tag yellow" id="pt3">tcp_tw_reuse</div>
+          <div class="param-tag purple" id="pt4">tcp_keepalive_time</div>
+          <div class="param-tag blue" id="pt5">tcp_fin_timeout</div>
+          <div class="param-tag green" id="pt6">tcp_max_syn_backlog</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- File Descriptor -->
+    <div class="section">
+      <h2>Step 3. File Descriptor 제한 <span>(Soft Limit vs Hard Limit)</span></h2>
+      <div class="fd-visual">
+        <div class="fd-bar-container">
+          <div style="font-size:.8rem;margin-bottom:6px;color:#8b949e">현재 사용량 / Soft Limit / Hard Limit</div>
+          <div class="fd-bar">
+            <div class="fd-fill fd-soft" id="fdSoft"></div>
+            <div class="fd-hard" id="fdHard"></div>
+            <div class="fd-label" id="fdLabel">0 / 1024 / 65536</div>
+          </div>
+          <div class="fd-legend">
+            <div class="item"><div style="width:10px;height:10px;border-radius:2px;background:#58a6ff"></div> 사용 중 (Soft Limit 이내)</div>
+            <div class="item"><div style="width:10px;height:3px;border-top:2px dashed #f85149"></div> Hard Limit</div>
+          </div>
+          <div style="margin-top:12px">
+            <div class="fd-bar" style="height:24px">
+              <div class="fd-fill" id="fdTuned" style="background:linear-gradient(90deg,#238636,#3fb950);width:0%"></div>
+              <div class="fd-label" id="fdTunedLabel">튜닝 후</div>
+            </div>
+          </div>
+        </div>
+        <div class="fd-info" id="fdInfo">
+          <div><span class="key">ulimit -Sn:</span> <span class="val" id="fdSoftVal">1024</span></div>
+          <div><span class="key">ulimit -Hn:</span> <span class="val" id="fdHardVal">65536</span></div>
+          <div><span class="key">fs.file-max:</span> <span class="val" id="fdMaxVal">100000</span></div>
+          <div><span class="key">현재 사용:</span> <span class="val" id="fdCurVal">0</span></div>
+          <div style="margin-top:8px;font-size:.72rem;color:#8b949e" id="fdNote"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Network Buffer -->
+    <div class="section">
+      <h2>Step 4. 네트워크 버퍼 크기 <span>(Send/Receive Buffer Auto-tuning)</span></h2>
+      <div class="buf-container">
+        <div class="buf-panel" id="bufSend" style="border:1px solid #58a6ff">
+          <h3 style="color:#58a6ff">Send Buffer (송신 버퍼)</h3>
+          <div class="buf-meter">
+            <div class="buf-row"><span class="buf-label">min</span><div class="buf-bar"><div class="buf-fill buf-fill-min" id="bsMin" style="width:0%"></div></div><span class="buf-val" id="bsMinV">4096</span></div>
+            <div class="buf-row"><span class="buf-label">default</span><div class="buf-bar"><div class="buf-fill buf-fill-default" id="bsDef" style="width:0%"></div></div><span class="buf-val" id="bsDefV">16384</span></div>
+            <div class="buf-row"><span class="buf-label">max</span><div class="buf-bar"><div class="buf-fill buf-fill-max" id="bsMax" style="width:0%"></div></div><span class="buf-val" id="bsMaxV">4194304</span></div>
+          </div>
+          <div style="font-size:.7rem;color:#8b949e;margin-top:6px;font-family:monospace">net.ipv4.tcp_wmem</div>
+          <div class="buf-auto" id="bsStat"></div>
+        </div>
+        <div class="buf-panel" id="bufRecv" style="border:1px solid #3fb950">
+          <h3 style="color:#3fb950">Receive Buffer (수신 버퍼)</h3>
+          <div class="buf-meter">
+            <div class="buf-row"><span class="buf-label">min</span><div class="buf-bar"><div class="buf-fill buf-fill-min" id="brMin" style="width:0%"></div></div><span class="buf-val" id="brMinV">4096</span></div>
+            <div class="buf-row"><span class="buf-label">default</span><div class="buf-bar"><div class="buf-fill buf-fill-default" id="brDef" style="width:0%"></div></div><span class="buf-val" id="brDefV">87380</span></div>
+            <div class="buf-row"><span class="buf-label">max</span><div class="buf-bar"><div class="buf-fill buf-fill-max" id="brMax" style="width:0%"></div></div><span class="buf-val" id="brMaxV">6291456</span></div>
+          </div>
+          <div style="font-size:.7rem;color:#8b949e;margin-top:6px;font-family:monospace">net.ipv4.tcp_rmem</div>
+          <div class="buf-auto" id="brStat"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const TOTAL=18;let cur=0,playing=true,timer=null;
+const si=document.getElementById('stepIndicator');
+for(let i=1;i<=TOTAL;i++){const d=document.createElement('div');d.className='step-dot';d.textContent=i;d.id='sd_'+i;si.appendChild(d)}
+function setStep(n){for(let i=1;i<=TOTAL;i++){const d=document.getElementById('sd_'+i);d.className='step-dot'+(i<n?' done':'')+(i===n?' active':'')}}
+
+function resetAll(){
+  for(let i=1;i<=6;i++){document.getElementById('sc'+i).classList.remove('visible','highlight');document.getElementById('sm'+i).style.width='0%'}
+  for(let i=1;i<=6;i++){document.getElementById('tp'+i).classList.remove('visible');document.getElementById('pt'+i).classList.remove('visible')}
+  document.getElementById('fdSoft').style.width='0%';document.getElementById('fdHard').style.left='0%';
+  document.getElementById('fdLabel').textContent='0 / 1024 / 65536';
+  document.getElementById('fdTuned').style.width='0%';document.getElementById('fdTunedLabel').textContent='튜닝 후';
+  document.getElementById('fdSoftVal').textContent='1024';document.getElementById('fdHardVal').textContent='65536';
+  document.getElementById('fdMaxVal').textContent='100000';document.getElementById('fdCurVal').textContent='0';
+  document.getElementById('fdNote').textContent='';
+  ['bufSend','bufRecv'].forEach(id=>document.getElementById(id).classList.remove('visible'));
+  ['bsMin','bsDef','bsMax','brMin','brDef','brMax'].forEach(id=>document.getElementById(id).style.width='0%');
+  ['bsStat','brStat'].forEach(id=>{const e=document.getElementById(id);e.className='buf-auto';e.innerHTML=''});
+}
+
+const steps=[
+  ()=>{for(let i=1;i<=3;i++)document.getElementById('sc'+i).classList.add('visible')},
+  ()=>{for(let i=4;i<=6;i++)document.getElementById('sc'+i).classList.add('visible')},
+  ()=>{document.getElementById('sc1').classList.add('highlight');document.getElementById('sm1').style.width='100%';document.getElementById('sm2').style.width='100%';document.getElementById('sm3').style.width='17%'},
+  ()=>{document.getElementById('sc1').classList.remove('highlight');document.getElementById('sm4').style.width='50%';document.getElementById('sm5').style.width='100%';document.getElementById('sm6').style.width='100%'},
+  ()=>{document.getElementById('tp1').classList.add('visible')},
+  ()=>{document.getElementById('tp2').classList.add('visible');document.getElementById('pt6').classList.add('visible')},
+  ()=>{document.getElementById('tp3').classList.add('visible');document.getElementById('pt1').classList.add('visible');document.getElementById('pt2').classList.add('visible')},
+  ()=>{document.getElementById('tp4').classList.add('visible');document.getElementById('tp5').classList.add('visible');document.getElementById('pt4').classList.add('visible')},
+  ()=>{document.getElementById('tp6').classList.add('visible');document.getElementById('pt3').classList.add('visible');document.getElementById('pt5').classList.add('visible')},
+  ()=>{document.getElementById('fdSoft').style.width='15%';document.getElementById('fdHard').style.left='100%';document.getElementById('fdLabel').textContent='150 / 1024 / 65536';document.getElementById('fdCurVal').textContent='150';document.getElementById('fdNote').textContent='기본 설정: 대부분 서비스에 충분하지 않음'},
+  ()=>{document.getElementById('fdSoft').style.width='60%';document.getElementById('fdLabel').textContent='620 / 1024 / 65536';document.getElementById('fdCurVal').textContent='620';document.getElementById('fdNote').innerHTML='<span style="color:#d29922">&#9888; Soft Limit 접근 중!</span>'},
+  ()=>{document.getElementById('fdSoft').style.width='98%';document.getElementById('fdLabel').textContent='1020 / 1024 / 65536';document.getElementById('fdCurVal').textContent='1020';document.getElementById('fdNote').innerHTML='<span style="color:#f85149">&#10060; Soft Limit 거의 도달! "Too many open files" 에러 위험</span>'},
+  ()=>{document.getElementById('fdTuned').style.width='8%';document.getElementById('fdTunedLabel').textContent='1020 / 65536 / 1048576';document.getElementById('fdSoftVal').textContent='65536';document.getElementById('fdHardVal').textContent='1048576';document.getElementById('fdMaxVal').textContent='2097152';document.getElementById('fdNote').innerHTML='<span style="color:#3fb950">&#10004; ulimit -n 65536 적용 → 여유 확보</span>'},
+  ()=>{document.getElementById('bufSend').classList.add('visible')},
+  ()=>{document.getElementById('bufRecv').classList.add('visible')},
+  ()=>{document.getElementById('bsMin').style.width='5%';document.getElementById('bsDef').style.width='25%';document.getElementById('bsMax').style.width='100%';document.getElementById('brMin').style.width='5%';document.getElementById('brDef').style.width='30%';document.getElementById('brMax').style.width='100%'},
+  ()=>{const bs=document.getElementById('bsStat');bs.className='buf-auto visible';bs.innerHTML='<div style="background:rgba(88,166,255,.1);border:1px solid #58a6ff;padding:8px;border-radius:6px;color:#58a6ff">Auto-tuning: 커널이 연결 속도에 따라<br>min~max 범위 내에서 자동 조절</div>';const br=document.getElementById('brStat');br.className='buf-auto visible';br.innerHTML='<div style="background:rgba(63,185,80,.1);border:1px solid #3fb950;padding:8px;border-radius:6px;color:#3fb950">tcp_moderate_rcvbuf=1 (기본)<br>수신 버퍼 자동 조절 활성화</div>'},
+  ()=>{document.getElementById('bsMinV').textContent='4096';document.getElementById('bsDefV').textContent='16384';document.getElementById('bsMaxV').innerHTML='<strong style="color:#d29922">16777216</strong>';document.getElementById('brMinV').textContent='4096';document.getElementById('brDefV').textContent='87380';document.getElementById('brMaxV').innerHTML='<strong style="color:#d29922">16777216</strong>';const bs=document.getElementById('bsStat');bs.innerHTML='<div style="background:rgba(210,153,34,.1);border:1px solid #d29922;padding:8px;border-radius:6px;color:#d29922">&#9889; 고대역폭 환경: max를 16MB로 증가<br>BDP = Bandwidth x RTT 고려</div>'}
+];
+function advance(){if(cur>=TOTAL){pause();return}cur++;setStep(cur);steps[cur-1]()}
+function play(){playing=true;document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');if(timer)clearInterval(timer);timer=setInterval(()=>{if(playing)advance()},1300)}
+function pause(){playing=false;document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active');if(timer){clearInterval(timer);timer=null}}
+function restart(){pause();cur=0;resetAll();setStep(0);setTimeout(()=>play(),300)}
+play();
+</script>
+</body>
+</html>

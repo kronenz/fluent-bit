@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alerting Pipeline | 알림 파이프라인</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.header h1{font-size:1.6rem;color:#58a6ff;margin-bottom:4px}
+.header p{font-size:.9rem;color:#8b949e}
+.controls{display:flex;justify-content:center;gap:10px;padding:14px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#c9d1d9;cursor:pointer;font-size:.85rem;transition:all .2s}
+.controls button:hover{border-color:#58a6ff;color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.section{padding:20px 16px;max-width:1100px;margin:0 auto}
+.section-title{font-size:1.1rem;color:#58a6ff;margin-bottom:16px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.section-title span{color:#8b949e;font-size:.8rem;font-weight:400;margin-left:8px}
+
+/* Pipeline */
+.pipeline{display:flex;align-items:center;justify-content:center;gap:0;padding:20px 0;flex-wrap:wrap}
+.pipe-node{min-width:110px;padding:12px 10px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid #30363d;background:#161b22;opacity:0;transform:translateY(20px);transition:all .5s ease;text-align:center}
+.pipe-node.show{opacity:1;transform:translateY(0)}
+.pipe-node .en{font-size:.73rem;font-weight:600;color:#58a6ff}
+.pipe-node .ko{font-size:.63rem;color:#8b949e;margin-top:2px}
+.pipe-node .tag{font-size:.58rem;padding:2px 6px;border-radius:3px;margin-top:4px}
+.pipe-arrow{width:36px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .4s}
+.pipe-arrow.show{opacity:1}
+.pipe-arrow svg{width:28px;height:20px}
+.pipe-arrow svg path{stroke:#f85149;stroke-width:2;fill:none}
+@keyframes flowRight{0%{stroke-dashoffset:30}100%{stroke-dashoffset:0}}
+.pipe-arrow.animated svg path{stroke-dasharray:10 5;animation:flowRight .8s linear infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(248,81,73,.4)}50%{box-shadow:0 0 20px 4px rgba(248,81,73,.2)}}
+.pipe-node.active{animation:pulse 1.5s infinite;border-color:#f85149}
+.pipe-node.firing{border-color:#f85149;background:#f8514911}
+.pipe-node.firing .en{color:#f85149}
+.pipe-node.firing .tag{background:#f8514922;color:#f85149}
+
+/* Receivers fork */
+.receivers{display:flex;flex-direction:column;gap:6px;align-items:center}
+.recv-item{padding:8px 14px;border-radius:6px;border:1px solid #30363d;background:#161b22;font-size:.72rem;opacity:0;transform:translateX(20px);transition:all .4s ease;display:flex;align-items:center;gap:6px}
+.recv-item.show{opacity:1;transform:translateX(0)}
+.recv-item .icon{font-size:.9rem}
+.recv-item.pg{border-color:#06d6a0}
+.recv-item.pg .icon{color:#06d6a0}
+.recv-item.slack{border-color:#e01e5a}
+.recv-item.slack .icon{color:#e01e5a}
+.recv-item.email{border-color:#58a6ff}
+.recv-item.email .icon{color:#58a6ff}
+
+/* Grouping/Inhibition/Silence */
+.logic-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:12px}
+@media(max-width:700px){.logic-grid{grid-template-columns:1fr}}
+.logic-card{border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;opacity:0;transform:scale(.95);transition:all .5s ease}
+.logic-card.show{opacity:1;transform:scale(1)}
+.logic-card h4{font-size:.85rem;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.logic-card h4.group{color:#58a6ff}
+.logic-card h4.inhibit{color:#f0883e}
+.logic-card h4.silence{color:#a371f7}
+.logic-card .desc{font-size:.73rem;color:#8b949e;line-height:1.6;margin-bottom:8px}
+.logic-card pre{font-size:.67rem;background:#0d1117;padding:8px;border-radius:4px;color:#3fb950;line-height:1.5;overflow-x:auto}
+.logic-card .example{font-size:.7rem;color:#8b949e;margin-top:8px;padding:8px;border-left:3px solid #30363d;background:#0d1117;border-radius:0 4px 4px 0}
+
+/* Escalation */
+.escalation{display:flex;align-items:stretch;gap:0;margin-top:12px;flex-wrap:wrap;justify-content:center}
+.esc-tier{min-width:160px;padding:16px;border:2px solid #30363d;border-radius:10px;background:#161b22;text-align:center;opacity:0;transform:translateY(20px);transition:all .5s ease}
+.esc-tier.show{opacity:1;transform:translateY(0)}
+.esc-tier h4{font-size:.85rem;margin-bottom:6px}
+.esc-tier .time{font-size:.7rem;margin-bottom:8px}
+.esc-tier .who{font-size:.72rem;color:#8b949e;line-height:1.6}
+.esc-tier.l1 h4{color:#3fb950}
+.esc-tier.l1{border-color:#3fb95044}
+.esc-tier.l1 .time{color:#3fb950}
+.esc-tier.l2 h4{color:#f0883e}
+.esc-tier.l2{border-color:#f0883e44}
+.esc-tier.l2 .time{color:#f0883e}
+.esc-tier.l3 h4{color:#f85149}
+.esc-tier.l3{border-color:#f8514944}
+.esc-tier.l3 .time{color:#f85149}
+.esc-arrow{width:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity .4s}
+.esc-arrow.show{opacity:1}
+.esc-arrow svg{width:36px;height:16px}
+.esc-arrow svg path{stroke:#f85149;stroke-width:2;fill:none}
+.esc-arrow .timeout{font-size:.6rem;color:#f85149}
+
+@keyframes alertFlash{0%,100%{opacity:1}50%{opacity:.5}}
+.esc-tier.active{animation:alertFlash 1s infinite}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>Alerting Pipeline</h1>
+<p>알림 파이프라인 | Prometheus Alert Rule → Alertmanager → 수신자 전달 흐름</p>
+</div>
+
+<div class="controls">
+<button id="btnPlay" class="active" onclick="play()">&#9654; Play / 재생</button>
+<button id="btnPause" onclick="pause()">&#10074;&#10074; Pause / 일시정지</button>
+<button id="btnRestart" onclick="restart()">&#8634; Restart / 처음부터</button>
+</div>
+
+<!-- Section 1: Alert Pipeline Flow -->
+<div class="section">
+<div class="section-title">1. Alert Pipeline Flow <span>알림 파이프라인 흐름</span></div>
+<div class="pipeline" id="pipeline">
+<div class="pipe-node" id="n0"><div class="en">Alert Rule</div><div class="ko">알림 규칙 정의</div><div class="tag" style="background:#58a6ff22;color:#58a6ff">PromQL expr</div></div>
+<div class="pipe-arrow" id="a0"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n1"><div class="en">Pending</div><div class="ko">대기 (for 기간)</div><div class="tag" style="background:#f0883e22;color:#f0883e">evaluation</div></div>
+<div class="pipe-arrow" id="a1"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n2"><div class="en">Firing!</div><div class="ko">알림 발생</div><div class="tag" style="background:#f8514922;color:#f85149">active alert</div></div>
+<div class="pipe-arrow" id="a2"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n3"><div class="en">Alertmanager</div><div class="ko">알림 관리자</div><div class="tag" style="background:#a371f722;color:#a371f7">route + group</div></div>
+<div class="pipe-arrow" id="a3"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="receivers" id="receivers">
+<div class="recv-item pg" id="r0"><span class="icon">&#128221;</span> PagerDuty</div>
+<div class="recv-item slack" id="r1"><span class="icon">&#128172;</span> Slack #alerts</div>
+<div class="recv-item email" id="r2"><span class="icon">&#9993;</span> Email</div>
+</div>
+</div>
+</div>
+
+<!-- Section 2: Grouping, Inhibition, Silence -->
+<div class="section">
+<div class="section-title">2. Alertmanager Logic <span>알림 관리 로직</span></div>
+<div class="logic-grid" id="logicGrid">
+<div class="logic-card" id="lc0">
+<h4 class="group">Grouping (그룹핑)</h4>
+<div class="desc">유사한 알림을 하나의 알림으로 묶어서 알림 폭주(alert storm)를 방지합니다.</div>
+<pre>route:
+  group_by: ['alertname','cluster']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h</pre>
+<div class="example">100개의 Pod 알림 → cluster별 1개 그룹 알림으로 축소</div>
+</div>
+<div class="logic-card" id="lc1">
+<h4 class="inhibit">Inhibition (억제)</h4>
+<div class="desc">상위 알림이 발생하면 하위 알림을 자동 억제합니다. 노드 다운 시 Pod 알림 불필요.</div>
+<pre>inhibit_rules:
+- source_match:
+    alertname: 'NodeDown'
+  target_match:
+    alertname: 'PodNotReady'
+  equal: ['node']</pre>
+<div class="example">NodeDown 발생 → 해당 노드의 PodNotReady 알림 자동 억제</div>
+</div>
+<div class="logic-card" id="lc2">
+<h4 class="silence">Silence (무음)</h4>
+<div class="desc">특정 알림을 일정 기간 무음 처리합니다. 유지보수 작업 시 사전 설정.</div>
+<pre># Alertmanager UI에서 설정
+Matchers:
+  alertname="DeploymentScaling"
+  namespace="staging"
+
+Duration: 2h
+Comment: "Scheduled scaling test"
+Created by: ops-team</pre>
+<div class="example">계획된 배포/스케일링 중 불필요한 알림 방지</div>
+</div>
+</div>
+</div>
+
+<!-- Section 3: Escalation -->
+<div class="section">
+<div class="section-title">3. Escalation Policy <span>에스컬레이션 정책 (단계적 확대)</span></div>
+<div class="escalation" id="escalation">
+<div class="esc-tier l1" id="e0">
+<h4>L1 - On-Call</h4>
+<div class="time">0 ~ 15분</div>
+<div class="who">On-Call Engineer<br>자동 PagerDuty 호출<br>Slack #alerts-p1 알림<br>Runbook 확인 및 초기 대응</div>
+</div>
+<div class="esc-arrow" id="ea0">
+<div class="timeout">15분 미응답</div>
+<svg viewBox="0 0 36 16"><path d="M2 8 L28 8 M24 3 L30 8 L24 13"/></svg>
+</div>
+<div class="esc-tier l2" id="e1">
+<h4>L2 - Team Lead</h4>
+<div class="time">15 ~ 30분</div>
+<div class="who">팀 리드 / 시니어 엔지니어<br>추가 인력 투입 판단<br>고객 영향도 평가<br>임시 조치 (rollback 등)</div>
+</div>
+<div class="esc-arrow" id="ea1">
+<div class="timeout">30분 미해결</div>
+<svg viewBox="0 0 36 16"><path d="M2 8 L28 8 M24 3 L30 8 L24 13"/></svg>
+</div>
+<div class="esc-tier l3" id="e2">
+<h4>L3 - Management</h4>
+<div class="time">30분+</div>
+<div class="who">Engineering Manager / VP<br>전사 인시던트 선언<br>고객 커뮤니케이션<br>외부 벤더 에스컬레이션</div>
+</div>
+</div>
+</div>
+
+<script>
+let timer=null,step=0,playing=false;
+const totalSteps=26;
+
+function animateStep(s){
+  // Pipeline
+  if(s===0){document.getElementById('n0').classList.add('show');}
+  if(s===1){document.getElementById('a0').classList.add('show','animated');}
+  if(s===2){document.getElementById('n1').classList.add('show','active');}
+  if(s===3){document.getElementById('a1').classList.add('show','animated');document.getElementById('n1').classList.remove('active');}
+  if(s===4){document.getElementById('n2').classList.add('show','firing');}
+  if(s===5){document.getElementById('a2').classList.add('show','animated');}
+  if(s===6){document.getElementById('n3').classList.add('show','active');}
+  if(s===7){document.getElementById('a3').classList.add('show','animated');document.getElementById('n3').classList.remove('active');}
+  if(s===8){document.getElementById('r0').classList.add('show');}
+  if(s===9){document.getElementById('r1').classList.add('show');}
+  if(s===10){document.getElementById('r2').classList.add('show');}
+  // Logic
+  if(s>=12&&s<=14){document.getElementById('lc'+(s-12)).classList.add('show');}
+  // Escalation
+  if(s===17){document.getElementById('e0').classList.add('show','active');}
+  if(s===18){document.getElementById('ea0').classList.add('show');document.getElementById('e0').classList.remove('active');}
+  if(s===19){document.getElementById('e1').classList.add('show','active');}
+  if(s===20){document.getElementById('ea1').classList.add('show');document.getElementById('e1').classList.remove('active');}
+  if(s===21){document.getElementById('e2').classList.add('show','active');}
+  if(s===22){document.getElementById('e2').classList.remove('active');}
+}
+
+function play(){
+  if(playing)return;playing=true;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  timer=setInterval(()=>{if(step>=totalSteps){pause();return;}animateStep(step);step++;},550);
+}
+function pause(){
+  playing=false;clearInterval(timer);
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function restart(){
+  pause();step=0;
+  document.querySelectorAll('.pipe-node,.pipe-arrow,.recv-item,.logic-card,.esc-tier,.esc-arrow').forEach(e=>e.classList.remove('show','active','firing','animated'));
+  setTimeout(play,300);
+}
+window.addEventListener('load',()=>setTimeout(play,500));
+</script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CNI Plugin Comparison - CNI 플러그인 비교</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:1.8rem;margin-bottom:8px;background:linear-gradient(135deg,#3fb950,#58a6ff,#a371f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:20px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.controls button{background:#21262d;border:1px solid #30363d;color:#c9d1d9;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:0.9rem;transition:all 0.2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:15px;margin-bottom:20px}
+.cni-card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:18px;position:relative}
+.cni-card .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;margin-bottom:8px}
+.cni-card h2{font-size:1.05rem;margin-bottom:4px}
+.cni-card .desc{font-size:0.78rem;color:#8b949e;margin-bottom:12px}
+.packet-path{position:relative;min-height:200px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.pp-box{background:#1c2333;border:1.5px solid #30363d;border-radius:6px;padding:6px 12px;font-size:0.75rem;text-align:center;transition:all 0.5s;opacity:0.3;width:90%;max-width:260px}
+.pp-box.active{opacity:1;border-color:var(--c,#58a6ff);box-shadow:0 0 10px var(--glow,rgba(88,166,255,0.15))}
+.pp-box .lbl{font-weight:600;color:var(--c)}
+.pp-box .det{font-size:0.68rem;color:#8b949e;margin-top:1px}
+.pp-arrow{color:#30363d;transition:color 0.5s;font-size:1rem}
+.pp-arrow.active{color:var(--c,#58a6ff)}
+.perf-section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:18px}
+.perf-section h3{color:#58a6ff;font-size:0.9rem;margin-bottom:12px}
+.perf-row{display:flex;align-items:center;gap:10px;margin:8px 0}
+.perf-label{width:80px;font-size:0.78rem;font-weight:600;text-align:right;flex-shrink:0}
+.perf-bar-bg{flex:1;height:24px;background:#21262d;border-radius:4px;overflow:hidden;position:relative}
+.perf-bar{height:100%;border-radius:4px;transition:width 1.5s ease;width:0;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:0.65rem;font-weight:600;color:#fff}
+.perf-bar.loaded{width:var(--w)}
+.comparison-table{width:100%;border-collapse:collapse;margin-top:15px;font-size:0.78rem}
+.comparison-table th{background:#21262d;padding:8px;border:1px solid #30363d;font-weight:600}
+.comparison-table td{padding:8px;border:1px solid #30363d;text-align:center}
+.tag{display:inline-block;padding:1px 6px;border-radius:8px;font-size:0.65rem;font-weight:600;margin:1px}
+.tag-overlay{background:#f0883e22;color:#f0883e;border:1px solid #f0883e44}
+.tag-routing{background:#3fb95022;color:#3fb950;border:1px solid #3fb95044}
+.tag-ebpf{background:#a371f722;color:#a371f7;border:1px solid #a371f744}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+.anim-pulse{animation:pulse 1.5s ease-in-out infinite}
+.paused *{animation-play-state:paused!important}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>CNI Plugin Comparison</h1>
+<p class="subtitle">CNI 플러그인 비교 - Flannel vs Calico vs Cilium 패킷 경로와 성능</p>
+
+<div class="controls">
+<button onclick="togglePlay()" id="playBtn">⏸ Pause</button>
+<button onclick="restart()">↻ Restart</button>
+</div>
+
+<div class="grid3">
+<!-- Flannel -->
+<div class="cni-card" id="card-flannel">
+<span class="badge" style="background:#f0883e22;color:#f0883e;border:1px solid #f0883e44">Overlay</span>
+<h2 style="color:#f0883e">Flannel (VXLAN)</h2>
+<div class="desc">단순한 L3 오버레이 네트워크. VXLAN 캡슐화로 노드 간 통신.<br><small>Simple L3 overlay using VXLAN encapsulation</small></div>
+<div class="packet-path" style="--c:#f0883e;--glow:rgba(240,136,62,0.2)">
+<div class="pp-box" id="fl-1"><span class="lbl">Source Pod</span><div class="det">eth0 (veth pair)</div></div>
+<div class="pp-arrow" id="fl-a1">↓</div>
+<div class="pp-box" id="fl-2"><span class="lbl">cni0 (bridge)</span><div class="det">L2 bridge on node</div></div>
+<div class="pp-arrow" id="fl-a2">↓</div>
+<div class="pp-box" id="fl-3"><span class="lbl">flannel.1 (VXLAN)</span><div class="det">UDP encapsulation (port 8472)</div></div>
+<div class="pp-arrow" id="fl-a3">↓</div>
+<div class="pp-box" id="fl-4"><span class="lbl">eth0 (host NIC)</span><div class="det">Physical network</div></div>
+<div class="pp-arrow" id="fl-a4">↓</div>
+<div class="pp-box" id="fl-5"><span class="lbl">Remote Node → Pod</span><div class="det">Decap → cni0 → Pod</div></div>
+</div>
+</div>
+
+<!-- Calico -->
+<div class="cni-card" id="card-calico">
+<span class="badge" style="background:#3fb95022;color:#3fb950;border:1px solid #3fb95044">Direct Routing</span>
+<h2 style="color:#3fb950">Calico (BGP)</h2>
+<div class="desc">BGP로 Pod CIDR 라우팅 광고. 오버레이 없이 직접 라우팅.<br><small>BGP advertises pod CIDRs, direct routing without overlay</small></div>
+<div class="packet-path" style="--c:#3fb950;--glow:rgba(63,185,80,0.2)">
+<div class="pp-box" id="ca-1"><span class="lbl">Source Pod</span><div class="det">eth0 (veth pair)</div></div>
+<div class="pp-arrow" id="ca-a1">↓</div>
+<div class="pp-box" id="ca-2"><span class="lbl">Host routing table</span><div class="det">Felix manages routes</div></div>
+<div class="pp-arrow" id="ca-a2">↓</div>
+<div class="pp-box" id="ca-3"><span class="lbl">BGP (BIRD)</span><div class="det">Route advertisement to peers</div></div>
+<div class="pp-arrow" id="ca-a3">↓</div>
+<div class="pp-box" id="ca-4"><span class="lbl">eth0 (host NIC)</span><div class="det">Direct IP routing (no encap)</div></div>
+<div class="pp-arrow" id="ca-a4">↓</div>
+<div class="pp-box" id="ca-5"><span class="lbl">Remote Node → Pod</span><div class="det">Route → veth → Pod</div></div>
+</div>
+</div>
+
+<!-- Cilium -->
+<div class="cni-card" id="card-cilium">
+<span class="badge" style="background:#a371f722;color:#a371f7;border:1px solid #a371f744">eBPF</span>
+<h2 style="color:#a371f7">Cilium (eBPF)</h2>
+<div class="desc">eBPF 기반 데이터플레인. 커널 내에서 패킷 처리, kube-proxy 대체.<br><small>eBPF-based dataplane, processes packets in kernel, replaces kube-proxy</small></div>
+<div class="packet-path" style="--c:#a371f7;--glow:rgba(163,113,247,0.2)">
+<div class="pp-box" id="ci-1"><span class="lbl">Source Pod</span><div class="det">eth0 (veth/ipvlan)</div></div>
+<div class="pp-arrow" id="ci-a1">↓</div>
+<div class="pp-box" id="ci-2"><span class="lbl">eBPF (TC hook)</span><div class="det">L3/L4 processing in kernel</div></div>
+<div class="pp-arrow" id="ci-a2">↓</div>
+<div class="pp-box" id="ci-3"><span class="lbl">eBPF LB + Policy</span><div class="det">No iptables needed</div></div>
+<div class="pp-arrow" id="ci-a3">↓</div>
+<div class="pp-box" id="ci-4"><span class="lbl">Direct / VXLAN / Geneve</span><div class="det">Flexible tunnel mode</div></div>
+<div class="pp-arrow" id="ci-a4">↓</div>
+<div class="pp-box" id="ci-5"><span class="lbl">Remote Node → Pod</span><div class="det">eBPF fast path</div></div>
+</div>
+</div>
+</div>
+
+<!-- Performance Comparison -->
+<div class="perf-section">
+<h3>Performance Comparison (성능 비교)</h3>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px">
+<div>
+<div style="font-size:0.8rem;color:#8b949e;margin-bottom:8px">Throughput (처리량)</div>
+<div class="perf-row"><span class="perf-label" style="color:#f0883e">Flannel</span><div class="perf-bar-bg"><div class="perf-bar" style="background:linear-gradient(90deg,#f0883e,#f0883eaa);--w:65%">~7 Gbps</div></div></div>
+<div class="perf-row"><span class="perf-label" style="color:#3fb950">Calico</span><div class="perf-bar-bg"><div class="perf-bar" style="background:linear-gradient(90deg,#3fb950,#3fb950aa);--w:85%">~9 Gbps</div></div></div>
+<div class="perf-row"><span class="perf-label" style="color:#a371f7">Cilium</span><div class="perf-bar-bg"><div class="perf-bar" style="background:linear-gradient(90deg,#a371f7,#a371f7aa);--w:95%">~9.5 Gbps</div></div></div>
+</div>
+<div>
+<div style="font-size:0.8rem;color:#8b949e;margin-bottom:8px">Latency (지연시간, lower is better)</div>
+<div class="perf-row"><span class="perf-label" style="color:#f0883e">Flannel</span><div class="perf-bar-bg"><div class="perf-bar" style="background:linear-gradient(90deg,#f0883e,#f0883eaa);--w:75%">~120 us</div></div></div>
+<div class="perf-row"><span class="perf-label" style="color:#3fb950">Calico</span><div class="perf-bar-bg"><div class="perf-bar" style="background:linear-gradient(90deg,#3fb950,#3fb950aa);--w:50%">~80 us</div></div></div>
+<div class="perf-row"><span class="perf-label" style="color:#a371f7">Cilium</span><div class="perf-bar-bg"><div class="perf-bar" style="background:linear-gradient(90deg,#a371f7,#a371f7aa);--w:35%">~50 us</div></div></div>
+</div>
+</div>
+</div>
+
+<!-- Comparison Table -->
+<table class="comparison-table" style="margin-top:15px">
+<thead>
+<tr><th>Feature</th><th style="color:#f0883e">Flannel</th><th style="color:#3fb950">Calico</th><th style="color:#a371f7">Cilium</th></tr>
+</thead>
+<tbody>
+<tr><td>Data Plane<br><small>데이터 플레인</small></td><td><span class="tag tag-overlay">VXLAN</span></td><td><span class="tag tag-routing">BGP / IPIP</span></td><td><span class="tag tag-ebpf">eBPF</span></td></tr>
+<tr><td>Network Policy<br><small>네트워크 정책</small></td><td>No (별도 필요)</td><td>Yes (iptables)</td><td>Yes (eBPF L3-L7)</td></tr>
+<tr><td>Encryption<br><small>암호화</small></td><td>No</td><td>WireGuard</td><td>WireGuard / IPsec</td></tr>
+<tr><td>Observability<br><small>관측성</small></td><td>Basic</td><td>Flow logs</td><td>Hubble (L7 flows)</td></tr>
+<tr><td>kube-proxy<br><small>대체 가능</small></td><td>No</td><td>Yes (eBPF mode)</td><td>Yes (native)</td></tr>
+<tr><td>Complexity<br><small>복잡도</small></td><td>Low</td><td>Medium</td><td>High</td></tr>
+<tr><td>Best For<br><small>적합 환경</small></td><td>Simple clusters</td><td>Enterprise / bare-metal</td><td>Advanced / service mesh</td></tr>
+</tbody>
+</table>
+</div>
+
+<script>
+let playing=true,timers=[];
+function togglePlay(){playing=!playing;document.getElementById('playBtn').textContent=playing?'⏸ Pause':'▶ Play';document.querySelectorAll('.cni-card,.perf-section').forEach(c=>c.classList.toggle('paused',!playing))}
+function restart(){
+  timers.forEach(t=>clearTimeout(t));timers=[];playing=true;
+  document.getElementById('playBtn').textContent='⏸ Pause';
+  document.querySelectorAll('.cni-card,.perf-section').forEach(c=>c.classList.remove('paused'));
+  document.querySelectorAll('.pp-box').forEach(b=>b.classList.remove('active','anim-pulse'));
+  document.querySelectorAll('.pp-arrow').forEach(a=>a.classList.remove('active'));
+  document.querySelectorAll('.perf-bar').forEach(b=>b.classList.remove('loaded'));
+  runAnim();
+}
+function act(id,d){timers.push(setTimeout(()=>{const el=document.getElementById(id);if(el)el.classList.add('active')},d))}
+function animPath(prefix,count,baseDelay,interval){
+  for(let i=1;i<=count;i++){
+    act(prefix+'-'+i,baseDelay+(i-1)*interval);
+    if(i<count)act(prefix+'-a'+i,baseDelay+(i-1)*interval+interval/2);
+  }
+}
+function runAnim(){
+  animPath('fl',5,300,400);
+  animPath('ca',5,500,400);
+  animPath('ci',5,700,400);
+  // Performance bars
+  timers.push(setTimeout(()=>{document.querySelectorAll('.perf-bar').forEach(b=>b.classList.add('loaded'))},800));
+  timers.push(setTimeout(()=>restart(),6000));
+}
+restart();
+</script>
+</body>
+</html>

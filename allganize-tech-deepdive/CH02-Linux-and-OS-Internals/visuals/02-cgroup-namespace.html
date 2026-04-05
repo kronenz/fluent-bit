@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cgroup &amp; Namespace 격리 - CH02</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:1.8rem;margin-bottom:8px;background:linear-gradient(90deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{background:#21262d;border:1px solid #30363d;color:#e6edf3;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.step-indicator{display:flex;justify-content:center;gap:6px;margin-bottom:24px;flex-wrap:wrap}
+.step-dot{width:28px;height:28px;border-radius:50%;background:#21262d;border:2px solid #30363d;display:flex;align-items:center;justify-content:center;font-size:0.65rem;transition:all .3s}
+.step-dot.active{background:#1f6feb;border-color:#58a6ff;transform:scale(1.15)}
+.step-dot.done{background:#238636;border-color:#3fb950}
+.sections{display:grid;gap:24px}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;overflow:hidden}
+.section h2{font-size:1.15rem;margin-bottom:16px;color:#58a6ff}
+.section h2 span{color:#8b949e;font-size:0.85rem;font-weight:normal}
+
+/* Namespace layers */
+.ns-container{display:flex;justify-content:center;align-items:center;gap:30px;min-height:300px;flex-wrap:wrap}
+.ns-host,.ns-ctr{flex:1;min-width:280px;max-width:480px}
+.ns-label{text-align:center;font-weight:bold;margin-bottom:12px;font-size:1rem}
+.ns-host .ns-label{color:#f85149}
+.ns-ctr .ns-label{color:#3fb950}
+.ns-layers{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px}
+.ns-layer{width:100%;padding:10px 16px;border-radius:8px;font-size:0.82rem;display:flex;justify-content:space-between;align-items:center;opacity:0;transform:translateX(-40px);transition:all .5s cubic-bezier(.34,1.56,.64,1)}
+.ns-layer.visible{opacity:1;transform:translateX(0)}
+.ns-layer .type{font-weight:bold}
+.ns-layer .val{color:#8b949e;font-size:0.75rem}
+.layer-pid{background:rgba(88,166,255,.12);border:1px solid #58a6ff}
+.layer-net{background:rgba(188,140,255,.12);border:1px solid #bc8cff}
+.layer-mnt{background:rgba(63,185,80,.12);border:1px solid #3fb950}
+.layer-uts{background:rgba(210,153,34,.12);border:1px solid #d29922}
+.layer-ipc{background:rgba(248,81,73,.12);border:1px solid #f85149}
+.layer-user{background:rgba(121,192,255,.12);border:1px solid #79c0ff}
+
+.vs-badge{background:#21262d;border:2px solid #30363d;border-radius:50%;width:50px;height:50px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.9rem;color:#8b949e;flex-shrink:0}
+
+/* cgroup resource limiting */
+.cg-demo{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;min-height:200px}
+.cg-panel{flex:1;min-width:260px;max-width:400px;background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:16px}
+.cg-panel h3{font-size:0.95rem;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.cg-panel h3 .icon{font-size:1.2rem}
+.meter{height:24px;background:#21262d;border-radius:12px;overflow:hidden;position:relative;margin-bottom:8px}
+.meter-fill{height:100%;border-radius:12px;transition:width 1s ease,background .5s}
+.meter-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:0.7rem;font-weight:bold;z-index:1}
+.cpu-fill{background:linear-gradient(90deg,#238636,#3fb950);width:0%}
+.cpu-fill.throttled{background:linear-gradient(90deg,#d29922,#f85149);animation:throttlePulse 0.6s infinite}
+@keyframes throttlePulse{0%,100%{opacity:1}50%{opacity:.6}}
+.mem-fill{background:linear-gradient(90deg,#1f6feb,#58a6ff);width:0%}
+.mem-fill.oom{background:linear-gradient(90deg,#f85149,#da3633);animation:oomFlash .4s infinite}
+@keyframes oomFlash{0%,100%{opacity:1}50%{opacity:.5}}
+.cg-log{font-size:0.75rem;color:#8b949e;margin-top:8px;min-height:40px;line-height:1.6}
+.cg-log .warn{color:#d29922}
+.cg-log .err{color:#f85149}
+.cg-log .ok{color:#3fb950}
+
+/* cgroup v1 vs v2 */
+.cg-compare{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;min-height:220px}
+.cg-version{flex:1;min-width:260px;max-width:480px;background:#0d1117;border-radius:10px;padding:16px;opacity:0;transform:translateY(20px);transition:all .5s}
+.cg-version.visible{opacity:1;transform:translateY(0)}
+.cg-version h3{font-size:0.95rem;margin-bottom:12px;text-align:center}
+.cg-tree{padding-left:12px;font-size:0.8rem;line-height:2}
+.cg-tree .node{padding:3px 10px;border-radius:4px;display:inline-block;margin:2px 0}
+.cg-tree .root{background:rgba(88,166,255,.15);border:1px solid #58a6ff}
+.cg-tree .cpu{background:rgba(63,185,80,.15);border:1px solid #3fb950}
+.cg-tree .mem{background:rgba(188,140,255,.15);border:1px solid #bc8cff}
+.cg-tree .io{background:rgba(210,153,34,.15);border:1px solid #d29922}
+.cg-tree .unified{background:rgba(121,192,255,.15);border:1px solid #79c0ff}
+.cg-tree ul{list-style:none;padding-left:20px;border-left:2px solid #30363d;margin-left:8px}
+.v1-border{border:1px solid #d29922}
+.v2-border{border:1px solid #3fb950}
+
+@media(max-width:768px){
+  .ns-container{flex-direction:column}
+  .vs-badge{display:none}
+  h1{font-size:1.4rem}
+  .cg-demo,.cg-compare{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>cgroup &amp; Namespace 격리</h1>
+  <p class="subtitle">컨테이너 격리의 핵심 기술: Namespace로 뷰 분리, cgroup으로 자원 제한</p>
+  <div class="controls">
+    <button id="btnPlay" class="active" onclick="play()">&#9654; 재생</button>
+    <button id="btnPause" onclick="pause()">&#10074;&#10074; 일시정지</button>
+    <button id="btnRestart" onclick="restart()">&#8634; 처음부터</button>
+  </div>
+  <div class="step-indicator" id="stepIndicator"></div>
+
+  <div class="sections">
+    <!-- Section 1: Namespace Isolation -->
+    <div class="section">
+      <h2>Step 1-2. Namespace 격리 계층 <span>(Host vs Container View)</span></h2>
+      <div class="ns-container">
+        <div class="ns-host">
+          <div class="ns-label">&#128187; Host (호스트 전체 보기)</div>
+          <div class="ns-layers" id="hostLayers">
+            <div class="ns-layer layer-pid" id="hPid"><span class="type">PID NS</span><span class="val">PID 1,2,...30000+</span></div>
+            <div class="ns-layer layer-net" id="hNet"><span class="type">NET NS</span><span class="val">eth0, docker0, veth*</span></div>
+            <div class="ns-layer layer-mnt" id="hMnt"><span class="type">MNT NS</span><span class="val">/, /var, /home, /data</span></div>
+            <div class="ns-layer layer-uts" id="hUts"><span class="type">UTS NS</span><span class="val">hostname: prod-server-01</span></div>
+            <div class="ns-layer layer-ipc" id="hIpc"><span class="type">IPC NS</span><span class="val">All shared memory, semaphores</span></div>
+            <div class="ns-layer layer-user" id="hUser"><span class="type">USER NS</span><span class="val">uid: 0(root), 1000(app)</span></div>
+          </div>
+        </div>
+        <div class="vs-badge">VS</div>
+        <div class="ns-ctr">
+          <div class="ns-label">&#128230; Container (격리된 뷰)</div>
+          <div class="ns-layers" id="ctrLayers">
+            <div class="ns-layer layer-pid" id="cPid"><span class="type">PID NS</span><span class="val">PID 1 (nginx) 만 보임</span></div>
+            <div class="ns-layer layer-net" id="cNet"><span class="type">NET NS</span><span class="val">eth0 (veth pair)</span></div>
+            <div class="ns-layer layer-mnt" id="cMnt"><span class="type">MNT NS</span><span class="val">/app 만 접근 가능</span></div>
+            <div class="ns-layer layer-uts" id="cUts"><span class="type">UTS NS</span><span class="val">hostname: my-container</span></div>
+            <div class="ns-layer layer-ipc" id="cIpc"><span class="type">IPC NS</span><span class="val">격리된 IPC 객체</span></div>
+            <div class="ns-layer layer-user" id="cUser"><span class="type">USER NS</span><span class="val">uid: 0 → host uid 10000</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: cgroup Resource Limiting -->
+    <div class="section">
+      <h2>Step 3-4. cgroup 자원 제한 <span>(CPU Throttling &amp; OOM Kill)</span></h2>
+      <div class="cg-demo">
+        <div class="cg-panel">
+          <h3><span class="icon">&#9889;</span> CPU 제한 (cpu.max)</h3>
+          <div class="meter"><div class="meter-fill cpu-fill" id="cpuFill"></div><div class="meter-label" id="cpuLabel">0%</div></div>
+          <div style="font-size:0.75rem;color:#8b949e">제한: 200ms / 100ms period (2 cores)</div>
+          <div class="cg-log" id="cpuLog"></div>
+        </div>
+        <div class="cg-panel">
+          <h3><span class="icon">&#128190;</span> Memory 제한 (memory.max)</h3>
+          <div class="meter"><div class="meter-fill mem-fill" id="memFill"></div><div class="meter-label" id="memLabel">0 MB</div></div>
+          <div style="font-size:0.75rem;color:#8b949e">제한: 512 MB</div>
+          <div class="cg-log" id="memLog"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: cgroup v1 vs v2 -->
+    <div class="section">
+      <h2>Step 5-6. cgroup v1 vs v2 비교 <span>(Hierarchy Structure)</span></h2>
+      <div class="cg-compare">
+        <div class="cg-version v1-border" id="cgV1">
+          <h3 style="color:#d29922">cgroup v1 (리소스별 계층)</h3>
+          <div class="cg-tree">
+            <div class="node root">/sys/fs/cgroup/</div>
+            <ul>
+              <li><div class="node cpu">cpu/</div>
+                <ul><li><div class="node cpu">docker/container-abc</div></li></ul>
+              </li>
+              <li><div class="node mem">memory/</div>
+                <ul><li><div class="node mem">docker/container-abc</div></li></ul>
+              </li>
+              <li><div class="node io">blkio/</div>
+                <ul><li><div class="node io">docker/container-abc</div></li></ul>
+              </li>
+            </ul>
+            <div style="margin-top:8px;font-size:0.75rem;color:#d29922">&#9888; 리소스마다 별도 트리 → 관리 복잡</div>
+          </div>
+        </div>
+        <div class="cg-version v2-border" id="cgV2">
+          <h3 style="color:#3fb950">cgroup v2 (통합 트리)</h3>
+          <div class="cg-tree">
+            <div class="node root">/sys/fs/cgroup/</div>
+            <ul>
+              <li><div class="node unified">system.slice/</div>
+                <ul><li><div class="node unified">docker-abc.scope</div>
+                  <ul>
+                    <li style="color:#3fb950">cpu.max, memory.max, io.max</li>
+                    <li style="color:#3fb950">모든 리소스 통합 관리</li>
+                  </ul>
+                </li></ul>
+              </li>
+              <li><div class="node unified">user.slice/</div></li>
+            </ul>
+            <div style="margin-top:8px;font-size:0.75rem;color:#3fb950">&#10004; 단일 트리 → 간결하고 일관된 관리</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const TOTAL=14;
+let cur=0,playing=true,timer=null;
+const si=document.getElementById('stepIndicator');
+for(let i=1;i<=TOTAL;i++){const d=document.createElement('div');d.className='step-dot';d.textContent=i;d.id='sd_'+i;si.appendChild(d)}
+function setStep(n){for(let i=1;i<=TOTAL;i++){const d=document.getElementById('sd_'+i);d.className='step-dot'+(i<n?' done':'')+(i===n?' active':'')}}
+const nsIds=[['hPid','cPid'],['hNet','cNet'],['hMnt','cMnt'],['hUts','cUts'],['hIpc','cIpc'],['hUser','cUser']];
+function resetAll(){
+  nsIds.forEach(([h,c])=>{document.getElementById(h).classList.remove('visible');document.getElementById(c).classList.remove('visible')});
+  document.getElementById('cpuFill').style.width='0%';document.getElementById('cpuFill').className='meter-fill cpu-fill';
+  document.getElementById('cpuLabel').textContent='0%';document.getElementById('cpuLog').innerHTML='';
+  document.getElementById('memFill').style.width='0%';document.getElementById('memFill').className='meter-fill mem-fill';
+  document.getElementById('memLabel').textContent='0 MB';document.getElementById('memLog').innerHTML='';
+  document.getElementById('cgV1').classList.remove('visible');
+  document.getElementById('cgV2').classList.remove('visible');
+}
+const steps=[
+  ()=>{nsIds[0].forEach(id=>document.getElementById(id).classList.add('visible'))},
+  ()=>{nsIds[1].forEach(id=>document.getElementById(id).classList.add('visible'))},
+  ()=>{nsIds[2].forEach(id=>document.getElementById(id).classList.add('visible'))},
+  ()=>{nsIds[3].forEach(id=>document.getElementById(id).classList.add('visible'))},
+  ()=>{nsIds[4].forEach(id=>document.getElementById(id).classList.add('visible'))},
+  ()=>{nsIds[5].forEach(id=>document.getElementById(id).classList.add('visible'))},
+  ()=>{document.getElementById('cpuFill').style.width='40%';document.getElementById('cpuLabel').textContent='40%';document.getElementById('cpuLog').innerHTML='<span class="ok">CPU 사용량 정상 범위</span>'},
+  ()=>{document.getElementById('cpuFill').style.width='85%';document.getElementById('cpuLabel').textContent='85%';document.getElementById('cpuLog').innerHTML='<span class="warn">&#9888; CPU 사용량 증가 중...</span>'},
+  ()=>{document.getElementById('cpuFill').style.width='100%';document.getElementById('cpuFill').classList.add('throttled');document.getElementById('cpuLabel').textContent='THROTTLED';document.getElementById('cpuLog').innerHTML='<span class="err">&#10060; CPU Throttling 발생! nr_throttled++</span><br><span class="warn">컨테이너 성능 저하</span>'},
+  ()=>{document.getElementById('memFill').style.width='45%';document.getElementById('memLabel').textContent='230 MB';document.getElementById('memLog').innerHTML='<span class="ok">메모리 사용량 정상</span>'},
+  ()=>{document.getElementById('memFill').style.width='80%';document.getElementById('memLabel').textContent='410 MB';document.getElementById('memLog').innerHTML='<span class="warn">&#9888; memory.high 초과 → reclaim 시도</span>'},
+  ()=>{document.getElementById('memFill').style.width='100%';document.getElementById('memFill').classList.add('oom');document.getElementById('memLabel').textContent='OOM!';document.getElementById('memLog').innerHTML='<span class="err">&#10060; memory.max (512MB) 초과!</span><br><span class="err">OOM Killer 호출 → 컨테이너 종료</span>'},
+  ()=>{document.getElementById('cgV1').classList.add('visible')},
+  ()=>{document.getElementById('cgV2').classList.add('visible')}
+];
+function advance(){if(cur>=TOTAL){pause();return}cur++;setStep(cur);steps[cur-1]()}
+function play(){playing=true;document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');if(timer)clearInterval(timer);timer=setInterval(()=>{if(playing)advance()},1200)}
+function pause(){playing=false;document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active');if(timer){clearInterval(timer);timer=null}}
+function restart(){pause();cur=0;resetAll();setStep(0);setTimeout(()=>play(),300)}
+play();
+</script>
+</body>
+</html>

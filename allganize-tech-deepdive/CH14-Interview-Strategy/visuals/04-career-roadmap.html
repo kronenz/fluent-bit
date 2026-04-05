@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>커리어 로드맵 — 5년 성장 계획</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#f0883e,#ffb86c);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:28px;font-size:0.95rem}
+.section-title{font-size:1.1rem;margin-bottom:16px;color:#e6edf3;display:flex;align-items:center;gap:8px}
+.section-title .icon{font-size:1.2rem}
+
+/* Main Roadmap */
+.roadmap-section{margin-bottom:36px}
+.roadmap-track{position:relative;padding:20px 0}
+.roadmap-line{position:absolute;top:50%;left:40px;right:40px;height:4px;background:#21262d;border-radius:2px;transform:translateY(-50%);z-index:0}
+.roadmap-progress{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,#f0883e,#ffb86c);border-radius:2px;width:0;transition:width 2s ease}
+.roadmap-nodes{display:flex;justify-content:space-between;position:relative;z-index:1;padding:0 20px}
+.roadmap-node{display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform .3s}
+.roadmap-node:hover{transform:translateY(-4px)}
+.rn-dot{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:3px solid #30363d;background:#161b22;transition:all .6s ease;position:relative}
+.rn-dot::after{content:'';position:absolute;width:100%;height:100%;border-radius:50%;border:2px solid transparent;transition:border-color .3s}
+.roadmap-node.active .rn-dot{border-color:var(--node-color);box-shadow:0 0 20px var(--node-glow)}
+.roadmap-node.active .rn-dot::after{border-color:var(--node-color);animation:ringPulse 2s ease infinite}
+@keyframes ringPulse{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.3);opacity:0}}
+.rn-year{font-size:0.75rem;font-weight:700;color:#8b949e;transition:color .3s}
+.roadmap-node.active .rn-year{color:var(--node-color)}
+.rn-title{font-size:0.82rem;font-weight:600;text-align:center;transition:color .3s;max-width:120px}
+.roadmap-node.active .rn-title{color:#e6edf3}
+
+.node-now{--node-color:#8b949e;--node-glow:rgba(139,148,158,.2)}
+.node-y1{--node-color:#58a6ff;--node-glow:rgba(88,166,255,.2)}
+.node-y3{--node-color:#a371f7;--node-glow:rgba(163,113,247,.2)}
+.node-y5{--node-color:#f0883e;--node-glow:rgba(240,136,62,.2)}
+
+/* Detail Panel */
+.detail-panel{background:#161b22;border:1px solid #30363d;border-radius:12px;margin-top:20px;overflow:hidden;transition:border-color .3s}
+.detail-header{padding:16px 20px;border-bottom:1px solid #30363d;display:flex;align-items:center;gap:12px}
+.detail-header .dh-badge{padding:4px 12px;border-radius:6px;font-size:0.8rem;font-weight:600}
+.detail-header .dh-title{font-size:1rem;font-weight:600}
+.detail-header .dh-allganize{font-size:0.78rem;color:#8b949e;margin-left:auto}
+.detail-body{padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.detail-col h4{font-size:0.82rem;color:#8b949e;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.detail-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:0.82rem;line-height:1.4}
+.detail-item .di-icon{flex-shrink:0;margin-top:2px}
+
+/* Skill Tree */
+.skill-section{margin-bottom:36px}
+.skill-container{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px}
+.skill-category{margin-bottom:20px}
+.skill-category:last-child{margin-bottom:0}
+.sc-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:0.9rem;font-weight:600}
+.sc-header .sc-icon{font-size:1rem}
+.skill-bars{display:flex;flex-direction:column;gap:8px}
+.skill-bar{display:flex;align-items:center;gap:10px}
+.sb-label{width:140px;font-size:0.78rem;color:#8b949e;flex-shrink:0}
+.sb-track{flex:1;height:20px;background:#21262d;border-radius:4px;overflow:hidden;position:relative}
+.sb-fill{height:100%;border-radius:4px;position:relative;width:0;transition:width 1.5s ease}
+.sb-fill .sb-now{position:absolute;right:0;top:0;height:100%;background:rgba(255,255,255,.15);border-left:2px dashed rgba(255,255,255,.3)}
+.sb-val{width:36px;font-size:0.75rem;font-weight:600;text-align:right;color:#8b949e}
+.sb-year{position:absolute;font-size:0.6rem;color:rgba(255,255,255,.6);top:50%;transform:translateY(-50%);right:4px}
+
+/* Year selector for skills */
+.year-selector{display:flex;justify-content:center;gap:8px;margin-bottom:20px}
+.year-selector button{padding:6px 16px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#8b949e;cursor:pointer;font-size:0.82rem;transition:all .2s}
+.year-selector button:hover{border-color:#f0883e}
+.year-selector button.active{background:#9e6a03;border-color:#f0883e;color:#fff}
+
+/* Allganize Milestones */
+.milestone-section{margin-bottom:20px}
+.milestone-track{display:flex;gap:16px;overflow-x:auto;padding:4px}
+.milestone-card{flex:0 0 auto;width:240px;background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px;transition:all .3s}
+.milestone-card:hover{border-color:#f0883e;transform:translateY(-2px)}
+.milestone-card .ms-year{font-size:0.72rem;color:#f0883e;font-weight:600;margin-bottom:4px}
+.milestone-card .ms-title{font-size:0.9rem;font-weight:600;margin-bottom:6px}
+.milestone-card .ms-desc{font-size:0.78rem;color:#8b949e;line-height:1.4}
+.milestone-card .ms-role{font-size:0.75rem;color:#3fb950;margin-top:8px;padding-top:8px;border-top:1px solid #21262d}
+
+@media(max-width:768px){
+  .roadmap-nodes{flex-direction:column;gap:16px;align-items:flex-start;padding:0}
+  .roadmap-line{display:none}
+  .roadmap-node{flex-direction:row}
+  .detail-body{grid-template-columns:1fr}
+  .milestone-track{flex-direction:column}
+  .milestone-card{width:100%}
+  .container{padding:12px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>커리어 로드맵</h1>
+<p class="subtitle">5-Year Career Roadmap &mdash; Allganize 성장과 함께하는 여정</p>
+
+<!-- Main Roadmap -->
+<div class="roadmap-section">
+  <div class="section-title"><span class="icon">&#127899;</span> 5년 성장 로드맵</div>
+  <div class="roadmap-track">
+    <div class="roadmap-line"><div class="roadmap-progress" id="roadmapProgress"></div></div>
+    <div class="roadmap-nodes" id="roadmapNodes">
+      <div class="roadmap-node node-now" data-idx="0" onclick="selectNode(0)">
+        <div class="rn-dot">&#128187;</div>
+        <div class="rn-year">현재</div>
+        <div class="rn-title">인프라 전문가</div>
+      </div>
+      <div class="roadmap-node node-y1" data-idx="1" onclick="selectNode(1)">
+        <div class="rn-dot">&#9889;</div>
+        <div class="rn-year">1년차</div>
+        <div class="rn-title">Cloud Native Practitioner</div>
+      </div>
+      <div class="roadmap-node node-y3" data-idx="2" onclick="selectNode(2)">
+        <div class="rn-dot">&#127959;</div>
+        <div class="rn-year">3년차</div>
+        <div class="rn-title">Platform Architect</div>
+      </div>
+      <div class="roadmap-node node-y5" data-idx="3" onclick="selectNode(3)">
+        <div class="rn-dot">&#127775;</div>
+        <div class="rn-year">5년차</div>
+        <div class="rn-title">Tech Lead</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-header" id="detailHeader">
+      <span class="dh-badge" id="dhBadge">현재</span>
+      <span class="dh-title" id="dhTitle">인프라 전문가 (엠키스코어)</span>
+      <span class="dh-allganize" id="dhAllganize"></span>
+    </div>
+    <div class="detail-body" id="detailBody"></div>
+  </div>
+</div>
+
+<!-- Skill Growth -->
+<div class="skill-section">
+  <div class="section-title"><span class="icon">&#127793;</span> 스킬 성장 프로그레션</div>
+  <div class="year-selector" id="yearSelector">
+    <button class="active" onclick="selectYear(0)">현재</button>
+    <button onclick="selectYear(1)">1년차</button>
+    <button onclick="selectYear(2)">3년차</button>
+    <button onclick="selectYear(3)">5년차</button>
+  </div>
+  <div class="skill-container" id="skillContainer"></div>
+</div>
+
+<!-- Allganize Milestones -->
+<div class="milestone-section">
+  <div class="section-title"><span class="icon">&#128640;</span> Allganize 성장 마일스톤과 연계</div>
+  <div class="milestone-track">
+    <div class="milestone-card">
+      <div class="ms-year">1년차</div>
+      <div class="ms-title">상장 준비기</div>
+      <div class="ms-desc">서비스 안정성이 최우선. 안정적 운영 기여가 가장 큰 가치</div>
+      <div class="ms-role">&#128100; 나의 역할: 기존 시스템 이해 + 안정 운영 기여</div>
+    </div>
+    <div class="milestone-card">
+      <div class="ms-year">2~3년차</div>
+      <div class="ms-title">도쿄 상장 + 일본 확장</div>
+      <div class="ms-desc">일본/글로벌 고객 확대. 멀티 리전 인프라가 핵심 과제</div>
+      <div class="ms-role">&#128100; 나의 역할: 멀티 리전 아키텍처 설계 핵심 멤버</div>
+    </div>
+    <div class="milestone-card">
+      <div class="ms-year">4~5년차</div>
+      <div class="ms-title">글로벌 본격 확장</div>
+      <div class="ms-desc">여러 리전에 팀 분산. 표준화와 가이드라인 필요</div>
+      <div class="ms-role">&#128100; 나의 역할: 인프라 조직 테크 리드</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const nodeData=[
+  {
+    badge:'현재',badgeColor:'#8b949e',badgeBg:'#8b949e20',title:'인프라 전문가 (엠키스코어)',
+    allganize:'',
+    left:{title:'현재 역량',items:[
+      {icon:'&#9989;',text:'10년 인프라 운영 + 시스템 깊이'},
+      {icon:'&#9989;',text:'AI 데이터센터 컨설팅 경험'},
+      {icon:'&#9989;',text:'Ansible 기반 자동화'},
+      {icon:'&#9989;',text:'보안/폐쇄망 환경 설계'}
+    ]},
+    right:{title:'보완 필요',items:[
+      {icon:'&#128736;',text:'Kubernetes 프로덕션 레벨'},
+      {icon:'&#128736;',text:'Terraform 실무 경험'},
+      {icon:'&#128736;',text:'CI/CD 파이프라인 설계'},
+      {icon:'&#128736;',text:'클라우드 서비스 심화'}
+    ]}
+  },
+  {
+    badge:'1년차',badgeColor:'#58a6ff',badgeBg:'#58a6ff20',title:'Cloud Native Practitioner',
+    allganize:'Allganize: 상장 준비 &mdash; 안정성 최우선',
+    left:{title:'Q1-Q2 온보딩',items:[
+      {icon:'&#128218;',text:'인프라 아키텍처 문서 정독 + 페어 운영'},
+      {icon:'&#128269;',text:'CI/CD 파이프라인 전체 흐름 파악'},
+      {icon:'&#128276;',text:'모니터링/알럿 체계 이해'},
+      {icon:'&#128694;',text:'첫 온콜 참여 &mdash; 장애 대응 경험'}
+    ]},
+    right:{title:'Q3-Q4 기여',items:[
+      {icon:'&#128295;',text:'파이프라인 작은 개선점 PR 제출'},
+      {icon:'&#9881;',text:'반복 수동 작업 자동화 1-2건'},
+      {icon:'&#128196;',text:'내부 기술 문서 작성/개선'},
+      {icon:'&#127942;',text:'CKA 자격증 취득'}
+    ]}
+  },
+  {
+    badge:'3년차',badgeColor:'#a371f7',badgeBg:'#a371f720',title:'Platform Architect',
+    allganize:'Allganize: 도쿄 상장 &mdash; 글로벌 확장',
+    left:{title:'설계 역량',items:[
+      {icon:'&#127959;',text:'멀티 리전 배포 아키텍처 설계 참여'},
+      {icon:'&#127760;',text:'글로벌 CDN/트래픽 관리 전략 수립'},
+      {icon:'&#128200;',text:'SRE 프랙티스 도입 (SLO/SLI)'},
+      {icon:'&#128176;',text:'비용 최적화 프로젝트 리드'}
+    ]},
+    right:{title:'기술 인증',items:[
+      {icon:'&#127942;',text:'AWS SA Professional 취득'},
+      {icon:'&#128214;',text:'IaC 표준화 주도 (Terraform 모듈화)'},
+      {icon:'&#128227;',text:'기술 블로그 / 외부 발표 시작'},
+      {icon:'&#129309;',text:'크로스 팀 협업 주도'}
+    ]}
+  },
+  {
+    badge:'5년차',badgeColor:'#f0883e',badgeBg:'#f0883e20',title:'Tech Lead',
+    allganize:'Allganize: 글로벌 본격 확장기',
+    left:{title:'기술 리더십',items:[
+      {icon:'&#128506;',text:'인프라 팀 기술 로드맵 작성'},
+      {icon:'&#127891;',text:'주니어 멘토링 + 채용 면접 참여'},
+      {icon:'&#128220;',text:'장애 포스트모템 문화 정착'},
+      {icon:'&#127760;',text:'글로벌 인프라 조직 체계 수립'}
+    ]},
+    right:{title:'비전 설정',items:[
+      {icon:'&#128161;',text:'차세대 인프라 전략 (엣지, 서버리스)'},
+      {icon:'&#128227;',text:'기술 커뮤니티 발표/기고'},
+      {icon:'&#128101;',text:'DevOps/인프라 팀 방향 설정'},
+      {icon:'&#127775;',text:'Allganize 인프라 리더'}
+    ]}
+  }
+];
+
+const skillData={
+  categories:[
+    {name:'Cloud & Orchestration',icon:'&#9729;',skills:[
+      {name:'Kubernetes',vals:[40,75,90,95],color:'#58a6ff'},
+      {name:'Terraform',vals:[25,65,85,90],color:'#a371f7'},
+      {name:'AWS/GCP',vals:[30,60,85,92],color:'#3fb950'},
+      {name:'Helm/Kustomize',vals:[20,60,80,85],color:'#d29922'}
+    ]},
+    {name:'CI/CD & Automation',icon:'&#9881;',skills:[
+      {name:'GitHub Actions',vals:[35,70,85,90],color:'#58a6ff'},
+      {name:'ArgoCD/GitOps',vals:[20,60,85,90],color:'#a371f7'},
+      {name:'Ansible',vals:[80,85,85,85],color:'#3fb950'},
+      {name:'Docker Build',vals:[55,80,90,92],color:'#d29922'}
+    ]},
+    {name:'Observability & SRE',icon:'&#128202;',skills:[
+      {name:'Prometheus',vals:[40,70,88,92],color:'#58a6ff'},
+      {name:'Grafana',vals:[45,72,85,90],color:'#a371f7'},
+      {name:'SRE Practices',vals:[20,50,80,90],color:'#3fb950'},
+      {name:'Incident Mgmt',vals:[60,75,88,92],color:'#d29922'}
+    ]}
+  ]
+};
+
+let currentNode=0,currentYear=0;
+
+function selectNode(idx){
+  currentNode=idx;
+  const nodes=document.querySelectorAll('.roadmap-node');
+  nodes.forEach((n,i)=>{n.classList.toggle('active',i<=idx)});
+  const progress=document.getElementById('roadmapProgress');
+  progress.style.width=(idx/(nodes.length-1))*100+'%';
+  renderDetail(idx);
+  selectYear(idx);
+  document.querySelectorAll('.year-selector button').forEach((b,i)=>b.classList.toggle('active',i===idx));
+}
+
+function renderDetail(idx){
+  const d=nodeData[idx];
+  const panel=document.getElementById('detailPanel');
+  panel.style.borderColor=d.badgeColor+'60';
+  document.getElementById('dhBadge').textContent=d.badge;
+  document.getElementById('dhBadge').style.background=d.badgeBg;
+  document.getElementById('dhBadge').style.color=d.badgeColor;
+  document.getElementById('dhTitle').textContent=d.title;
+  document.getElementById('dhAllganize').innerHTML=d.allganize;
+  const body=document.getElementById('detailBody');
+  body.innerHTML=`
+    <div class="detail-col"><h4>${d.left.title}</h4>${d.left.items.map(it=>`<div class="detail-item"><span class="di-icon">${it.icon}</span><span>${it.text}</span></div>`).join('')}</div>
+    <div class="detail-col"><h4>${d.right.title}</h4>${d.right.items.map(it=>`<div class="detail-item"><span class="di-icon">${it.icon}</span><span>${it.text}</span></div>`).join('')}</div>
+  `;
+}
+
+function selectYear(idx){
+  currentYear=idx;
+  document.querySelectorAll('.year-selector button').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  renderSkills(idx);
+}
+
+function renderSkills(yearIdx){
+  const container=document.getElementById('skillContainer');
+  const yearLabels=['현재','1년차','3년차','5년차'];
+  container.innerHTML=skillData.categories.map(cat=>`
+    <div class="skill-category">
+      <div class="sc-header"><span class="sc-icon">${cat.icon}</span>${cat.name}</div>
+      <div class="skill-bars">
+        ${cat.skills.map(s=>`
+          <div class="skill-bar">
+            <div class="sb-label">${s.name}</div>
+            <div class="sb-track">
+              <div class="sb-fill" style="background:${s.color};width:0" data-w="${s.vals[yearIdx]}%"></div>
+            </div>
+            <div class="sb-val" style="color:${s.color}">${s.vals[yearIdx]}%</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+  setTimeout(()=>{
+    container.querySelectorAll('.sb-fill').forEach(el=>{el.style.width=el.dataset.w});
+  },50);
+}
+
+// Initialize
+selectNode(0);
+setTimeout(()=>selectNode(1),800);
+</script>
+</body>
+</html>

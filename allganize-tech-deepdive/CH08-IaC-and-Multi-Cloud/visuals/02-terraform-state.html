@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terraform State 관리 - State Management</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.tabs{display:flex;justify-content:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.tabs button{padding:6px 16px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#8b949e;cursor:pointer;font-size:0.82rem;transition:all .2s}
+.tabs button.active{background:#1f6feb;color:#e6edf3;border-color:#58a6ff}
+
+.scene{display:none;position:relative}
+.scene.active{display:block}
+
+/* Shared diagram styles */
+.diagram{position:relative;background:#161b22;border:1px solid #30363d;border-radius:12px;min-height:340px;padding:20px;overflow:hidden}
+.box{position:absolute;border-radius:10px;padding:14px;text-align:center;border:2px solid #30363d;background:#0d1117;font-size:0.8rem;transition:all 0.5s ease;opacity:0;transform:scale(0.8)}
+.box.show{opacity:1;transform:scale(1)}
+.box.highlight{border-color:#58a6ff;box-shadow:0 0 20px #58a6ff30}
+.box.warn{border-color:#d29922;box-shadow:0 0 20px #d2992230}
+.box.danger{border-color:#f85149;box-shadow:0 0 20px #f8514930}
+.box.success{border-color:#3fb950;box-shadow:0 0 20px #3fb95030}
+.box-title{font-weight:700;font-size:0.85rem;margin-bottom:4px}
+.box-sub{color:#8b949e;font-size:0.7rem}
+.box-icon{font-size:1.8rem;margin-bottom:6px}
+
+/* Animated data flow arrows */
+.flow-arrow{position:absolute;height:3px;background:linear-gradient(90deg,transparent,#58a6ff,transparent);border-radius:2px;opacity:0;transition:opacity 0.3s}
+.flow-arrow.active{opacity:1;animation:flowPulse 1.5s ease-in-out infinite}
+@keyframes flowPulse{0%,100%{opacity:0.4}50%{opacity:1}}
+
+.flow-arrow-v{position:absolute;width:3px;background:linear-gradient(180deg,transparent,#58a6ff,transparent);border-radius:2px;opacity:0;transition:opacity 0.3s}
+.flow-arrow-v.active{opacity:1;animation:flowPulse 1.5s ease-in-out infinite}
+
+/* Lock indicator */
+.lock-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;margin-top:6px}
+.lock-badge.locked{background:#d2992240;color:#d29922;border:1px solid #d2992260}
+.lock-badge.unlocked{background:#3fb95040;color:#3fb950;border:1px solid #3fb95060}
+
+/* State diff */
+.state-diff{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px;margin-top:16px;font-family:'Cascadia Code','Fira Code',monospace;font-size:0.73rem;max-height:180px;overflow-y:auto;line-height:1.7}
+.diff-add{color:#3fb950}.diff-del{color:#f85149}.diff-info{color:#58a6ff}.diff-warn{color:#d29922}
+
+.progress-bar{width:100%;height:4px;background:#21262d;border-radius:2px;margin:16px 0;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#58a6ff,#bc8cff);width:0%;transition:width 0.5s ease;border-radius:2px}
+
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:20px}
+.info-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px}
+.info-card h3{font-size:0.85rem;margin-bottom:6px;color:#58a6ff}
+.info-card p{font-size:0.78rem;color:#8b949e;line-height:1.5}
+
+@media(max-width:768px){.diagram{min-height:420px}.box{padding:10px;font-size:0.72rem}.container{padding:12px}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Terraform State 관리</h1>
+<p class="subtitle">State Management - Local vs Remote / Locking / Drift Detection / Import</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="play()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8635; 다시시작 Restart</button>
+</div>
+
+<div class="tabs">
+  <button class="active" onclick="switchTab(0)">Local vs Remote</button>
+  <button onclick="switchTab(1)">State Locking</button>
+  <button onclick="switchTab(2)">Drift Detection</button>
+  <button onclick="switchTab(3)">terraform import</button>
+</div>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<!-- Scene 0: Local vs Remote -->
+<div class="scene active" id="scene0">
+  <div class="diagram" id="diag0">
+    <!-- Local side -->
+    <div class="box" id="b0-dev" style="left:5%;top:10%;width:140px;--clr:#bc8cff">
+      <div class="box-icon">&#128187;</div>
+      <div class="box-title">Developer</div>
+      <div class="box-sub">개발자 로컬</div>
+    </div>
+    <div class="box" id="b0-localstate" style="left:5%;top:55%;width:140px">
+      <div class="box-icon">&#128196;</div>
+      <div class="box-title">terraform.tfstate</div>
+      <div class="box-sub">로컬 파일 (위험!)</div>
+    </div>
+
+    <!-- Remote side -->
+    <div class="box" id="b0-team" style="right:5%;top:5%;width:140px;--clr:#58a6ff">
+      <div class="box-icon">&#128101;</div>
+      <div class="box-title">Team</div>
+      <div class="box-sub">팀 협업</div>
+    </div>
+    <div class="box" id="b0-s3" style="right:18%;top:42%;width:140px">
+      <div class="box-icon">&#128230;</div>
+      <div class="box-title">S3 Bucket</div>
+      <div class="box-sub">원격 State 저장소</div>
+    </div>
+    <div class="box" id="b0-dynamo" style="right:2%;top:42%;width:140px">
+      <div class="box-icon">&#128274;</div>
+      <div class="box-title">DynamoDB</div>
+      <div class="box-sub">Lock Table</div>
+    </div>
+    <div class="box" id="b0-encrypt" style="right:10%;top:75%;width:160px">
+      <div class="box-icon">&#128272;</div>
+      <div class="box-title">KMS Encryption</div>
+      <div class="box-sub">State 암호화</div>
+    </div>
+
+    <!-- Center comparison -->
+    <div class="box" id="b0-vs" style="left:38%;top:30%;width:160px;background:#161b22">
+      <div class="box-title" style="color:#f85149">Local State 문제점</div>
+      <div class="box-sub" style="color:#f85149">충돌 / 유실 / 보안 위험</div>
+    </div>
+    <div class="box" id="b0-remote" style="left:38%;top:60%;width:160px;background:#161b22">
+      <div class="box-title" style="color:#3fb950">Remote State 장점</div>
+      <div class="box-sub" style="color:#3fb950">공유 / 잠금 / 암호화 / 버전관리</div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 1: State Locking -->
+<div class="scene" id="scene1">
+  <div class="diagram" id="diag1">
+    <div class="box" id="b1-dev1" style="left:2%;top:10%;width:130px">
+      <div class="box-icon">&#128104;&#8205;&#128187;</div>
+      <div class="box-title">Developer A</div>
+      <div class="box-sub">terraform plan</div>
+      <div class="lock-badge" id="lock1">--</div>
+    </div>
+    <div class="box" id="b1-dev2" style="left:2%;top:58%;width:130px">
+      <div class="box-icon">&#128105;&#8205;&#128187;</div>
+      <div class="box-title">Developer B</div>
+      <div class="box-sub">terraform plan</div>
+      <div class="lock-badge" id="lock2">--</div>
+    </div>
+    <div class="box" id="b1-dynamo" style="left:40%;top:30%;width:160px">
+      <div class="box-icon">&#128274;</div>
+      <div class="box-title">DynamoDB Lock</div>
+      <div class="box-sub" id="lockHolder">대기 중...</div>
+      <div class="lock-badge" id="lockState">--</div>
+    </div>
+    <div class="box" id="b1-state" style="right:5%;top:30%;width:150px">
+      <div class="box-icon">&#128230;</div>
+      <div class="box-title">S3 State</div>
+      <div class="box-sub">terraform.tfstate</div>
+    </div>
+  </div>
+  <div class="state-diff" id="lockLog"></div>
+</div>
+
+<!-- Scene 2: Drift Detection -->
+<div class="scene" id="scene2">
+  <div class="diagram" id="diag2">
+    <div class="box" id="b2-state" style="left:5%;top:15%;width:150px">
+      <div class="box-icon">&#128196;</div>
+      <div class="box-title">State File</div>
+      <div class="box-sub">기대 상태: t2.micro</div>
+    </div>
+    <div class="box" id="b2-actual" style="right:5%;top:15%;width:150px">
+      <div class="box-icon">&#9729;&#65039;</div>
+      <div class="box-title">Actual Infra</div>
+      <div class="box-sub" id="actualType">실제: t2.micro</div>
+    </div>
+    <div class="box" id="b2-console" style="right:5%;top:55%;width:150px">
+      <div class="box-icon">&#128104;&#8205;&#128187;</div>
+      <div class="box-title">Console 변경</div>
+      <div class="box-sub">수동으로 t2.large 변경!</div>
+    </div>
+    <div class="box" id="b2-plan" style="left:35%;top:55%;width:180px">
+      <div class="box-icon">&#128269;</div>
+      <div class="box-title">terraform plan</div>
+      <div class="box-sub" id="driftResult">--</div>
+    </div>
+    <div class="box" id="b2-reconcile" style="left:5%;top:55%;width:150px">
+      <div class="box-icon">&#9989;</div>
+      <div class="box-title">Reconcile</div>
+      <div class="box-sub" id="reconcileResult">--</div>
+    </div>
+  </div>
+  <div class="state-diff" id="driftLog"></div>
+</div>
+
+<!-- Scene 3: terraform import -->
+<div class="scene" id="scene3">
+  <div class="diagram" id="diag3">
+    <div class="box" id="b3-existing" style="left:5%;top:15%;width:160px">
+      <div class="box-icon">&#9729;&#65039;</div>
+      <div class="box-title">Existing Resource</div>
+      <div class="box-sub">콘솔로 만든 EC2 i-abc123</div>
+    </div>
+    <div class="box" id="b3-write" style="right:5%;top:15%;width:160px">
+      <div class="box-icon">&#128221;</div>
+      <div class="box-title">Write .tf Code</div>
+      <div class="box-sub">resource "aws_instance" 작성</div>
+    </div>
+    <div class="box" id="b3-import" style="left:35%;top:45%;width:200px">
+      <div class="box-icon">&#128229;</div>
+      <div class="box-title">terraform import</div>
+      <div class="box-sub" id="importStatus">--</div>
+    </div>
+    <div class="box" id="b3-state" style="left:5%;top:75%;width:160px">
+      <div class="box-icon">&#128196;</div>
+      <div class="box-title">State Updated</div>
+      <div class="box-sub" id="stateStatus">--</div>
+    </div>
+    <div class="box" id="b3-managed" style="right:5%;top:75%;width:160px">
+      <div class="box-icon">&#9989;</div>
+      <div class="box-title">Terraform Managed</div>
+      <div class="box-sub" id="managedStatus">--</div>
+    </div>
+  </div>
+  <div class="state-diff" id="importLog"></div>
+</div>
+
+<!-- Info -->
+<div class="info-grid">
+  <div class="info-card">
+    <h3>Remote State Backend</h3>
+    <p>S3+DynamoDB 조합이 AWS 환경의 표준입니다. 상태 파일을 S3에 저장하고 DynamoDB로 동시 접근을 방지합니다. 암호화, 버전관리가 필수입니다.</p>
+  </div>
+  <div class="info-card">
+    <h3>State Locking 상태 잠금</h3>
+    <p>terraform plan/apply 실행 시 자동으로 Lock을 획득합니다. 다른 사용자의 동시 변경을 방지하여 State 충돌을 예방합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3>Drift Detection 드리프트 감지</h3>
+    <p>콘솔에서 수동 변경 시 State와 실제 인프라가 불일치합니다. terraform plan이 이를 감지하고 코드 상태로 되돌리거나 코드를 업데이트합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3>terraform import</h3>
+    <p>기존 리소스를 Terraform 관리로 가져옵니다. 먼저 .tf 코드를 작성하고 import 명령으로 State에 매핑합니다. Terraform 1.5+에서는 import 블록을 지원합니다.</p>
+  </div>
+</div>
+</div>
+
+<script>
+let currentTab=0,timer=null,paused=false,step=0;
+const STEPS_PER_TAB=[10,12,12,10];
+
+function switchTab(idx){
+  currentTab=idx;
+  document.querySelectorAll('.scene').forEach((s,i)=>s.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tabs button').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  restart();
+}
+
+function showBox(id,cls){const el=document.getElementById(id);if(el){el.classList.add('show');if(cls)el.classList.add(cls);}}
+function resetBoxes(){document.querySelectorAll('.box').forEach(b=>{b.className='box';});}
+
+function tickScene0(){
+  if(step===0){showBox('b0-dev','show');showBox('b0-localstate','show');}
+  if(step===1){showBox('b0-localstate','danger');}
+  if(step===2){showBox('b0-vs','show');document.getElementById('b0-vs').classList.add('show','danger');}
+  if(step===4){showBox('b0-team','show');}
+  if(step===5){showBox('b0-s3','show');showBox('b0-s3','highlight');}
+  if(step===6){showBox('b0-dynamo','show');showBox('b0-dynamo','warn');}
+  if(step===7){showBox('b0-encrypt','show');showBox('b0-encrypt','success');}
+  if(step===8){showBox('b0-remote','show');document.getElementById('b0-remote').classList.add('show','success');}
+}
+
+function tickScene1(){
+  const ll=document.getElementById('lockLog');
+  function addLL(t,c){const d=document.createElement('div');d.className=c;d.textContent=t;ll.appendChild(d);ll.scrollTop=ll.scrollHeight;}
+  if(step===0){showBox('b1-dev1','show');showBox('b1-dev2','show');showBox('b1-dynamo','show');showBox('b1-state','show');}
+  if(step===1){addLL('Developer A: terraform plan 실행...','diff-info');document.getElementById('b1-dev1').classList.add('highlight');}
+  if(step===2){addLL('Lock 획득 요청 (DynamoDB PutItem)...','diff-info');document.getElementById('lockState').className='lock-badge locked';document.getElementById('lockState').textContent='LOCKED';document.getElementById('lockHolder').textContent='Owner: Dev A';document.getElementById('lock1').className='lock-badge locked';document.getElementById('lock1').textContent='Lock Acquired';}
+  if(step===3){addLL('Developer A: State 읽기 & Plan 실행 중...','diff-warn');document.getElementById('b1-state').classList.add('highlight');}
+  if(step===5){addLL('Developer B: terraform plan 실행 시도...','diff-info');document.getElementById('b1-dev2').classList.add('warn');}
+  if(step===6){addLL('Error: Error acquiring the state lock','diff-del');addLL('Lock Info: ID=xxx, Owner=Dev A','diff-del');document.getElementById('lock2').className='lock-badge locked';document.getElementById('lock2').textContent='BLOCKED';}
+  if(step===8){addLL('Developer A: Plan 완료, Apply 완료','diff-add');document.getElementById('lock1').className='lock-badge unlocked';document.getElementById('lock1').textContent='Done';}
+  if(step===9){addLL('Lock 해제 (DynamoDB DeleteItem)','diff-add');document.getElementById('lockState').className='lock-badge unlocked';document.getElementById('lockState').textContent='UNLOCKED';document.getElementById('lockHolder').textContent='사용 가능';}
+  if(step===10){addLL('Developer B: Lock 획득 성공!','diff-add');document.getElementById('lock2').className='lock-badge unlocked';document.getElementById('lock2').textContent='Lock OK';document.getElementById('b1-dev2').classList.remove('warn');document.getElementById('b1-dev2').classList.add('success');}
+}
+
+function tickScene2(){
+  const ll=document.getElementById('driftLog');
+  function addDL(t,c){const d=document.createElement('div');d.className=c;d.textContent=t;ll.appendChild(d);ll.scrollTop=ll.scrollHeight;}
+  if(step===0){showBox('b2-state','show');showBox('b2-actual','show');}
+  if(step===1){addDL('State: aws_instance.web -> instance_type = "t2.micro"','diff-info');document.getElementById('b2-state').classList.add('success');}
+  if(step===2){addDL('Actual: aws_instance.web -> instance_type = "t2.micro"','diff-add');document.getElementById('b2-actual').classList.add('success');addDL('State == Actual (일치)','diff-add');}
+  if(step===4){showBox('b2-console','show');document.getElementById('b2-console').classList.add('danger');addDL('--- 수동 콘솔 변경 발생! ---','diff-del');addDL('Console: instance_type changed t2.micro -> t2.large','diff-del');document.getElementById('actualType').textContent='실제: t2.large (변경됨!!)';document.getElementById('b2-actual').classList.remove('success');document.getElementById('b2-actual').classList.add('danger');}
+  if(step===6){showBox('b2-plan','show');document.getElementById('b2-plan').classList.add('warn');addDL('$ terraform plan','diff-info');addDL('Refreshing state...','diff-info');}
+  if(step===7){addDL('Note: Objects have changed outside of Terraform','diff-warn');addDL('  ~ aws_instance.web (drift detected)','diff-warn');document.getElementById('driftResult').textContent='Drift 감지! t2.large -> t2.micro 복원 필요';document.getElementById('driftResult').style.color='#d29922';}
+  if(step===9){showBox('b2-reconcile','show');addDL('$ terraform apply','diff-info');addDL('aws_instance.web: Modifying... [instance_type: t2.large -> t2.micro]','diff-add');}
+  if(step===10){document.getElementById('b2-reconcile').classList.add('success');document.getElementById('reconcileResult').textContent='t2.micro로 복원 완료!';document.getElementById('reconcileResult').style.color='#3fb950';document.getElementById('b2-actual').classList.remove('danger');document.getElementById('b2-actual').classList.add('success');document.getElementById('actualType').textContent='실제: t2.micro (복원됨)';addDL('Apply complete! Resources: 0 added, 1 changed, 0 destroyed.','diff-add');}
+}
+
+function tickScene3(){
+  const ll=document.getElementById('importLog');
+  function addIL(t,c){const d=document.createElement('div');d.className=c;d.textContent=t;ll.appendChild(d);ll.scrollTop=ll.scrollHeight;}
+  if(step===0){showBox('b3-existing','show');document.getElementById('b3-existing').classList.add('warn');addIL('기존 리소스 발견: i-abc123 (콘솔에서 생성됨)','diff-warn');}
+  if(step===2){showBox('b3-write','show');document.getElementById('b3-write').classList.add('highlight');addIL('resource "aws_instance" "web" { ... } 코드 작성','diff-info');}
+  if(step===4){showBox('b3-import','show');document.getElementById('b3-import').classList.add('highlight');addIL('$ terraform import aws_instance.web i-abc123','diff-info');document.getElementById('importStatus').textContent='Import 실행 중...';}
+  if(step===5){addIL('aws_instance.web: Importing...','diff-warn');addIL('aws_instance.web: Import prepared!','diff-warn');}
+  if(step===6){addIL('aws_instance.web: Import successful!','diff-add');document.getElementById('importStatus').textContent='Import 성공!';document.getElementById('importStatus').style.color='#3fb950';document.getElementById('b3-import').classList.remove('highlight');document.getElementById('b3-import').classList.add('success');}
+  if(step===7){showBox('b3-state','show');document.getElementById('b3-state').classList.add('success');document.getElementById('stateStatus').textContent='i-abc123 -> State 매핑 완료';addIL('State에 리소스 매핑 완료','diff-add');}
+  if(step===8){showBox('b3-managed','show');document.getElementById('b3-managed').classList.add('success');document.getElementById('managedStatus').textContent='이제 Terraform이 관리합니다';document.getElementById('managedStatus').style.color='#3fb950';addIL('terraform plan -> No changes. Infrastructure is up-to-date.','diff-add');}
+}
+
+function tick(){
+  if(paused)return;
+  const maxSteps=STEPS_PER_TAB[currentTab];
+  const pct=Math.min(100,((step+1)/maxSteps)*100);
+  document.getElementById('progressFill').style.width=pct+'%';
+
+  if(currentTab===0)tickScene0();
+  if(currentTab===1)tickScene1();
+  if(currentTab===2)tickScene2();
+  if(currentTab===3)tickScene3();
+
+  if(step>=maxSteps){clearInterval(timer);timer=null;return;}
+  step++;
+}
+
+function play(){
+  if(timer)return;paused=false;
+  document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');
+  timer=setInterval(tick,900);
+}
+function pause(){
+  paused=!paused;
+  document.getElementById('btnPause').classList.toggle('active',paused);
+  document.getElementById('btnPlay').classList.toggle('active',!paused);
+}
+function restart(){
+  clearInterval(timer);timer=null;step=0;paused=false;
+  document.getElementById('progressFill').style.width='0%';
+  resetBoxes();
+  ['lockLog','driftLog','importLog'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='';});
+  ['lock1','lock2','lockState'].forEach(id=>{const el=document.getElementById(id);if(el){el.className='lock-badge';el.textContent='--';}});
+  document.getElementById('lockHolder').textContent='대기 중...';
+  document.getElementById('actualType').textContent='실제: t2.micro';
+  document.getElementById('driftResult').textContent='--';document.getElementById('driftResult').style.color='';
+  document.getElementById('reconcileResult').textContent='--';document.getElementById('reconcileResult').style.color='';
+  document.getElementById('importStatus').textContent='--';document.getElementById('importStatus').style.color='';
+  document.getElementById('stateStatus').textContent='--';
+  document.getElementById('managedStatus').textContent='--';document.getElementById('managedStatus').style.color='';
+  play();
+}
+play();
+</script>
+</body>
+</html>

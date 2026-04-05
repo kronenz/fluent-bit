@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Scanning & Signing Pipeline | 이미지 스캔 및 서명 파이프라인</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.header h1{font-size:1.6rem;color:#58a6ff;margin-bottom:4px}
+.header p{font-size:.9rem;color:#8b949e}
+.controls{display:flex;justify-content:center;gap:10px;padding:14px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#c9d1d9;cursor:pointer;font-size:.85rem;transition:all .2s}
+.controls button:hover{border-color:#58a6ff;color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.section{padding:20px 16px;max-width:1100px;margin:0 auto}
+.section-title{font-size:1.1rem;color:#58a6ff;margin-bottom:16px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.section-title span{color:#8b949e;font-size:.8rem;font-weight:400;margin-left:8px}
+
+/* CI/CD Pipeline */
+.pipeline{display:flex;align-items:center;justify-content:flex-start;gap:0;padding:20px 0;overflow-x:auto;min-height:130px}
+.pipe-stage{min-width:130px;padding:14px 12px;border-radius:8px;border:2px solid #30363d;background:#161b22;text-align:center;opacity:0;transform:translateY(20px);transition:all .5s ease;position:relative;flex-shrink:0}
+.pipe-stage.show{opacity:1;transform:translateY(0)}
+.pipe-stage .icon{font-size:1.4rem;margin-bottom:4px}
+.pipe-stage .en{font-size:.78rem;font-weight:600;color:#c9d1d9}
+.pipe-stage .ko{font-size:.65rem;color:#8b949e;margin-top:2px}
+.pipe-stage.build{border-color:#58a6ff}.pipe-stage.build .icon{color:#58a6ff}
+.pipe-stage.scan{border-color:#d29922}.pipe-stage.scan .icon{color:#d29922}
+.pipe-stage.sign{border-color:#bd93f9}.pipe-stage.sign .icon{color:#bd93f9}
+.pipe-stage.push{border-color:#3fb950}.pipe-stage.push .icon{color:#3fb950}
+.pipe-stage.verify{border-color:#3fb950}.pipe-stage.verify .icon{color:#3fb950}
+.pipe-stage.deploy{border-color:#3fb950}.pipe-stage.deploy .icon{color:#3fb950}
+.pipe-stage.fail{border-color:#f85149}.pipe-stage.fail .icon{color:#f85149}
+
+.pipe-conn{width:36px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .4s;flex-shrink:0}
+.pipe-conn.show{opacity:1}
+.pipe-conn svg{width:28px;height:16px}
+.pipe-conn svg path{stroke:#3fb950;stroke-width:2;fill:none}
+@keyframes flowR{0%{stroke-dashoffset:20}100%{stroke-dashoffset:0}}
+.pipe-conn.animated svg path{stroke-dasharray:8 4;animation:flowR .8s linear infinite}
+
+.pipe-stage.active{box-shadow:0 0 20px rgba(88,166,255,.25)}
+@keyframes stagePulse{0%,100%{box-shadow:0 0 0 rgba(88,166,255,.3)}50%{box-shadow:0 0 20px rgba(88,166,255,.2)}}
+.pipe-stage.processing{animation:stagePulse 1.2s infinite}
+
+/* Vulnerability Scanning Detail */
+.scan-detail{display:flex;gap:20px;flex-wrap:wrap;margin-top:12px}
+.scan-panel{flex:1;min-width:280px;border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;opacity:0;transform:scale(.95);transition:all .5s ease}
+.scan-panel.show{opacity:1;transform:scale(1)}
+.scan-panel h4{font-size:.85rem;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #21262d;color:#d29922}
+
+.layer-scan{margin-bottom:8px;padding:8px;border-radius:4px;background:#0d1117;opacity:0;transform:translateX(-10px);transition:all .4s ease;font-size:.75rem}
+.layer-scan.show{opacity:1;transform:translateX(0)}
+.layer-scan .layer-name{color:#58a6ff;font-weight:600;margin-bottom:4px}
+.layer-scan .scan-bar{height:6px;border-radius:3px;background:#21262d;overflow:hidden;margin:4px 0}
+.layer-scan .scan-progress{height:100%;border-radius:3px;background:#3fb950;width:0;transition:width 1s ease}
+.layer-scan.show .scan-progress{width:100%}
+.layer-scan .result{font-size:.68rem;color:#8b949e}
+
+.cve-list{font-size:.72rem;line-height:1.8}
+.cve-item{padding:4px 8px;border-radius:4px;margin-bottom:4px;opacity:0;transform:translateX(10px);transition:all .4s ease}
+.cve-item.show{opacity:1;transform:translateX(0)}
+.cve-item.critical{background:rgba(248,81,73,.1);border-left:3px solid #f85149}
+.cve-item.high{background:rgba(210,153,34,.1);border-left:3px solid #d29922}
+.cve-item.medium{background:rgba(88,166,255,.1);border-left:3px solid #58a6ff}
+.cve-item.low{background:rgba(63,185,80,.1);border-left:3px solid #3fb950}
+.cve-item .sev{font-weight:600;font-size:.68rem}
+.cve-item.critical .sev{color:#f85149}
+.cve-item.high .sev{color:#d29922}
+.cve-item.medium .sev{color:#58a6ff}
+.cve-item.low .sev{color:#3fb950}
+
+/* Cosign Flow */
+.cosign-flow{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.cosign-step{display:flex;align-items:flex-start;gap:14px;padding:12px 16px;border:1px solid #30363d;border-radius:6px;background:#161b22;opacity:0;transform:translateX(-20px);transition:all .5s ease;font-size:.78rem}
+.cosign-step.show{opacity:1;transform:translateX(0)}
+.cosign-step .step-num{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.75rem;flex-shrink:0;background:rgba(189,147,249,.15);color:#bd93f9}
+.cosign-step code{background:#0d1117;padding:2px 6px;border-radius:3px;font-size:.68rem;color:#3fb950}
+.cosign-step .desc{color:#8b949e;font-size:.7rem;margin-top:4px}
+
+/* Registry Flow */
+.registry-flow{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:16px}
+.reg-box{border:1px solid #30363d;border-radius:8px;padding:14px 18px;background:#161b22;text-align:center;opacity:0;transform:translateY(20px);transition:all .5s ease;min-width:140px}
+.reg-box.show{opacity:1;transform:translateY(0)}
+.reg-box h5{font-size:.8rem;margin-bottom:6px}
+.reg-box.builder h5{color:#58a6ff}
+.reg-box.registry h5{color:#bd93f9}
+.reg-box.deployer h5{color:#3fb950}
+.reg-box .detail{font-size:.68rem;color:#8b949e;line-height:1.5}
+.reg-arrow{font-size:1.2rem;color:#58a6ff;opacity:0;transition:opacity .4s}
+.reg-arrow.show{opacity:1}
+.reg-arrow .label{font-size:.6rem;display:block;color:#8b949e}
+
+.sig-badge{display:inline-block;padding:3px 10px;border-radius:10px;font-size:.68rem;font-weight:600;margin-top:6px}
+.sig-valid{background:rgba(63,185,80,.15);color:#3fb950}
+.sig-invalid{background:rgba(248,81,73,.15);color:#f85149}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>Image Scanning & Signing Pipeline</h1>
+<p>이미지 스캔 및 서명 파이프라인 | CI/CD 이미지 보안 자동화</p>
+</div>
+
+<div class="controls">
+<button id="btnPlay" class="active" onclick="play()">&#9654; Play / 재생</button>
+<button id="btnPause" onclick="pause()">&#10074;&#10074; Pause / 일시정지</button>
+<button id="btnRestart" onclick="restart()">&#8634; Restart / 처음부터</button>
+</div>
+
+<!-- Section 1: CI/CD Pipeline -->
+<div class="section">
+<div class="section-title">1. CI/CD Image Pipeline <span>CI/CD 이미지 파이프라인</span></div>
+<div class="pipeline" id="pipeline">
+<div class="pipe-stage build" id="ps0">
+<div class="icon">&#9881;</div>
+<div class="en">Build</div>
+<div class="ko">이미지 빌드</div>
+</div>
+<div class="pipe-conn" id="pc0"><svg viewBox="0 0 28 16"><path d="M2 8 L20 8 M16 4 L22 8 L16 12"/></svg></div>
+<div class="pipe-stage scan" id="ps1">
+<div class="icon">&#128269;</div>
+<div class="en">Scan (Trivy)</div>
+<div class="ko">취약점 스캔</div>
+</div>
+<div class="pipe-conn" id="pc1"><svg viewBox="0 0 28 16"><path d="M2 8 L20 8 M16 4 L22 8 L16 12"/></svg></div>
+<div class="pipe-stage sign" id="ps2">
+<div class="icon">&#128274;</div>
+<div class="en">Sign (cosign)</div>
+<div class="ko">이미지 서명</div>
+</div>
+<div class="pipe-conn" id="pc2"><svg viewBox="0 0 28 16"><path d="M2 8 L20 8 M16 4 L22 8 L16 12"/></svg></div>
+<div class="pipe-stage push" id="ps3">
+<div class="icon">&#128230;</div>
+<div class="en">Push (Registry)</div>
+<div class="ko">레지스트리 푸시</div>
+</div>
+<div class="pipe-conn" id="pc3"><svg viewBox="0 0 28 16"><path d="M2 8 L20 8 M16 4 L22 8 L16 12"/></svg></div>
+<div class="pipe-stage verify" id="ps4">
+<div class="icon">&#9989;</div>
+<div class="en">Verify</div>
+<div class="ko">서명 검증</div>
+</div>
+<div class="pipe-conn" id="pc4"><svg viewBox="0 0 28 16"><path d="M2 8 L20 8 M16 4 L22 8 L16 12"/></svg></div>
+<div class="pipe-stage deploy" id="ps5">
+<div class="icon">&#128640;</div>
+<div class="en">Deploy</div>
+<div class="ko">배포</div>
+</div>
+</div>
+</div>
+
+<!-- Section 2: Vulnerability Scanning -->
+<div class="section">
+<div class="section-title">2. Vulnerability Scanning <span>취약점 스캐닝 상세</span></div>
+<div class="scan-detail">
+<div class="scan-panel" id="scanLayers">
+<h4>Layer-by-Layer Scan (레이어별 스캔)</h4>
+<div class="layer-scan" id="ls0">
+<div class="layer-name">Layer 1: ubuntu:22.04 (base)</div>
+<div class="scan-bar"><div class="scan-progress"></div></div>
+<div class="result">Scanned 247 packages / 3 CVEs found</div>
+</div>
+<div class="layer-scan" id="ls1">
+<div class="layer-name">Layer 2: apt-get install nodejs</div>
+<div class="scan-bar"><div class="scan-progress"></div></div>
+<div class="result">Scanned 89 packages / 5 CVEs found</div>
+</div>
+<div class="layer-scan" id="ls2">
+<div class="layer-name">Layer 3: npm install (dependencies)</div>
+<div class="scan-bar"><div class="scan-progress"></div></div>
+<div class="result">Scanned 312 packages / 2 CVEs found</div>
+</div>
+<div class="layer-scan" id="ls3">
+<div class="layer-name">Layer 4: COPY app source</div>
+<div class="scan-bar"><div class="scan-progress"></div></div>
+<div class="result">Scanned 15 files / 0 secrets found</div>
+</div>
+</div>
+<div class="scan-panel" id="cvePanel">
+<h4>CVE Detection Results (CVE 탐지 결과)</h4>
+<div class="cve-item critical" id="cv0">
+<div class="sev">CRITICAL</div>
+CVE-2024-3094 - xz-utils backdoor<br>
+<span style="color:#8b949e;font-size:.65rem">Score: 10.0 | Fix: upgrade to 5.6.2+</span>
+</div>
+<div class="cve-item high" id="cv1">
+<div class="sev">HIGH</div>
+CVE-2023-44487 - HTTP/2 Rapid Reset<br>
+<span style="color:#8b949e;font-size:.65rem">Score: 7.5 | Fix: upgrade nodejs to 18.19+</span>
+</div>
+<div class="cve-item high" id="cv2">
+<div class="sev">HIGH</div>
+CVE-2023-38545 - curl SOCKS5 heap overflow<br>
+<span style="color:#8b949e;font-size:.65rem">Score: 7.5 | Fix: upgrade curl to 8.4.0+</span>
+</div>
+<div class="cve-item medium" id="cv3">
+<div class="sev">MEDIUM</div>
+CVE-2023-4911 - glibc Looney Tunables<br>
+<span style="color:#8b949e;font-size:.65rem">Score: 5.5 | Fix: upgrade glibc to 2.38+</span>
+</div>
+<div class="cve-item low" id="cv4">
+<div class="sev">LOW</div>
+CVE-2023-29499 - gnome GVariant parsing<br>
+<span style="color:#8b949e;font-size:.65rem">Score: 3.3 | Fix: upgrade glib to 2.78+</span>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 3: Cosign Signing & Verification -->
+<div class="section">
+<div class="section-title">3. cosign Signature Flow <span>cosign 서명 및 검증 흐름</span></div>
+<div class="cosign-flow" id="cosignFlow">
+<div class="cosign-step" id="cs0">
+<div class="step-num">1</div>
+<div>
+<div><b>키 생성 (Key Generation)</b></div>
+<code>cosign generate-key-pair</code>
+<div class="desc">cosign.key (개인키) + cosign.pub (공개키) 생성 / KMS 연동 가능 (AWS KMS, GCP KMS, Vault)</div>
+</div>
+</div>
+<div class="cosign-step" id="cs1">
+<div class="step-num">2</div>
+<div>
+<div><b>이미지 서명 (Image Signing)</b></div>
+<code>cosign sign --key cosign.key registry.io/myapp:v1.0</code>
+<div class="desc">이미지 digest에 대해 서명 생성, 서명은 OCI artifact로 레지스트리에 함께 저장됨</div>
+</div>
+</div>
+<div class="cosign-step" id="cs2">
+<div class="step-num">3</div>
+<div>
+<div><b>서명 검증 (Signature Verification)</b></div>
+<code>cosign verify --key cosign.pub registry.io/myapp:v1.0</code>
+<div class="desc">배포 전 서명 유효성 확인. 검증 실패 시 배포 차단 (Admission Controller 연동)</div>
+</div>
+</div>
+<div class="cosign-step" id="cs3">
+<div class="step-num">4</div>
+<div>
+<div><b>Keyless Signing (Sigstore / Fulcio)</b></div>
+<code>cosign sign --identity-token=$(gcloud auth print-identity-token) registry.io/myapp:v1.0</code>
+<div class="desc">OIDC identity 기반 서명. 개인키 관리 불필요. GitHub Actions OIDC와 자연스럽게 연동</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 4: Registry Push/Pull Flow -->
+<div class="section">
+<div class="section-title">4. Registry Flow <span>레지스트리 Push / Pull + 서명 검증</span></div>
+<div class="registry-flow">
+<div class="reg-box builder" id="rb0">
+<h5>CI Builder</h5>
+<div class="detail">
+docker build<br>
+trivy scan<br>
+cosign sign
+</div>
+</div>
+<div class="reg-arrow" id="ra0">&#10132;<div class="label">push + sig</div></div>
+<div class="reg-box registry" id="rb1">
+<h5>OCI Registry</h5>
+<div class="detail">
+Image Manifest<br>
+Layer Blobs<br>
+<span style="color:#bd93f9">Signature (OCI artifact)</span><br>
+<span style="color:#d29922">SBOM (OCI artifact)</span>
+</div>
+</div>
+<div class="reg-arrow" id="ra1">&#10132;<div class="label">pull + verify</div></div>
+<div class="reg-box deployer" id="rb2">
+<h5>Kubernetes Cluster</h5>
+<div class="detail">
+Admission Controller<br>
+(Kyverno / OPA)<br>
+<span class="sig-badge sig-valid">Signature Valid</span><br>
+</div>
+</div>
+</div>
+<div style="max-width:700px;margin:16px auto 0;padding:14px;border:1px solid #30363d;border-radius:8px;background:#161b22;opacity:0;transition:opacity .5s;font-size:.72rem;line-height:1.7" id="admissionNote">
+<div style="color:#3fb950;font-weight:600;margin-bottom:6px">Admission Controller Policy (Kyverno 예시)</div>
+<pre style="background:#0d1117;padding:10px;border-radius:4px;font-size:.68rem;overflow-x:auto;color:#c9d1d9"><span style="color:#58a6ff">apiVersion:</span> kyverno.io/v1
+<span style="color:#58a6ff">kind:</span> ClusterPolicy
+<span style="color:#58a6ff">metadata:</span>
+  <span style="color:#58a6ff">name:</span> verify-image-signature
+<span style="color:#58a6ff">spec:</span>
+  <span style="color:#58a6ff">rules:</span>
+  - <span style="color:#58a6ff">name:</span> check-cosign
+    <span style="color:#58a6ff">match:</span>
+      <span style="color:#58a6ff">any:</span>
+      - <span style="color:#58a6ff">resources:</span>
+          <span style="color:#58a6ff">kinds:</span> [Pod]
+    <span style="color:#58a6ff">verifyImages:</span>
+    - <span style="color:#58a6ff">imageReferences:</span> ["registry.io/myapp:*"]
+      <span style="color:#58a6ff">attestors:</span>
+      - <span style="color:#58a6ff">entries:</span>
+        - <span style="color:#58a6ff">keys:</span>
+            <span style="color:#58a6ff">publicKeys:</span> |
+              <span style="color:#3fb950">-----BEGIN PUBLIC KEY-----</span>
+              <span style="color:#8b949e">MFkwEwYHKoZI...</span>
+              <span style="color:#3fb950">-----END PUBLIC KEY-----</span></pre>
+<div style="color:#8b949e;margin-top:6px">서명되지 않은 이미지는 <span style="color:#f85149">배포 거부</span> / 서명된 이미지만 <span style="color:#3fb950">배포 허용</span></div>
+</div>
+</div>
+
+<script>
+let timer=null,step=0,playing=false;
+const totalSteps=30;
+
+function animateStep(s){
+  // Pipeline stages: 0-11 (6 stages + 5 connectors)
+  if(s<=11){
+    if(s%2===0){
+      const ps=document.getElementById('ps'+(s/2));
+      if(ps){ps.classList.add('show','processing');}
+      // stop previous processing
+      if(s>0){const prev=document.getElementById('ps'+(s/2-1));if(prev)prev.classList.remove('processing');}
+    }else{
+      const pc=document.getElementById('pc'+Math.floor(s/2));
+      if(pc){pc.classList.add('show','animated');}
+    }
+    if(s===11){const last=document.getElementById('ps5');if(last)last.classList.remove('processing');}
+  }
+  // Scan panel + layers: 12-17
+  if(s===12){document.getElementById('scanLayers').classList.add('show')}
+  if(s>=13&&s<=16){document.getElementById('ls'+(s-13)).classList.add('show')}
+  // CVE panel + items: 17-22
+  if(s===17){document.getElementById('cvePanel').classList.add('show')}
+  if(s>=18&&s<=22){document.getElementById('cv'+(s-18)).classList.add('show')}
+  // Cosign steps: 23-26
+  if(s>=23&&s<=26){document.getElementById('cs'+(s-23)).classList.add('show')}
+  // Registry flow: 27-30
+  if(s===27){document.getElementById('rb0').classList.add('show')}
+  if(s===28){document.getElementById('ra0').classList.add('show');document.getElementById('rb1').classList.add('show');}
+  if(s===29){document.getElementById('ra1').classList.add('show');document.getElementById('rb2').classList.add('show');document.getElementById('admissionNote').style.opacity='1';}
+}
+
+function play(){
+  if(playing)return;playing=true;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  timer=setInterval(()=>{if(step>=totalSteps){pause();return;}animateStep(step);step++;},550);
+}
+function pause(){
+  playing=false;clearInterval(timer);
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function restart(){
+  pause();step=0;
+  document.querySelectorAll('.pipe-stage,.pipe-conn,.scan-panel,.layer-scan,.cve-item,.cosign-step,.reg-box,.reg-arrow').forEach(e=>e.classList.remove('show','processing','animated'));
+  document.getElementById('admissionNote').style.opacity='0';
+  setTimeout(play,300);
+}
+window.addEventListener('load',()=>setTimeout(play,500));
+</script>
+</body>
+</html>

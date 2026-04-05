@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Server Request Flow | API 서버 요청 처리 흐름</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+.hdr{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.hdr h1{font-size:1.5rem;color:#58a6ff;margin-bottom:4px}
+.hdr p{font-size:.85rem;color:#8b949e}
+.hdr .key{display:inline-block;background:#1f6feb22;border:1px solid #1f6feb;border-radius:4px;padding:1px 8px;font-size:.7rem;color:#58a6ff;margin-top:4px}
+.ctrls{display:flex;justify-content:center;gap:10px;padding:14px}
+.ctrls button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:7px 18px;cursor:pointer;font-size:.85rem;transition:background .2s}
+.ctrls button:hover{background:#30363d}
+.ctrls button.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.si{text-align:center;font-size:.8rem;color:#8b949e;padding:2px}
+.si .c{color:#58a6ff;font-weight:600}
+
+.canvas{position:relative;width:100%;max-width:960px;margin:0 auto;padding:20px 0}
+
+/* Pipeline */
+.pipeline{display:flex;flex-direction:column;align-items:center;gap:0;padding:0 40px}
+.stage{width:100%;max-width:700px;display:flex;align-items:stretch;gap:0;opacity:0;transform:translateY(10px);transition:all .5s}
+.stage.vis{opacity:1;transform:translateY(0)}
+.stage.pass .gate{border-color:#3fb950;background:#0c2d1e}.stage.pass .gate-icon{color:#3fb950}
+.stage.reject .gate{border-color:#f85149;background:#2d0c0c}.stage.reject .gate-icon{color:#f85149}
+.stage.active .sbox{box-shadow:0 0 20px rgba(88,166,255,.3)}
+
+.snum{width:36px;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:#58a6ff;flex-shrink:0}
+.sbox{flex:1;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;transition:all .4s}
+.sbox .stitle{font-size:.85rem;font-weight:600;margin-bottom:4px}
+.sbox .sdesc{font-size:.68rem;color:#8b949e;line-height:1.4}
+.sbox .stags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.stag{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:2px 7px;font-size:.6rem;color:#c9d1d9}
+
+.gate{width:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid #30363d;border-radius:8px;margin-left:8px;transition:all .4s;background:#161b22}
+.gate-icon{font-size:1.2rem;transition:color .3s}
+.gate-label{font-size:.55rem;color:#8b949e;margin-top:2px}
+
+.arrow-down{text-align:center;color:#30363d;font-size:1.2rem;padding:2px 0;opacity:0;transition:opacity .3s}
+.arrow-down.vis{opacity:1;color:#3fb950}
+
+/* Webhook callout */
+.webhook{position:relative;margin-left:auto;margin-right:auto;width:100%;max-width:700px;opacity:0;transition:all .5s}
+.webhook.vis{opacity:1}
+.wh-box{position:absolute;right:-20px;top:-10px;width:200px;background:#1a0c2e;border:2px solid #a371f7;border-radius:8px;padding:10px;opacity:0;transform:translateX(10px);transition:all .5s}
+.wh-box.vis{opacity:1;transform:translateX(0)}
+.wh-box .wh-title{font-size:.72rem;font-weight:600;color:#a371f7;margin-bottom:4px}
+.wh-box .wh-desc{font-size:.6rem;color:#8b949e;line-height:1.4}
+.wh-line{position:absolute;right:60px;top:0;width:2px;height:30px;background:#a371f7;opacity:0;transition:opacity .3s}
+.wh-line.vis{opacity:1}
+
+/* Result banner */
+.result{max-width:700px;margin:12px auto;padding:12px 20px;border-radius:8px;text-align:center;font-size:.85rem;font-weight:600;opacity:0;transition:all .5s}
+.result.vis{opacity:1}
+.result.success{background:#0c2d1e;border:2px solid #3fb950;color:#3fb950}
+.result.failure{background:#2d0c0c;border:2px solid #f85149;color:#f85149}
+
+.info{max-width:960px;margin:10px auto;padding:0 16px}
+.info-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;font-size:.78rem;line-height:1.6;min-height:60px}
+.info-box .st{color:#58a6ff;font-weight:700;margin-bottom:4px}
+.info-box .d{color:#c9d1d9}
+.info-box .dk{color:#8b949e;font-size:.72rem}
+
+/* Scenario toggle */
+.scenario-toggle{display:flex;justify-content:center;gap:8px;padding:6px}
+.sc-btn{background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:5px 14px;font-size:.72rem;cursor:pointer;transition:all .2s}
+.sc-btn:hover{background:#30363d}
+.sc-btn.on{background:#0c2d1e;color:#3fb950;border-color:#3fb950}
+.sc-btn.reject-on{background:#2d0c0c;color:#f85149;border-color:#f85149}
+
+@media(max-width:700px){.canvas{transform:scale(.7);transform-origin:top center}.sbox{padding:8px 10px}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>API Server Request Processing Flow</h1>
+  <p>kube-apiserver 요청 처리 파이프라인</p>
+  <div class="key">KEY VISUAL</div>
+</div>
+<div class="ctrls">
+  <button id="bp" class="on" onclick="play()">&#9654; Play</button>
+  <button id="bpa" onclick="pause()">&#10074;&#10074; Pause</button>
+  <button id="br" onclick="restart()">&#8635; Restart</button>
+</div>
+<div class="si">Step <span id="cs" class="c">0</span> / <span id="ts">7</span></div>
+<div class="scenario-toggle">
+  <button class="sc-btn on" id="scPass" onclick="setScenario('pass')">&#10003; Success Flow</button>
+  <button class="sc-btn" id="scReject" onclick="setScenario('reject')">&#10007; Reject Flow (RBAC)</button>
+</div>
+
+<div class="canvas">
+  <div class="pipeline" id="pipeline">
+    <!-- Client -->
+    <div class="stage" id="s0">
+      <div class="snum">&#9654;</div>
+      <div class="sbox">
+        <div class="stitle" style="color:#58a6ff">Client Request (HTTPS)</div>
+        <div class="sdesc">kubectl apply -f deployment.yaml</div>
+        <div class="stags"><span class="stag">POST /apis/apps/v1/namespaces/default/deployments</span></div>
+      </div>
+      <div class="gate"><div class="gate-icon">&#128274;</div><div class="gate-label">TLS</div></div>
+    </div>
+    <div class="arrow-down" id="ad0">&#9660;</div>
+
+    <!-- Authentication -->
+    <div class="stage" id="s1">
+      <div class="snum">1</div>
+      <div class="sbox">
+        <div class="stitle" style="color:#d29922">Authentication (&#51064;&#51613;)</div>
+        <div class="sdesc">"Who are you?" - Verify identity of the requester</div>
+        <div class="stags">
+          <span class="stag">X.509 Cert</span><span class="stag">Bearer Token</span>
+          <span class="stag">OIDC</span><span class="stag">ServiceAccount</span>
+        </div>
+      </div>
+      <div class="gate" id="g1"><div class="gate-icon" id="gi1">&#9711;</div><div class="gate-label">PASS?</div></div>
+    </div>
+    <div class="arrow-down" id="ad1">&#9660;</div>
+
+    <!-- Authorization -->
+    <div class="stage" id="s2">
+      <div class="snum">2</div>
+      <div class="sbox">
+        <div class="stitle" style="color:#f0883e">Authorization / RBAC (&#51064;&#44032;)</div>
+        <div class="sdesc">"What can you do?" - Check permissions via Role/ClusterRole bindings</div>
+        <div class="stags">
+          <span class="stag">RBAC</span><span class="stag">ABAC</span>
+          <span class="stag">Webhook</span><span class="stag">Node Auth</span>
+        </div>
+      </div>
+      <div class="gate" id="g2"><div class="gate-icon" id="gi2">&#9711;</div><div class="gate-label">PASS?</div></div>
+    </div>
+    <div class="arrow-down" id="ad2">&#9660;</div>
+
+    <!-- Mutating Admission -->
+    <div class="stage" id="s3">
+      <div class="snum">3</div>
+      <div class="sbox">
+        <div class="stitle" style="color:#a371f7">Mutating Admission Webhooks</div>
+        <div class="sdesc">Can MODIFY the resource: inject sidecars, set defaults, add labels</div>
+        <div class="stags">
+          <span class="stag">Istio Sidecar Inject</span><span class="stag">Default StorageClass</span>
+          <span class="stag">PodPreset</span>
+        </div>
+      </div>
+      <div class="gate" id="g3"><div class="gate-icon" id="gi3">&#9711;</div><div class="gate-label">PASS?</div></div>
+    </div>
+    <div class="arrow-down" id="ad3">&#9660;</div>
+
+    <!-- Schema Validation -->
+    <div class="stage" id="s4">
+      <div class="snum">4</div>
+      <div class="sbox">
+        <div class="stitle" style="color:#39d2c0">Schema Validation (&#44160;&#51613;)</div>
+        <div class="sdesc">Validate resource against OpenAPI schema. Check required fields, types, formats.</div>
+        <div class="stags">
+          <span class="stag">OpenAPI v3</span><span class="stag">Field Types</span>
+          <span class="stag">Required Fields</span>
+        </div>
+      </div>
+      <div class="gate" id="g4"><div class="gate-icon" id="gi4">&#9711;</div><div class="gate-label">VALID?</div></div>
+    </div>
+    <div class="arrow-down" id="ad4">&#9660;</div>
+
+    <!-- Validating Admission -->
+    <div class="stage" id="s5">
+      <div class="snum">5</div>
+      <div class="sbox">
+        <div class="stitle" style="color:#f778ba">Validating Admission Webhooks</div>
+        <div class="sdesc">Can only REJECT, cannot modify. Enforce policies: image registry, resource limits.</div>
+        <div class="stags">
+          <span class="stag">OPA/Gatekeeper</span><span class="stag">Kyverno</span>
+          <span class="stag">Image Policy</span>
+        </div>
+      </div>
+      <div class="gate" id="g5"><div class="gate-icon" id="gi5">&#9711;</div><div class="gate-label">PASS?</div></div>
+    </div>
+    <div class="arrow-down" id="ad5">&#9660;</div>
+
+    <!-- etcd Write -->
+    <div class="stage" id="s6">
+      <div class="snum">6</div>
+      <div class="sbox">
+        <div class="stitle" style="color:#3fb950">etcd Write (&#51200;&#51109;)</div>
+        <div class="sdesc">Resource persisted to etcd. Object gets resourceVersion, UID, creationTimestamp.</div>
+        <div class="stags">
+          <span class="stag">/registry/deployments/default/my-app</span>
+        </div>
+      </div>
+      <div class="gate" id="g6"><div class="gate-icon" id="gi6">&#9711;</div><div class="gate-label">WRITE</div></div>
+    </div>
+  </div>
+
+  <div class="result" id="resultBanner"></div>
+</div>
+
+<div class="info"><div class="info-box" id="ib">
+  <div class="st">Ready</div><div class="d">Press Play to see the full API request processing pipeline.</div><div class="dk">Play 버튼을 눌러 API 요청 처리 파이프라인 전체를 확인하세요.</div>
+</div></div>
+
+<script>
+const g=id=>document.getElementById(id);
+let scenario='pass',cur=0,timer=null,paused=false;
+
+const stepsPass=[
+  {t:"Client Request",d:"Client sends HTTPS request to kube-apiserver. TLS terminates at the API server. Request contains the resource manifest and authentication credentials.",k:"클라이언트가 kube-apiserver에 HTTPS 요청을 보냅니다. TLS는 API 서버에서 종료됩니다. 요청에는 리소스 매니페스트와 인증 자격증명이 포함됩니다.",
+   fn(){vis('s0');g('s0').classList.add('pass','active');ad('ad0')}},
+  {t:"Step 1: Authentication",d:"API server verifies identity. Tries multiple authenticators in order: X.509 client cert, Bearer token, OIDC. First success wins. Returns user info (username, groups, UID).",k:"API 서버가 신원을 확인합니다. X.509 인증서, Bearer 토큰, OIDC 등 여러 인증기를 순서대로 시도합니다. 첫 번째 성공 시 사용자 정보(username, groups, UID)를 반환합니다.",
+   fn(){vis('s1');g('s1').classList.add('active');setTimeout(()=>{g('s1').classList.add('pass');g('gi1').innerHTML='&#10003;';ad('ad1')},600)}},
+  {t:"Step 2: Authorization (RBAC)",d:"Checks if the authenticated user has permission for the requested action. RBAC evaluates: Subject (user/group/SA) + Verb (get/create/update/delete) + Resource + Namespace.",k:"인증된 사용자가 요청한 작업에 대한 권한이 있는지 확인합니다. RBAC은 Subject(user/group/SA) + Verb(get/create 등) + Resource + Namespace를 평가합니다.",
+   fn(){vis('s2');g('s2').classList.add('active');setTimeout(()=>{g('s2').classList.add('pass');g('gi2').innerHTML='&#10003;';ad('ad2')},600)}},
+  {t:"Step 3: Mutating Admission",d:"Mutating webhooks can MODIFY the resource before validation. Example: Istio injects sidecar container, default ServiceAccount token is mounted, labels/annotations added.",k:"Mutating 웹훅이 검증 전에 리소스를 수정할 수 있습니다. 예: Istio가 사이드카 컨테이너를 주입, 기본 ServiceAccount 토큰 마운트, 레이블/어노테이션 추가.",
+   fn(){vis('s3');g('s3').classList.add('active');setTimeout(()=>{g('s3').classList.add('pass');g('gi3').innerHTML='&#10003;';ad('ad3')},600)}},
+  {t:"Step 4: Schema Validation",d:"Validates the (possibly mutated) resource against the OpenAPI schema. Checks required fields, correct types, enum values. Pure structural validation.",k:"(변형된) 리소스를 OpenAPI 스키마로 검증합니다. 필수 필드, 올바른 타입, enum 값을 확인합니다. 순수한 구조적 검증.",
+   fn(){vis('s4');g('s4').classList.add('active');setTimeout(()=>{g('s4').classList.add('pass');g('gi4').innerHTML='&#10003;';ad('ad4')},600)}},
+  {t:"Step 5: Validating Admission",d:"Validating webhooks can only ACCEPT or REJECT (no modification). Enforce custom policies: only trusted image registries, resource limits must be set, no privileged containers.",k:"Validating 웹훅은 승인 또는 거부만 가능합니다(수정 불가). 커스텀 정책을 적용합니다: 신뢰할 수 있는 이미지 레지스트리만, 리소스 제한 필수, 특권 컨테이너 금지 등.",
+   fn(){vis('s5');g('s5').classList.add('active');setTimeout(()=>{g('s5').classList.add('pass');g('gi5').innerHTML='&#10003;';ad('ad5')},600)}},
+  {t:"Step 6: etcd Write - Success!",d:"All gates passed! Resource is written to etcd with metadata (resourceVersion, UID, creationTimestamp). API server returns 201 Created response to client.",k:"모든 단계를 통과했습니다! 리소스가 메타데이터(resourceVersion, UID, creationTimestamp)와 함께 etcd에 저장됩니다. API 서버가 클라이언트에 201 Created 응답을 반환합니다.",
+   fn(){vis('s6');g('s6').classList.add('active');setTimeout(()=>{g('s6').classList.add('pass');g('gi6').innerHTML='&#10003;';const r=g('resultBanner');r.className='result vis success';r.textContent='201 Created - Resource successfully persisted to etcd'},600)}}
+];
+
+const stepsReject=[
+  {t:"Client Request",d:"Client sends request to create a Deployment in the production namespace.",k:"클라이언트가 production 네임스페이스에 Deployment를 생성하는 요청을 보냅니다.",
+   fn(){vis('s0');g('s0').classList.add('pass','active');ad('ad0')}},
+  {t:"Step 1: Authentication - PASS",d:"User identity verified successfully via X.509 client certificate.",k:"X.509 클라이언트 인증서로 사용자 신원이 성공적으로 확인되었습니다.",
+   fn(){vis('s1');g('s1').classList.add('active');setTimeout(()=>{g('s1').classList.add('pass');g('gi1').innerHTML='&#10003;';ad('ad1')},600)}},
+  {t:"Step 2: Authorization (RBAC) - REJECTED!",d:"User 'dev-user' in group 'developers' does not have 'create' permission for 'deployments' in namespace 'production'. The RoleBinding only grants access to 'staging' namespace. Request is rejected with 403 Forbidden.",k:"'developers' 그룹의 'dev-user'는 'production' 네임스페이스에서 'deployments'에 대한 'create' 권한이 없습니다. RoleBinding이 'staging' 네임스페이스에만 접근 권한을 부여합니다. 403 Forbidden으로 요청이 거부됩니다.",
+   fn(){vis('s2');g('s2').classList.add('active');setTimeout(()=>{g('s2').classList.add('reject');g('gi2').innerHTML='&#10007;';const r=g('resultBanner');r.className='result vis failure';r.textContent='403 Forbidden - RBAC: user "dev-user" cannot create deployments in namespace "production"'},800)}}
+];
+
+function vis(id){g(id).classList.add('vis')}
+function ad(id){g(id).classList.add('vis')}
+
+function getSteps(){return scenario==='pass'?stepsPass:stepsReject}
+function setScenario(s){
+  scenario=s;
+  g('scPass').classList.toggle('on',s==='pass');g('scPass').classList.remove('reject-on');
+  g('scReject').classList.toggle('reject-on',s==='reject');g('scReject').classList.remove('on');
+  restart();
+}
+
+function info(s){g('ib').innerHTML=`<div class="st">${s.t}</div><div class="d">${s.d}</div><div class="dk">${s.k}</div>`}
+function runStep(){
+  const ss=getSteps();
+  if(cur>=ss.length){clearInterval(timer);timer=null;return}
+  const s=ss[cur];s.fn();info(s);g('cs').textContent=cur+1;cur++;
+}
+function play(){if(timer)return;paused=false;g('bp').classList.add('on');g('bpa').classList.remove('on');runStep();timer=setInterval(()=>{if(!paused)runStep()},2200)}
+function pause(){paused=true;g('bpa').classList.add('on');g('bp').classList.remove('on')}
+function restart(){
+  clearInterval(timer);timer=null;cur=0;paused=false;
+  g('bp').classList.remove('on');g('bpa').classList.remove('on');
+  for(let i=0;i<=6;i++){const s=g('s'+i);s.classList.remove('vis','pass','reject','active')}
+  for(let i=0;i<=5;i++)g('ad'+i).classList.remove('vis');
+  for(let i=1;i<=6;i++)g('gi'+i).innerHTML='&#9711;';
+  g('resultBanner').className='result';g('resultBanner').textContent='';
+  g('cs').textContent='0';g('ts').textContent=getSteps().length;
+  g('ib').innerHTML='<div class="st">Ready</div><div class="d">Press Play.</div><div class="dk">Play를 누르세요.</div>';
+  setTimeout(play,300);
+}
+document.addEventListener('DOMContentLoaded',()=>{g('ts').textContent=getSteps().length;setTimeout(play,600)});
+</script>
+</body>
+</html>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infrastructure Scripting - 인프라 스크립팅 시각화</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1300px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:24px;overflow:hidden}
+.section h2{font-size:1.1rem;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.badge{padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:600}
+.progress-bar{height:4px;background:#21262d;border-radius:2px;margin-top:16px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#58a6ff,#bc8cff);width:0%;transition:width .3s;border-radius:2px}
+.op-label{text-align:center;color:#8b949e;font-size:.82rem;margin-top:8px;min-height:24px}
+.op-label code{background:#30363d;padding:2px 8px;border-radius:4px;font-family:'Fira Code',monospace;color:#f0883e;font-size:.78rem}
+
+/* Pipeline flow */
+.pipe-flow{display:flex;align-items:center;gap:0;justify-content:center;flex-wrap:wrap;padding:20px 0}
+.pipe-stage{display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;opacity:0;transform:translateY(20px);transition:all .5s ease;max-width:140px}
+.pipe-stage.visible{opacity:1;transform:translateY(0)}
+.pipe-stage .icon-box{width:72px;height:72px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;border:2px solid transparent;position:relative;transition:all .3s}
+.pipe-stage .icon-box.active{box-shadow:0 0 20px var(--glow);transform:scale(1.1)}
+.pipe-stage .icon-box.done{opacity:.7}
+.pipe-stage .label{font-size:.72rem;color:#8b949e;text-align:center;line-height:1.3}
+.pipe-stage .label-en{font-size:.68rem;color:#6e7681}
+.pipe-arrow{width:40px;display:flex;align-items:center;justify-content:center;color:#30363d;font-size:1.2rem;opacity:0;transition:opacity .3s}
+.pipe-arrow.visible{opacity:1;color:#58a6ff}
+.pulse-dot{position:absolute;width:8px;height:8px;border-radius:50%;background:#58a6ff;top:-4px;right:-4px;opacity:0}
+.pulse-dot.active{animation:pulse 1s ease infinite}
+@keyframes pulse{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:1;transform:scale(1.2)}}
+
+.stage-raw .icon-box{background:#f0883e20;border-color:#f0883e60;--glow:#f0883e40}
+.stage-regex .icon-box{background:#bc8cff20;border-color:#bc8cff60;--glow:#bc8cff40}
+.stage-struct .icon-box{background:#3fb95020;border-color:#3fb95060;--glow:#3fb95040}
+.stage-report .icon-box{background:#58a6ff20;border-color:#58a6ff60;--glow:#58a6ff40}
+
+/* Code block */
+.code-block{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:12px 16px;font-family:'Fira Code',monospace;font-size:.72rem;line-height:1.6;overflow-x:auto;margin:12px 0;color:#8b949e;position:relative}
+.code-block .line{opacity:.3;transition:all .4s}
+.code-block .line.highlight{opacity:1;color:#e6edf3}
+.code-block .line .kw{color:#bc8cff}
+.code-block .line .str{color:#a5d6ff}
+.code-block .line .fn{color:#d2a8ff}
+.code-block .line .cm{color:#6e7681}
+.code-tag{position:absolute;top:8px;right:12px;font-size:.6rem;padding:2px 8px;border-radius:4px;background:#21262d;color:#8b949e}
+
+/* JSON/YAML transform */
+.transform-container{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:stretch}
+.transform-panel{flex:1;min-width:250px;max-width:420px;background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:14px;position:relative}
+.transform-panel h3{font-size:.8rem;color:#8b949e;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.transform-panel pre{font-family:'Fira Code',monospace;font-size:.7rem;line-height:1.5;color:#8b949e;white-space:pre-wrap;word-break:break-all}
+.transform-panel pre .jk{color:#58a6ff}
+.transform-panel pre .jv{color:#a5d6ff}
+.transform-panel pre .yk{color:#3fb950}
+.transform-panel pre .yv{color:#f0883e}
+.transform-arrow-box{display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#30363d;min-width:40px;transition:color .3s}
+.transform-arrow-box.active{color:#bc8cff}
+.transform-line{transition:all .4s;opacity:.3}
+.transform-line.show{opacity:1}
+
+/* Health check */
+.health-flow{display:flex;align-items:center;gap:0;justify-content:center;flex-wrap:wrap;padding:16px 0}
+.health-node{display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;transform:scale(.8);transition:all .5s ease}
+.health-node.visible{opacity:1;transform:scale(1)}
+.health-box{padding:12px 16px;border-radius:10px;font-size:.78rem;font-weight:600;border:2px solid transparent;text-align:center;min-width:90px;transition:all .3s}
+.health-box.hb-req{background:#58a6ff15;border-color:#58a6ff60;color:#58a6ff}
+.health-box.hb-200{background:#3fb95015;border-color:#3fb95060;color:#3fb950}
+.health-box.hb-500{background:#f8514915;border-color:#f8514960;color:#f85149}
+.health-box.hb-alert{background:#f0883e15;border-color:#f0883e60;color:#f0883e}
+.health-box.hb-log{background:#bc8cff15;border-color:#bc8cff60;color:#bc8cff}
+.health-box.active{box-shadow:0 0 16px var(--glow,#58a6ff40);transform:scale(1.08)}
+.health-arrow{width:32px;text-align:center;color:#30363d;font-size:1rem;opacity:0;transition:all .3s}
+.health-arrow.visible{opacity:1;color:#58a6ff}
+.health-label{font-size:.65rem;color:#6e7681}
+.status-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:16px}
+.status-card{background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:10px;text-align:center;font-size:.72rem;transition:all .4s}
+.status-card.ok{border-color:#3fb950;color:#3fb950}
+.status-card.err{border-color:#f85149;color:#f85149}
+.status-card .ep{font-weight:600;font-size:.78rem;color:#e6edf3;margin-bottom:4px}
+
+/* Cron cycle */
+.cron-ring{position:relative;width:260px;height:260px;margin:20px auto}
+.cron-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.cron-center .time{font-size:1.6rem;font-weight:700;color:#58a6ff;font-family:'Fira Code',monospace}
+.cron-center .expr{font-size:.7rem;color:#8b949e;margin-top:4px}
+.cron-step{position:absolute;width:80px;text-align:center;font-size:.7rem;color:#8b949e;transition:all .5s}
+.cron-step.active{color:#e6edf3;transform:scale(1.1)}
+.cron-step .cron-icon{width:44px;height:44px;border-radius:50%;border:2px solid #30363d;display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin:0 auto 4px;background:#161b22;transition:all .4s}
+.cron-step.active .cron-icon{border-color:#58a6ff;background:#58a6ff15;box-shadow:0 0 12px #58a6ff30}
+.cron-step.done .cron-icon{border-color:#3fb950;background:#3fb95015}
+.cron-hand{position:absolute;top:50%;left:50%;width:2px;height:90px;background:linear-gradient(to top,transparent,#58a6ff);transform-origin:bottom center;transition:transform .8s ease;border-radius:2px}
+
+.paused .pipe-stage,.paused .health-node{transition:none!important}
+@media(max-width:768px){.container{padding:12px}.transform-container{flex-direction:column}.transform-arrow-box{transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+<h1>Infrastructure Scripting - 인프라 스크립팅 시각화</h1>
+<p class="subtitle">로그 파싱, 데이터 변환, 헬스체크, 크론 모니터링 파이프라인</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnim()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pauseAnim()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restartAnim()">&#8635; 다시시작 Restart</button>
+</div>
+
+<!-- LOG PARSING PIPELINE -->
+<div class="section">
+  <h2><span class="badge" style="background:#f0883e30;color:#f0883e;border:1px solid #f0883e40">LOG</span> 로그 파싱 파이프라인 Log Parsing Pipeline</h2>
+  <div class="pipe-flow" id="logPipeline">
+    <div class="pipe-stage stage-raw" data-step="0">
+      <div class="icon-box">&#128220;<div class="pulse-dot"></div></div>
+      <div class="label">Raw Log<br><span class="label-en">원시 로그</span></div>
+    </div>
+    <div class="pipe-arrow">&#10132;</div>
+    <div class="pipe-stage stage-regex" data-step="1">
+      <div class="icon-box">&#128270;<div class="pulse-dot"></div></div>
+      <div class="label">Regex Extract<br><span class="label-en">정규식 추출</span></div>
+    </div>
+    <div class="pipe-arrow">&#10132;</div>
+    <div class="pipe-stage stage-struct" data-step="2">
+      <div class="icon-box">&#128202;<div class="pulse-dot"></div></div>
+      <div class="label">Structured Data<br><span class="label-en">구조화 데이터</span></div>
+    </div>
+    <div class="pipe-arrow">&#10132;</div>
+    <div class="pipe-stage stage-report" data-step="3">
+      <div class="icon-box">&#128200;<div class="pulse-dot"></div></div>
+      <div class="label">Report / Alert<br><span class="label-en">리포트 / 알림</span></div>
+    </div>
+  </div>
+
+  <div class="code-block" id="logCode">
+    <span class="code-tag">Python</span>
+    <div class="line" data-s="0"><span class="cm"># 1단계: 원시 로그 읽기 Read raw log</span></div>
+    <div class="line" data-s="0"><span class="kw">raw</span> = <span class="str">"2024-03-15 14:32:01 ERROR [api] Connection timeout to db-master"</span></div>
+    <div class="line" data-s="1"><span class="cm"># 2단계: 정규식 추출 Regex extract</span></div>
+    <div class="line" data-s="1"><span class="kw">pattern</span> = <span class="str">r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (\w+) \[(\w+)\] (.+)"</span></div>
+    <div class="line" data-s="1"><span class="kw">match</span> = <span class="fn">re.match</span>(pattern, raw)</div>
+    <div class="line" data-s="2"><span class="cm"># 3단계: 구조화 Structured data</span></div>
+    <div class="line" data-s="2"><span class="kw">log_entry</span> = {<span class="str">"ts"</span>: match[1], <span class="str">"level"</span>: match[2], <span class="str">"svc"</span>: match[3], <span class="str">"msg"</span>: match[4]}</div>
+    <div class="line" data-s="3"><span class="cm"># 4단계: 리포트 / 알림 Report or alert</span></div>
+    <div class="line" data-s="3"><span class="kw">if</span> log_entry[<span class="str">"level"</span>] == <span class="str">"ERROR"</span>: <span class="fn">send_alert</span>(log_entry)</div>
+  </div>
+  <div class="op-label" id="logLabel">로그 파싱 파이프라인 시작 대기 중...</div>
+  <div class="progress-bar"><div class="progress-fill" id="logProgress"></div></div>
+</div>
+
+<!-- JSON/YAML TRANSFORM -->
+<div class="section">
+  <h2><span class="badge" style="background:#bc8cff30;color:#bc8cff;border:1px solid #bc8cff40">TRANSFORM</span> JSON / YAML 변환 Data Transformation</h2>
+  <div class="transform-container" id="transformArea">
+    <div class="transform-panel">
+      <h3><span style="color:#58a6ff">&#9776;</span> JSON 입력 Input</h3>
+      <pre id="jsonPre"></pre>
+    </div>
+    <div class="transform-arrow-box" id="transformArrow">&#10132;</div>
+    <div class="transform-panel">
+      <h3><span style="color:#3fb950">&#9776;</span> YAML 출력 Output</h3>
+      <pre id="yamlPre"></pre>
+    </div>
+  </div>
+  <div class="op-label" id="transformLabel">변환 시작 대기 중...</div>
+</div>
+
+<!-- API HEALTH CHECK -->
+<div class="section">
+  <h2><span class="badge" style="background:#3fb95030;color:#3fb950;border:1px solid #3fb95040">HEALTH</span> API 헬스 체크 플로우 Health Check Flow</h2>
+  <div class="health-flow" id="healthFlow">
+    <div class="health-node" data-h="0"><div class="health-box hb-req" style="--glow:#58a6ff40">GET /health</div><div class="health-label">요청 Request</div></div>
+    <div class="health-arrow">&#10132;</div>
+    <div class="health-node" data-h="1"><div class="health-box hb-200" style="--glow:#3fb95040">200 OK</div><div class="health-label">성공 Success</div></div>
+    <div class="health-arrow">&#10132;</div>
+    <div class="health-node" data-h="2"><div class="health-box hb-log" style="--glow:#bc8cff40">Log Result</div><div class="health-label">로그 기록</div></div>
+    <div class="health-arrow" style="opacity:0">|</div>
+    <div class="health-node" data-h="3"><div class="health-box hb-500" style="--glow:#f8514940">500 Error</div><div class="health-label">실패 Failure</div></div>
+    <div class="health-arrow">&#10132;</div>
+    <div class="health-node" data-h="4"><div class="health-box hb-alert" style="--glow:#f0883e40">Alert &#128680;</div><div class="health-label">알림 전송</div></div>
+  </div>
+  <div class="status-grid" id="statusGrid"></div>
+  <div class="op-label" id="healthLabel">헬스 체크 시작 대기 중...</div>
+</div>
+
+<!-- CRON MONITORING -->
+<div class="section">
+  <h2><span class="badge" style="background:#58a6ff30;color:#58a6ff;border:1px solid #58a6ff40">CRON</span> 크론 기반 모니터링 Cron Monitoring Cycle</h2>
+  <div class="cron-ring" id="cronRing">
+    <div class="cron-hand" id="cronHand" style="transform:rotate(0deg)"></div>
+    <div class="cron-center">
+      <div class="time" id="cronTime">00:00</div>
+      <div class="expr">*/5 * * * *</div>
+      <div style="font-size:.65rem;color:#6e7681;margin-top:2px">5분마다 실행</div>
+    </div>
+    <div class="cron-step" id="cs0" style="top:5px;left:50%;transform:translateX(-50%)"><div class="cron-icon">&#128336;</div>트리거<br>Trigger</div>
+    <div class="cron-step" id="cs1" style="top:50%;right:0;transform:translateY(-50%)"><div class="cron-icon">&#128269;</div>수집<br>Collect</div>
+    <div class="cron-step" id="cs2" style="bottom:5px;left:50%;transform:translateX(-50%)"><div class="cron-icon">&#128202;</div>분석<br>Analyze</div>
+    <div class="cron-step" id="cs3" style="top:50%;left:0;transform:translateY(-50%)"><div class="cron-icon">&#128276;</div>알림<br>Alert</div>
+  </div>
+  <div class="op-label" id="cronLabel">크론 사이클 시작 대기 중...</div>
+</div>
+
+</div>
+
+<script>
+let animTimer=null,paused=false,phase=0,stepInPhase=0;
+
+/* ===== LOG PIPELINE ===== */
+let logStep=0;
+function animLog(){
+  if(logStep>3)return true;
+  const stages=document.querySelectorAll('#logPipeline .pipe-stage');
+  const arrows=document.querySelectorAll('#logPipeline .pipe-arrow');
+  const lines=document.querySelectorAll('#logCode .line');
+  // show stage
+  for(let i=0;i<=logStep;i++){
+    stages[i].classList.add('visible');
+    if(i>0)arrows[i-1].classList.add('visible');
+    stages[i].querySelector('.icon-box').classList.remove('active');
+    stages[i].querySelector('.pulse-dot').classList.remove('active');
+  }
+  stages[logStep].querySelector('.icon-box').classList.add('active');
+  stages[logStep].querySelector('.pulse-dot').classList.add('active');
+  // highlight code
+  lines.forEach(l=>{l.classList.toggle('highlight',l.dataset.s==logStep);});
+  const labels=['원시 로그 읽기 Reading raw log...','정규식으로 필드 추출 Extracting with regex...','구조화된 데이터 생성 Creating structured data...','조건 확인 후 알림 전송 Checking level & sending alert...'];
+  document.getElementById('logLabel').textContent=labels[logStep]||'';
+  document.getElementById('logProgress').style.width=((logStep+1)/4*100)+'%';
+  logStep++;
+  return logStep>3;
+}
+
+/* ===== JSON/YAML TRANSFORM ===== */
+const jsonLines=[
+  '{',
+  '  <span class="jk">"apiVersion"</span>: <span class="jv">"apps/v1"</span>,',
+  '  <span class="jk">"kind"</span>: <span class="jv">"Deployment"</span>,',
+  '  <span class="jk">"metadata"</span>: {',
+  '    <span class="jk">"name"</span>: <span class="jv">"web-app"</span>,',
+  '    <span class="jk">"labels"</span>: {',
+  '      <span class="jk">"app"</span>: <span class="jv">"web"</span>',
+  '    }',
+  '  },',
+  '  <span class="jk">"spec"</span>: {',
+  '    <span class="jk">"replicas"</span>: <span class="jv">3</span>',
+  '  }',
+  '}'
+];
+const yamlLines=[
+  '<span class="yk">apiVersion</span>: <span class="yv">apps/v1</span>',
+  '<span class="yk">kind</span>: <span class="yv">Deployment</span>',
+  '<span class="yk">metadata</span>:',
+  '  <span class="yk">name</span>: <span class="yv">web-app</span>',
+  '  <span class="yk">labels</span>:',
+  '    <span class="yk">app</span>: <span class="yv">web</span>',
+  '<span class="yk">spec</span>:',
+  '  <span class="yk">replicas</span>: <span class="yv">3</span>',
+];
+let tLine=0;
+function initTransform(){tLine=0;document.getElementById('jsonPre').innerHTML='';document.getElementById('yamlPre').innerHTML='';}
+function transformStep(){
+  if(tLine>=Math.max(jsonLines.length,yamlLines.length)){
+    document.getElementById('transformArrow').classList.add('active');
+    document.getElementById('transformLabel').textContent='변환 완료! Transformation complete';
+    return true;
+  }
+  if(tLine<jsonLines.length){
+    const jp=document.getElementById('jsonPre');
+    jp.innerHTML+='<div class="transform-line show">'+jsonLines[tLine]+'</div>';
+  }
+  if(tLine<yamlLines.length){
+    const yp=document.getElementById('yamlPre');
+    yp.innerHTML+='<div class="transform-line show">'+yamlLines[tLine]+'</div>';
+  }
+  document.getElementById('transformArrow').classList.add('active');
+  document.getElementById('transformLabel').innerHTML='줄 '+(tLine+1)+' 변환 중 Transforming line '+(tLine+1)+'...';
+  tLine++;
+  return false;
+}
+
+/* ===== HEALTH CHECK ===== */
+const endpoints=[
+  {ep:'/api/users',status:200},{ep:'/api/orders',status:200},
+  {ep:'/api/payments',status:500},{ep:'/api/auth',status:200},
+  {ep:'/api/products',status:200},{ep:'/api/search',status:503},
+];
+let hcIdx=0,healthStep=0;
+function initHealth(){
+  hcIdx=0;healthStep=0;
+  document.getElementById('statusGrid').innerHTML='';
+  document.querySelectorAll('#healthFlow .health-node').forEach(n=>n.classList.remove('visible'));
+  document.querySelectorAll('#healthFlow .health-arrow').forEach(a=>a.classList.remove('visible'));
+}
+function healthCheckStep(){
+  if(hcIdx>=endpoints.length){document.getElementById('healthLabel').textContent='헬스 체크 완료! All endpoints checked';return true;}
+  const ep=endpoints[hcIdx];
+  const nodes=document.querySelectorAll('#healthFlow .health-node');
+  const arrows=document.querySelectorAll('#healthFlow .health-arrow');
+  // reset
+  nodes.forEach(n=>{n.classList.remove('visible');n.querySelector('.health-box').classList.remove('active');});
+  arrows.forEach(a=>a.classList.remove('visible'));
+
+  if(healthStep===0){
+    nodes[0].classList.add('visible');nodes[0].querySelector('.health-box').classList.add('active');
+    document.getElementById('healthLabel').innerHTML='<code>GET '+ep.ep+'</code> 요청 전송 중...';
+  } else if(healthStep===1){
+    nodes[0].classList.add('visible');arrows[0].classList.add('visible');
+    if(ep.status===200){
+      nodes[1].classList.add('visible');nodes[1].querySelector('.health-box').classList.add('active');
+      document.getElementById('healthLabel').innerHTML='<code>'+ep.ep+'</code> &#10003; <span style="color:#3fb950">'+ep.status+' OK</span>';
+    } else {
+      nodes[3].classList.add('visible');nodes[3].querySelector('.health-box').classList.add('active');
+      arrows[3].classList.add('visible');
+      document.getElementById('healthLabel').innerHTML='<code>'+ep.ep+'</code> &#10007; <span style="color:#f85149">'+ep.status+' Error</span>';
+    }
+  } else {
+    nodes[0].classList.add('visible');arrows[0].classList.add('visible');
+    if(ep.status===200){
+      nodes[1].classList.add('visible');arrows[1].classList.add('visible');
+      nodes[2].classList.add('visible');nodes[2].querySelector('.health-box').classList.add('active');
+    } else {
+      nodes[3].classList.add('visible');arrows[3].classList.add('visible');arrows[4].classList.add('visible');
+      nodes[4].classList.add('visible');nodes[4].querySelector('.health-box').classList.add('active');
+    }
+    // add status card
+    const sg=document.getElementById('statusGrid');
+    const card=document.createElement('div');
+    card.className='status-card '+(ep.status===200?'ok':'err');
+    card.innerHTML='<div class="ep">'+ep.ep+'</div>'+(ep.status===200?'&#10003; '+ep.status+' OK':'&#10007; '+ep.status+' Error');
+    sg.appendChild(card);
+    hcIdx++;healthStep=-1;
+  }
+  healthStep++;
+  return false;
+}
+
+/* ===== CRON CYCLE ===== */
+let cronIdx=0,cronCycle=0;
+const cronAngles=[0,90,180,270];
+const cronTimes=['00:00','00:05','00:10','00:15','00:20','00:25','00:30','00:35'];
+function initCron(){cronIdx=0;cronCycle=0;for(let i=0;i<4;i++){const s=document.getElementById('cs'+i);s.classList.remove('active','done');}}
+function cronStep(){
+  if(cronCycle>=2){document.getElementById('cronLabel').textContent='크론 2 사이클 완료! 2 cycles complete';return true;}
+  // update hand
+  document.getElementById('cronHand').style.transform='rotate('+cronAngles[cronIdx]+'deg)';
+  // update steps
+  for(let i=0;i<4;i++){
+    const s=document.getElementById('cs'+i);
+    s.classList.remove('active','done');
+    if(i<cronIdx)s.classList.add('done');
+    if(i===cronIdx)s.classList.add('active');
+  }
+  const timeIdx=cronCycle*4+cronIdx;
+  document.getElementById('cronTime').textContent=cronTimes[timeIdx%cronTimes.length]||'00:00';
+  const cronLabels=['크론 트리거 실행 Cron triggered','메트릭 수집 Collecting metrics','데이터 분석 중 Analyzing data','임계값 초과 시 알림 Alerting if threshold exceeded'];
+  document.getElementById('cronLabel').textContent='Cycle '+(cronCycle+1)+': '+cronLabels[cronIdx];
+  cronIdx++;
+  if(cronIdx>=4){cronIdx=0;cronCycle++;}
+  return false;
+}
+
+/* ===== MAIN CONTROLLER ===== */
+const phases=[
+  {name:'log',steps:5,fn:animLog},
+  {name:'transform',steps:14,fn:transformStep},
+  {name:'health',steps:endpoints.length*3+1,fn:healthCheckStep},
+  {name:'cron',steps:9,fn:cronStep},
+];
+
+function initAll(){
+  logStep=0;
+  document.querySelectorAll('#logPipeline .pipe-stage').forEach(s=>{s.classList.remove('visible');s.querySelector('.icon-box').classList.remove('active');s.querySelector('.pulse-dot').classList.remove('active');});
+  document.querySelectorAll('#logPipeline .pipe-arrow').forEach(a=>a.classList.remove('visible'));
+  document.querySelectorAll('#logCode .line').forEach(l=>l.classList.remove('highlight'));
+  document.getElementById('logProgress').style.width='0%';
+  initTransform();initHealth();initCron();
+}
+
+function runStep(){
+  if(paused)return;
+  if(phase>=phases.length)return;
+  const p=phases[phase];
+  const done=p.fn();
+  stepInPhase++;
+  if(done||stepInPhase>=p.steps){phase++;stepInPhase=0;}
+  if(phase<phases.length){animTimer=setTimeout(runStep,900);}
+}
+
+function startAnim(){
+  paused=false;document.getElementById('app').classList.remove('paused');
+  document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');
+  if(!animTimer)runStep();
+}
+function pauseAnim(){
+  paused=true;clearTimeout(animTimer);animTimer=null;
+  document.getElementById('app').classList.add('paused');
+  document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active');
+}
+function restartAnim(){
+  clearTimeout(animTimer);animTimer=null;phase=0;stepInPhase=0;paused=false;
+  document.getElementById('app').classList.remove('paused');
+  document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');
+  initAll();setTimeout(()=>runStep(),400);
+}
+
+initAll();
+setTimeout(()=>startAnim(),800);
+</script>
+</body>
+</html>

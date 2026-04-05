@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Container Image Internals | 컨테이너 이미지 내부 구조</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.header h1{font-size:1.6rem;color:#58a6ff;margin-bottom:4px}
+.header p{font-size:.9rem;color:#8b949e}
+.controls{display:flex;justify-content:center;gap:10px;padding:14px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#c9d1d9;cursor:pointer;font-size:.85rem;transition:all .2s}
+.controls button:hover{border-color:#58a6ff;color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.section{padding:20px 16px;max-width:1100px;margin:0 auto}
+.section-title{font-size:1.1rem;color:#58a6ff;margin-bottom:16px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.section-title span{color:#8b949e;font-size:.8rem;font-weight:400;margin-left:8px}
+
+/* Layer Stacking */
+.layer-container{display:flex;gap:40px;justify-content:center;align-items:flex-end;flex-wrap:wrap}
+.layer-stack{display:flex;flex-direction:column-reverse;gap:4px;width:320px}
+.layer{height:52px;border-radius:6px;display:flex;align-items:center;padding:0 16px;font-size:.78rem;border:1px solid transparent;opacity:0;transform:translateY(30px);transition:all .6s ease;position:relative;overflow:hidden}
+.layer.show{opacity:1;transform:translateY(0)}
+.layer .size{position:absolute;right:12px;font-size:.7rem;color:rgba(255,255,255,.6)}
+.layer.base{background:linear-gradient(135deg,#1a3a5c,#1e4976);border-color:#2d6ca2}
+.layer.apt{background:linear-gradient(135deg,#2d1a4e,#3d2a6e);border-color:#7c3aed}
+.layer.copy{background:linear-gradient(135deg,#1a3a2e,#1e5c3a);border-color:#3fb950}
+.layer.entry{background:linear-gradient(135deg,#4a2a1a,#6e3a1a);border-color:#d29922}
+.layer.rw{background:linear-gradient(135deg,#4a1a1a,#6e2a2a);border-color:#f85149;border-style:dashed}
+
+/* Union FS View */
+.unionfs-container{display:flex;gap:30px;justify-content:center;align-items:flex-start;flex-wrap:wrap;margin-top:16px}
+.unionfs-box{border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;min-width:260px;opacity:0;transform:scale(.9);transition:all .5s ease}
+.unionfs-box.show{opacity:1;transform:scale(1)}
+.unionfs-box h4{font-size:.85rem;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.unionfs-box h4.merged{color:#3fb950}
+.unionfs-box h4.individual{color:#bd93f9}
+.file-tree{font-family:monospace;font-size:.72rem;line-height:1.7;color:#8b949e}
+.file-tree .dir{color:#58a6ff}
+.file-tree .file{color:#c9d1d9}
+.file-tree .new{color:#3fb950}
+.file-tree .modified{color:#d29922}
+.file-tree .whiteout{color:#f85149;text-decoration:line-through}
+
+/* Multi-stage Build */
+.multistage{display:flex;gap:20px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.stage-box{border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;width:280px;opacity:0;transform:translateX(-30px);transition:all .6s ease}
+.stage-box.show{opacity:1;transform:translateX(0)}
+.stage-box.build{border-color:#f85149}
+.stage-box.runtime{border-color:#3fb950}
+.stage-box h4{font-size:.85rem;margin-bottom:8px}
+.stage-box.build h4{color:#f85149}
+.stage-box.runtime h4{color:#3fb950}
+.stage-box pre{font-size:.68rem;background:#0d1117;padding:10px;border-radius:4px;line-height:1.5;overflow-x:auto}
+.stage-box .size-badge{display:inline-block;padding:4px 10px;border-radius:12px;font-size:.75rem;margin-top:8px;font-weight:600}
+.stage-box.build .size-badge{background:rgba(248,81,73,.15);color:#f85149}
+.stage-box.runtime .size-badge{background:rgba(63,185,80,.15);color:#3fb950}
+.copy-arrow{font-size:2rem;color:#58a6ff;opacity:0;transition:all .5s ease}
+.copy-arrow.show{opacity:1}
+
+/* Size Comparison */
+.size-compare{display:flex;gap:20px;align-items:flex-end;justify-content:center;margin-top:16px;padding:20px 0}
+.size-bar-group{text-align:center;opacity:0;transform:translateY(20px);transition:all .6s ease}
+.size-bar-group.show{opacity:1;transform:translateY(0)}
+.size-bar{width:80px;border-radius:6px 6px 0 0;transition:height 1s ease;position:relative}
+.size-bar.before{background:linear-gradient(180deg,#f85149,#a83232);height:0}
+.size-bar.after{background:linear-gradient(180deg,#3fb950,#1a7f37);height:0}
+.size-bar.before.show{height:240px}
+.size-bar.after.show{height:60px}
+.size-bar .label{position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-size:.75rem;font-weight:600;white-space:nowrap}
+.size-bar-group .caption{font-size:.75rem;color:#8b949e;margin-top:8px}
+.size-bar-group .ko{font-size:.7rem;color:#6e7681}
+
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(63,185,80,.4)}50%{box-shadow:0 0 15px 4px rgba(63,185,80,.15)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>Container Image Internals</h1>
+<p>컨테이너 이미지 내부 구조 | 레이어 스택, Union FS, 멀티스테이지 빌드</p>
+</div>
+
+<div class="controls">
+<button id="btnPlay" class="active" onclick="play()">&#9654; Play / 재생</button>
+<button id="btnPause" onclick="pause()">&#10074;&#10074; Pause / 일시정지</button>
+<button id="btnRestart" onclick="restart()">&#8634; Restart / 처음부터</button>
+</div>
+
+<!-- Section 1: Layer Stacking -->
+<div class="section">
+<div class="section-title">1. Image Layer Stacking <span>이미지 레이어 스태킹</span></div>
+<div class="layer-container">
+<div>
+<div style="font-size:.8rem;color:#8b949e;margin-bottom:8px;text-align:center">Dockerfile 명령어 → 레이어 생성</div>
+<div class="layer-stack" id="layerStack">
+<div class="layer rw" id="lay4">
+<span>R/W Layer (컨테이너 실행 시 생성)</span><span class="size">~0 MB</span>
+</div>
+<div class="layer entry" id="lay3">
+<span>ENTRYPOINT ["node","app.js"]</span><span class="size">0 MB</span>
+</div>
+<div class="layer copy" id="lay2">
+<span>COPY ./app /app</span><span class="size">~15 MB</span>
+</div>
+<div class="layer apt" id="lay1">
+<span>RUN apt-get install -y nodejs</span><span class="size">~180 MB</span>
+</div>
+<div class="layer base" id="lay0">
+<span>FROM ubuntu:22.04 (Base Image)</span><span class="size">~77 MB</span>
+</div>
+</div>
+</div>
+<div style="width:300px;padding:16px">
+<div style="font-size:.8rem;color:#8b949e;margin-bottom:12px">각 레이어 설명:</div>
+<div id="layerDesc" style="font-size:.75rem;line-height:1.8;color:#6e7681">
+<div id="desc0" style="opacity:0;transition:opacity .5s">
+<span style="color:#2d6ca2">&#9632;</span> <b>Base Layer</b>: ubuntu:22.04 기본 이미지<br>
+&nbsp;&nbsp;모든 시스템 파일 포함 (읽기 전용)
+</div>
+<div id="desc1" style="opacity:0;transition:opacity .5s;margin-top:6px">
+<span style="color:#7c3aed">&#9632;</span> <b>Install Layer</b>: 패키지 설치 레이어<br>
+&nbsp;&nbsp;apt cache + 바이너리 포함 (가장 큰 레이어)
+</div>
+<div id="desc2" style="opacity:0;transition:opacity .5s;margin-top:6px">
+<span style="color:#3fb950">&#9632;</span> <b>App Layer</b>: 애플리케이션 코드 복사<br>
+&nbsp;&nbsp;코드 변경 시 이 레이어만 재빌드
+</div>
+<div id="desc3" style="opacity:0;transition:opacity .5s;margin-top:6px">
+<span style="color:#d29922">&#9632;</span> <b>Config Layer</b>: 메타데이터만 (크기 0)<br>
+&nbsp;&nbsp;ENTRYPOINT, CMD, ENV, EXPOSE 등
+</div>
+<div id="desc4" style="opacity:0;transition:opacity .5s;margin-top:6px">
+<span style="color:#f85149">&#9632;</span> <b>R/W Layer</b>: 컨테이너 실행 시 생성<br>
+&nbsp;&nbsp;Copy-on-Write로 변경사항 저장
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 2: Union FS -->
+<div class="section">
+<div class="section-title">2. Union Filesystem Merge View <span>Union FS 병합 뷰</span></div>
+<div class="unionfs-container">
+<div class="unionfs-box" id="ufs0">
+<h4 class="individual">Individual Layers (개별 레이어)</h4>
+<div class="file-tree">
+<b>Layer 0 (base):</b><br>
+<span class="dir">/bin/</span> <span class="file">bash, ls, cat...</span><br>
+<span class="dir">/usr/</span> <span class="file">lib/, share/</span><br>
+<span class="dir">/etc/</span> <span class="file">apt/, passwd</span><br><br>
+<b>Layer 1 (apt install):</b><br>
+<span class="dir">/usr/bin/</span> <span class="new">node</span><br>
+<span class="dir">/usr/lib/</span> <span class="new">nodejs/</span><br>
+<span class="dir">/var/cache/</span> <span class="new">apt/archives/</span><br><br>
+<b>Layer 2 (copy app):</b><br>
+<span class="dir">/app/</span> <span class="new">app.js, package.json</span><br>
+<span class="dir">/app/</span> <span class="new">node_modules/</span><br><br>
+<b>Layer 3 (entrypoint):</b><br>
+<span class="modified">메타데이터만 (파일 없음)</span>
+</div>
+</div>
+<div class="unionfs-box" id="ufs1">
+<h4 class="merged">Merged View (병합된 뷰)</h4>
+<div class="file-tree">
+<span class="dir">/</span><br>
+├── <span class="dir">bin/</span> <span class="file">bash, ls, cat...</span><br>
+├── <span class="dir">usr/</span><br>
+│&nbsp;&nbsp; ├── <span class="dir">bin/</span> <span class="new">node</span><br>
+│&nbsp;&nbsp; ├── <span class="dir">lib/</span> <span class="file">... </span><span class="new">nodejs/</span><br>
+│&nbsp;&nbsp; └── <span class="dir">share/</span><br>
+├── <span class="dir">etc/</span> <span class="file">apt/, passwd</span><br>
+├── <span class="dir">app/</span><br>
+│&nbsp;&nbsp; ├── <span class="new">app.js</span><br>
+│&nbsp;&nbsp; ├── <span class="new">package.json</span><br>
+│&nbsp;&nbsp; └── <span class="new">node_modules/</span><br>
+├── <span class="dir">var/</span><br>
+│&nbsp;&nbsp; └── <span class="dir">cache/</span> <span class="new">apt/</span><br>
+└── <span class="dir">tmp/</span><br><br>
+<span style="color:#3fb950">OverlayFS: upperdir + lowerdir</span><br>
+<span style="color:#8b949e">모든 레이어가 하나의 파일시스템처럼 보임</span>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 3: Multi-stage Build -->
+<div class="section">
+<div class="section-title">3. Multi-stage Build <span>멀티스테이지 빌드</span></div>
+<div class="multistage">
+<div class="stage-box build" id="ms0">
+<h4>Build Stage (빌드 스테이지)</h4>
+<pre><span style="color:#58a6ff">FROM</span> golang:1.21 <span style="color:#58a6ff">AS</span> builder
+<span style="color:#58a6ff">WORKDIR</span> /src
+<span style="color:#58a6ff">COPY</span> . .
+<span style="color:#58a6ff">RUN</span> go build -o /app/server
+
+<span style="color:#8b949e"># 포함: Go toolchain, source code,
+# build cache, dependencies...</span></pre>
+<div class="size-badge">1.2 GB</div>
+</div>
+<div class="copy-arrow" id="msArrow">&#10132;<br><span style="font-size:.7rem">COPY --from=builder<br>/app/server만 복사</span></div>
+<div class="stage-box runtime" id="ms1">
+<h4>Runtime Stage (런타임 스테이지)</h4>
+<pre><span style="color:#58a6ff">FROM</span> gcr.io/distroless/static
+<span style="color:#58a6ff">COPY</span> --from=builder /app/server /server
+<span style="color:#58a6ff">ENTRYPOINT</span> ["/server"]
+
+<span style="color:#8b949e"># 포함: static binary만
+# No shell, no package manager
+# 최소 공격 표면</span></pre>
+<div class="size-badge">15 MB</div>
+</div>
+</div>
+</div>
+
+<!-- Section 4: Size Comparison -->
+<div class="section">
+<div class="section-title">4. Size Comparison <span>이미지 크기 비교</span></div>
+<div class="size-compare">
+<div class="size-bar-group" id="sb0">
+<div class="size-bar before" id="bar0"><div class="label" style="color:#f85149">1.2 GB</div></div>
+<div class="caption">Before</div>
+<div class="ko">최적화 전</div>
+</div>
+<div class="size-bar-group" id="sb1">
+<div class="size-bar after" id="bar1"><div class="label" style="color:#3fb950">15 MB</div></div>
+<div class="caption">After</div>
+<div class="ko">멀티스테이지 후</div>
+</div>
+<div style="margin-left:40px;font-size:.8rem;color:#8b949e;max-width:280px;opacity:0;transition:opacity .6s" id="sizeNote">
+<div style="color:#3fb950;font-size:1rem;font-weight:700;margin-bottom:8px">98.75% 감소!</div>
+<b>최적화 포인트:</b><br>
+1. 멀티스테이지 빌드로 빌드 도구 제거<br>
+2. distroless / Alpine 베이스 이미지 사용<br>
+3. .dockerignore로 불필요한 파일 제외<br>
+4. 레이어 병합 (RUN 명령어 결합)<br>
+5. apt cache 삭제 (rm -rf /var/lib/apt/lists/*)
+</div>
+</div>
+</div>
+
+<script>
+let timer=null,step=0,playing=false;
+const totalSteps=18;
+
+function animateStep(s){
+  // Layer stacking: 0-9 (5 layers + 5 descriptions)
+  if(s>=0&&s<=9){
+    const idx=Math.floor(s/2);
+    if(s%2===0){
+      const lay=document.getElementById('lay'+idx);
+      if(lay)lay.classList.add('show');
+    }else{
+      const desc=document.getElementById('desc'+idx);
+      if(desc)desc.style.opacity='1';
+    }
+  }
+  // Union FS: 10-11
+  if(s===10){document.getElementById('ufs0').classList.add('show')}
+  if(s===11){document.getElementById('ufs1').classList.add('show')}
+  // Multi-stage: 12-14
+  if(s===12){document.getElementById('ms0').classList.add('show')}
+  if(s===13){document.getElementById('msArrow').classList.add('show')}
+  if(s===14){document.getElementById('ms1').classList.add('show')}
+  // Size comparison: 15-17
+  if(s===15){
+    const g=document.getElementById('sb0');g.classList.add('show');
+    document.getElementById('bar0').classList.add('show');
+  }
+  if(s===16){
+    const g=document.getElementById('sb1');g.classList.add('show');
+    document.getElementById('bar1').classList.add('show');
+  }
+  if(s===17){document.getElementById('sizeNote').style.opacity='1'}
+}
+
+function play(){
+  if(playing)return;playing=true;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  timer=setInterval(()=>{if(step>=totalSteps){pause();return;}animateStep(step);step++;},700);
+}
+function pause(){
+  playing=false;clearInterval(timer);
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function restart(){
+  pause();step=0;
+  document.querySelectorAll('.layer,.unionfs-box,.stage-box,.copy-arrow,.size-bar-group').forEach(e=>{e.classList.remove('show')});
+  document.querySelectorAll('.size-bar').forEach(e=>e.classList.remove('show'));
+  document.querySelectorAll('[id^=desc]').forEach(e=>e.style.opacity='0');
+  document.getElementById('sizeNote').style.opacity='0';
+  setTimeout(play,300);
+}
+window.addEventListener('load',()=>setTimeout(play,500));
+</script>
+</body>
+</html>

@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>면접 당일 체크리스트 대시보드</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#f0883e,#ffb86c);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:28px;font-size:0.95rem}
+.section-title{font-size:1.1rem;margin-bottom:16px;color:#e6edf3;display:flex;align-items:center;gap:8px}
+.section-title .icon{font-size:1.2rem}
+
+/* Progress Header */
+.progress-header{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;margin-bottom:28px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.progress-ring{position:relative;width:80px;height:80px;flex-shrink:0}
+.progress-ring svg{transform:rotate(-90deg)}
+.progress-ring circle{fill:none;stroke-width:6}
+.progress-ring .ring-bg{stroke:#21262d}
+.progress-ring .ring-fill{stroke:#f0883e;stroke-dasharray:226;stroke-dashoffset:226;stroke-linecap:round;transition:stroke-dashoffset .8s ease}
+.progress-ring .ring-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.2rem;font-weight:700;color:#f0883e}
+.progress-info{flex:1;min-width:200px}
+.progress-info .pi-title{font-size:1.1rem;font-weight:600;margin-bottom:4px}
+.progress-info .pi-sub{font-size:0.82rem;color:#8b949e}
+.progress-bar-mini{height:6px;background:#21262d;border-radius:3px;margin-top:8px;overflow:hidden}
+.progress-bar-mini .pbm-fill{height:100%;background:linear-gradient(90deg,#f0883e,#3fb950);border-radius:3px;transition:width .8s ease;width:0}
+
+/* Timeline Tabs */
+.timeline-tabs{display:flex;gap:0;margin-bottom:24px}
+.timeline-tab{flex:1;padding:14px;text-align:center;background:#161b22;border:1px solid #30363d;cursor:pointer;transition:all .3s;position:relative}
+.timeline-tab:first-child{border-radius:8px 0 0 8px}
+.timeline-tab:last-child{border-radius:0 8px 8px 0}
+.timeline-tab.active{background:#9e6a03;border-color:#f0883e;z-index:1}
+.timeline-tab .tt-day{font-size:1rem;font-weight:700;margin-bottom:2px}
+.timeline-tab .tt-label{font-size:0.75rem;color:#8b949e}
+.timeline-tab.active .tt-label{color:#ffb86c}
+.timeline-tab .tt-count{font-size:0.7rem;margin-top:4px;color:#8b949e}
+.timeline-tab.active .tt-count{color:#ffb86c}
+
+/* Checklist */
+.checklist-panel{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;margin-bottom:28px;min-height:200px}
+.checklist-group{margin-bottom:16px}
+.checklist-group:last-child{margin-bottom:0}
+.cg-title{font-size:0.82rem;color:#8b949e;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:6px}
+.check-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:6px;cursor:pointer;transition:all .2s;margin-bottom:4px}
+.check-item:hover{background:#21262d}
+.check-item.checked{opacity:.6}
+.check-item.checked .ci-text{text-decoration:line-through;color:#8b949e}
+.ci-box{width:20px;height:20px;border:2px solid #30363d;border-radius:4px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;font-size:0.7rem}
+.check-item.checked .ci-box{background:#3fb950;border-color:#3fb950;color:#fff}
+.ci-text{font-size:0.85rem;line-height:1.4}
+
+/* Equipment Check */
+.equip-section{margin-bottom:28px}
+.equip-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.equip-card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all .3s}
+.equip-card:hover{transform:translateY(-2px)}
+.equip-card.ok{border-color:#3fb950;background:#3fb95008}
+.equip-card.ok .eq-status{color:#3fb950}
+.equip-card .eq-icon{font-size:2rem;margin-bottom:8px;display:block}
+.equip-card .eq-name{font-size:0.85rem;font-weight:600;margin-bottom:4px}
+.equip-card .eq-status{font-size:0.72rem;color:#8b949e;transition:color .3s}
+
+/* Emergency Decision Tree */
+.emergency-section{margin-bottom:28px}
+.tree-container{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;overflow-x:auto}
+.tree-node{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 16px;margin-bottom:8px;cursor:pointer;transition:all .3s}
+.tree-node:hover{border-color:#f0883e}
+.tree-node.active{border-color:#f0883e;background:#f0883e08}
+.tn-q{font-size:0.9rem;font-weight:600;color:#f0883e;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.tn-q .arrow{transition:transform .3s;display:inline-block}
+.tree-node.active .tn-q .arrow{transform:rotate(90deg)}
+.tn-options{max-height:0;overflow:hidden;transition:max-height .4s ease}
+.tree-node.active .tn-options{max-height:500px}
+.tn-option{display:flex;gap:8px;padding:8px 0;border-top:1px solid #21262d;margin-top:8px}
+.tn-option:first-child{margin-top:8px}
+.to-label{flex:0 0 auto;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:600;height:fit-content}
+.to-label.immediate{background:#f8514920;color:#f85149}
+.to-label.prevent{background:#3fb95020;color:#3fb950}
+.to-label.respond{background:#58a6ff20;color:#58a6ff}
+.to-text{font-size:0.82rem;color:#8b949e;line-height:1.4}
+
+/* Confidence Meter */
+.confidence-section{margin-bottom:20px}
+.conf-container{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;text-align:center}
+.conf-meter{position:relative;width:280px;height:150px;margin:0 auto 16px;overflow:hidden}
+.conf-arc{position:absolute;bottom:0;left:0;width:280px;height:280px;border-radius:50%;border:12px solid #21262d;border-bottom-color:transparent;border-right-color:transparent;transform:rotate(225deg)}
+.conf-fill{position:absolute;bottom:0;left:0;width:280px;height:280px;border-radius:50%;border:12px solid transparent;border-top-color:#f0883e;border-left-color:#f0883e;transform:rotate(225deg);transition:all 1s ease;clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}
+.conf-needle{position:absolute;bottom:4px;left:50%;width:3px;height:110px;background:linear-gradient(to top,#f0883e,transparent);transform-origin:bottom center;transform:rotate(-90deg);transition:transform 1.5s ease;border-radius:2px}
+.conf-center{position:absolute;bottom:0;left:50%;width:16px;height:16px;background:#f0883e;border-radius:50%;transform:translate(-50%,50%);box-shadow:0 0 12px rgba(240,136,62,.5)}
+.conf-value{font-size:2rem;font-weight:700;color:#f0883e;margin-bottom:8px}
+.conf-label{font-size:0.85rem;color:#8b949e;margin-bottom:16px}
+.conf-quotes{text-align:left;max-width:500px;margin:0 auto}
+.conf-quote{padding:10px 14px;background:#0d1117;border-left:3px solid #f0883e;border-radius:0 6px 6px 0;margin-bottom:8px;font-size:0.82rem;line-height:1.5;color:#8b949e;opacity:0;transform:translateX(-10px);transition:all .5s ease}
+.conf-quote.visible{opacity:1;transform:translateX(0)}
+.conf-quote strong{color:#e6edf3}
+.conf-quote .q-num{color:#f0883e;font-weight:700;margin-right:6px}
+
+/* Anchoring exercise */
+.anchor-box{background:#0d1117;border:1px dashed #f0883e40;border-radius:8px;padding:16px;margin-top:16px;max-width:500px;margin-left:auto;margin-right:auto}
+.anchor-box .ab-title{font-size:0.85rem;font-weight:600;color:#f0883e;margin-bottom:8px;text-align:center}
+.anchor-step{display:flex;gap:8px;margin-bottom:6px;font-size:0.8rem;color:#8b949e;line-height:1.4;align-items:flex-start}
+.anchor-step .as-num{color:#f0883e;font-weight:700;flex-shrink:0}
+
+@media(max-width:768px){
+  .progress-header{flex-direction:column;text-align:center}
+  .equip-grid{grid-template-columns:repeat(2,1fr)}
+  .timeline-tabs{flex-wrap:wrap}
+  .timeline-tab{flex:0 0 calc(33.33% - 1px)}
+  .container{padding:12px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>면접 당일 체크리스트</h1>
+<p class="subtitle">D-Day Dashboard &mdash; 카운트다운 + 체크리스트 + 비상 시나리오 + 마인드셋</p>
+
+<!-- Progress Header -->
+<div class="progress-header">
+  <div class="progress-ring">
+    <svg width="80" height="80"><circle class="ring-bg" cx="40" cy="40" r="36"/><circle class="ring-fill" id="ringFill" cx="40" cy="40" r="36"/></svg>
+    <div class="ring-text" id="ringText">0%</div>
+  </div>
+  <div class="progress-info">
+    <div class="pi-title">준비 완료도</div>
+    <div class="pi-sub" id="progressSub">체크리스트를 하나씩 완료해보세요</div>
+    <div class="progress-bar-mini"><div class="pbm-fill" id="pbmFill"></div></div>
+  </div>
+</div>
+
+<!-- Timeline Tabs -->
+<div class="timeline-tabs" id="timelineTabs">
+  <div class="timeline-tab active" onclick="selectDay('d3')">
+    <div class="tt-day">D-3</div>
+    <div class="tt-label">사전 준비</div>
+    <div class="tt-count" id="countD3">0/11</div>
+  </div>
+  <div class="timeline-tab" onclick="selectDay('d1')">
+    <div class="tt-day">D-1</div>
+    <div class="tt-label">환경 점검</div>
+    <div class="tt-count" id="countD1">0/8</div>
+  </div>
+  <div class="timeline-tab" onclick="selectDay('dday')">
+    <div class="tt-day">D-Day</div>
+    <div class="tt-label">면접 당일</div>
+    <div class="tt-count" id="countDday">0/8</div>
+  </div>
+</div>
+
+<!-- Checklist Panel -->
+<div class="checklist-panel" id="checklistPanel"></div>
+
+<!-- Equipment Check -->
+<div class="equip-section">
+  <div class="section-title"><span class="icon">&#128247;</span> 장비 점검 (클릭하여 확인)</div>
+  <div class="equip-grid" id="equipGrid">
+    <div class="equip-card" onclick="toggleEquip(this)">
+      <span class="eq-icon">&#128247;</span>
+      <div class="eq-name">카메라</div>
+      <div class="eq-status">미확인</div>
+    </div>
+    <div class="equip-card" onclick="toggleEquip(this)">
+      <span class="eq-icon">&#127908;</span>
+      <div class="eq-name">마이크</div>
+      <div class="eq-status">미확인</div>
+    </div>
+    <div class="equip-card" onclick="toggleEquip(this)">
+      <span class="eq-icon">&#127760;</span>
+      <div class="eq-name">인터넷</div>
+      <div class="eq-status">미확인</div>
+    </div>
+    <div class="equip-card" onclick="toggleEquip(this)">
+      <span class="eq-icon">&#128161;</span>
+      <div class="eq-name">조명</div>
+      <div class="eq-status">미확인</div>
+    </div>
+    <div class="equip-card" onclick="toggleEquip(this)">
+      <span class="eq-icon">&#128187;</span>
+      <div class="eq-name">화상회의 앱</div>
+      <div class="eq-status">미확인</div>
+    </div>
+    <div class="equip-card" onclick="toggleEquip(this)">
+      <span class="eq-icon">&#128241;</span>
+      <div class="eq-name">백업 핫스팟</div>
+      <div class="eq-status">미확인</div>
+    </div>
+  </div>
+</div>
+
+<!-- Emergency Decision Tree -->
+<div class="emergency-section">
+  <div class="section-title"><span class="icon">&#9888;</span> 비상 시나리오 대응</div>
+  <div class="tree-container">
+    <div class="tree-node" onclick="toggleTree(this)">
+      <div class="tn-q"><span class="arrow">&#9654;</span> 네트워크가 끊겼다면?</div>
+      <div class="tn-options">
+        <div class="tn-option"><span class="to-label immediate">즉시</span><div class="to-text">스마트폰 핫스팟 연결 (30초 이내)</div></div>
+        <div class="tn-option"><span class="to-label immediate">즉시</span><div class="to-text">동일 링크로 재접속 + 간단 사과</div></div>
+        <div class="tn-option"><span class="to-label prevent">사전예방</span><div class="to-text">면접관 이메일/전화번호 미리 저장</div></div>
+      </div>
+    </div>
+    <div class="tree-node" onclick="toggleTree(this)">
+      <div class="tn-q"><span class="arrow">&#9654;</span> 모르는 질문이 나왔다면?</div>
+      <div class="tn-options">
+        <div class="tn-option"><span class="to-label respond">대응</span><div class="to-text">&ldquo;솔직히 실무 경험은 없지만, [관련 경험]을 바탕으로 추측하면...&rdquo;</div></div>
+        <div class="tn-option"><span class="to-label respond">대응</span><div class="to-text">솔직함 + 유추 능력 + 학습 의지를 동시에 보여주기</div></div>
+        <div class="tn-option"><span class="to-label immediate">절대금지</span><div class="to-text">아는 척하며 틀린 답변 &mdash; 면접관은 다 안다</div></div>
+      </div>
+    </div>
+    <div class="tree-node" onclick="toggleTree(this)">
+      <div class="tn-q"><span class="arrow">&#9654;</span> 압박 면접을 받고 있다면?</div>
+      <div class="tn-options">
+        <div class="tn-option"><span class="to-label respond">대응</span><div class="to-text">&ldquo;좋은 지적이십니다&rdquo; &mdash; 공격을 대화로 전환</div></div>
+        <div class="tn-option"><span class="to-label respond">대응</span><div class="to-text">인정할 건 인정하고, 구체적 근거로 피벗</div></div>
+        <div class="tn-option"><span class="to-label prevent">핵심</span><div class="to-text">감정적으로 반응하지 않기 &mdash; 이것이 테스트</div></div>
+      </div>
+    </div>
+    <div class="tree-node" onclick="toggleTree(this)">
+      <div class="tn-q"><span class="arrow">&#9654;</span> 머리가 하얘졌다면?</div>
+      <div class="tn-options">
+        <div class="tn-option"><span class="to-label immediate">즉시</span><div class="to-text">&ldquo;잠시 정리하겠습니다&rdquo; &mdash; 5초 생각 시간 확보</div></div>
+        <div class="tn-option"><span class="to-label immediate">즉시</span><div class="to-text">물 한 모금 마시기 (자연스러운 휴식)</div></div>
+        <div class="tn-option"><span class="to-label respond">대응</span><div class="to-text">답변 키워드만 떠올리고, 문장은 말하면서 구성</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confidence Meter -->
+<div class="confidence-section">
+  <div class="section-title"><span class="icon">&#128170;</span> 자신감 앵커링</div>
+  <div class="conf-container">
+    <div class="conf-meter">
+      <div class="conf-arc"></div>
+      <div class="conf-needle" id="confNeedle"></div>
+      <div class="conf-center"></div>
+    </div>
+    <div class="conf-value" id="confValue">0%</div>
+    <div class="conf-label">체크리스트를 완료할수록 자신감이 올라갑니다</div>
+
+    <div class="conf-quotes" id="confQuotes">
+      <div class="conf-quote"><span class="q-num">1.</span><strong>&ldquo;나는 10년 넘게 인프라를 해온 전문가다. 자격이 있다.&rdquo;</strong></div>
+      <div class="conf-quote"><span class="q-num">2.</span>&ldquo;면접은 시험이 아니라 대화다. <strong>서로 맞는지 확인하는 자리다.</strong>&rdquo;</div>
+      <div class="conf-quote"><span class="q-num">3.</span>&ldquo;모르는 건 모른다고 말해도 된다. <strong>솔직함이 아는 척보다 낫다.</strong>&rdquo;</div>
+      <div class="conf-quote"><span class="q-num">4.</span>&ldquo;이 회사가 나를 뽑지 않아도, <strong>내 가치가 줄어드는 것은 아니다.</strong>&rdquo;</div>
+      <div class="conf-quote"><span class="q-num">5.</span><strong>&ldquo;준비한 만큼 나온다. 나는 충분히 준비했다.&rdquo;</strong></div>
+    </div>
+
+    <div class="anchor-box">
+      <div class="ab-title">면접 전 1분 앵커링</div>
+      <div class="anchor-step"><span class="as-num">1.</span>눈을 감고, 가장 잘 해결했던 기술 문제를 떠올린다</div>
+      <div class="anchor-step"><span class="as-num">2.</span>그때의 성취감, 동료들의 반응, 자부심을 느낀 순간</div>
+      <div class="anchor-step"><span class="as-num">3.</span>그 감정을 3초간 유지한다</div>
+      <div class="anchor-step"><span class="as-num">4.</span>눈을 뜬다. <strong style="color:#f0883e">이 사람이 면접을 보러 간다.</strong></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const checklistData={
+  d3:{
+    groups:[
+      {title:'정보 확인',items:[
+        '면접 일시, 장소 (또는 화상 면접 링크) 재확인',
+        '면접관 이름, 직함 확인 (LinkedIn 프로필 확인)',
+        '면접 형식 확인 (기술/컬쳐핏/코딩/복합)',
+        '예상 소요 시간 확인',
+        'Allganize 최근 뉴스, 블로그 확인'
+      ]},
+      {title:'콘텐츠 준비',items:[
+        'CH14 전체 문서 1회 통독',
+        '자기소개 1분/3분 소리 내어 연습 (최소 3회)',
+        '지원동기 3버전 키워드 암기',
+        '장단점 스크립트 연습',
+        '역질문 5개 선정 + 순서 결정',
+        '기술 면접 핵심 토픽 복습 (CH01-CH13)'
+      ]}
+    ]
+  },
+  d1:{
+    groups:[
+      {title:'화상 면접 환경',items:[
+        '카메라 테스트 — 얼굴 정중앙, 눈높이',
+        '마이크 테스트 — 유선 이어폰 준비',
+        '네트워크 속도 테스트 — 10Mbps 이상',
+        '백업 네트워크 — 모바일 핫스팟 준비',
+        '화상회의 앱 최신 버전 업데이트',
+        '배경 정리 — 깔끔한 벽면 또는 블러',
+        '조명 확인 — 얼굴에 그림자 없도록',
+        '방해 요소 제거 — 알림 끄기, 문 잠금'
+      ]}
+    ]
+  },
+  dday:{
+    groups:[
+      {title:'면접 2시간 전',items:[
+        '가벼운 식사 (공복/과식 피하기)',
+        '커피 1잔 (과다 섭취 시 떨림 주의)',
+        '핵심 키워드 최종 점검 (스크립트 통독 X)',
+        '자기소개 1회 소리 내어 워밍업'
+      ]},
+      {title:'면접 30분~5분 전',items:[
+        '스마트폰 무음 (진동도 끄기) + 물 준비',
+        'PC 재부팅 → 불필요 앱 종료 → 미팅 대기',
+        '심호흡 3회 (4초 들숨 - 7초 날숨)',
+        '마인드셋: "심사" 아닌 "서로 알아가는 대화"'
+      ]}
+    ]
+  }
+};
+
+let currentDay='d3';
+let checkedState={};
+
+// Initialize checked state
+Object.keys(checklistData).forEach(day=>{
+  checkedState[day]=[];
+  checklistData[day].groups.forEach(g=>{
+    g.items.forEach(()=>checkedState[day].push(false));
+  });
+});
+
+function selectDay(day){
+  currentDay=day;
+  document.querySelectorAll('.timeline-tab').forEach((t,i)=>{
+    const days=['d3','d1','dday'];
+    t.classList.toggle('active',days[i]===day);
+  });
+  renderChecklist();
+}
+
+function renderChecklist(){
+  const panel=document.getElementById('checklistPanel');
+  const data=checklistData[currentDay];
+  let globalIdx=0;
+  panel.innerHTML=data.groups.map(g=>{
+    const items=g.items.map((item,i)=>{
+      const idx=globalIdx++;
+      const checked=checkedState[currentDay][idx];
+      return `<div class="check-item${checked?' checked':''}" onclick="toggleCheck('${currentDay}',${idx},this)">
+        <div class="ci-box">${checked?'&#10003;':''}</div>
+        <div class="ci-text">${item}</div>
+      </div>`;
+    }).join('');
+    return `<div class="checklist-group"><div class="cg-title">${g.title}</div>${items}</div>`;
+  }).join('');
+  updateCounts();
+}
+
+function toggleCheck(day,idx,el){
+  checkedState[day][idx]=!checkedState[day][idx];
+  el.classList.toggle('checked');
+  el.querySelector('.ci-box').innerHTML=checkedState[day][idx]?'&#10003;':'';
+  updateCounts();
+}
+
+function updateCounts(){
+  let totalChecked=0,totalItems=0;
+  Object.keys(checkedState).forEach(day=>{
+    const checked=checkedState[day].filter(Boolean).length;
+    const total=checkedState[day].length;
+    totalChecked+=checked;totalItems+=total;
+    const countEl=document.getElementById('count'+day.charAt(0).toUpperCase()+day.slice(1));
+    if(countEl)countEl.textContent=checked+'/'+total;
+  });
+  const pct=totalItems?Math.round(totalChecked/totalItems*100):0;
+  // Ring
+  const ring=document.getElementById('ringFill');
+  const offset=226-(226*pct/100);
+  ring.style.strokeDashoffset=offset;
+  document.getElementById('ringText').textContent=pct+'%';
+  // Bar
+  document.getElementById('pbmFill').style.width=pct+'%';
+  // Sub text
+  const sub=document.getElementById('progressSub');
+  if(pct===0)sub.textContent='체크리스트를 하나씩 완료해보세요';
+  else if(pct<50)sub.textContent='좋은 시작입니다! 계속 진행하세요';
+  else if(pct<100)sub.textContent='거의 다 됐습니다! 조금만 더!';
+  else sub.textContent='완벽합니다! 준비 완료! 가볼까요?';
+  // Confidence needle
+  const needle=document.getElementById('confNeedle');
+  const angle=-90+pct*1.8;
+  needle.style.transform='rotate('+angle+'deg)';
+  document.getElementById('confValue').textContent=pct+'%';
+  // Reveal quotes based on progress
+  const quotes=document.querySelectorAll('.conf-quote');
+  quotes.forEach((q,i)=>{
+    if(pct>=i*20)setTimeout(()=>q.classList.add('visible'),i*200);
+  });
+}
+
+function toggleEquip(el){
+  el.classList.toggle('ok');
+  el.querySelector('.eq-status').textContent=el.classList.contains('ok')?'확인 완료':'미확인';
+}
+
+function toggleTree(el){
+  const wasActive=el.classList.contains('active');
+  document.querySelectorAll('.tree-node').forEach(n=>n.classList.remove('active'));
+  if(!wasActive)el.classList.add('active');
+}
+
+// Init
+renderChecklist();
+
+// Animate quotes on scroll
+const qObs=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      updateCounts();
+      qObs.unobserve(e.target);
+    }
+  });
+},{threshold:0.3});
+const qc=document.getElementById('confQuotes');
+if(qc)qObs.observe(qc);
+</script>
+</body>
+</html>

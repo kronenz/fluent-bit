@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PV/PVC Binding Flow - Kubernetes Storage</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --accent-blue: #58a6ff;
+    --accent-green: #3fb950;
+    --accent-orange: #d29922;
+    --accent-red: #f85149;
+    --accent-purple: #bc8cff;
+    --accent-cyan: #39d2c0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  .header {
+    text-align: center;
+    padding: 24px 16px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 { font-size: 1.5rem; color: var(--accent-blue); font-weight: 600; }
+  .header p { font-size: 0.85rem; color: var(--text-dim); margin-top: 4px; }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px;
+    flex-wrap: wrap;
+  }
+  .controls button {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 8px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+  .controls button:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+  .controls button.active { background: var(--accent-blue); color: var(--bg); border-color: var(--accent-blue); }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 16px 16px;
+    flex-wrap: wrap;
+  }
+  .tab {
+    background: var(--surface);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 6px 16px;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+  .tab.active { background: var(--border); color: var(--accent-blue); border-bottom-color: var(--bg); }
+
+  /* Scene */
+  .scene-container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 16px 32px;
+  }
+  .scene {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    min-height: 420px;
+    position: relative;
+    overflow: hidden;
+  }
+  .scene.active { display: block; }
+  .scene-title {
+    font-size: 1rem;
+    color: var(--accent-cyan);
+    margin-bottom: 24px;
+    text-align: center;
+  }
+
+  /* Shared animation helpers */
+  .node {
+    position: absolute;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.78rem;
+    text-align: center;
+    transition: all 0.6s ease;
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  .node.visible { opacity: 1; transform: scale(1); }
+  .node.highlight { box-shadow: 0 0 20px rgba(88,166,255,0.4); }
+
+  .arrow {
+    position: absolute;
+    height: 3px;
+    background: var(--accent-blue);
+    transform-origin: left center;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .arrow.visible { opacity: 1; }
+  .arrow::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: -4px;
+    border: 5px solid transparent;
+    border-left-color: var(--accent-blue);
+  }
+
+  .label {
+    position: absolute;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .label.visible { opacity: 1; }
+
+  /* Step indicator */
+  .steps {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .step-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .step-dot.done { background: var(--accent-green); }
+  .step-dot.current { background: var(--accent-blue); box-shadow: 0 0 8px var(--accent-blue); }
+
+  /* ===== Scene 1: Static Binding ===== */
+  .s1-admin { left: 8%; top: 80px; background: #1c2333; border: 2px solid var(--accent-orange); color: var(--accent-orange); min-width: 120px; }
+  .s1-pv { left: 35%; top: 80px; background: #1a2332; border: 2px solid var(--accent-blue); color: var(--accent-blue); min-width: 140px; }
+  .s1-pvc { left: 62%; top: 80px; background: #1a2332; border: 2px solid var(--accent-green); color: var(--accent-green); min-width: 140px; }
+  .s1-dev { right: 6%; top: 80px; background: #1c2333; border: 2px solid var(--accent-purple); color: var(--accent-purple); min-width: 100px; }
+  .s1-scheduler { left: 42%; top: 200px; background: #1c2833; border: 2px solid var(--accent-cyan); color: var(--accent-cyan); min-width: 160px; }
+  .s1-bound { left: 35%; top: 310px; background: #122a1e; border: 2px solid var(--accent-green); color: var(--accent-green); min-width: 260px; font-weight: 600; }
+
+  /* flow line animations */
+  @keyframes flowRight {
+    0% { width: 0; }
+    100% { width: 100%; }
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(63,185,80,0.4); }
+    50% { box-shadow: 0 0 20px 4px rgba(63,185,80,0.3); }
+  }
+  .pulse-green { animation: pulse 1.5s infinite; }
+
+  @keyframes flowDash {
+    to { stroke-dashoffset: 0; }
+  }
+
+  /* ===== Scene 2: Dynamic Provisioning ===== */
+  .s2-pvc { left: 6%; top: 60px; background: #1a2332; border: 2px solid var(--accent-green); min-width: 120px; }
+  .s2-sc { left: 26%; top: 60px; background: #1a2332; border: 2px solid var(--accent-orange); min-width: 130px; }
+  .s2-csi { left: 48%; top: 60px; background: #1a2332; border: 2px solid var(--accent-purple); min-width: 130px; }
+  .s2-cloud { left: 70%; top: 60px; background: #1a2332; border: 2px solid var(--accent-cyan); min-width: 130px; }
+  .s2-pv { left: 48%; top: 180px; background: #1a2332; border: 2px solid var(--accent-blue); min-width: 130px; }
+  .s2-bound { left: 22%; top: 300px; background: #122a1e; border: 2px solid var(--accent-green); min-width: 280px; font-weight: 600; }
+
+  /* ===== Scene 3: Access Modes ===== */
+  .mode-card {
+    position: absolute;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s ease;
+    width: 27%;
+    min-height: 160px;
+  }
+  .mode-card.visible { opacity: 1; transform: translateY(0); }
+  .mode-card h3 { font-size: 1rem; margin-bottom: 6px; }
+  .mode-card p { font-size: 0.72rem; color: var(--text-dim); line-height: 1.5; }
+  .mode-rwo { left: 4%; top: 50px; background: #1a2332; border: 2px solid var(--accent-blue); }
+  .mode-rwo h3 { color: var(--accent-blue); }
+  .mode-rwx { left: 36%; top: 50px; background: #1a2332; border: 2px solid var(--accent-green); }
+  .mode-rwx h3 { color: var(--accent-green); }
+  .mode-rox { left: 68%; top: 50px; background: #1a2332; border: 2px solid var(--accent-orange); }
+  .mode-rox h3 { color: var(--accent-orange); }
+
+  .pod-icon {
+    display: inline-block;
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    margin: 3px;
+    line-height: 28px;
+    font-size: 0.65rem;
+    font-weight: 600;
+  }
+  .pod-rw { background: rgba(88,166,255,0.2); border: 1px solid var(--accent-blue); color: var(--accent-blue); }
+  .pod-r { background: rgba(210,153,34,0.2); border: 1px solid var(--accent-orange); color: var(--accent-orange); }
+
+  /* ===== Scene 4: Reclaim Policy ===== */
+  .reclaim-col {
+    position: absolute;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s ease;
+    width: 42%;
+    min-height: 250px;
+  }
+  .reclaim-col.visible { opacity: 1; transform: translateY(0); }
+  .reclaim-retain { left: 4%; top: 50px; background: #1a2332; border: 2px solid var(--accent-blue); }
+  .reclaim-delete { left: 54%; top: 50px; background: #1a2332; border: 2px solid var(--accent-red); }
+
+  .reclaim-step {
+    padding: 8px 10px;
+    margin: 6px 0;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.4s ease;
+  }
+  .reclaim-step.visible { opacity: 1; transform: translateX(0); }
+  .reclaim-step.retain-s { background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); }
+  .reclaim-step.delete-s { background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); }
+
+  /* SVG overlay for animated arrows */
+  .svg-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .flow-line {
+    stroke-dasharray: 8 4;
+    stroke-dashoffset: 200;
+    transition: stroke-dashoffset 1.2s ease;
+  }
+  .flow-line.animate { stroke-dashoffset: 0; }
+
+  @media (max-width: 700px) {
+    .scene { padding: 20px 12px; min-height: 480px; }
+    .node, .mode-card, .reclaim-col { font-size: 0.7rem; }
+    .mode-card { width: 90%; position: relative; left: auto !important; top: auto !important; margin: 10px auto; }
+    .reclaim-col { width: 90%; position: relative; left: auto !important; top: auto !important; margin: 10px auto; }
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>PV / PVC Binding Flow</h1>
+  <p>PersistentVolume & PersistentVolumeClaim 바인딩 흐름 시각화</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchScene(0)">Static Binding<br><small>정적 바인딩</small></div>
+  <div class="tab" onclick="switchScene(1)">Dynamic Provisioning<br><small>동적 프로비저닝</small></div>
+  <div class="tab" onclick="switchScene(2)">Access Modes<br><small>접근 모드</small></div>
+  <div class="tab" onclick="switchScene(3)">Reclaim Policy<br><small>반환 정책</small></div>
+</div>
+
+<div class="controls">
+  <button id="btnPlay" onclick="play()" class="active">&#9654; Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8634; Restart</button>
+</div>
+
+<div class="scene-container">
+  <!-- Scene 1: Static Binding -->
+  <div class="scene active" id="scene0">
+    <div class="steps" id="steps0"></div>
+    <div class="scene-title">Static Binding: PV 수동 생성 → PVC 매칭 → Bound</div>
+    <svg class="svg-overlay" id="svg0"></svg>
+    <div class="node s1-admin" id="s1-admin"><b>Cluster Admin</b><br>클러스터 관리자</div>
+    <div class="node s1-pv" id="s1-pv"><b>PV</b><br>capacity: 50Gi<br>accessModes: RWO<br>storageClass: gp3</div>
+    <div class="node s1-pvc" id="s1-pvc"><b>PVC</b><br>request: 50Gi<br>accessModes: RWO<br>storageClass: gp3</div>
+    <div class="node s1-dev" id="s1-dev"><b>Developer</b><br>개발자</div>
+    <div class="node s1-scheduler" id="s1-scheduler"><b>PV Controller</b><br>매칭 조건 검사:<br>capacity, accessModes,<br>storageClass, selector</div>
+    <div class="node s1-bound" id="s1-bound">&#10003; Bound! PV &#8596; PVC 바인딩 완료<br><small>Pod에서 볼륨 마운트 가능</small></div>
+  </div>
+
+  <!-- Scene 2: Dynamic Provisioning -->
+  <div class="scene" id="scene1">
+    <div class="steps" id="steps1"></div>
+    <div class="scene-title">Dynamic Provisioning: PVC → StorageClass → CSI → Cloud Volume → PV 자동 생성</div>
+    <svg class="svg-overlay" id="svg1"></svg>
+    <div class="node s2-pvc" id="s2-pvc" style="color:var(--accent-green)"><b>PVC</b><br>request: 100Gi<br>storageClass: gp3</div>
+    <div class="node s2-sc" id="s2-sc" style="color:var(--accent-orange)"><b>StorageClass</b><br>provisioner:<br>ebs.csi.aws.com<br>type: gp3</div>
+    <div class="node s2-csi" id="s2-csi" style="color:var(--accent-purple)"><b>CSI Driver</b><br>ebs.csi.aws.com<br>CreateVolume()</div>
+    <div class="node s2-cloud" id="s2-cloud" style="color:var(--accent-cyan)"><b>Cloud API</b><br>AWS EC2<br>vol-0abc123</div>
+    <div class="node s2-pv" id="s2-pv" style="color:var(--accent-blue)"><b>PV (Auto-Created)</b><br>pvc-uuid-xxxx<br>100Gi, gp3</div>
+    <div class="node s2-bound" id="s2-bound" style="color:var(--accent-green)">&#10003; 자동 바인딩 완료! PVC &#8596; Auto-PV<br><small>수동 PV 생성 불필요</small></div>
+  </div>
+
+  <!-- Scene 3: Access Modes -->
+  <div class="scene" id="scene2">
+    <div class="steps" id="steps2"></div>
+    <div class="scene-title">Access Modes: 볼륨 접근 방식 비교</div>
+    <div class="mode-card mode-rwo" id="am-rwo">
+      <h3>RWO</h3>
+      <p><b>ReadWriteOnce</b><br>단일 노드에서 읽기/쓰기<br><br></p>
+      <div><span class="pod-icon pod-rw">R/W</span></div>
+      <p style="margin-top:8px; color:var(--accent-blue)">EBS, Azure Disk<br>단일 Pod DB에 적합</p>
+    </div>
+    <div class="mode-card mode-rwx" id="am-rwx">
+      <h3>RWX</h3>
+      <p><b>ReadWriteMany</b><br>다수 노드에서 읽기/쓰기<br><br></p>
+      <div><span class="pod-icon pod-rw">R/W</span><span class="pod-icon pod-rw">R/W</span><span class="pod-icon pod-rw">R/W</span></div>
+      <p style="margin-top:8px; color:var(--accent-green)">NFS, EFS, CephFS<br>공유 파일 업로드에 적합</p>
+    </div>
+    <div class="mode-card mode-rox" id="am-rox">
+      <h3>ROX</h3>
+      <p><b>ReadOnlyMany</b><br>다수 노드에서 읽기 전용<br><br></p>
+      <div><span class="pod-icon pod-r">R</span><span class="pod-icon pod-r">R</span><span class="pod-icon pod-r">R</span></div>
+      <p style="margin-top:8px; color:var(--accent-orange)">설정 파일 공유<br>정적 자산 서빙에 적합</p>
+    </div>
+  </div>
+
+  <!-- Scene 4: Reclaim Policy -->
+  <div class="scene" id="scene3">
+    <div class="steps" id="steps3"></div>
+    <div class="scene-title">Reclaim Policy: PVC 삭제 후 PV 처리 방식</div>
+    <div class="reclaim-col reclaim-retain" id="rc-retain">
+      <h3 style="color:var(--accent-blue); margin-bottom:12px;">Retain (보존)</h3>
+      <div class="reclaim-step retain-s" id="rt1">1. PVC 삭제 요청</div>
+      <div class="reclaim-step retain-s" id="rt2">2. PV 상태: Released</div>
+      <div class="reclaim-step retain-s" id="rt3">3. 데이터 보존됨 &#10003;</div>
+      <div class="reclaim-step retain-s" id="rt4">4. Admin이 수동 정리</div>
+      <div class="reclaim-step retain-s" id="rt5">5. PV 재사용 또는 삭제</div>
+      <p style="font-size:0.72rem; color:var(--text-dim); margin-top:12px;">프로덕션 DB에 권장<br>데이터 유실 방지</p>
+    </div>
+    <div class="reclaim-col reclaim-delete" id="rc-delete">
+      <h3 style="color:var(--accent-red); margin-bottom:12px;">Delete (삭제)</h3>
+      <div class="reclaim-step delete-s" id="dl1">1. PVC 삭제 요청</div>
+      <div class="reclaim-step delete-s" id="dl2">2. PV 자동 삭제 시작</div>
+      <div class="reclaim-step delete-s" id="dl3">3. Cloud Volume 삭제</div>
+      <div class="reclaim-step delete-s" id="dl4">4. 데이터 영구 삭제 &#10007;</div>
+      <div class="reclaim-step delete-s" id="dl5">5. 스토리지 비용 절감</div>
+      <p style="font-size:0.72rem; color:var(--text-dim); margin-top:12px;">개발/테스트 환경에 적합<br>Dynamic Provisioning 기본값</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentScene = 0;
+  let animTimer = null;
+  let isPaused = false;
+  let currentStep = 0;
+
+  const sceneSteps = [
+    // Scene 0: Static Binding
+    [
+      () => { show('s1-admin'); },
+      () => { show('s1-pv'); drawSvgArrow('svg0', 18, 110, 34, 110, 'var(--accent-orange)'); },
+      () => { show('s1-dev'); },
+      () => { show('s1-pvc'); drawSvgArrow('svg0', 88, 110, 72, 110, 'var(--accent-purple)'); },
+      () => { show('s1-scheduler'); drawSvgArrow('svg0', 48, 145, 48, 200, 'var(--accent-cyan)'); },
+      () => { addClass('s1-pv', 'highlight'); addClass('s1-pvc', 'highlight'); },
+      () => { show('s1-bound'); addClass('s1-bound', 'pulse-green'); drawSvgArrow('svg0', 48, 260, 48, 310, 'var(--accent-green)'); }
+    ],
+    // Scene 1: Dynamic Provisioning
+    [
+      () => { show('s2-pvc'); },
+      () => { show('s2-sc'); drawSvgArrow('svg1', 20, 90, 27, 90, 'var(--accent-green)'); },
+      () => { show('s2-csi'); drawSvgArrow('svg1', 42, 90, 49, 90, 'var(--accent-orange)'); },
+      () => { show('s2-cloud'); drawSvgArrow('svg1', 64, 90, 71, 90, 'var(--accent-purple)'); },
+      () => { addClass('s2-cloud', 'highlight'); },
+      () => { show('s2-pv'); drawSvgArrow('svg1', 62, 145, 56, 180, 'var(--accent-cyan)'); },
+      () => { show('s2-bound'); addClass('s2-bound', 'pulse-green'); drawSvgArrow('svg1', 40, 255, 40, 300, 'var(--accent-green)'); }
+    ],
+    // Scene 2: Access Modes
+    [
+      () => { show('am-rwo'); },
+      () => { show('am-rwx'); },
+      () => { show('am-rox'); }
+    ],
+    // Scene 3: Reclaim Policy
+    [
+      () => { show('rc-retain'); show('rc-delete'); },
+      () => { show('rt1'); show('dl1'); },
+      () => { show('rt2'); show('dl2'); },
+      () => { show('rt3'); show('dl3'); },
+      () => { show('rt4'); show('dl4'); },
+      () => { show('rt5'); show('dl5'); }
+    ]
+  ];
+
+  function show(id) { document.getElementById(id).classList.add('visible'); }
+  function addClass(id, cls) { document.getElementById(id).classList.add(cls); }
+
+  function drawSvgArrow(svgId, x1p, y1, x2p, y2, color) {
+    const svg = document.getElementById(svgId);
+    const ns = 'http://www.w3.org/2000/svg';
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', x1p + '%');
+    line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2p + '%');
+    line.setAttribute('y2', y2);
+    line.setAttribute('stroke', color);
+    line.setAttribute('stroke-width', '2');
+    line.setAttribute('class', 'flow-line');
+    svg.appendChild(line);
+    requestAnimationFrame(() => line.classList.add('animate'));
+  }
+
+  function renderSteps(sceneIdx) {
+    const container = document.getElementById('steps' + sceneIdx);
+    container.innerHTML = '';
+    const count = sceneSteps[sceneIdx].length;
+    for (let i = 0; i < count; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'step-dot';
+      container.appendChild(dot);
+    }
+  }
+
+  function updateDots() {
+    const dots = document.querySelectorAll('#steps' + currentScene + ' .step-dot');
+    dots.forEach((d, i) => {
+      d.className = 'step-dot';
+      if (i < currentStep) d.classList.add('done');
+      else if (i === currentStep) d.classList.add('current');
+    });
+  }
+
+  function resetScene(idx) {
+    const scene = document.getElementById('scene' + idx);
+    scene.querySelectorAll('.visible').forEach(el => el.classList.remove('visible'));
+    scene.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+    scene.querySelectorAll('.pulse-green').forEach(el => el.classList.remove('pulse-green'));
+    const svg = document.getElementById('svg' + idx);
+    if (svg) svg.innerHTML = '';
+  }
+
+  function switchScene(idx) {
+    clearInterval(animTimer);
+    currentScene = idx;
+    currentStep = 0;
+    document.querySelectorAll('.scene').forEach((s, i) => {
+      s.classList.toggle('active', i === idx);
+    });
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.classList.toggle('active', i === idx);
+    });
+    resetScene(idx);
+    renderSteps(idx);
+    isPaused = false;
+    play();
+  }
+
+  function play() {
+    isPaused = false;
+    document.getElementById('btnPlay').classList.add('active');
+    document.getElementById('btnPause').classList.remove('active');
+    clearInterval(animTimer);
+    animTimer = setInterval(() => {
+      if (isPaused) return;
+      const steps = sceneSteps[currentScene];
+      if (currentStep < steps.length) {
+        steps[currentStep]();
+        updateDots();
+        currentStep++;
+      } else {
+        clearInterval(animTimer);
+      }
+    }, 900);
+  }
+
+  function pause() {
+    isPaused = true;
+    document.getElementById('btnPause').classList.add('active');
+    document.getElementById('btnPlay').classList.remove('active');
+  }
+
+  function restart() {
+    clearInterval(animTimer);
+    currentStep = 0;
+    resetScene(currentScene);
+    renderSteps(currentScene);
+    play();
+  }
+
+  // Init
+  renderSteps(0);
+  play();
+</script>
+</body>
+</html>
