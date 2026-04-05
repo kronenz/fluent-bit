@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Container Runtime Architecture | 컨테이너 런타임 아키텍처</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.header h1{font-size:1.6rem;color:#58a6ff;margin-bottom:4px}
+.header p{font-size:.9rem;color:#8b949e}
+.controls{display:flex;justify-content:center;gap:10px;padding:14px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#c9d1d9;cursor:pointer;font-size:.85rem;transition:all .2s}
+.controls button:hover{border-color:#58a6ff;color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.section{padding:20px 16px;max-width:1100px;margin:0 auto}
+.section-title{font-size:1.1rem;color:#58a6ff;margin-bottom:16px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.section-title span{color:#8b949e;font-size:.8rem;font-weight:400;margin-left:8px}
+
+/* CRI Pipeline */
+.pipeline{display:flex;align-items:center;justify-content:center;gap:0;padding:20px 0;flex-wrap:wrap}
+.pipe-node{width:120px;height:70px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid #30363d;background:#161b22;position:relative;opacity:0;transform:translateY(20px);transition:all .5s ease}
+.pipe-node.show{opacity:1;transform:translateY(0)}
+.pipe-node .en{font-size:.75rem;color:#58a6ff;font-weight:600}
+.pipe-node .ko{font-size:.65rem;color:#8b949e;margin-top:2px}
+.pipe-arrow{width:40px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .4s ease}
+.pipe-arrow.show{opacity:1}
+.pipe-arrow svg{width:30px;height:20px}
+.pipe-arrow svg path{stroke:#3fb950;stroke-width:2;fill:none}
+.pipe-node.highlight{border-color:#3fb950;box-shadow:0 0 15px rgba(63,185,80,.3)}
+
+/* Comparison Table */
+.compare-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:12px}
+@media(max-width:700px){.compare-grid{grid-template-columns:1fr}}
+.compare-card{border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;opacity:0;transform:scale(.95);transition:all .5s ease}
+.compare-card.show{opacity:1;transform:scale(1)}
+.compare-card h3{font-size:.95rem;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.compare-card.docker h3{color:#2496ed}
+.compare-card.containerd h3{color:#575757;background:linear-gradient(90deg,#575757,#c9d1d9);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.compare-card.crio h3{color:#ff6d00}
+.compare-card ul{list-style:none;font-size:.8rem;line-height:1.8}
+.compare-card ul li::before{content:"▸ ";color:#3fb950}
+.compare-card .arch{font-size:.7rem;color:#8b949e;margin-top:10px;padding:8px;background:#0d1117;border-radius:4px;font-family:monospace;line-height:1.6;white-space:pre}
+.deprecated{color:#f85149;font-size:.7rem;font-style:italic}
+
+/* OCI Spec */
+.oci-flow{display:flex;align-items:stretch;justify-content:center;gap:16px;margin-top:12px;flex-wrap:wrap}
+.oci-step{flex:1;min-width:200px;max-width:280px;border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;opacity:0;transform:translateX(-20px);transition:all .6s ease}
+.oci-step.show{opacity:1;transform:translateX(0)}
+.oci-step h4{color:#bd93f9;font-size:.85rem;margin-bottom:8px}
+.oci-step pre{font-size:.7rem;background:#0d1117;padding:10px;border-radius:4px;overflow-x:auto;color:#3fb950;line-height:1.5}
+.oci-step .desc{font-size:.75rem;color:#8b949e;margin-top:8px}
+
+/* Pulse animation */
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(63,185,80,.4)}50%{box-shadow:0 0 20px 4px rgba(63,185,80,.2)}}
+.pipe-node.active{animation:pulse 1.5s infinite;border-color:#3fb950}
+
+/* Flow line animation */
+@keyframes flowRight{0%{stroke-dashoffset:30}100%{stroke-dashoffset:0}}
+.pipe-arrow.animated svg path{stroke-dasharray:10 5;animation:flowRight .8s linear infinite}
+
+.hidden{display:none}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>Container Runtime Architecture</h1>
+<p>컨테이너 런타임 아키텍처 | kubectl에서 컨테이너 생성까지의 전체 흐름</p>
+</div>
+
+<div class="controls">
+<button id="btnPlay" class="active" onclick="play()">&#9654; Play / 재생</button>
+<button id="btnPause" onclick="pause()">&#10074;&#10074; Pause / 일시정지</button>
+<button id="btnRestart" onclick="restart()">&#8634; Restart / 처음부터</button>
+</div>
+
+<!-- Section 1: CRI Pipeline -->
+<div class="section">
+<div class="section-title">1. CRI Pipeline Flow <span>CRI 파이프라인 흐름</span></div>
+<div class="pipeline" id="pipeline">
+<div class="pipe-node" id="n0"><div class="en">kubectl</div><div class="ko">명령어 입력</div></div>
+<div class="pipe-arrow" id="a0"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n1"><div class="en">API Server</div><div class="ko">API 서버</div></div>
+<div class="pipe-arrow" id="a1"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n2"><div class="en">kubelet</div><div class="ko">노드 에이전트</div></div>
+<div class="pipe-arrow" id="a2"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n3"><div class="en">CRI</div><div class="ko">런타임 인터페이스</div></div>
+<div class="pipe-arrow" id="a3"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n4"><div class="en">containerd</div><div class="ko">컨테이너 관리</div></div>
+<div class="pipe-arrow" id="a4"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n5"><div class="en">runc</div><div class="ko">OCI 런타임</div></div>
+<div class="pipe-arrow" id="a5"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n6"><div class="en">Container</div><div class="ko">컨테이너 실행</div></div>
+</div>
+</div>
+
+<!-- Section 2: Comparison -->
+<div class="section">
+<div class="section-title">2. Runtime Comparison <span>런타임 비교</span></div>
+<div class="compare-grid" id="compareGrid">
+<div class="compare-card docker" id="card0">
+<h3>Docker (dockershim) <span class="deprecated">K8s 1.24+ 제거</span></h3>
+<ul>
+<li>가장 널리 알려진 컨테이너 런타임</li>
+<li>dockershim은 Kubernetes 1.24에서 제거</li>
+<li>Docker Desktop은 개발 환경에서 여전히 유용</li>
+<li>containerd를 내부적으로 사용</li>
+</ul>
+<div class="arch">kubelet → dockershim → dockerd
+  → containerd → runc → container</div>
+</div>
+<div class="compare-card containerd" id="card1">
+<h3>containerd (권장 / Recommended)</h3>
+<ul>
+<li>CNCF graduated 프로젝트</li>
+<li>Kubernetes 기본 런타임</li>
+<li>Docker보다 가볍고 직접 CRI 지원</li>
+<li>이미지 관리, 스냅샷 기능 내장</li>
+</ul>
+<div class="arch">kubelet → CRI plugin
+  → containerd → runc → container</div>
+</div>
+<div class="compare-card crio" id="card2">
+<h3>CRI-O</h3>
+<ul>
+<li>Kubernetes 전용 경량 런타임</li>
+<li>Red Hat / OpenShift 기본 런타임</li>
+<li>OCI 호환 이미지만 지원</li>
+<li>최소한의 기능만 포함 (빌드 기능 없음)</li>
+</ul>
+<div class="arch">kubelet → CRI-O
+  → runc/crun → container</div>
+</div>
+</div>
+</div>
+
+<!-- Section 3: OCI Runtime Spec -->
+<div class="section">
+<div class="section-title">3. OCI Runtime Spec Flow <span>OCI 런타임 스펙 흐름</span></div>
+<div class="oci-flow" id="ociFlow">
+<div class="oci-step" id="oci0">
+<h4>Step 1: config.json 생성</h4>
+<pre>{
+  "ociVersion": "1.0.2",
+  "process": {
+    "args": ["/bin/sh"],
+    "env": ["PATH=/usr/bin"],
+    "cwd": "/"
+  },
+  "root": {
+    "path": "rootfs",
+    "readonly": true
+  },
+  "linux": {
+    "namespaces": [
+      {"type":"pid"},
+      {"type":"network"},
+      {"type":"mount"}
+    ]
+  }
+}</pre>
+<div class="desc">OCI 번들: config.json + rootfs 디렉토리</div>
+</div>
+<div class="oci-step" id="oci1">
+<h4>Step 2: runc create</h4>
+<pre>$ runc create mycontainer
+
+# 내부 동작:
+1. config.json 파싱
+2. namespace 생성 (pid, net, mnt...)
+3. cgroup 설정
+4. rootfs 마운트
+5. seccomp 필터 적용
+6. 컨테이너 프로세스 준비
+   (아직 실행하지 않음)
+
+→ Status: created</pre>
+<div class="desc">컨테이너 생성 - 아직 프로세스 미실행 상태</div>
+</div>
+<div class="oci-step" id="oci2">
+<h4>Step 3: runc start</h4>
+<pre>$ runc start mycontainer
+
+# 내부 동작:
+1. init 프로세스 시작
+2. prestart hooks 실행
+3. 사용자 프로세스 exec
+4. poststart hooks 실행
+
+→ Status: running
+
+$ runc list
+ID            STATUS
+mycontainer   running</pre>
+<div class="desc">컨테이너 실행 - PID 1 프로세스 시작</div>
+</div>
+</div>
+</div>
+
+<script>
+let timer=null,step=0,playing=false;
+const totalSteps=20;
+
+function animateStep(s){
+  // Pipeline nodes: steps 0-12
+  if(s<=12){
+    const idx=Math.floor(s/2);
+    if(s%2===0){
+      const node=document.getElementById('n'+idx);
+      if(node){node.classList.add('show');node.classList.add('active');}
+      // remove active from previous
+      if(idx>0){const prev=document.getElementById('n'+(idx-1));if(prev)prev.classList.remove('active');}
+    } else {
+      const arrow=document.getElementById('a'+Math.floor(s/2));
+      if(arrow){arrow.classList.add('show','animated');}
+    }
+    if(s===12){const last=document.getElementById('n6');if(last){last.classList.add('highlight');last.classList.remove('active');}}
+  }
+  // Comparison cards: steps 13-15
+  if(s>=13&&s<=15){
+    const card=document.getElementById('card'+(s-13));
+    if(card)card.classList.add('show');
+  }
+  // OCI steps: steps 16-18
+  if(s>=16&&s<=18){
+    const oci=document.getElementById('oci'+(s-16));
+    if(oci)oci.classList.add('show');
+  }
+}
+
+function play(){
+  if(playing)return;
+  playing=true;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  timer=setInterval(()=>{
+    if(step>=totalSteps){pause();return;}
+    animateStep(step);
+    step++;
+  },600);
+}
+
+function pause(){
+  playing=false;
+  clearInterval(timer);
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+}
+
+function restart(){
+  pause();
+  step=0;
+  document.querySelectorAll('.pipe-node').forEach(n=>{n.classList.remove('show','active','highlight')});
+  document.querySelectorAll('.pipe-arrow').forEach(a=>{a.classList.remove('show','animated')});
+  document.querySelectorAll('.compare-card').forEach(c=>{c.classList.remove('show')});
+  document.querySelectorAll('.oci-step').forEach(o=>{o.classList.remove('show')});
+  setTimeout(play,300);
+}
+
+window.addEventListener('load',()=>setTimeout(play,500));
+</script>
+</body>
+</html>

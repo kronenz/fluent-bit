@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kubernetes Service Types - 서비스 유형 비교</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:1.8rem;margin-bottom:8px;background:linear-gradient(135deg,#a371f7,#58a6ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:20px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.controls button{background:#21262d;border:1px solid #30363d;color:#c9d1d9;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:0.9rem;transition:all 0.2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff;color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:15px;margin-top:15px}
+.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;position:relative;overflow:hidden;transition:border-color 0.3s}
+.card.active{border-color:#58a6ff}
+.card-title{font-size:1rem;font-weight:700;margin-bottom:4px}
+.card-subtitle{font-size:0.8rem;color:#8b949e;margin-bottom:15px}
+.flow-diagram{position:relative;min-height:220px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.flow-box{background:#1c2333;border:1.5px solid #30363d;border-radius:8px;padding:8px 14px;font-size:0.78rem;text-align:center;transition:all 0.5s;opacity:0.4;position:relative;min-width:120px}
+.flow-box.active{opacity:1;border-color:var(--c,#58a6ff);box-shadow:0 0 12px var(--glow,rgba(88,166,255,0.2))}
+.flow-arrow{color:#30363d;font-size:1.4rem;transition:color 0.5s;line-height:1}
+.flow-arrow.active{color:var(--c,#58a6ff)}
+.flow-box .label{font-weight:600;color:var(--c,#58a6ff)}
+.flow-box .detail{font-size:0.7rem;color:#8b949e;margin-top:2px}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.65rem;font-weight:600;margin-bottom:8px}
+.badge-blue{background:#1f6feb33;color:#58a6ff}
+.badge-purple{background:#a371f733;color:#a371f7}
+.badge-orange{background:#f0883e33;color:#f0883e}
+.badge-green{background:#3fb95033;color:#3fb950}
+.info-box{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;margin-top:15px;font-size:0.8rem;line-height:1.6}
+.step-list .step{display:flex;align-items:flex-start;gap:8px;margin:3px 0;opacity:0.3;transition:opacity 0.5s}
+.step-list .step.active{opacity:1}
+.step-num{background:#1f6feb;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.65rem;flex-shrink:0}
+.comparison-table{width:100%;border-collapse:collapse;margin-top:15px;font-size:0.8rem}
+.comparison-table th{background:#21262d;padding:8px;border:1px solid #30363d;color:#58a6ff;font-weight:600}
+.comparison-table td{padding:8px;border:1px solid #30363d;text-align:center}
+.comparison-table tr:hover{background:#1c233366}
+.highlight-row{background:#1f6feb11!important}
+.dns-flow{display:flex;align-items:center;justify-content:center;gap:6px;margin:10px 0;flex-wrap:wrap}
+.dns-box{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:4px 8px;font-size:0.7rem;font-family:monospace}
+.dns-arrow{color:#3fb950;font-size:0.9rem}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 5px var(--glow)}50%{box-shadow:0 0 20px var(--glow)}}
+.pulse-glow{animation:pulseGlow 1.5s ease-in-out infinite}
+.paused .pulse-glow{animation-play-state:paused}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Kubernetes Service Types</h1>
+<p class="subtitle">서비스 유형 비교 - ClusterIP, NodePort, LoadBalancer, Headless</p>
+
+<div class="controls">
+<button onclick="togglePlay()" id="playBtn">⏸ Pause</button>
+<button onclick="restart()">↻ Restart</button>
+</div>
+
+<div class="grid" id="cardGrid">
+<!-- ClusterIP -->
+<div class="card" id="card-cip" style="--c:#58a6ff;--glow:rgba(88,166,255,0.3)">
+<span class="badge badge-blue">ClusterIP</span>
+<div class="card-title" style="color:#58a6ff">ClusterIP Service</div>
+<div class="card-subtitle">클러스터 내부 전용 가상 IP</div>
+<div class="flow-diagram">
+<div class="flow-box" id="cip-1" style="--c:#58a6ff"><span class="label">Client Pod</span><div class="detail">10.244.1.5</div></div>
+<div class="flow-arrow" id="cip-a1" style="--c:#58a6ff">↓</div>
+<div class="flow-box" id="cip-2" style="--c:#58a6ff"><span class="label">Virtual ClusterIP</span><div class="detail">10.96.0.100:80</div></div>
+<div class="flow-arrow" id="cip-a2" style="--c:#58a6ff">↓</div>
+<div class="flow-box" id="cip-3" style="--c:#58a6ff"><span class="label">iptables / IPVS</span><div class="detail">kube-proxy DNAT rules</div></div>
+<div class="flow-arrow" id="cip-a3" style="--c:#58a6ff">↓</div>
+<div class="flow-box" id="cip-4" style="--c:#58a6ff"><span class="label">Backend Pod</span><div class="detail">10.244.2.30:8080</div></div>
+</div>
+</div>
+
+<!-- NodePort -->
+<div class="card" id="card-np" style="--c:#f0883e;--glow:rgba(240,136,62,0.3)">
+<span class="badge badge-orange">NodePort</span>
+<div class="card-title" style="color:#f0883e">NodePort Service</div>
+<div class="card-subtitle">모든 노드의 고정 포트로 외부 접근</div>
+<div class="flow-diagram">
+<div class="flow-box" id="np-1" style="--c:#f0883e"><span class="label">External Client</span><div class="detail">any-node:30080</div></div>
+<div class="flow-arrow" id="np-a1" style="--c:#f0883e">↓</div>
+<div class="flow-box" id="np-2" style="--c:#f0883e"><span class="label">Node (any)</span><div class="detail">NodePort 30080</div></div>
+<div class="flow-arrow" id="np-a2" style="--c:#f0883e">↓</div>
+<div class="flow-box" id="np-3" style="--c:#f0883e"><span class="label">iptables DNAT</span><div class="detail">→ ClusterIP → Pod</div></div>
+<div class="flow-arrow" id="np-a3" style="--c:#f0883e">↓</div>
+<div class="flow-box" id="np-4" style="--c:#f0883e"><span class="label">Backend Pod</span><div class="detail">10.244.1.20:8080</div></div>
+</div>
+</div>
+
+<!-- LoadBalancer -->
+<div class="card" id="card-lb" style="--c:#a371f7;--glow:rgba(163,113,247,0.3)">
+<span class="badge badge-purple">LoadBalancer</span>
+<div class="card-title" style="color:#a371f7">LoadBalancer Service</div>
+<div class="card-subtitle">Cloud LB + NodePort + ClusterIP</div>
+<div class="flow-diagram">
+<div class="flow-box" id="lb-1" style="--c:#a371f7"><span class="label">External Client</span><div class="detail">public IP</div></div>
+<div class="flow-arrow" id="lb-a1" style="--c:#a371f7">↓</div>
+<div class="flow-box" id="lb-2" style="--c:#a371f7"><span class="label">Cloud Load Balancer</span><div class="detail">198.51.100.1:80</div></div>
+<div class="flow-arrow" id="lb-a2" style="--c:#a371f7">↓</div>
+<div class="flow-box" id="lb-3" style="--c:#a371f7"><span class="label">NodePort → iptables</span><div class="detail">:30080 → DNAT</div></div>
+<div class="flow-arrow" id="lb-a3" style="--c:#a371f7">↓</div>
+<div class="flow-box" id="lb-4" style="--c:#a371f7"><span class="label">Backend Pod</span><div class="detail">10.244.2.15:8080</div></div>
+</div>
+</div>
+
+<!-- Headless -->
+<div class="card" id="card-hl" style="--c:#3fb950;--glow:rgba(63,185,80,0.3)">
+<span class="badge badge-green">Headless</span>
+<div class="card-title" style="color:#3fb950">Headless Service</div>
+<div class="card-subtitle">clusterIP: None - DNS가 Pod IP 직접 반환</div>
+<div class="flow-diagram">
+<div class="flow-box" id="hl-1" style="--c:#3fb950"><span class="label">Client Pod</span><div class="detail">DNS query</div></div>
+<div class="flow-arrow" id="hl-a1" style="--c:#3fb950">↓</div>
+<div class="flow-box" id="hl-2" style="--c:#3fb950"><span class="label">CoreDNS</span><div class="detail">A record lookup</div></div>
+<div class="flow-arrow" id="hl-a2" style="--c:#3fb950">↓</div>
+<div class="flow-box" id="hl-3" style="--c:#3fb950"><span class="label">Pod IPs directly</span><div class="detail">10.244.1.10, .11, .12</div></div>
+<div class="flow-arrow" id="hl-a3" style="--c:#3fb950">↓</div>
+<div class="flow-box" id="hl-4" style="--c:#3fb950"><span class="label">Client chooses Pod</span><div class="detail">No kube-proxy involved</div></div>
+</div>
+</div>
+</div>
+
+<!-- Comparison Table -->
+<div class="info-box">
+<h3 style="color:#58a6ff;font-size:0.9rem;margin-bottom:10px">Service Types Comparison (서비스 유형 비교표)</h3>
+<table class="comparison-table">
+<thead>
+<tr><th>Feature</th><th style="color:#58a6ff">ClusterIP</th><th style="color:#f0883e">NodePort</th><th style="color:#a371f7">LoadBalancer</th><th style="color:#3fb950">Headless</th></tr>
+</thead>
+<tbody>
+<tr><td>External Access<br><small>외부 접근</small></td><td>No</td><td>Yes (port)</td><td>Yes (LB IP)</td><td>No</td></tr>
+<tr><td>Virtual IP<br><small>가상 IP</small></td><td>Yes</td><td>Yes + Port</td><td>Yes + LB</td><td>None</td></tr>
+<tr><td>kube-proxy<br><small>프록시 사용</small></td><td>iptables/IPVS</td><td>iptables/IPVS</td><td>iptables/IPVS</td><td>Not used</td></tr>
+<tr><td>DNS Response<br><small>DNS 응답</small></td><td>ClusterIP</td><td>ClusterIP</td><td>ClusterIP</td><td>Pod IPs</td></tr>
+<tr><td>Use Case<br><small>사용 사례</small></td><td>Internal svc</td><td>Dev/test</td><td>Production</td><td>StatefulSet</td></tr>
+<tr><td>Port Range<br><small>포트 범위</small></td><td>Any</td><td>30000-32767</td><td>Any</td><td>Any</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<script>
+let playing=true,timers=[];
+function togglePlay(){
+  playing=!playing;
+  document.getElementById('playBtn').textContent=playing?'⏸ Pause':'▶ Play';
+  document.querySelectorAll('.card').forEach(c=>c.classList.toggle('paused',!playing));
+}
+function restart(){
+  timers.forEach(t=>clearTimeout(t));timers=[];
+  playing=true;document.getElementById('playBtn').textContent='⏸ Pause';
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('paused'));
+  document.querySelectorAll('.flow-box').forEach(b=>{b.classList.remove('active','pulse-glow')});
+  document.querySelectorAll('.flow-arrow').forEach(a=>a.classList.remove('active'));
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('active'));
+  runAll();
+}
+function animateCard(prefix,cardId,delay){
+  for(let i=1;i<=4;i++){
+    const d=delay+(i-1)*600;
+    timers.push(setTimeout(()=>{
+      const box=document.getElementById(prefix+'-'+i);
+      if(box){box.classList.add('active');if(i===4)box.classList.add('pulse-glow')}
+      if(i>1){const arrow=document.getElementById(prefix+'-a'+(i-1));if(arrow)arrow.classList.add('active')}
+    },d));
+  }
+  timers.push(setTimeout(()=>{document.getElementById(cardId).classList.add('active')},delay));
+}
+function runAll(){
+  animateCard('cip','card-cip',200);
+  animateCard('np','card-np',500);
+  animateCard('lb','card-lb',800);
+  animateCard('hl','card-hl',1100);
+  timers.push(setTimeout(()=>restart(),6000));
+}
+restart();
+</script>
+</body>
+</html>

@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elasticsearch Cluster on K8s</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1400px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#f0883e,#58a6ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.tab-bar{display:flex;justify-content:center;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+.tab-btn{padding:6px 16px;border:1px solid #30363d;border-radius:20px;background:#161b22;color:#8b949e;cursor:pointer;font-size:0.82rem;transition:all .3s}
+.tab-btn:hover{border-color:#58a6ff;color:#e6edf3}
+.tab-btn.active{background:#1f6feb;border-color:#58a6ff;color:#fff}
+.scene{display:none;animation:fadeIn .4s ease}
+.scene.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.card h2{font-size:1.1rem;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card-desc{color:#8b949e;font-size:0.82rem;margin-bottom:16px}
+.step-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:0.72rem;font-weight:700;margin-right:6px}
+.badge-green{background:#2ea04340;color:#3fb950;border:1px solid #3fb95040}
+.badge-yellow{background:#d2992140;color:#e3b341;border:1px solid #e3b34140}
+.badge-red{background:#da363340;color:#f85149;border:1px solid #f8514940}
+.badge-blue{background:#1f6feb40;color:#58a6ff;border:1px solid #58a6ff40}
+.badge-orange{background:#f0883e40;color:#f0883e;border:1px solid #f0883e40}
+.badge-purple{background:#8957e540;color:#bc8cff;border:1px solid #bc8cff40}
+
+.anim-area{position:relative;min-height:340px;background:#0d1117;border-radius:8px;border:1px solid #21262d;overflow:hidden;padding:16px}
+.node{position:absolute;border-radius:10px;padding:10px 14px;text-align:center;font-size:0.75rem;font-weight:600;transition:all .5s ease;z-index:2}
+.node-master{background:#bc8cff20;border:2px solid #bc8cff;color:#bc8cff}
+.node-hot{background:#f8514920;border:2px solid #f85149;color:#f85149}
+.node-warm{background:#f0883e20;border:2px solid #f0883e;color:#f0883e}
+.node-cold{background:#58a6ff20;border:2px solid #58a6ff;color:#58a6ff}
+.node-coord{background:#3fb95020;border:2px solid #3fb950;color:#3fb950}
+.node-ingest{background:#e3b34120;border:2px solid #e3b341;color:#e3b341}
+.node-client{background:#1f6feb30;border:2px solid #58a6ff;color:#58a6ff}
+.node-shard{border-radius:6px;padding:6px 10px;font-size:0.68rem}
+.shard-primary{background:#3fb95020;border:1px solid #3fb950;color:#3fb950}
+.shard-replica{background:#e3b34120;border:1px solid #e3b341;color:#e3b341}
+.node-eck{background:#8957e530;border:2px solid #bc8cff;color:#bc8cff}
+.node-pool{background:#161b22;border:2px dashed #30363d;border-radius:12px;color:#8b949e}
+
+.packet{position:absolute;width:10px;height:10px;border-radius:50%;z-index:3;opacity:0}
+.packet-search{background:#58a6ff;box-shadow:0 0 8px #58a6ff80}
+.packet-index{background:#3fb950;box-shadow:0 0 8px #3fb95080}
+.packet-ilm{background:#f0883e;box-shadow:0 0 8px #f0883e80}
+.packet-ack{background:#bc8cff;box-shadow:0 0 8px #bc8cff80}
+
+@keyframes flowRight{0%{left:var(--fx);top:var(--fy);opacity:0}10%{opacity:1}90%{opacity:1}100%{left:var(--tx);top:var(--ty);opacity:0}}
+@keyframes flowRightReturn{0%{left:var(--tx);top:var(--ty);opacity:0}10%{opacity:1}90%{opacity:1}100%{left:var(--fx);top:var(--fy);opacity:0}}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.12);opacity:.8}}
+@keyframes slideIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeGlow{0%{box-shadow:none}50%{box-shadow:0 0 20px var(--glow)}100%{box-shadow:none}}
+@keyframes ilmSlide{0%{left:var(--fx);opacity:1}100%{left:var(--tx);opacity:1}}
+@keyframes shrinkNode{0%{transform:scale(1);opacity:1}100%{transform:scale(0.85);opacity:0.5}}
+
+.step-info{position:absolute;bottom:12px;left:12px;right:12px;background:#21262d;border-radius:8px;padding:10px 14px;font-size:0.78rem;color:#e6edf3;border:1px solid #30363d;opacity:0;transition:opacity .4s;z-index:10}
+.step-info.show{opacity:1}
+.step-info .step-num{display:inline-block;background:#1f6feb;color:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;font-size:0.72rem;font-weight:700;margin-right:8px}
+
+.legend{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:16px;padding:12px;background:#161b22;border-radius:8px;border:1px solid #30363d}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:0.78rem;color:#8b949e}
+.legend-dot{width:12px;height:12px;border-radius:3px}
+.progress-bar{width:100%;height:4px;background:#21262d;border-radius:2px;margin-top:12px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#f0883e,#58a6ff);width:0%;transition:width .5s ease}
+.paused .packet{animation-play-state:paused!important}
+@media(max-width:768px){.anim-area{min-height:300px}.container{padding:12px}.node{font-size:0.68rem;padding:7px 10px}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Elasticsearch Cluster on Kubernetes</h1>
+<p class="subtitle">Elasticsearch 클러스터 아키텍처 - Master, Data Tier, Search, ILM, ECK Operator</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="play()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8635; 다시시작 Restart</button>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showScene(0,this)">1. 클러스터 토폴로지</button>
+  <button class="tab-btn" onclick="showScene(1,this)">2. 인덱스/샤드 분배</button>
+  <button class="tab-btn" onclick="showScene(2,this)">3. 검색 흐름</button>
+  <button class="tab-btn" onclick="showScene(3,this)">4. ILM 생명주기</button>
+  <button class="tab-btn" onclick="showScene(4,this)">5. ECK Operator</button>
+</div>
+
+<!-- Scene 0: Cluster Topology -->
+<div class="scene active" id="scene0">
+<div class="card">
+  <h2><span class="step-badge badge-purple">Topology</span> 클러스터 노드 토폴로지 (Cluster Node Topology)</h2>
+  <p class="card-desc">Master, Data(Hot/Warm/Cold), Ingest, Coordinating 노드의 역할과 구성</p>
+  <div class="anim-area" id="topo-area" style="height:420px">
+    <!-- Master nodes -->
+    <div class="node node-master" style="left:4%;top:4%;width:100px;opacity:0" id="t-m1">Master 1<br><span style="font-size:0.6rem">선출 마스터</span></div>
+    <div class="node node-master" style="left:4%;top:24%;width:100px;opacity:0" id="t-m2">Master 2<br><span style="font-size:0.6rem">투표 전용</span></div>
+    <div class="node node-master" style="left:4%;top:44%;width:100px;opacity:0" id="t-m3">Master 3<br><span style="font-size:0.6rem">투표 전용</span></div>
+    <!-- Ingest -->
+    <div class="node node-ingest" style="left:22%;top:4%;width:100px;opacity:0" id="t-ing1">Ingest 1<br><span style="font-size:0.6rem">파이프라인</span></div>
+    <div class="node node-ingest" style="left:22%;top:24%;width:100px;opacity:0" id="t-ing2">Ingest 2<br><span style="font-size:0.6rem">파이프라인</span></div>
+    <!-- Coordinating -->
+    <div class="node node-coord" style="left:22%;top:52%;width:100px;opacity:0" id="t-coord1">Coordinating<br><span style="font-size:0.6rem">검색 조정</span></div>
+    <div class="node node-coord" style="left:22%;top:72%;width:100px;opacity:0" id="t-coord2">Coordinating<br><span style="font-size:0.6rem">검색 조정</span></div>
+    <!-- Data nodes - Hot -->
+    <div class="node node-hot" style="left:42%;top:4%;width:90px;opacity:0" id="t-hot1">&#128293; Hot 1<br><span style="font-size:0.6rem">SSD / 쓰기</span></div>
+    <div class="node node-hot" style="left:56%;top:4%;width:90px;opacity:0" id="t-hot2">&#128293; Hot 2<br><span style="font-size:0.6rem">SSD / 쓰기</span></div>
+    <div class="node node-hot" style="right:4%;top:4%;width:90px;opacity:0" id="t-hot3">&#128293; Hot 3<br><span style="font-size:0.6rem">SSD / 쓰기</span></div>
+    <!-- Data nodes - Warm -->
+    <div class="node node-warm" style="left:42%;top:32%;width:90px;opacity:0" id="t-warm1">Warm 1<br><span style="font-size:0.6rem">HDD / 읽기</span></div>
+    <div class="node node-warm" style="left:56%;top:32%;width:90px;opacity:0" id="t-warm2">Warm 2<br><span style="font-size:0.6rem">HDD / 읽기</span></div>
+    <div class="node node-warm" style="right:4%;top:32%;width:90px;opacity:0" id="t-warm3">Warm 3<br><span style="font-size:0.6rem">HDD / 읽기</span></div>
+    <!-- Data nodes - Cold -->
+    <div class="node node-cold" style="left:42%;top:60%;width:90px;opacity:0" id="t-cold1">&#10052; Cold 1<br><span style="font-size:0.6rem">압축 저장</span></div>
+    <div class="node node-cold" style="left:56%;top:60%;width:90px;opacity:0" id="t-cold2">&#10052; Cold 2<br><span style="font-size:0.6rem">압축 저장</span></div>
+    <!-- Labels -->
+    <div style="position:absolute;left:4%;bottom:6%;color:#8b949e;font-size:0.7rem">
+      <strong>노드 구성:</strong> Master 3 + Ingest 2 + Coordinating 2 + Hot 3 + Warm 3 + Cold 2 = <strong>15 노드</strong>
+    </div>
+    <div class="step-info" id="topo-step"><span class="step-num">1</span> 클러스터 노드들이 초기화됩니다</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="topo-progress"></div></div>
+</div>
+</div>
+
+<!-- Scene 1: Index/Shard Distribution -->
+<div class="scene" id="scene1">
+<div class="card">
+  <h2><span class="step-badge badge-green">Shards</span> 인덱스/샤드 분배 (Index & Shard Distribution)</h2>
+  <p class="card-desc">Primary Shard와 Replica Shard가 데이터 노드에 분산 배치됩니다</p>
+  <div class="anim-area" id="shard-area" style="height:380px">
+    <!-- Index label -->
+    <div style="position:absolute;left:4%;top:4%;color:#58a6ff;font-size:0.82rem;font-weight:700">
+      Index: logs-2024.01 (3 primary shards, 1 replica)
+    </div>
+    <!-- Data nodes -->
+    <div class="node node-hot" style="left:4%;top:18%;width:28%;height:70%;padding-top:30px;border-radius:12px" id="sd-node1">
+      <div style="position:absolute;top:8px;left:14px;font-size:0.72rem">Data Node 1 (Hot)</div>
+    </div>
+    <div class="node node-hot" style="left:36%;top:18%;width:28%;height:70%;padding-top:30px;border-radius:12px" id="sd-node2">
+      <div style="position:absolute;top:8px;left:14px;font-size:0.72rem">Data Node 2 (Hot)</div>
+    </div>
+    <div class="node node-hot" style="right:4%;top:18%;width:28%;height:70%;padding-top:30px;border-radius:12px" id="sd-node3">
+      <div style="position:absolute;top:8px;left:14px;font-size:0.72rem">Data Node 3 (Hot)</div>
+    </div>
+    <!-- Shards inside nodes - will be created dynamically -->
+    <div class="step-info" id="shard-step"><span class="step-num">1</span> 인덱스가 생성되면 샤드가 노드에 분배됩니다</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="shard-progress"></div></div>
+</div>
+</div>
+
+<!-- Scene 2: Search Flow -->
+<div class="scene" id="scene2">
+<div class="card">
+  <h2><span class="step-badge badge-blue">Search</span> 검색 흐름 (Search Flow: Scatter-Gather)</h2>
+  <p class="card-desc">Coordinating 노드가 검색 요청을 분산하고 결과를 취합합니다</p>
+  <div class="anim-area" id="search-area" style="height:400px">
+    <div class="node node-client" style="left:2%;top:40%;width:80px" id="sr-client">
+      <div>CLIENT</div>
+      <div style="font-size:0.6rem">클라이언트</div>
+    </div>
+    <div class="node node-coord" style="left:20%;top:38%;width:120px" id="sr-coord">
+      <div>Coordinating</div>
+      <div style="font-size:0.6rem">검색 조정 노드</div>
+    </div>
+    <div class="node node-hot" style="right:10%;top:6%;width:130px" id="sr-shard0">
+      <div>Shard 0 (P)</div>
+      <div style="font-size:0.6rem">Data Node 1</div>
+    </div>
+    <div class="node node-hot" style="right:10%;top:36%;width:130px" id="sr-shard1">
+      <div>Shard 1 (P)</div>
+      <div style="font-size:0.6rem">Data Node 2</div>
+    </div>
+    <div class="node node-hot" style="right:10%;top:66%;width:130px" id="sr-shard2">
+      <div>Shard 2 (P)</div>
+      <div style="font-size:0.6rem">Data Node 3</div>
+    </div>
+    <!-- Result box -->
+    <div class="node" style="left:16%;top:78%;width:220px;background:#21262d;border:1px dashed #3fb95040;color:#8b949e;font-size:0.7rem;opacity:0" id="sr-result">
+      &#9745; 결과 병합: score 기준 정렬 후 반환
+    </div>
+    <div class="step-info" id="search-step"><span class="step-num">1</span> 클라이언트가 검색 요청을 전송합니다</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="search-progress"></div></div>
+</div>
+</div>
+
+<!-- Scene 3: ILM Lifecycle -->
+<div class="scene" id="scene3">
+<div class="card">
+  <h2><span class="step-badge badge-orange">ILM</span> 인덱스 생명주기 관리 (Index Lifecycle Management)</h2>
+  <p class="card-desc">Hot → Warm → Cold → Delete 단계를 거치며 인덱스를 자동 관리합니다</p>
+  <div class="anim-area" id="ilm-area" style="height:360px">
+    <!-- Phase boxes -->
+    <div class="node" style="left:2%;top:8%;width:20%;height:55%;background:#f8514910;border:2px solid #f8514960;border-radius:12px;color:#f85149" id="ilm-hot">
+      <div style="font-size:0.9rem;font-weight:700">&#128293; HOT</div>
+      <div style="font-size:0.62rem;margin-top:4px;color:#f8514999">쓰기 + 읽기<br>SSD 고성능<br>rollover: 50GB/30d</div>
+    </div>
+    <div class="node" style="left:26%;top:8%;width:20%;height:55%;background:#f0883e10;border:2px solid #f0883e60;border-radius:12px;color:#f0883e" id="ilm-warm">
+      <div style="font-size:0.9rem;font-weight:700">WARM</div>
+      <div style="font-size:0.62rem;margin-top:4px;color:#f0883e99">읽기 전용<br>HDD 저장<br>shrink + forcemerge</div>
+    </div>
+    <div class="node" style="left:50%;top:8%;width:20%;height:55%;background:#58a6ff10;border:2px solid #58a6ff60;border-radius:12px;color:#58a6ff" id="ilm-cold">
+      <div style="font-size:0.9rem;font-weight:700">&#10052; COLD</div>
+      <div style="font-size:0.62rem;margin-top:4px;color:#58a6ff99">압축 저장<br>검색 가능<br>searchable snapshot</div>
+    </div>
+    <div class="node" style="left:74%;top:8%;width:20%;height:55%;background:#f8514910;border:2px dashed #f8514960;border-radius:12px;color:#f85149" id="ilm-delete">
+      <div style="font-size:0.9rem;font-weight:700">&#10006; DELETE</div>
+      <div style="font-size:0.62rem;margin-top:4px;color:#f8514999">인덱스 삭제<br>보존기간 만료<br>delete_phase: 90d</div>
+    </div>
+    <!-- Index blob that moves -->
+    <div style="position:absolute;left:6%;top:48%;width:60px;height:30px;background:#3fb95030;border:2px solid #3fb950;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:#3fb950;font-weight:700;z-index:5;transition:all 1.2s ease" id="ilm-index">
+      logs-01
+    </div>
+    <!-- Timeline -->
+    <div style="position:absolute;left:2%;right:2%;top:72%;height:2px;background:#30363d"></div>
+    <div style="position:absolute;left:10%;top:76%;font-size:0.65rem;color:#f85149">Day 0</div>
+    <div style="position:absolute;left:34%;top:76%;font-size:0.65rem;color:#f0883e">Day 30</div>
+    <div style="position:absolute;left:58%;top:76%;font-size:0.65rem;color:#58a6ff">Day 60</div>
+    <div style="position:absolute;left:82%;top:76%;font-size:0.65rem;color:#f85149">Day 90</div>
+    <!-- Phase arrow indicators -->
+    <div style="position:absolute;left:20%;top:32%;font-size:1.2rem;color:#f0883e;opacity:0;transition:opacity .5s" id="ilm-arrow1">&#10140;</div>
+    <div style="position:absolute;left:44%;top:32%;font-size:1.2rem;color:#58a6ff;opacity:0;transition:opacity .5s" id="ilm-arrow2">&#10140;</div>
+    <div style="position:absolute;left:68%;top:32%;font-size:1.2rem;color:#f85149;opacity:0;transition:opacity .5s" id="ilm-arrow3">&#10140;</div>
+    <div class="step-info" id="ilm-step"><span class="step-num">1</span> 새 인덱스가 Hot 단계에서 생성됩니다</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="ilm-progress"></div></div>
+</div>
+</div>
+
+<!-- Scene 4: ECK Operator -->
+<div class="scene" id="scene4">
+<div class="card">
+  <h2><span class="step-badge badge-purple">ECK</span> Elastic Cloud on Kubernetes Operator</h2>
+  <p class="card-desc">ECK Operator가 Elasticsearch CRD를 기반으로 노드 풀을 관리합니다</p>
+  <div class="anim-area" id="eck-area" style="height:440px">
+    <div class="node node-eck" style="left:4%;top:4%;width:170px" id="eck-op">
+      <div>&#9881; ECK Operator</div>
+      <div style="font-size:0.6rem;margin-top:2px">CRD: Elasticsearch</div>
+    </div>
+    <div class="node" style="right:4%;top:4%;width:130px;background:#58a6ff20;border:1px solid #58a6ff60;color:#58a6ff" id="eck-api">
+      <div>K8s API Server</div>
+      <div style="font-size:0.6rem">API 서버</div>
+    </div>
+    <!-- Node pools -->
+    <div class="node node-pool" style="left:2%;top:28%;width:30%;height:30%;padding:28px 8px 8px" id="eck-pool-master">
+      <div style="position:absolute;top:6px;left:12px;font-size:0.72rem;color:#bc8cff">Master Pool (3 pods)</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center" id="eck-masters"></div>
+    </div>
+    <div class="node node-pool" style="left:34%;top:28%;width:30%;height:30%;padding:28px 8px 8px" id="eck-pool-hot">
+      <div style="position:absolute;top:6px;left:12px;font-size:0.72rem;color:#f85149">Hot Data Pool (3 pods)</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center" id="eck-hots"></div>
+    </div>
+    <div class="node node-pool" style="right:2%;top:28%;width:30%;height:30%;padding:28px 8px 8px" id="eck-pool-warm">
+      <div style="position:absolute;top:6px;left:12px;font-size:0.72rem;color:#f0883e">Warm Data Pool (2 pods)</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center" id="eck-warms"></div>
+    </div>
+    <!-- Storage -->
+    <div class="node" style="left:2%;top:66%;width:94%;height:14%;background:#e3b34108;border:1px dashed #e3b34140;border-radius:10px;color:#e3b341;font-size:0.7rem;display:flex;align-items:center;justify-content:center;gap:16px;opacity:0" id="eck-storage">
+      <span>PVC: master-data (10Gi)</span>
+      <span>PVC: hot-data (500Gi SSD)</span>
+      <span>PVC: warm-data (2Ti HDD)</span>
+    </div>
+    <!-- Services -->
+    <div class="node" style="left:4%;top:84%;width:88%;background:#21262d;border:1px solid #30363d;color:#8b949e;font-size:0.7rem;opacity:0" id="eck-svc">
+      Services: elasticsearch-es-http (9200) | elasticsearch-es-transport (9300) | elasticsearch-es-internal-http
+    </div>
+    <div class="step-info" id="eck-step"><span class="step-num">1</span> ECK Operator가 Elasticsearch CRD를 감시합니다</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="eck-progress"></div></div>
+</div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#bc8cff"></div> Master 노드</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f85149"></div> Hot 데이터</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f0883e"></div> Warm 데이터</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div> Cold 데이터</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div> Coordinating / Primary Shard</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e3b341"></div> Ingest / Replica Shard</div>
+</div>
+</div>
+
+<script>
+let currentScene=0,isPaused=false,timers=[];
+function clearTimers(){timers.forEach(t=>clearTimeout(t));timers=[];}
+function showScene(idx,btn){
+  clearTimers();
+  document.querySelectorAll('.scene').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('scene'+idx).classList.add('active');
+  if(btn)btn.classList.add('active');
+  else document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  currentScene=idx;isPaused=false;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  document.body.classList.remove('paused');
+  runScene(idx);
+}
+function play(){isPaused=false;document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');document.body.classList.remove('paused');}
+function pause(){isPaused=true;document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active');document.body.classList.add('paused');}
+function restart(){showScene(currentScene);}
+function setStep(id,num,text){const el=document.getElementById(id);if(el){el.innerHTML='<span class="step-num">'+num+'</span> '+text;el.classList.add('show');}}
+function setProgress(id,pct){const el=document.getElementById(id);if(el)el.style.width=pct+'%';}
+function t(fn,ms){timers.push(setTimeout(()=>{if(!isPaused)fn();else{const i=setInterval(()=>{if(!isPaused){clearInterval(i);fn();}},100);timers.push(i);}},ms));}
+function addPacket(areaId,cls,fx,fy,tx,ty,dur,delay){
+  const area=document.getElementById(areaId);if(!area)return;
+  const p=document.createElement('div');
+  p.className='packet '+cls;
+  p.style.cssText='--fx:'+fx+';--fy:'+fy+';--tx:'+tx+';--ty:'+ty+';animation:flowRight '+dur+'s '+delay+'s ease forwards;';
+  area.appendChild(p);
+  timers.push(setTimeout(()=>{if(p.parentNode)p.parentNode.removeChild(p);},(dur+delay)*1000+500));
+}
+function addPacketReturn(areaId,cls,fx,fy,tx,ty,dur,delay){
+  const area=document.getElementById(areaId);if(!area)return;
+  const p=document.createElement('div');
+  p.className='packet '+cls;
+  p.style.cssText='--fx:'+fx+';--fy:'+fy+';--tx:'+tx+';--ty:'+ty+';animation:flowRightReturn '+dur+'s '+delay+'s ease forwards;';
+  area.appendChild(p);
+  timers.push(setTimeout(()=>{if(p.parentNode)p.parentNode.removeChild(p);},(dur+delay)*1000+500));
+}
+
+/* Scene 0: Topology */
+function runTopo(){
+  setProgress('topo-progress',0);
+  const nodes=[
+    {ids:['t-m1','t-m2','t-m3'],label:'Master 노드 3개가 클러스터 상태를 관리합니다 (Cluster state management)',pct:15},
+    {ids:['t-ing1','t-ing2'],label:'Ingest 노드가 데이터 변환 파이프라인을 처리합니다 (Data pipeline processing)',pct:30},
+    {ids:['t-coord1','t-coord2'],label:'Coordinating 노드가 검색 요청을 조율합니다 (Search coordination)',pct:45},
+    {ids:['t-hot1','t-hot2','t-hot3'],label:'Hot 노드 - SSD 기반, 최신 데이터 쓰기/읽기 (High-performance write/read)',pct:60},
+    {ids:['t-warm1','t-warm2','t-warm3'],label:'Warm 노드 - HDD 기반, 읽기 전용 오래된 데이터 (Read-only older data)',pct:75},
+    {ids:['t-cold1','t-cold2'],label:'Cold 노드 - 압축 저장, 비용 최적화 (Compressed, cost-optimized)',pct:90},
+  ];
+  nodes.forEach((group,gi)=>{
+    t(()=>{
+      setStep('topo-step',gi+1,group.label);
+      setProgress('topo-progress',group.pct);
+      group.ids.forEach((id,i)=>{
+        setTimeout(()=>{
+          const el=document.getElementById(id);
+          el.style.opacity='1';el.style.animation='slideIn 0.4s ease forwards';
+        },i*200);
+      });
+    },gi*2000);
+  });
+  t(()=>{setStep('topo-step',7,'전체 클러스터 구성 완료 - 15개 노드가 역할별로 배치됨 (Cluster ready)');setProgress('topo-progress',100);},12500);
+}
+
+/* Scene 1: Shard Distribution */
+function runShardDist(){
+  setProgress('shard-progress',0);
+  // Clear old shards
+  document.querySelectorAll('#shard-area .dyn-shard').forEach(e=>e.remove());
+  const area=document.getElementById('shard-area');
+  const shards=[
+    {label:'P0',cls:'shard-primary',node:1,row:0,step:1},
+    {label:'P1',cls:'shard-primary',node:2,row:0,step:1},
+    {label:'P2',cls:'shard-primary',node:3,row:0,step:1},
+    {label:'R0',cls:'shard-replica',node:2,row:1,step:2},
+    {label:'R1',cls:'shard-replica',node:3,row:1,step:2},
+    {label:'R2',cls:'shard-replica',node:1,row:1,step:2},
+  ];
+  setStep('shard-step',1,'Primary Shard가 데이터 노드에 분배됩니다 (Primary shard allocation)');
+  setProgress('shard-progress',20);
+
+  shards.filter(s=>s.step===1).forEach((s,i)=>{
+    t(()=>{
+      const el=document.createElement('div');
+      el.className='node node-shard dyn-shard '+s.cls;
+      const leftBase=s.node===1?'4%':s.node===2?'36%':'68%';
+      const leftOff=s.node===1?8:s.node===2?40:72;
+      el.style.cssText='position:absolute;left:'+(leftOff+4)+'%;top:'+(38+s.row*18)+'%;width:70px;opacity:0;z-index:4;animation:slideIn 0.4s ease forwards;';
+      el.textContent=s.label;
+      area.appendChild(el);
+      setTimeout(()=>{el.style.opacity='1';},50);
+    },800+i*600);
+  });
+
+  t(()=>{
+    setStep('shard-step',2,'Replica Shard가 다른 노드에 배치됩니다 - 고가용성 보장 (Replica allocation for HA)');
+    setProgress('shard-progress',50);
+  },3500);
+
+  shards.filter(s=>s.step===2).forEach((s,i)=>{
+    t(()=>{
+      const el=document.createElement('div');
+      el.className='node node-shard dyn-shard '+s.cls;
+      const leftOff=s.node===1?8:s.node===2?40:72;
+      el.style.cssText='position:absolute;left:'+(leftOff+4)+'%;top:'+(38+s.row*18)+'%;width:70px;opacity:0;z-index:4;animation:slideIn 0.4s ease forwards;';
+      el.textContent=s.label;
+      area.appendChild(el);
+      setTimeout(()=>{el.style.opacity='1';},50);
+    },4000+i*600);
+  });
+
+  t(()=>{
+    setStep('shard-step',3,'Primary와 Replica가 서로 다른 노드에 배치되어 장애 복원 가능 (Fault tolerance ensured)');
+    setProgress('shard-progress',80);
+  },6500);
+
+  t(()=>{
+    setStep('shard-step',4,'인덱스 상태: GREEN - 모든 샤드 할당 완료 (Index health: GREEN)');
+    setProgress('shard-progress',100);
+    ['sd-node1','sd-node2','sd-node3'].forEach(id=>{
+      document.getElementById(id).style.boxShadow='0 0 12px #3fb95030';
+    });
+  },8000);
+}
+
+/* Scene 2: Search Flow */
+function runSearch(){
+  setProgress('search-progress',0);
+  setStep('search-step',1,'클라이언트가 검색 쿼리를 전송합니다 (Client sends search query)');
+  setProgress('search-progress',10);
+  addPacket('search-area','packet-search','4%','44%','24%','42%',0.8,0.3);
+
+  t(()=>{
+    setStep('search-step',2,'Coordinating 노드가 쿼리를 분석하고 관련 샤드에 분산합니다 (Scatter phase)');
+    setProgress('search-progress',30);
+    document.getElementById('sr-coord').style.boxShadow='0 0 16px #3fb95050';
+    addPacket('search-area','packet-search','28%','40%','76%','10%',0.8,0);
+    addPacket('search-area','packet-search','28%','42%','76%','40%',0.8,0.15);
+    addPacket('search-area','packet-search','28%','44%','76%','70%',0.8,0.3);
+  },2000);
+
+  t(()=>{
+    setStep('search-step',3,'각 샤드가 로컬에서 검색을 실행합니다 (Each shard executes locally)');
+    setProgress('search-progress',55);
+    ['sr-shard0','sr-shard1','sr-shard2'].forEach(id=>{
+      document.getElementById(id).style.boxShadow='0 0 12px #f8514940';
+      document.getElementById(id).style.animation='pulse 0.5s ease 2';
+    });
+  },3800);
+
+  t(()=>{
+    setStep('search-step',4,'각 샤드가 부분 결과를 Coordinating 노드로 반환합니다 (Gather phase)');
+    setProgress('search-progress',75);
+    addPacketReturn('search-area','packet-ack','28%','42%','76%','10%',0.8,0);
+    addPacketReturn('search-area','packet-ack','28%','42%','76%','40%',0.8,0.15);
+    addPacketReturn('search-area','packet-ack','28%','42%','76%','70%',0.8,0.3);
+  },5500);
+
+  t(()=>{
+    setStep('search-step',5,'Coordinating 노드가 결과를 병합, 정렬하여 클라이언트에 반환합니다 (Merge & return)');
+    setProgress('search-progress',90);
+    document.getElementById('sr-result').style.opacity='1';
+    document.getElementById('sr-result').style.animation='slideIn 0.4s ease forwards';
+    addPacketReturn('search-area','packet-index','4%','44%','24%','42%',0.8,0.3);
+  },7200);
+
+  t(()=>{
+    setStep('search-step',6,'검색 완료 - Scatter-Gather 패턴으로 병렬 검색 수행 (Search complete)');
+    setProgress('search-progress',100);
+  },9000);
+}
+
+/* Scene 3: ILM */
+function runILM(){
+  setProgress('ilm-progress',0);
+  const idx=document.getElementById('ilm-index');
+  idx.style.left='6%';idx.style.top='48%';idx.style.background='#3fb95030';idx.style.borderColor='#3fb950';idx.style.color='#3fb950';
+  ['ilm-arrow1','ilm-arrow2','ilm-arrow3'].forEach(id=>{document.getElementById(id).style.opacity='0';});
+
+  setStep('ilm-step',1,'새 인덱스가 Hot 단계에서 생성됩니다 - 활발한 쓰기/읽기 (Active writes on SSD)');
+  setProgress('ilm-progress',15);
+  document.getElementById('ilm-hot').style.boxShadow='0 0 20px #f8514930';
+
+  t(()=>{
+    setStep('ilm-step',2,'30일 경과 또는 50GB 도달 → Warm 단계로 이동 (Rollover to Warm)');
+    setProgress('ilm-progress',35);
+    document.getElementById('ilm-arrow1').style.opacity='1';
+    idx.style.left='30%';idx.style.background='#f0883e30';idx.style.borderColor='#f0883e';idx.style.color='#f0883e';
+    document.getElementById('ilm-hot').style.boxShadow='none';
+    document.getElementById('ilm-warm').style.boxShadow='0 0 20px #f0883e30';
+  },3000);
+
+  t(()=>{
+    setStep('ilm-step',3,'Warm 단계: shrink (샤드 축소) + force merge (세그먼트 병합) 실행 (Optimize storage)');
+    setProgress('ilm-progress',50);
+    idx.innerHTML='logs-01<br><span style="font-size:0.55rem">shrunk</span>';
+    idx.style.transform='scale(0.9)';
+  },5500);
+
+  t(()=>{
+    setStep('ilm-step',4,'60일 경과 → Cold 단계로 이동 - 압축 저장 (Move to Cold tier)');
+    setProgress('ilm-progress',70);
+    document.getElementById('ilm-arrow2').style.opacity='1';
+    idx.style.left='54%';idx.style.background='#58a6ff30';idx.style.borderColor='#58a6ff';idx.style.color='#58a6ff';
+    idx.innerHTML='logs-01<br><span style="font-size:0.55rem">compressed</span>';
+    idx.style.transform='scale(0.8)';
+    document.getElementById('ilm-warm').style.boxShadow='none';
+    document.getElementById('ilm-cold').style.boxShadow='0 0 20px #58a6ff30';
+  },8000);
+
+  t(()=>{
+    setStep('ilm-step',5,'90일 경과 → Delete 단계 - 인덱스 삭제 (Index deleted after retention)');
+    setProgress('ilm-progress',90);
+    document.getElementById('ilm-arrow3').style.opacity='1';
+    idx.style.left='78%';idx.style.background='#f8514930';idx.style.borderColor='#f85149';idx.style.color='#f85149';
+    idx.innerHTML='logs-01<br><span style="font-size:0.55rem">deleting...</span>';
+    idx.style.transform='scale(0.7)';
+    document.getElementById('ilm-cold').style.boxShadow='none';
+    document.getElementById('ilm-delete').style.boxShadow='0 0 20px #f8514930';
+  },10500);
+
+  t(()=>{
+    setStep('ilm-step',6,'ILM 정책으로 스토리지 비용 최적화 완료 (Storage cost optimization complete)');
+    setProgress('ilm-progress',100);
+    idx.style.opacity='0.3';idx.style.transform='scale(0.5)';
+  },13000);
+}
+
+/* Scene 4: ECK Operator */
+function runECK(){
+  setProgress('eck-progress',0);
+  // Clear dynamic pods
+  ['eck-masters','eck-hots','eck-warms'].forEach(id=>{document.getElementById(id).innerHTML='';});
+  document.getElementById('eck-storage').style.opacity='0';
+  document.getElementById('eck-svc').style.opacity='0';
+
+  setStep('eck-step',1,'ECK Operator가 Elasticsearch CRD를 감시합니다 (Watch Elasticsearch CR)');
+  setProgress('eck-progress',10);
+  addPacket('eck-area','packet-ack','14%','10%','82%','10%',1.0,0);
+
+  t(()=>{
+    setStep('eck-step',2,'Master 노드 풀 생성 - 3개 Pod (Create Master node pool)');
+    setProgress('eck-progress',25);
+    const c=document.getElementById('eck-masters');
+    for(let i=0;i<3;i++){
+      setTimeout(()=>{
+        const d=document.createElement('div');
+        d.style.cssText='padding:4px 8px;background:#bc8cff20;border:1px solid #bc8cff;border-radius:4px;font-size:0.62rem;color:#bc8cff;animation:slideIn 0.3s ease;';
+        d.textContent='master-'+i;
+        c.appendChild(d);
+      },i*300);
+    }
+  },2200);
+
+  t(()=>{
+    setStep('eck-step',3,'Hot 데이터 노드 풀 생성 - 3개 Pod, SSD 스토리지 (Create Hot data pool)');
+    setProgress('eck-progress',45);
+    const c=document.getElementById('eck-hots');
+    for(let i=0;i<3;i++){
+      setTimeout(()=>{
+        const d=document.createElement('div');
+        d.style.cssText='padding:4px 8px;background:#f8514920;border:1px solid #f85149;border-radius:4px;font-size:0.62rem;color:#f85149;animation:slideIn 0.3s ease;';
+        d.textContent='hot-'+i;
+        c.appendChild(d);
+      },i*300);
+    }
+  },4500);
+
+  t(()=>{
+    setStep('eck-step',4,'Warm 데이터 노드 풀 생성 - 2개 Pod, HDD 스토리지 (Create Warm data pool)');
+    setProgress('eck-progress',60);
+    const c=document.getElementById('eck-warms');
+    for(let i=0;i<2;i++){
+      setTimeout(()=>{
+        const d=document.createElement('div');
+        d.style.cssText='padding:4px 8px;background:#f0883e20;border:1px solid #f0883e;border-radius:4px;font-size:0.62rem;color:#f0883e;animation:slideIn 0.3s ease;';
+        d.textContent='warm-'+i;
+        c.appendChild(d);
+      },i*300);
+    }
+  },6500);
+
+  t(()=>{
+    setStep('eck-step',5,'PersistentVolumeClaim을 각 Pod에 바인딩합니다 (Bind storage)');
+    setProgress('eck-progress',80);
+    document.getElementById('eck-storage').style.opacity='1';
+    document.getElementById('eck-storage').style.animation='slideIn 0.4s ease';
+  },8500);
+
+  t(()=>{
+    setStep('eck-step',6,'Service 생성 및 클러스터 구성 완료 (Services created, cluster ready)');
+    setProgress('eck-progress',100);
+    document.getElementById('eck-svc').style.opacity='1';
+    document.getElementById('eck-svc').style.animation='slideIn 0.4s ease';
+    document.getElementById('eck-op').style.boxShadow='0 0 16px #bc8cff30';
+  },10500);
+}
+
+function runScene(idx){
+  clearTimers();
+  document.querySelectorAll('#scene'+idx+' .node').forEach(n=>{n.style.animation='';n.style.boxShadow='';});
+  document.querySelectorAll('#scene'+idx+' .step-info').forEach(s=>s.classList.remove('show'));
+  document.querySelectorAll('#scene'+idx+' .packet').forEach(p=>p.remove());
+  t(()=>{
+    document.querySelectorAll('#scene'+idx+' .step-info').forEach(s=>s.classList.add('show'));
+    [runTopo,runShardDist,runSearch,runILM,runECK][idx]();
+  },200);
+}
+showScene(0);
+</script>
+</body>
+</html>

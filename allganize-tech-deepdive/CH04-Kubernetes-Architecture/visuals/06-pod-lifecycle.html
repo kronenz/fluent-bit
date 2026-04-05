@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pod Lifecycle | Pod 생명주기</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+.hdr{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.hdr h1{font-size:1.5rem;color:#58a6ff;margin-bottom:4px}
+.hdr p{font-size:.85rem;color:#8b949e}
+.hdr .key{display:inline-block;background:#1f6feb22;border:1px solid #1f6feb;border-radius:4px;padding:1px 8px;font-size:.7rem;color:#58a6ff;margin-top:4px}
+.ctrls{display:flex;justify-content:center;gap:10px;padding:14px}
+.ctrls button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:7px 18px;cursor:pointer;font-size:.85rem;transition:background .2s}
+.ctrls button:hover{background:#30363d}
+.ctrls button.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.si{text-align:center;font-size:.8rem;color:#8b949e;padding:2px}
+.si .c{color:#58a6ff;font-weight:600}
+
+.tabs{display:flex;justify-content:center;gap:8px;padding:8px}
+.tab{background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:5px 14px;font-size:.72rem;cursor:pointer;transition:all .2s}
+.tab:hover{background:#30363d}
+.tab.on{background:#1f6feb;color:#fff;border-color:#1f6feb}
+
+.canvas{max-width:960px;margin:0 auto;padding:10px 16px}
+.scene{display:none}
+.scene.active{display:block}
+
+/* === Scene 0: Full Lifecycle Timeline === */
+.timeline{position:relative;padding:10px 0 10px 40px}
+.tl-line{position:absolute;left:18px;top:0;bottom:0;width:3px;background:#21262d;border-radius:2px}
+.tl-item{position:relative;margin:10px 0;opacity:0;transform:translateX(-10px);transition:all .5s}
+.tl-item.vis{opacity:1;transform:translateX(0)}
+.tl-dot{position:absolute;left:-28px;top:8px;width:14px;height:14px;border-radius:50%;border:3px solid #30363d;background:#0d1117;transition:all .3s}
+.tl-item.active .tl-dot{border-color:#58a6ff;background:#1f6feb;box-shadow:0 0 8px #1f6feb}
+.tl-item.done .tl-dot{border-color:#3fb950;background:#3fb950}
+.tl-item.fail .tl-dot{border-color:#f85149;background:#f85149}
+.tl-content{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px;transition:border-color .3s}
+.tl-item.active .tl-content{border-color:#58a6ff}
+.tl-item.done .tl-content{border-color:#3fb950}
+.tl-title{font-size:.8rem;font-weight:600}
+.tl-desc{font-size:.65rem;color:#8b949e;margin-top:3px;line-height:1.4}
+.tl-badge{display:inline-block;font-size:.58rem;padding:1px 6px;border-radius:3px;margin-left:6px}
+.tl-badge.pending{background:#2d1a0c;color:#d29922}
+.tl-badge.running{background:#0c2d1e;color:#3fb950}
+.tl-badge.term{background:#2d0c0c;color:#f85149}
+
+/* === Scene 1: Probes === */
+.probes{display:flex;gap:14px;flex-wrap:wrap}
+.probe-card{flex:1;min-width:250px;background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;opacity:0;transform:translateY(10px);transition:all .5s}
+.probe-card.vis{opacity:1;transform:translateY(0)}
+.probe-card h3{font-size:.85rem;margin-bottom:8px}
+.probe-card h3.liveness{color:#f85149}
+.probe-card h3.readiness{color:#d29922}
+.probe-card h3.startup{color:#a371f7}
+.probe-detail{font-size:.65rem;color:#8b949e;line-height:1.5;margin-bottom:8px}
+.probe-action{font-size:.68rem;font-weight:600;padding:6px 10px;border-radius:6px;margin-top:4px}
+.probe-action.restart{background:#2d0c0c;color:#f85149;border:1px solid #f85149}
+.probe-action.remove{background:#2d1a0c;color:#d29922;border:1px solid #d29922}
+.probe-action.delay{background:#1a0c2e;color:#a371f7;border:1px solid #a371f7}
+
+/* Probe animation */
+.probe-anim{margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.probe-tick{width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;transition:all .3s;background:#21262d;color:#8b949e;border:1px solid #30363d}
+.probe-tick.ok{background:#0c2d1e;color:#3fb950;border-color:#3fb950}
+.probe-tick.fail{background:#2d0c0c;color:#f85149;border-color:#f85149}
+
+/* === Scene 2: Graceful Shutdown === */
+.shutdown-flow{display:flex;flex-direction:column;gap:0;padding:10px}
+.sd-step{display:flex;align-items:stretch;gap:10px;opacity:0;transform:translateX(-10px);transition:all .5s}
+.sd-step.vis{opacity:1;transform:translateX(0)}
+.sd-num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0}
+.sd-box{flex:1;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px}
+.sd-box .sd-title{font-size:.8rem;font-weight:600;margin-bottom:3px}
+.sd-box .sd-desc{font-size:.65rem;color:#8b949e;line-height:1.4}
+.sd-box .sd-time{font-size:.6rem;color:#d29922;margin-top:3px}
+.sd-arrow{text-align:center;color:#30363d;font-size:.9rem;padding:2px 0 2px 46px;opacity:0;transition:opacity .3s}
+.sd-arrow.vis{opacity:1;color:#6e7681}
+
+/* Timer bar */
+.timer-wrap{margin:10px 0;padding:4px 14px;opacity:0;transition:opacity .4s}
+.timer-wrap.vis{opacity:1}
+.timer-label{font-size:.65rem;color:#d29922;margin-bottom:3px}
+.timer-bar{height:10px;background:#21262d;border-radius:5px;overflow:hidden}
+.timer-fill{height:100%;background:linear-gradient(90deg,#3fb950,#d29922,#f85149);border-radius:5px;transition:width 3s linear;width:0}
+
+/* === Scene 3: Restart Backoff === */
+.backoff{padding:10px}
+.bo-title{font-size:.85rem;font-weight:600;color:#58a6ff;margin-bottom:10px}
+.bo-row{display:flex;align-items:center;gap:10px;margin:6px 0;opacity:0;transition:all .5s}
+.bo-row.vis{opacity:1}
+.bo-num{font-size:.7rem;color:#8b949e;width:60px}
+.bo-bar{flex:1;height:16px;background:#21262d;border-radius:4px;overflow:hidden;position:relative}
+.bo-fill{height:100%;border-radius:4px;transition:width 1s ease-out;width:0}
+.bo-fill.r1{background:#3fb950}
+.bo-fill.r2{background:#58a6ff}
+.bo-fill.r3{background:#d29922}
+.bo-fill.r4{background:#f0883e}
+.bo-fill.r5{background:#f85149}
+.bo-label{font-size:.6rem;color:#c9d1d9;width:50px;text-align:right}
+.bo-status{font-size:.6rem;width:100px}
+.bo-status.crash{color:#f85149}
+.bo-status.wait{color:#d29922}
+.bo-status.run{color:#3fb950}
+
+.info{max-width:960px;margin:10px auto;padding:0 16px}
+.info-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;font-size:.78rem;line-height:1.6;min-height:60px}
+.info-box .st{color:#58a6ff;font-weight:700;margin-bottom:4px}
+.info-box .d{color:#c9d1d9}
+.info-box .dk{color:#8b949e;font-size:.72rem}
+
+@media(max-width:600px){.probes{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>Pod Lifecycle</h1>
+  <p>Pod 전체 생명주기: 생성, 프로브, 종료, 재시작</p>
+  <div class="key">KEY VISUAL</div>
+</div>
+<div class="ctrls">
+  <button id="bp" class="on" onclick="play()">&#9654; Play</button>
+  <button id="bpa" onclick="pause()">&#10074;&#10074; Pause</button>
+  <button id="br" onclick="restart()">&#8635; Restart</button>
+</div>
+<div class="si">Step <span id="cs" class="c">0</span> / <span id="ts">0</span></div>
+<div class="tabs">
+  <button class="tab on" id="tb0" onclick="sw(0)">Full Lifecycle</button>
+  <button class="tab" id="tb1" onclick="sw(1)">Probes (Health Check)</button>
+  <button class="tab" id="tb2" onclick="sw(2)">Graceful Shutdown</button>
+  <button class="tab" id="tb3" onclick="sw(3)">Restart Backoff</button>
+</div>
+
+<div class="canvas">
+  <!-- Scene 0: Full Lifecycle -->
+  <div class="scene active" id="sc0">
+    <div class="timeline">
+      <div class="tl-line"></div>
+      <div class="tl-item" id="tl0"><div class="tl-dot"></div><div class="tl-content"><div class="tl-title" style="color:#58a6ff">kubectl apply <span class="tl-badge pending">Pending</span></div><div class="tl-desc">Pod created in etcd. spec.nodeName empty. Waiting for scheduler.</div></div></div>
+      <div class="tl-item" id="tl1"><div class="tl-dot"></div><div class="tl-content"><div class="tl-title" style="color:#d29922">Scheduling <span class="tl-badge pending">Pending</span></div><div class="tl-desc">Scheduler assigns node. Binding created. kubelet picks up Pod spec.</div></div></div>
+      <div class="tl-item" id="tl2"><div class="tl-dot"></div><div class="tl-content"><div class="tl-title" style="color:#a371f7">Image Pull <span class="tl-badge pending">Pending</span></div><div class="tl-desc">kubelet pulls container image based on imagePullPolicy (Always/IfNotPresent/Never).</div></div></div>
+      <div class="tl-item" id="tl3"><div class="tl-dot"></div><div class="tl-content"><div class="tl-title" style="color:#f0883e">Init Containers <span class="tl-badge pending">Pending</span></div><div class="tl-desc">Init containers run sequentially. Each must complete successfully (exit 0) before next starts. init-db -> init-config -> ...</div></div></div>
+      <div class="tl-item" id="tl4"><div class="tl-dot"></div><div class="tl-content"><div class="tl-title" style="color:#3fb950">Main Containers Start <span class="tl-badge running">Running</span></div><div class="tl-desc">All main containers start simultaneously. postStart hooks execute (not guaranteed before ENTRYPOINT).</div></div></div>
+      <div class="tl-item" id="tl5"><div class="tl-dot"></div><div class="tl-content"><div class="tl-title" style="color:#a371f7">Startup Probe</div><div class="tl-desc">If configured, blocks other probes until startup succeeds. For slow-starting apps. failureThreshold * periodSeconds = max startup time.</div></div></div>
+      <div class="tl-item" id="tl6"><div class="tl-dot"></div><div class="tl-content"><div class="tl-title" style="color:#3fb950">Liveness + Readiness Probes <span class="tl-badge running">Running</span></div><div class="tl-desc">Liveness: restart if fails. Readiness: remove from Service endpoints if fails. Both run periodically throughout container life.</div></div></div>
+      <div class="tl-item" id="tl7"><div class="tl-dot"></div><div class="tl-content"><div class="tl-title" style="color:#f85149">Termination <span class="tl-badge term">Terminating</span></div><div class="tl-desc">preStop hook -> SIGTERM -> terminationGracePeriodSeconds (default 30s) -> SIGKILL. Removed from Service endpoints immediately.</div></div></div>
+    </div>
+  </div>
+
+  <!-- Scene 1: Probes -->
+  <div class="scene" id="sc1">
+    <div class="probes">
+      <div class="probe-card" id="pc0">
+        <h3 class="liveness">Liveness Probe / 생존 프로브</h3>
+        <div class="probe-detail">
+          "Is the container alive?"<br>
+          Detects deadlocks, infinite loops, unresponsive state.<br>
+          <strong>Methods:</strong> httpGet, tcpSocket, exec, grpc<br>
+          <strong>Params:</strong> initialDelaySeconds, periodSeconds, failureThreshold
+        </div>
+        <div class="probe-action restart">Failure Action: Container RESTART (kill + recreate)</div>
+        <div class="probe-anim" id="pa0"></div>
+      </div>
+      <div class="probe-card" id="pc1">
+        <h3 class="readiness">Readiness Probe / 준비 프로브</h3>
+        <div class="probe-detail">
+          "Is the container ready to receive traffic?"<br>
+          App may be alive but loading cache, warming up, etc.<br>
+          <strong>Methods:</strong> httpGet, tcpSocket, exec, grpc<br>
+          <strong>Params:</strong> initialDelaySeconds, periodSeconds, successThreshold
+        </div>
+        <div class="probe-action remove">Failure Action: Remove from Service ENDPOINTS (no traffic)</div>
+        <div class="probe-anim" id="pa1"></div>
+      </div>
+      <div class="probe-card" id="pc2">
+        <h3 class="startup">Startup Probe / 시작 프로브</h3>
+        <div class="probe-detail">
+          "Has the application finished starting?"<br>
+          For slow-starting apps (Java, ML models).<br>
+          Blocks liveness/readiness until success.<br>
+          <strong>Max time:</strong> failureThreshold x periodSeconds
+        </div>
+        <div class="probe-action delay">While Running: Other probes DISABLED until success</div>
+        <div class="probe-anim" id="pa2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scene 2: Graceful Shutdown -->
+  <div class="scene" id="sc2">
+    <div class="shutdown-flow" id="sdFlow">
+      <div class="sd-step" id="sd0">
+        <div class="sd-num" style="background:#58a6ff;color:#fff">1</div>
+        <div class="sd-box"><div class="sd-title" style="color:#58a6ff">Pod set to Terminating</div><div class="sd-desc">API server sets deletionTimestamp. Pod removed from Service endpoints immediately. No new traffic routed.</div></div>
+      </div>
+      <div class="sd-arrow" id="sda0">&#9660;</div>
+      <div class="sd-step" id="sd1">
+        <div class="sd-num" style="background:#a371f7;color:#fff">2</div>
+        <div class="sd-box"><div class="sd-title" style="color:#a371f7">preStop Hook Executes</div><div class="sd-desc">If defined, preStop hook runs (e.g., nginx -s quit, drain connections). Runs IN PARALLEL with endpoint removal.</div><div class="sd-time">Example: sleep 15 to allow in-flight requests to complete</div></div>
+      </div>
+      <div class="sd-arrow" id="sda1">&#9660;</div>
+      <div class="sd-step" id="sd2">
+        <div class="sd-num" style="background:#d29922;color:#fff">3</div>
+        <div class="sd-box"><div class="sd-title" style="color:#d29922">SIGTERM Sent</div><div class="sd-desc">kubelet sends SIGTERM to PID 1 in the container. Application should catch this and begin graceful shutdown (close connections, flush buffers, save state).</div></div>
+      </div>
+      <div class="sd-arrow" id="sda2">&#9660;</div>
+      <div class="sd-step" id="sd3">
+        <div class="sd-num" style="background:#f0883e;color:#fff">4</div>
+        <div class="sd-box"><div class="sd-title" style="color:#f0883e">Grace Period Countdown</div><div class="sd-desc">terminationGracePeriodSeconds (default: 30s). Application has this much time to shut down gracefully.</div></div>
+      </div>
+      <div class="sd-arrow" id="sda3">&#9660;</div>
+      <div class="sd-step" id="sd4">
+        <div class="sd-num" style="background:#f85149;color:#fff">5</div>
+        <div class="sd-box"><div class="sd-title" style="color:#f85149">SIGKILL (Force Kill)</div><div class="sd-desc">If container still running after grace period, SIGKILL is sent. Process is forcefully terminated. Cannot be caught or ignored.</div></div>
+      </div>
+    </div>
+    <div class="timer-wrap" id="timerWrap">
+      <div class="timer-label">terminationGracePeriodSeconds: 30s countdown</div>
+      <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+    </div>
+  </div>
+
+  <!-- Scene 3: Restart Backoff -->
+  <div class="scene" id="sc3">
+    <div class="backoff">
+      <div class="bo-title">CrashLoopBackOff - Exponential Backoff / 지수 백오프 재시작</div>
+      <div class="bo-row" id="bo0"><div class="bo-num">Crash #1</div><div class="bo-bar"><div class="bo-fill r1" id="bf0"></div></div><div class="bo-label">10s</div><div class="bo-status crash" id="bs0"></div></div>
+      <div class="bo-row" id="bo1"><div class="bo-num">Crash #2</div><div class="bo-bar"><div class="bo-fill r2" id="bf1"></div></div><div class="bo-label">20s</div><div class="bo-status crash" id="bs1"></div></div>
+      <div class="bo-row" id="bo2"><div class="bo-num">Crash #3</div><div class="bo-bar"><div class="bo-fill r3" id="bf2"></div></div><div class="bo-label">40s</div><div class="bo-status crash" id="bs2"></div></div>
+      <div class="bo-row" id="bo3"><div class="bo-num">Crash #4</div><div class="bo-bar"><div class="bo-fill r4" id="bf3"></div></div><div class="bo-label">80s</div><div class="bo-status crash" id="bs3"></div></div>
+      <div class="bo-row" id="bo4"><div class="bo-num">Crash #5</div><div class="bo-bar"><div class="bo-fill r5" id="bf4"></div></div><div class="bo-label">160s</div><div class="bo-status crash" id="bs4"></div></div>
+      <div class="bo-row" id="bo5"><div class="bo-num">Crash #6+</div><div class="bo-bar"><div class="bo-fill r5" id="bf5"></div></div><div class="bo-label">300s (max)</div><div class="bo-status crash" id="bs5"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="info"><div class="info-box" id="ib">
+  <div class="st">Ready</div><div class="d">Press Play to see the Pod lifecycle animation.</div><div class="dk">Play를 눌러 Pod 생명주기 애니메이션을 확인하세요.</div>
+</div></div>
+
+<script>
+const g=id=>document.getElementById(id);
+let curScene=0,cur=0,timer=null,paused=false;
+
+const scenes=[
+  // Scene 0: Full lifecycle
+  [
+    {t:"Pending: Pod Created",d:"kubectl apply creates the Pod object in etcd. Status is Pending. spec.nodeName is empty - waiting for scheduler.",k:"kubectl apply로 Pod 오브젝트가 etcd에 생성됩니다. 상태는 Pending이며 spec.nodeName이 비어있어 스케줄러를 기다립니다.",fn(){showTL(0,'active')}},
+    {t:"Pending: Scheduling",d:"kube-scheduler selects a node via Filtering+Scoring. Creates Binding object. kubelet on the selected node picks up the Pod.",k:"kube-scheduler가 Filtering+Scoring으로 노드를 선택합니다. Binding 오브젝트를 생성하고, 선택된 노드의 kubelet이 Pod를 가져갑니다.",fn(){doneTL(0);showTL(1,'active')}},
+    {t:"Pending: Image Pull",d:"kubelet pulls container images. imagePullPolicy: Always (always pull), IfNotPresent (use cache), Never (must exist locally).",k:"kubelet이 컨테이너 이미지를 pull합니다. imagePullPolicy: Always(항상 pull), IfNotPresent(캐시 사용), Never(로컬에 있어야 함).",fn(){doneTL(1);showTL(2,'active')}},
+    {t:"Pending: Init Containers",d:"Init containers run sequentially. Each must exit 0 before the next starts. Use cases: DB migration, config download, wait for dependency.",k:"Init 컨테이너가 순차적으로 실행됩니다. 각각 exit 0으로 종료해야 다음이 시작됩니다. 용도: DB 마이그레이션, 설정 다운로드, 의존성 대기.",fn(){doneTL(2);showTL(3,'active')}},
+    {t:"Running: Main Containers",d:"All main containers start simultaneously. postStart lifecycle hooks execute. Container status transitions to Running.",k:"모든 메인 컨테이너가 동시에 시작됩니다. postStart 생명주기 훅이 실행됩니다. 컨테이너 상태가 Running으로 전환됩니다.",fn(){doneTL(3);showTL(4,'active')}},
+    {t:"Running: Startup Probe",d:"If configured, startup probe runs first. Until it succeeds, liveness and readiness probes are disabled. For slow-starting applications.",k:"설정된 경우 startup probe가 먼저 실행됩니다. 성공할 때까지 liveness/readiness probe가 비활성화됩니다. 느리게 시작하는 앱을 위해 사용.",fn(){doneTL(4);showTL(5,'active')}},
+    {t:"Running: Health Probes Active",d:"Liveness probe: detects unhealthy containers (restart on failure). Readiness probe: controls traffic routing (remove from endpoints on failure).",k:"Liveness probe: 비정상 컨테이너 감지 (실패 시 재시작). Readiness probe: 트래픽 라우팅 제어 (실패 시 엔드포인트에서 제거).",fn(){doneTL(5);showTL(6,'active')}},
+    {t:"Terminating: Graceful Shutdown",d:"preStop hook -> SIGTERM -> grace period (30s default) -> SIGKILL. Pod removed from Service endpoints immediately when termination begins.",k:"preStop hook -> SIGTERM -> 유예 기간(기본 30초) -> SIGKILL. 종료 시작 시 즉시 Service 엔드포인트에서 제거됩니다.",fn(){doneTL(6);showTL(7,'active')}}
+  ],
+  // Scene 1: Probes
+  [
+    {t:"Liveness Probe",d:"Checks if container is alive. If httpGet /healthz returns non-2xx for failureThreshold consecutive times, container is killed and restarted by kubelet.",k:"컨테이너가 살아있는지 확인합니다. httpGet /healthz가 failureThreshold만큼 연속 실패하면 kubelet이 컨테이너를 kill하고 재시작합니다.",
+     fn(){g('pc0').classList.add('vis');animProbe('pa0',['ok','ok','ok','fail','fail','fail'],['#3fb950','#3fb950','#3fb950','#f85149','#f85149','#f85149'])}},
+    {t:"Readiness Probe",d:"Checks if container is ready for traffic. Failure removes Pod from Service endpoints (no DNAT rules). Success adds it back. Does NOT restart container.",k:"컨테이너가 트래픽을 받을 준비가 되었는지 확인합니다. 실패하면 Service 엔드포인트에서 Pod를 제거합니다(DNAT 규칙 없음). 컨테이너를 재시작하지 않습니다.",
+     fn(){g('pc1').classList.add('vis');animProbe('pa1',['fail','fail','ok','ok','ok','ok'],['#f85149','#f85149','#3fb950','#3fb950','#3fb950','#3fb950'])}},
+    {t:"Startup Probe",d:"Gates other probes until app is ready. failureThreshold=30, periodSeconds=10 gives 300s (5 min) to start. Once successful, liveness/readiness probes begin.",k:"앱이 준비될 때까지 다른 probe를 차단합니다. failureThreshold=30, periodSeconds=10이면 시작에 300초(5분)까지 허용합니다. 성공하면 liveness/readiness probe가 시작됩니다.",
+     fn(){g('pc2').classList.add('vis');animProbe('pa2',['fail','fail','fail','fail','ok'],['#f85149','#f85149','#f85149','#f85149','#3fb950'])}}
+  ],
+  // Scene 2: Graceful Shutdown
+  [
+    {t:"Step 1: Set Terminating",d:"API server sets deletionTimestamp on the Pod. Endpoints controller removes Pod IP from all Service endpoints. No new traffic arrives.",k:"API 서버가 Pod에 deletionTimestamp를 설정합니다. Endpoints 컨트롤러가 모든 Service 엔드포인트에서 Pod IP를 제거합니다. 새 트래픽이 도착하지 않습니다.",fn(){sd(0)}},
+    {t:"Step 2: preStop Hook",d:"If defined, preStop hook runs first. Common patterns: sleep 15 (wait for endpoint propagation), nginx -s quit, custom drain script. Runs in parallel with endpoint removal.",k:"정의된 경우 preStop 훅이 먼저 실행됩니다. 일반 패턴: sleep 15(엔드포인트 전파 대기), nginx -s quit, 커스텀 드레인 스크립트. 엔드포인트 제거와 병렬로 실행됩니다.",fn(){sd(1)}},
+    {t:"Step 3: SIGTERM",d:"kubelet sends SIGTERM to PID 1 in the container. App should catch SIGTERM and begin graceful shutdown: close connections, flush write buffers, complete in-flight requests.",k:"kubelet이 컨테이너의 PID 1에 SIGTERM을 보냅니다. 앱은 SIGTERM을 잡아서 우아한 종료를 시작해야 합니다: 연결 닫기, 버퍼 플러시, 진행 중인 요청 완료.",fn(){sd(2)}},
+    {t:"Step 4: Grace Period",d:"terminationGracePeriodSeconds countdown begins (default 30s). The clock is ticking - application must finish shutdown within this time.",k:"terminationGracePeriodSeconds 카운트다운 시작 (기본 30초). 시계가 흐르고 있습니다 - 애플리케이션은 이 시간 내에 종료를 완료해야 합니다.",fn(){sd(3);g('timerWrap').classList.add('vis');setTimeout(()=>g('timerFill').style.width='100%',200)}},
+    {t:"Step 5: SIGKILL",d:"If container is still running after grace period expires, kubelet sends SIGKILL. This cannot be caught or handled. Process is immediately terminated.",k:"유예 기간이 만료된 후에도 컨테이너가 실행 중이면 kubelet이 SIGKILL을 보냅니다. 이것은 잡거나 처리할 수 없습니다. 프로세스가 즉시 종료됩니다.",fn(){sd(4)}}
+  ],
+  // Scene 3: Restart Backoff
+  [
+    {t:"Crash #1: Immediate Restart",d:"Container crashes. kubelet restarts it after 10s backoff delay. restartPolicy: Always (Deployments), OnFailure (Jobs), Never.",k:"컨테이너가 크래시합니다. kubelet이 10초 백오프 딜레이 후 재시작합니다. restartPolicy: Always(Deployments), OnFailure(Jobs), Never.",fn(){showBO(0,3,'CrashLoopBackOff','10s wait')}},
+    {t:"Crash #2: 20s Backoff",d:"Crashes again. Backoff doubles to 20s. Pattern: 10s, 20s, 40s, 80s, 160s, capped at 300s (5 min).",k:"다시 크래시합니다. 백오프가 20초로 두 배 증가합니다. 패턴: 10s, 20s, 40s, 80s, 160s, 최대 300s(5분).",fn(){showBO(1,7,'CrashLoopBackOff','20s wait')}},
+    {t:"Crash #3: 40s Backoff",d:"Exponential backoff continues: 40 seconds. Container status shows CrashLoopBackOff. Check logs: kubectl logs <pod> --previous.",k:"지수 백오프 계속: 40초. 컨테이너 상태가 CrashLoopBackOff를 보여줍니다. 로그 확인: kubectl logs <pod> --previous.",fn(){showBO(2,13,'CrashLoopBackOff','40s wait')}},
+    {t:"Crash #4: 80s Backoff",d:"80 seconds delay. Common causes: missing config/secrets, dependency not ready, OOM, wrong command. Debug with kubectl describe pod.",k:"80초 딜레이. 일반적 원인: 설정/시크릿 누락, 의존성 미준비, OOM, 잘못된 명령어. kubectl describe pod로 디버그.",fn(){showBO(3,27,'CrashLoopBackOff','80s wait')}},
+    {t:"Crash #5: 160s Backoff",d:"160 seconds delay. At this point, you should investigate root cause rather than waiting.",k:"160초 딜레이. 이 시점에서는 기다리기보다 근본 원인을 조사해야 합니다.",fn(){showBO(4,53,'CrashLoopBackOff','160s wait')}},
+    {t:"Crash #6+: Max 300s (5min)",d:"Backoff capped at 300 seconds (5 minutes). Will keep retrying at 5min intervals until the issue is fixed or Pod is deleted.",k:"백오프가 300초(5분)로 제한됩니다. 문제가 해결되거나 Pod가 삭제될 때까지 5분 간격으로 계속 재시도합니다.",fn(){showBO(5,100,'CrashLoopBackOff','300s (max)')}}
+  ]
+];
+
+function showTL(i,cls){const el=g('tl'+i);el.classList.add('vis',cls)}
+function doneTL(i){g('tl'+i).classList.remove('active');g('tl'+i).classList.add('done')}
+function sd(i){g('sd'+i).classList.add('vis');if(i>0)g('sda'+(i-1)).classList.add('vis')}
+function animProbe(containerId,results,colors){
+  const c=g(containerId);c.innerHTML='';
+  results.forEach((r,i)=>{
+    setTimeout(()=>{
+      const t=document.createElement('div');
+      t.className='probe-tick';
+      t.textContent=r==='ok'?'O':'X';
+      setTimeout(()=>t.classList.add(r==='ok'?'ok':'fail'),50);
+      c.appendChild(t);
+    },i*400);
+  });
+}
+function showBO(i,pct,status,label){
+  g('bo'+i).classList.add('vis');
+  setTimeout(()=>g('bf'+i).style.width=pct+'%',100);
+  g('bs'+i).textContent=status;g('bs'+i).className='bo-status crash';
+}
+
+function sw(idx){
+  if(timer){clearInterval(timer);timer=null}
+  curScene=idx;cur=0;paused=false;
+  document.querySelectorAll('.scene').forEach((s,i)=>s.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',i===idx));
+  resetSc(idx);
+  g('ts').textContent=scenes[idx].length;g('cs').textContent='0';
+  g('ib').innerHTML='<div class="st">Ready</div><div class="d">Press Play.</div><div class="dk">Play를 누르세요.</div>';
+  g('bp').classList.add('on');g('bpa').classList.remove('on');
+  setTimeout(play,300);
+}
+
+function resetSc(idx){
+  if(idx===0){for(let i=0;i<8;i++){const el=g('tl'+i);el.classList.remove('vis','active','done','fail')}}
+  if(idx===1){['pc0','pc1','pc2'].forEach(id=>g(id).classList.remove('vis'));['pa0','pa1','pa2'].forEach(id=>g(id).innerHTML='')}
+  if(idx===2){for(let i=0;i<5;i++){g('sd'+i).classList.remove('vis');if(i<4)g('sda'+i).classList.remove('vis')}g('timerWrap').classList.remove('vis');g('timerFill').style.width='0'}
+  if(idx===3){for(let i=0;i<6;i++){g('bo'+i).classList.remove('vis');g('bf'+i).style.width='0';g('bs'+i).textContent=''}}
+}
+
+function info(s){g('ib').innerHTML=`<div class="st">${s.t}</div><div class="d">${s.d}</div><div class="dk">${s.k}</div>`}
+function runStep(){const ss=scenes[curScene];if(cur>=ss.length){clearInterval(timer);timer=null;return}const s=ss[cur];s.fn();info(s);g('cs').textContent=cur+1;cur++}
+function play(){if(timer)return;paused=false;g('bp').classList.add('on');g('bpa').classList.remove('on');runStep();timer=setInterval(()=>{if(!paused)runStep()},2500)}
+function pause(){paused=true;g('bpa').classList.add('on');g('bp').classList.remove('on')}
+function restart(){clearInterval(timer);timer=null;resetSc(curScene);cur=0;g('cs').textContent='0';g('ib').innerHTML='<div class="st">Ready</div><div class="d">Press Play.</div><div class="dk">Play를 누르세요.</div>';g('bp').classList.remove('on');setTimeout(play,300)}
+document.addEventListener('DOMContentLoaded',()=>{g('ts').textContent=scenes[0].length;setTimeout(play,600)});
+</script>
+</body>
+</html>

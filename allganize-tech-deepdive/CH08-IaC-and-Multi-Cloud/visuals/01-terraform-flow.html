@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terraform 실행 흐름 - Execution Flow</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+
+/* Pipeline */
+.pipeline{display:flex;align-items:center;justify-content:center;gap:0;margin:30px 0;flex-wrap:wrap;padding:20px}
+.stage{background:#161b22;border:2px solid #30363d;border-radius:12px;padding:20px 24px;text-align:center;min-width:160px;position:relative;opacity:0.3;transform:scale(0.9);transition:all 0.6s ease}
+.stage.active{opacity:1;transform:scale(1);border-color:var(--clr)}
+.stage.done{opacity:0.7;transform:scale(0.95);border-color:#3fb950}
+.stage-icon{font-size:2rem;margin-bottom:8px}
+.stage-title{font-size:1rem;font-weight:700;color:var(--clr)}
+.stage-desc{font-size:0.75rem;color:#8b949e;margin-top:4px}
+.stage-detail{font-size:0.7rem;color:#58a6ff;margin-top:8px;min-height:20px}
+.arrow{color:#30363d;font-size:1.5rem;padding:0 8px;opacity:0.3;transition:all 0.6s ease}
+.arrow.active{color:#58a6ff;opacity:1}
+
+/* DAG */
+.dag-section{margin-top:32px}
+.dag-section h2{font-size:1.1rem;color:#58a6ff;margin-bottom:16px;text-align:center}
+.dag-canvas{position:relative;background:#161b22;border:1px solid #30363d;border-radius:12px;height:400px;overflow:hidden}
+.dag-node{position:absolute;padding:10px 16px;border-radius:8px;border:2px solid #30363d;background:#0d1117;font-size:0.78rem;text-align:center;opacity:0;transform:translateY(20px);transition:all 0.5s ease;cursor:default}
+.dag-node.visible{opacity:1;transform:translateY(0)}
+.dag-node.creating{border-color:#f0883e;box-shadow:0 0 16px #f0883e40}
+.dag-node.created{border-color:#3fb950;box-shadow:0 0 12px #3fb95040}
+.dag-node .node-type{font-size:0.65rem;color:#8b949e;margin-top:2px}
+.dag-node .node-status{font-size:0.6rem;margin-top:4px;font-weight:600}
+
+svg.dag-edges{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+svg.dag-edges line{stroke:#30363d;stroke-width:2;stroke-dasharray:6,4}
+svg.dag-edges line.active{stroke:#58a6ff;stroke-dasharray:none;filter:drop-shadow(0 0 4px #58a6ff60)}
+svg.dag-edges line.done{stroke:#3fb950;stroke-dasharray:none}
+
+/* Progress bar */
+.progress-bar{width:100%;height:4px;background:#21262d;border-radius:2px;margin:16px 0;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#58a6ff,#bc8cff);width:0%;transition:width 0.5s ease;border-radius:2px}
+
+/* Info section */
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:20px}
+.info-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px}
+.info-card h3{font-size:0.85rem;margin-bottom:6px}
+.info-card p{font-size:0.78rem;color:#8b949e;line-height:1.5}
+
+/* Log output */
+.log-output{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;margin-top:20px;font-family:'Cascadia Code','Fira Code',monospace;font-size:0.75rem;max-height:200px;overflow-y:auto;line-height:1.6}
+.log-line{opacity:0;animation:fadeIn 0.3s ease forwards}
+.log-line .prefix{color:#8b949e}
+.log-line.add{color:#3fb950}
+.log-line.change{color:#d29922}
+.log-line.destroy{color:#f85149}
+.log-line.info{color:#58a6ff}
+
+@keyframes fadeIn{to{opacity:1}}
+@keyframes pulse{0%,100%{box-shadow:0 0 8px var(--clr)}50%{box-shadow:0 0 24px var(--clr)}}
+
+.paused .stage,.paused .dag-node,.paused .arrow{transition:none!important}
+@media(max-width:768px){.pipeline{gap:8px}.stage{min-width:120px;padding:12px}.dag-canvas{height:360px}.container{padding:12px}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Terraform 실행 흐름</h1>
+<p class="subtitle">Terraform Execution Flow - Write / Init / Plan / Apply 단계별 시뮬레이션</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="play()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8635; 다시시작 Restart</button>
+</div>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<!-- Pipeline stages -->
+<div class="pipeline" id="pipeline">
+  <div class="stage" id="s-write" style="--clr:#bc8cff">
+    <div class="stage-icon">&#128221;</div>
+    <div class="stage-title">Write .tf</div>
+    <div class="stage-desc">코드 작성 / Configuration</div>
+    <div class="stage-detail" id="d-write"></div>
+  </div>
+  <div class="arrow" id="a1">&#10145;</div>
+  <div class="stage" id="s-init" style="--clr:#58a6ff">
+    <div class="stage-icon">&#128268;</div>
+    <div class="stage-title">Init</div>
+    <div class="stage-desc">프로바이더 초기화 / Providers</div>
+    <div class="stage-detail" id="d-init"></div>
+  </div>
+  <div class="arrow" id="a2">&#10145;</div>
+  <div class="stage" id="s-plan" style="--clr:#d29922">
+    <div class="stage-icon">&#128200;</div>
+    <div class="stage-title">Plan</div>
+    <div class="stage-desc">변경사항 미리보기 / Diff</div>
+    <div class="stage-detail" id="d-plan"></div>
+  </div>
+  <div class="arrow" id="a3">&#10145;</div>
+  <div class="stage" id="s-apply" style="--clr:#3fb950">
+    <div class="stage-icon">&#9989;</div>
+    <div class="stage-title">Apply</div>
+    <div class="stage-desc">인프라 반영 / Create/Update/Delete</div>
+    <div class="stage-detail" id="d-apply"></div>
+  </div>
+</div>
+
+<!-- DAG dependency graph -->
+<div class="dag-section">
+  <h2>&#128279; 리소스 의존성 그래프 (Resource Dependency DAG)</h2>
+  <div class="dag-canvas" id="dagCanvas">
+    <svg class="dag-edges" id="dagEdges"></svg>
+    <!-- nodes injected by JS -->
+  </div>
+</div>
+
+<!-- Terraform log output -->
+<div class="log-output" id="logOutput"></div>
+
+<!-- Info -->
+<div class="info-grid">
+  <div class="info-card">
+    <h3 style="color:#bc8cff">Write .tf 코드 작성</h3>
+    <p>HCL(HashiCorp Configuration Language)로 인프라를 선언적으로 정의합니다. 리소스, 변수, 출력값을 코드로 표현합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#58a6ff">Init 초기화</h3>
+    <p>terraform init은 프로바이더 플러그인 다운로드, 백엔드 설정, 모듈 설치를 수행합니다. .terraform/ 디렉토리에 저장됩니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#d29922">Plan 실행 계획</h3>
+    <p>현재 상태(state)와 코드(config)를 비교하여 변경사항을 미리 보여줍니다. + 생성, ~ 수정, - 삭제를 표시합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#3fb950">Apply 적용</h3>
+    <p>Plan의 결과를 실제 인프라에 반영합니다. DAG 순서대로 리소스를 생성/수정/삭제하고 State를 업데이트합니다.</p>
+  </div>
+</div>
+</div>
+
+<script>
+const NODES=[
+  {id:'vpc',label:'aws_vpc',type:'VPC',x:50,y:15,deps:[]},
+  {id:'igw',label:'aws_internet_gateway',type:'IGW',x:25,y:38,deps:['vpc']},
+  {id:'sub_pub',label:'aws_subnet (public)',type:'Subnet',x:50,y:38,deps:['vpc']},
+  {id:'sub_priv',label:'aws_subnet (private)',type:'Subnet',x:75,y:38,deps:['vpc']},
+  {id:'nat',label:'aws_nat_gateway',type:'NAT GW',x:25,y:62,deps:['igw','sub_pub']},
+  {id:'rt_pub',label:'aws_route_table (pub)',type:'Route Table',x:50,y:62,deps:['sub_pub','igw']},
+  {id:'rt_priv',label:'aws_route_table (priv)',type:'Route Table',x:75,y:62,deps:['sub_priv','nat']},
+  {id:'sg',label:'aws_security_group',type:'SG',x:35,y:84,deps:['vpc']},
+  {id:'ec2',label:'aws_instance',type:'EC2',x:65,y:84,deps:['sub_priv','sg']}
+];
+
+const STAGES=['write','init','plan','apply'];
+const STAGE_DETAILS={
+  write:['main.tf 작성','variables.tf 정의','outputs.tf 정의','provider "aws" 설정'],
+  init:['Backend 초기화...','Provider aws 다운로드...','aws v5.31.0 설치 완료','모듈 초기화 완료'],
+  plan:['State 읽는 중...','+ 9 to add','~ 0 to change','- 0 to destroy'],
+  apply:['aws_vpc 생성 중...','Subnet/IGW 생성 중...','NAT GW/Route Table 생성 중...','EC2 인스턴스 생성 완료!']
+};
+const LOG_LINES=[
+  {text:'$ terraform init',cls:'info'},
+  {text:'Initializing the backend...',cls:'info'},
+  {text:'Initializing provider plugins...',cls:'info'},
+  {text:'- Installing hashicorp/aws v5.31.0...',cls:'info'},
+  {text:'Terraform has been successfully initialized!',cls:'add'},
+  {text:'$ terraform plan',cls:'info'},
+  {text:'Refreshing state...',cls:'info'},
+  {text:'  + aws_vpc.main               (create)',cls:'add'},
+  {text:'  + aws_internet_gateway.igw    (create)',cls:'add'},
+  {text:'  + aws_subnet.public           (create)',cls:'add'},
+  {text:'  + aws_subnet.private          (create)',cls:'add'},
+  {text:'  + aws_nat_gateway.nat         (create)',cls:'add'},
+  {text:'  + aws_route_table.public      (create)',cls:'add'},
+  {text:'  + aws_route_table.private     (create)',cls:'add'},
+  {text:'  + aws_security_group.sg       (create)',cls:'add'},
+  {text:'  + aws_instance.web            (create)',cls:'add'},
+  {text:'Plan: 9 to add, 0 to change, 0 to destroy.',cls:'change'},
+  {text:'$ terraform apply -auto-approve',cls:'info'},
+  {text:'aws_vpc.main: Creating...',cls:'add'},
+  {text:'aws_vpc.main: Creation complete [3s]',cls:'add'},
+  {text:'aws_internet_gateway.igw: Creating...',cls:'add'},
+  {text:'aws_subnet.public: Creating...',cls:'add'},
+  {text:'aws_subnet.private: Creating...',cls:'add'},
+  {text:'aws_nat_gateway.nat: Creating...',cls:'add'},
+  {text:'aws_nat_gateway.nat: Creation complete [1m45s]',cls:'add'},
+  {text:'aws_instance.web: Creating...',cls:'add'},
+  {text:'aws_instance.web: Creation complete [30s]',cls:'add'},
+  {text:'Apply complete! Resources: 9 added, 0 changed, 0 destroyed.',cls:'add'}
+];
+
+let timer=null,paused=false,step=0;
+const TOTAL_STEPS=32;
+const dagCanvas=document.getElementById('dagCanvas');
+
+// Build DAG nodes
+NODES.forEach(n=>{
+  const el=document.createElement('div');
+  el.className='dag-node';
+  el.id='dn-'+n.id;
+  el.style.left=n.x+'%';el.style.top=n.y+'%';
+  el.style.transform='translate(-50%,-50%) translateY(20px)';
+  el.innerHTML=`<strong>${n.label}</strong><div class="node-type">${n.type}</div><div class="node-status" id="ns-${n.id}"></div>`;
+  dagCanvas.appendChild(el);
+});
+
+// Build DAG edges
+const svgEl=document.getElementById('dagEdges');
+NODES.forEach(n=>{
+  n.deps.forEach(depId=>{
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    const src=NODES.find(x=>x.id===depId);
+    line.setAttribute('x1',src.x+'%');line.setAttribute('y1',src.y+'%');
+    line.setAttribute('x2',n.x+'%');line.setAttribute('y2',n.y+'%');
+    line.id=`edge-${depId}-${n.id}`;
+    svgEl.appendChild(line);
+  });
+});
+
+function setStage(idx){
+  STAGES.forEach((s,i)=>{
+    const el=document.getElementById('s-'+s);
+    el.classList.remove('active','done');
+    if(i<idx)el.classList.add('done');
+    if(i===idx)el.classList.add('active');
+  });
+  document.querySelectorAll('.arrow').forEach((a,i)=>{
+    a.classList.toggle('active',i<idx);
+  });
+}
+
+function addLog(idx){
+  if(idx>=LOG_LINES.length)return;
+  const log=document.getElementById('logOutput');
+  const l=LOG_LINES[idx];
+  const div=document.createElement('div');
+  div.className='log-line '+l.cls;
+  div.textContent=l.text;
+  log.appendChild(div);
+  log.scrollTop=log.scrollHeight;
+}
+
+const CREATION_ORDER=['vpc','igw','sub_pub','sub_priv','nat','rt_pub','rt_priv','sg','ec2'];
+function setDAGStep(nodeIdx,state){
+  if(nodeIdx>=CREATION_ORDER.length)return;
+  const id=CREATION_ORDER[nodeIdx];
+  const el=document.getElementById('dn-'+id);
+  const ns=document.getElementById('ns-'+id);
+  el.classList.add('visible');
+  if(state==='creating'){el.classList.add('creating');el.classList.remove('created');ns.textContent='Creating...';ns.style.color='#f0883e';}
+  if(state==='created'){el.classList.remove('creating');el.classList.add('created');ns.textContent='Created';ns.style.color='#3fb950';
+    // activate edges to this node
+    const n=NODES.find(x=>x.id===id);
+    n.deps.forEach(d=>{
+      const line=document.getElementById('edge-'+d+'-'+id);
+      if(line){line.classList.add('active');setTimeout(()=>{line.classList.remove('active');line.classList.add('done');},400);}
+    });
+  }
+}
+
+function tick(){
+  if(paused)return;
+  const pct=Math.min(100,((step+1)/TOTAL_STEPS)*100);
+  document.getElementById('progressFill').style.width=pct+'%';
+
+  // Stage transitions
+  if(step===0)setStage(0);
+  if(step===1)document.getElementById('d-write').textContent=STAGE_DETAILS.write[0];
+  if(step===2)document.getElementById('d-write').textContent=STAGE_DETAILS.write[1];
+  if(step===3){document.getElementById('d-write').textContent=STAGE_DETAILS.write[3];NODES.forEach(n=>{document.getElementById('dn-'+n.id).classList.add('visible');});}
+  if(step===4){setStage(1);addLog(0);}
+  if(step===5){addLog(1);addLog(2);document.getElementById('d-init').textContent=STAGE_DETAILS.init[0];}
+  if(step===6){addLog(3);document.getElementById('d-init').textContent=STAGE_DETAILS.init[1];}
+  if(step===7){addLog(4);document.getElementById('d-init').textContent=STAGE_DETAILS.init[3];}
+  if(step===8){setStage(2);addLog(5);}
+  if(step===9){addLog(6);document.getElementById('d-plan').textContent=STAGE_DETAILS.plan[0];}
+  if(step===10){addLog(7);addLog(8);document.getElementById('d-plan').textContent=STAGE_DETAILS.plan[1];}
+  if(step===11){addLog(9);addLog(10);addLog(11);}
+  if(step===12){addLog(12);addLog(13);addLog(14);addLog(15);}
+  if(step===13){addLog(16);document.getElementById('d-plan').textContent=STAGE_DETAILS.plan[3];}
+  if(step===14){setStage(3);addLog(17);}
+  // Apply: create resources following DAG
+  if(step===15){addLog(18);setDAGStep(0,'creating');document.getElementById('d-apply').textContent=STAGE_DETAILS.apply[0];}
+  if(step===17){addLog(19);setDAGStep(0,'created');}
+  if(step===18){addLog(20);addLog(21);addLog(22);setDAGStep(1,'creating');setDAGStep(2,'creating');setDAGStep(3,'creating');document.getElementById('d-apply').textContent=STAGE_DETAILS.apply[1];}
+  if(step===20){setDAGStep(1,'created');setDAGStep(2,'created');setDAGStep(3,'created');}
+  if(step===21){addLog(23);setDAGStep(4,'creating');setDAGStep(5,'creating');setDAGStep(6,'creating');document.getElementById('d-apply').textContent=STAGE_DETAILS.apply[2];}
+  if(step===23){addLog(24);setDAGStep(4,'created');setDAGStep(5,'created');setDAGStep(6,'created');}
+  if(step===24){setDAGStep(7,'creating');}
+  if(step===25){setDAGStep(7,'created');addLog(25);setDAGStep(8,'creating');}
+  if(step===27){addLog(26);setDAGStep(8,'created');document.getElementById('d-apply').textContent=STAGE_DETAILS.apply[3];}
+  if(step===28){addLog(27);}
+  if(step>=TOTAL_STEPS){clearInterval(timer);timer=null;return;}
+  step++;
+}
+
+function play(){
+  if(timer)return;
+  paused=false;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  timer=setInterval(tick,700);
+}
+function pause(){
+  paused=!paused;
+  document.getElementById('btnPause').classList.toggle('active',paused);
+  document.getElementById('btnPlay').classList.toggle('active',!paused);
+}
+function restart(){
+  clearInterval(timer);timer=null;step=0;paused=false;
+  document.getElementById('progressFill').style.width='0%';
+  document.getElementById('logOutput').innerHTML='';
+  STAGES.forEach(s=>{document.getElementById('s-'+s).classList.remove('active','done');document.getElementById('d-'+s).textContent='';});
+  document.querySelectorAll('.arrow').forEach(a=>a.classList.remove('active'));
+  NODES.forEach(n=>{const el=document.getElementById('dn-'+n.id);el.classList.remove('visible','creating','created');document.getElementById('ns-'+n.id).textContent='';});
+  document.querySelectorAll('#dagEdges line').forEach(l=>{l.classList.remove('active','done');});
+  play();
+}
+play();
+</script>
+</body>
+</html>

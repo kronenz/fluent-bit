@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SLI/SLO/Error Budget | SLI/SLO/에러 버짓</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.header h1{font-size:1.6rem;color:#58a6ff;margin-bottom:4px}
+.header p{font-size:.9rem;color:#8b949e}
+.controls{display:flex;justify-content:center;gap:10px;padding:14px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#c9d1d9;cursor:pointer;font-size:.85rem;transition:all .2s}
+.controls button:hover{border-color:#58a6ff;color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.section{padding:20px 16px;max-width:1100px;margin:0 auto}
+.section-title{font-size:1.1rem;color:#58a6ff;margin-bottom:16px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.section-title span{color:#8b949e;font-size:.8rem;font-weight:400;margin-left:8px}
+
+/* SLI/SLO/EB Flow */
+.slo-flow{display:flex;align-items:center;justify-content:center;gap:0;padding:20px 0;flex-wrap:wrap}
+.slo-node{min-width:130px;padding:14px 12px;border-radius:10px;display:flex;flex-direction:column;align-items:center;border:2px solid #30363d;background:#161b22;opacity:0;transform:translateY(20px);transition:all .5s ease;text-align:center}
+.slo-node.show{opacity:1;transform:translateY(0)}
+.slo-node .en{font-size:.8rem;font-weight:600}
+.slo-node .ko{font-size:.65rem;color:#8b949e;margin-top:2px}
+.slo-node .detail{font-size:.6rem;padding:4px 8px;border-radius:3px;margin-top:6px;background:#0d1117;max-width:150px}
+.slo-node.sli .en{color:#58a6ff}
+.slo-node.sli{border-color:#58a6ff44}
+.slo-node.sli .detail{color:#58a6ff}
+.slo-node.slo .en{color:#3fb950}
+.slo-node.slo{border-color:#3fb95044}
+.slo-node.slo .detail{color:#3fb950}
+.slo-node.eb .en{color:#f0883e}
+.slo-node.eb{border-color:#f0883e44}
+.slo-node.eb .detail{color:#f0883e}
+.slo-arrow{width:50px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .4s}
+.slo-arrow.show{opacity:1}
+.slo-arrow svg{width:40px;height:16px}
+.slo-arrow svg path{stroke:#3fb950;stroke-width:2;fill:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(63,185,80,.4)}50%{box-shadow:0 0 20px 4px rgba(63,185,80,.2)}}
+.slo-node.active{animation:pulse 1.5s infinite;border-color:#3fb950}
+
+/* Burn Rate */
+.burn-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}
+@media(max-width:700px){.burn-grid{grid-template-columns:1fr}}
+.burn-card{border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;opacity:0;transform:scale(.95);transition:all .5s ease}
+.burn-card.show{opacity:1;transform:scale(1)}
+.burn-card h4{font-size:.85rem;margin-bottom:10px}
+.burn-card h4.normal{color:#3fb950}
+.burn-card h4.fast{color:#f85149}
+.burn-card .desc{font-size:.75rem;color:#8b949e;line-height:1.6;margin-bottom:10px}
+
+/* Burn rate visualization */
+.burn-viz{height:60px;background:#0d1117;border-radius:4px;position:relative;overflow:hidden}
+.burn-line{position:absolute;bottom:0;left:0;width:100%;height:100%}
+.burn-line svg{width:100%;height:100%}
+.burn-path{stroke-width:2;fill:none;stroke-dasharray:200;stroke-dashoffset:200;transition:stroke-dashoffset 2s ease}
+.burn-card.show .burn-path{stroke-dashoffset:0}
+.burn-path.normal{stroke:#3fb950}
+.burn-path.fast{stroke:#f85149}
+.burn-threshold{position:absolute;top:30%;left:0;right:0;border-top:1px dashed #f0883e66;font-size:.55rem;color:#f0883e;padding-left:4px}
+
+.burn-card pre{font-size:.68rem;background:#0d1117;padding:8px;border-radius:4px;color:#3fb950;line-height:1.5;margin-top:8px}
+
+/* Error Budget Gauge */
+.gauge-container{display:flex;justify-content:center;align-items:center;gap:40px;margin-top:12px;flex-wrap:wrap}
+.eb-gauge{width:200px;height:200px;position:relative;opacity:0;transform:scale(.9);transition:all .6s ease}
+.eb-gauge.show{opacity:1;transform:scale(1)}
+.eb-gauge svg{width:100%;height:100%;transform:rotate(-90deg)}
+.eb-gauge .track{fill:none;stroke:#21262d;stroke-width:12}
+.eb-gauge .fill{fill:none;stroke-width:12;stroke-linecap:round;stroke-dasharray:565;stroke-dashoffset:565;transition:stroke-dashoffset 2s ease}
+.eb-gauge.show .fill.ok{stroke-dashoffset:170;stroke:#3fb950}
+.eb-gauge.show .fill.warn{stroke-dashoffset:395;stroke:#f0883e}
+.eb-gauge.show .fill.danger{stroke-dashoffset:510;stroke:#f85149}
+.eb-gauge .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.eb-gauge .pct{font-size:2rem;font-weight:700}
+.eb-gauge .label{font-size:.75rem;color:#8b949e;margin-top:4px}
+.eb-gauge .status{font-size:.7rem;margin-top:4px;padding:2px 10px;border-radius:10px}
+.eb-gauge .status.ok{background:#3fb95022;color:#3fb950}
+.eb-gauge .status.warn{background:#f0883e22;color:#f0883e}
+.eb-gauge .status.danger{background:#f8514922;color:#f85149}
+
+/* Burndown Chart */
+.burndown{border:1px solid #21262d;border-radius:8px;padding:16px;background:#161b22;margin-top:12px;opacity:0;transition:opacity .5s}
+.burndown.show{opacity:1}
+.burndown h4{font-size:.85rem;color:#bd93f9;margin-bottom:12px}
+.burndown-chart{height:160px;position:relative;background:#0d1117;border-radius:4px;overflow:hidden;padding:10px}
+.burndown-chart svg{width:100%;height:100%}
+.bd-ideal{stroke:#30363d;stroke-width:1.5;fill:none;stroke-dasharray:4 4}
+.bd-actual{stroke:#f0883e;stroke-width:2;fill:none;stroke-dasharray:300;stroke-dashoffset:300;transition:stroke-dashoffset 3s ease}
+.burndown.show .bd-actual{stroke-dashoffset:0}
+.bd-fill{fill:url(#bdGrad);opacity:0;transition:opacity 2s ease}
+.burndown.show .bd-fill{opacity:.3}
+.bd-labels{display:flex;justify-content:space-between;font-size:.65rem;color:#484f58;margin-top:6px;padding:0 10px}
+.bd-legend{display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:.7rem}
+.bd-legend-item{display:flex;align-items:center;gap:4px}
+.bd-legend-item .dot{width:8px;height:8px;border-radius:50%}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>SLI / SLO / Error Budget</h1>
+<p>서비스 수준 지표와 에러 버짓 | 신뢰성 목표 설정 및 관리</p>
+</div>
+
+<div class="controls">
+<button id="btnPlay" class="active" onclick="play()">&#9654; Play / 재생</button>
+<button id="btnPause" onclick="pause()">&#10074;&#10074; Pause / 일시정지</button>
+<button id="btnRestart" onclick="restart()">&#8634; Restart / 처음부터</button>
+</div>
+
+<!-- Section 1: SLI → SLO → Error Budget -->
+<div class="section">
+<div class="section-title">1. SLI → SLO → Error Budget Flow <span>SLI/SLO/에러 버짓 관계</span></div>
+<div class="slo-flow" id="sloFlow">
+<div class="slo-node sli" id="sn0">
+<div class="en">SLI</div>
+<div class="ko">Service Level Indicator</div>
+<div class="detail">측정값: 성공 요청 비율, 레이턴시 P99</div>
+</div>
+<div class="slo-arrow" id="sar0"><svg viewBox="0 0 40 16"><path d="M2 8 L32 8 M28 3 L34 8 L28 13"/></svg></div>
+<div class="slo-node slo" id="sn1">
+<div class="en">SLO</div>
+<div class="ko">Service Level Objective</div>
+<div class="detail">목표: 99.9% 가용성 (월간 43.8분 다운타임 허용)</div>
+</div>
+<div class="slo-arrow" id="sar1"><svg viewBox="0 0 40 16"><path d="M2 8 L32 8 M28 3 L34 8 L28 13"/></svg></div>
+<div class="slo-node eb" id="sn2">
+<div class="en">Error Budget</div>
+<div class="ko">에러 버짓</div>
+<div class="detail">허용 실패: 0.1% = 43.8분/월 = 4.38시간/년</div>
+</div>
+</div>
+</div>
+
+<!-- Section 2: Burn Rate -->
+<div class="section">
+<div class="section-title">2. Burn Rate <span>에러 버짓 소진 속도</span></div>
+<div class="burn-grid" id="burnGrid">
+<div class="burn-card" id="bc0">
+<h4 class="normal">Normal Burn (정상 소진)</h4>
+<div class="desc">Burn Rate = 1x: 30일 동안 균등하게 에러 버짓을 소진. 월말까지 정확히 버짓 소진 완료.</div>
+<div class="burn-viz">
+<div class="burn-threshold">Budget Limit</div>
+<div class="burn-line"><svg viewBox="0 0 200 60" preserveAspectRatio="none"><path class="burn-path normal" d="M0 55 L200 20"/></svg></div>
+</div>
+<pre>burn_rate = error_rate / (1 - SLO)
+          = 0.001 / 0.001 = 1.0x
+
+30일 후 잔여: 0% (정상)</pre>
+</div>
+<div class="burn-card" id="bc1">
+<h4 class="fast">Fast Burn Alert! (빠른 소진)</h4>
+<div class="desc">Burn Rate = 14.4x: 현재 속도라면 2일 만에 월간 에러 버짓 전체가 소진됨. 즉각 대응 필요!</div>
+<div class="burn-viz">
+<div class="burn-threshold">Budget Limit</div>
+<div class="burn-line"><svg viewBox="0 0 200 60" preserveAspectRatio="none"><path class="burn-path fast" d="M0 55 L14 5"/></svg></div>
+</div>
+<pre>burn_rate = 0.0144 / 0.001 = 14.4x
+
+ALERT: 2일 내 버짓 소진 예상!
+→ Page on-call engineer
+→ 즉각 조치 필요</pre>
+</div>
+</div>
+</div>
+
+<!-- Section 3: Error Budget Gauge -->
+<div class="section">
+<div class="section-title">3. Error Budget Remaining <span>에러 버짓 잔여량</span></div>
+<div class="gauge-container" id="gaugeContainer">
+<div class="eb-gauge" id="g0">
+<svg viewBox="0 0 200 200"><circle class="track" cx="100" cy="100" r="90"/><circle class="fill ok" cx="100" cy="100" r="90"/></svg>
+<div class="center"><div class="pct" style="color:#3fb950">70%</div><div class="label">에러 버짓 잔여</div><div class="status ok">정상 운영</div></div>
+</div>
+<div class="eb-gauge" id="g1">
+<svg viewBox="0 0 200 200"><circle class="track" cx="100" cy="100" r="90"/><circle class="fill warn" cx="100" cy="100" r="90"/></svg>
+<div class="center"><div class="pct" style="color:#f0883e">30%</div><div class="label">에러 버짓 잔여</div><div class="status warn">주의 필요</div></div>
+</div>
+<div class="eb-gauge" id="g2">
+<svg viewBox="0 0 200 200"><circle class="track" cx="100" cy="100" r="90"/><circle class="fill danger" cx="100" cy="100" r="90"/></svg>
+<div class="center"><div class="pct" style="color:#f85149">10%</div><div class="label">에러 버짓 잔여</div><div class="status danger">배포 중단</div></div>
+</div>
+</div>
+</div>
+
+<!-- Section 4: Monthly Burndown -->
+<div class="section">
+<div class="section-title">4. Monthly Budget Burndown <span>월간 에러 버짓 소진 추이</span></div>
+<div class="burndown" id="burndown">
+<h4>Error Budget Burndown Chart (4월)</h4>
+<div class="burndown-chart">
+<svg viewBox="0 0 300 140" preserveAspectRatio="none">
+<defs><linearGradient id="bdGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f0883e"/><stop offset="100%" stop-color="#0d1117"/></linearGradient></defs>
+<path class="bd-ideal" d="M10 10 L290 130"/>
+<path class="bd-actual" d="M10 10 L40 15 L70 18 L100 25 L120 45 L140 80 L160 85 L180 88 L200 92 L230 95 L260 100 L290 105"/>
+<path class="bd-fill" d="M10 10 L40 15 L70 18 L100 25 L120 45 L140 80 L160 85 L180 88 L200 92 L230 95 L260 100 L290 105 L290 130 L10 130 Z"/>
+</svg>
+</div>
+<div class="bd-labels"><span>1일</span><span>7일</span><span>14일</span><span>21일</span><span>30일</span></div>
+<div class="bd-legend">
+<div class="bd-legend-item"><div class="dot" style="background:#30363d"></div><span style="color:#8b949e">이상적 소진 (Ideal)</span></div>
+<div class="bd-legend-item"><div class="dot" style="background:#f0883e"></div><span style="color:#8b949e">실제 소진 (Actual)</span></div>
+</div>
+</div>
+</div>
+
+<script>
+let timer=null,step=0,playing=false;
+const totalSteps=22;
+
+function animateStep(s){
+  // SLI/SLO/EB flow
+  if(s===0){document.getElementById('sn0').classList.add('show','active');}
+  if(s===1){document.getElementById('sar0').classList.add('show');document.getElementById('sn0').classList.remove('active');}
+  if(s===2){document.getElementById('sn1').classList.add('show','active');}
+  if(s===3){document.getElementById('sar1').classList.add('show');document.getElementById('sn1').classList.remove('active');}
+  if(s===4){document.getElementById('sn2').classList.add('show','active');}
+  if(s===5){document.getElementById('sn2').classList.remove('active');}
+  // Burn rate
+  if(s===7){document.getElementById('bc0').classList.add('show');}
+  if(s===8){document.getElementById('bc1').classList.add('show');}
+  // Gauges
+  if(s===10){document.getElementById('g0').classList.add('show');}
+  if(s===11){document.getElementById('g1').classList.add('show');}
+  if(s===12){document.getElementById('g2').classList.add('show');}
+  // Burndown
+  if(s===15){document.getElementById('burndown').classList.add('show');}
+}
+
+function play(){
+  if(playing)return;playing=true;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  timer=setInterval(()=>{if(step>=totalSteps){pause();return;}animateStep(step);step++;},600);
+}
+function pause(){
+  playing=false;clearInterval(timer);
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function restart(){
+  pause();step=0;
+  document.querySelectorAll('.slo-node,.slo-arrow,.burn-card,.eb-gauge,.burndown').forEach(e=>e.classList.remove('show','active'));
+  setTimeout(play,300);
+}
+window.addEventListener('load',()=>setTimeout(play,500));
+</script>
+</body>
+</html>

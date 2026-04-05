@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datadog Integration | Datadog 통합 모니터링</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.header h1{font-size:1.6rem;color:#58a6ff;margin-bottom:4px}
+.header p{font-size:.9rem;color:#8b949e}
+.controls{display:flex;justify-content:center;gap:10px;padding:14px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#c9d1d9;cursor:pointer;font-size:.85rem;transition:all .2s}
+.controls button:hover{border-color:#58a6ff;color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.section{padding:20px 16px;max-width:1100px;margin:0 auto}
+.section-title{font-size:1.1rem;color:#58a6ff;margin-bottom:16px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.section-title span{color:#8b949e;font-size:.8rem;font-weight:400;margin-left:8px}
+
+/* Agent Architecture */
+.agent-arch{display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px 0}
+.agent-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center}
+.agent-node{min-width:120px;padding:12px 14px;border-radius:8px;border:2px solid #30363d;background:#161b22;text-align:center;opacity:0;transform:translateY(20px);transition:all .5s ease}
+.agent-node.show{opacity:1;transform:translateY(0)}
+.agent-node .en{font-size:.78rem;font-weight:600}
+.agent-node .ko{font-size:.65rem;color:#8b949e;margin-top:2px}
+.agent-node .tag{font-size:.58rem;padding:2px 6px;border-radius:3px;margin-top:4px;display:inline-block}
+.agent-node.daemon .en{color:#632ca6}
+.agent-node.daemon{border-color:#632ca655}
+.agent-node.daemon .tag{background:#632ca622;color:#632ca6}
+.agent-node.data .en{color:#3fb950}
+.agent-node.data{border-color:#3fb95055}
+.agent-node.data .tag{background:#3fb95022;color:#3fb950}
+.agent-node.cloud .en{color:#632ca6}
+.agent-node.cloud{border-color:#632ca6;background:linear-gradient(135deg,#161b22,#1a0f2e)}
+.agent-node.cloud .tag{background:#632ca644;color:#d4b8ff}
+
+.agent-arrow{opacity:0;transition:opacity .4s;color:#3fb950;font-size:1.2rem}
+.agent-arrow.show{opacity:1}
+.agent-arrow.down{transform:rotate(90deg)}
+
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(99,44,166,.4)}50%{box-shadow:0 0 20px 4px rgba(99,44,166,.2)}}
+.agent-node.active{animation:pulse 1.5s infinite;border-color:#632ca6}
+
+/* Three pillars */
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:12px}
+@media(max-width:700px){.pillars{grid-template-columns:1fr}}
+.pillar{border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;opacity:0;transform:scale(.95);transition:all .5s ease}
+.pillar.show{opacity:1;transform:scale(1)}
+.pillar h4{font-size:.85rem;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.pillar.metrics h4{color:#58a6ff}
+.pillar.logs h4{color:#3fb950}
+.pillar.traces h4{color:#f0883e}
+.pillar .items{font-size:.73rem;color:#8b949e;line-height:1.8}
+.pillar .item{padding:4px 8px;background:#0d1117;border-radius:4px;margin:3px 0}
+.pillar.metrics .item{border-left:3px solid #58a6ff}
+.pillar.logs .item{border-left:3px solid #3fb950}
+.pillar.traces .item{border-left:3px solid #f0883e}
+
+/* Service Map */
+.svc-map{position:relative;height:280px;border:1px solid #21262d;border-radius:8px;background:#161b22;margin-top:12px;overflow:hidden;opacity:0;transition:opacity .5s}
+.svc-map.show{opacity:1}
+.svc-map-node{position:absolute;padding:10px 14px;border-radius:8px;border:2px solid #30363d;background:#0d1117;text-align:center;font-size:.72rem;opacity:0;transform:scale(.8);transition:all .5s ease}
+.svc-map-node.show{opacity:1;transform:scale(1)}
+.svc-map-node .name{font-weight:600;color:#58a6ff}
+.svc-map-node .rps{color:#3fb950;font-size:.65rem;margin-top:2px}
+.svc-map-node .err{color:#f85149;font-size:.65rem}
+.svc-map-line{position:absolute;opacity:0;transition:opacity .5s}
+.svc-map-line.show{opacity:1}
+.svc-map-line svg{overflow:visible}
+.svc-map-line svg line{stroke:#30363d;stroke-width:1.5}
+@keyframes flowLine{0%{stroke-dashoffset:20}100%{stroke-dashoffset:0}}
+.svc-map-line.animated svg line{stroke:#3fb950;stroke-dasharray:5 5;animation:flowLine 1s linear infinite}
+
+/* Custom Metrics */
+.custom-flow{display:flex;align-items:stretch;justify-content:center;gap:16px;margin-top:12px;flex-wrap:wrap}
+.custom-step{flex:1;min-width:220px;max-width:300px;border:1px solid #30363d;border-radius:8px;padding:14px;background:#161b22;opacity:0;transform:translateX(-20px);transition:all .6s ease}
+.custom-step.show{opacity:1;transform:translateX(0)}
+.custom-step h4{font-size:.82rem;color:#bd93f9;margin-bottom:8px}
+.custom-step pre{font-size:.67rem;background:#0d1117;padding:8px;border-radius:4px;color:#3fb950;line-height:1.5;overflow-x:auto}
+.custom-step .desc{font-size:.72rem;color:#8b949e;margin-top:6px}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>Datadog Integration Overview</h1>
+<p>Datadog 통합 모니터링 | DaemonSet Agent 기반 메트릭/로그/트레이스 수집</p>
+</div>
+
+<div class="controls">
+<button id="btnPlay" class="active" onclick="play()">&#9654; Play / 재생</button>
+<button id="btnPause" onclick="pause()">&#10074;&#10074; Pause / 일시정지</button>
+<button id="btnRestart" onclick="restart()">&#8634; Restart / 처음부터</button>
+</div>
+
+<!-- Section 1: Agent Architecture -->
+<div class="section">
+<div class="section-title">1. Datadog Agent Architecture <span>에이전트 아키텍처</span></div>
+<div class="agent-arch" id="agentArch">
+<div class="agent-row">
+<div class="agent-node data" id="ag0"><div class="en">Node Metrics</div><div class="ko">노드 메트릭</div><div class="tag">CPU/Mem/Disk</div></div>
+<div class="agent-node data" id="ag1"><div class="en">Container Logs</div><div class="ko">컨테이너 로그</div><div class="tag">stdout/stderr</div></div>
+<div class="agent-node data" id="ag2"><div class="en">APM Traces</div><div class="ko">트레이스 데이터</div><div class="tag">dd-trace</div></div>
+</div>
+<div class="agent-arrow down" id="aarr0">&#10140;</div>
+<div class="agent-row">
+<div class="agent-node daemon" id="ag3"><div class="en">Datadog Agent</div><div class="ko">데이터독 에이전트</div><div class="tag">DaemonSet (각 노드)</div></div>
+</div>
+<div class="agent-arrow down" id="aarr1">&#10140;</div>
+<div class="agent-row">
+<div class="agent-node cloud" id="ag4"><div class="en">Datadog Cloud</div><div class="ko">Datadog SaaS 플랫폼</div><div class="tag">app.datadoghq.com</div></div>
+</div>
+</div>
+</div>
+
+<!-- Section 2: Three Pillars -->
+<div class="section">
+<div class="section-title">2. Three Pillars of Observability <span>관측 가능성의 세 기둥</span></div>
+<div class="pillars" id="pillars">
+<div class="pillar metrics" id="pl0">
+<h4>Metrics (메트릭)</h4>
+<div class="items">
+<div class="item">Infrastructure 메트릭 (CPU, Memory, Disk)</div>
+<div class="item">Kubernetes 메트릭 (Pod, Node, Deployment)</div>
+<div class="item">Custom 메트릭 (StatsD / DogStatsD)</div>
+<div class="item">Integration 메트릭 (Redis, PostgreSQL 등)</div>
+</div>
+</div>
+<div class="pillar logs" id="pl1">
+<h4>Logs (로그)</h4>
+<div class="items">
+<div class="item">자동 로그 수집 (컨테이너 stdout)</div>
+<div class="item">Log Pipeline (파싱/변환/필터)</div>
+<div class="item">Log Pattern 자동 감지</div>
+<div class="item">Log → Metric 변환 가능</div>
+</div>
+</div>
+<div class="pillar traces" id="pl2">
+<h4>Traces (트레이스)</h4>
+<div class="items">
+<div class="item">자동 계측 (dd-trace-java 등)</div>
+<div class="item">분산 트레이싱 (서비스 간)</div>
+<div class="item">Flame Graph 시각화</div>
+<div class="item">Error Tracking 연동</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 3: APM Service Map -->
+<div class="section">
+<div class="section-title">3. APM Service Map <span>APM 서비스 맵 (요청 흐름)</span></div>
+<div class="svc-map" id="svcMap">
+<div class="svc-map-line" id="ml0"><svg width="600" height="280"><line x1="140" y1="60" x2="280" y2="100"/></svg></div>
+<div class="svc-map-line" id="ml1"><svg width="600" height="280"><line x1="140" y1="60" x2="280" y2="180"/></svg></div>
+<div class="svc-map-line" id="ml2"><svg width="600" height="280"><line x1="370" y1="100" x2="500" y2="80"/></svg></div>
+<div class="svc-map-line" id="ml3"><svg width="600" height="280"><line x1="370" y1="100" x2="500" y2="160"/></svg></div>
+<div class="svc-map-line" id="ml4"><svg width="600" height="280"><line x1="370" y1="180" x2="500" y2="230"/></svg></div>
+
+<div class="svc-map-node" id="sm0" style="left:40px;top:40px"><div class="name">API Gateway</div><div class="rps">1.2k req/s</div></div>
+<div class="svc-map-node" id="sm1" style="left:230px;top:80px"><div class="name">User Service</div><div class="rps">800 req/s</div><div class="err">0.1% error</div></div>
+<div class="svc-map-node" id="sm2" style="left:230px;top:160px"><div class="name">Order Service</div><div class="rps">400 req/s</div><div class="err">0.5% error</div></div>
+<div class="svc-map-node" id="sm3" style="left:440px;top:60px"><div class="name">PostgreSQL</div><div class="rps">2k query/s</div></div>
+<div class="svc-map-node" id="sm4" style="left:440px;top:140px"><div class="name">Redis Cache</div><div class="rps">5k ops/s</div></div>
+<div class="svc-map-node" id="sm5" style="left:440px;top:210px"><div class="name">Kafka</div><div class="rps">1.5k msg/s</div></div>
+</div>
+</div>
+
+<!-- Section 4: Custom Metric Submission -->
+<div class="section">
+<div class="section-title">4. Custom Metric Submission <span>커스텀 메트릭 전송</span></div>
+<div class="custom-flow" id="customFlow">
+<div class="custom-step" id="cs0">
+<h4>1. DogStatsD Client</h4>
+<pre>from datadog import statsd
+
+# Counter
+statsd.increment('api.requests',
+  tags=['env:prod','service:api'])
+
+# Gauge
+statsd.gauge('queue.size', 42)
+
+# Histogram
+statsd.histogram('api.latency',
+  response_time)</pre>
+</div>
+<div class="custom-step" id="cs1">
+<h4>2. Agent Aggregation</h4>
+<pre># DogStatsD (UDP :8125)
+# 10초 flush interval로 집계
+
+Agent 내부:
+  → 수신: UDP 패킷
+  → 집계: count/rate/avg/p95
+  → 태그 처리: env, service
+  → 전송: Datadog API</pre>
+<div class="desc">에이전트가 로컬에서 집계 후 전송</div>
+</div>
+<div class="custom-step" id="cs2">
+<h4>3. Datadog Platform</h4>
+<pre>Dashboard에서 활용:
+  → 시계열 그래프
+  → Top List
+  → Alert 조건
+
+Monitor 설정:
+  → api.latency.p95 > 500ms
+  → for 5 minutes
+  → notify: @pagerduty</pre>
+<div class="desc">대시보드 및 알림에 즉시 활용</div>
+</div>
+</div>
+</div>
+
+<script>
+let timer=null,step=0,playing=false;
+const totalSteps=28;
+
+function animateStep(s){
+  // Agent architecture
+  if(s>=0&&s<=2){document.getElementById('ag'+s).classList.add('show');}
+  if(s===3){document.getElementById('aarr0').classList.add('show');}
+  if(s===4){document.getElementById('ag3').classList.add('show','active');}
+  if(s===5){document.getElementById('aarr1').classList.add('show');document.getElementById('ag3').classList.remove('active');}
+  if(s===6){document.getElementById('ag4').classList.add('show');}
+  // Pillars
+  if(s>=8&&s<=10){document.getElementById('pl'+(s-8)).classList.add('show');}
+  // Service Map
+  if(s===12){document.getElementById('svcMap').classList.add('show');}
+  if(s===13){document.getElementById('sm0').classList.add('show');}
+  if(s===14){document.getElementById('ml0').classList.add('show','animated');document.getElementById('sm1').classList.add('show');}
+  if(s===15){document.getElementById('ml1').classList.add('show','animated');document.getElementById('sm2').classList.add('show');}
+  if(s===16){document.getElementById('ml2').classList.add('show','animated');document.getElementById('sm3').classList.add('show');}
+  if(s===17){document.getElementById('ml3').classList.add('show','animated');document.getElementById('sm4').classList.add('show');}
+  if(s===18){document.getElementById('ml4').classList.add('show','animated');document.getElementById('sm5').classList.add('show');}
+  // Custom metrics
+  if(s>=21&&s<=23){document.getElementById('cs'+(s-21)).classList.add('show');}
+}
+
+function play(){
+  if(playing)return;playing=true;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  timer=setInterval(()=>{if(step>=totalSteps){pause();return;}animateStep(step);step++;},550);
+}
+function pause(){
+  playing=false;clearInterval(timer);
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function restart(){
+  pause();step=0;
+  document.querySelectorAll('.agent-node,.agent-arrow,.pillar,.svc-map,.svc-map-node,.svc-map-line,.custom-step').forEach(e=>e.classList.remove('show','active','animated'));
+  setTimeout(play,300);
+}
+window.addEventListener('load',()=>setTimeout(play,500));
+</script>
+</body>
+</html>

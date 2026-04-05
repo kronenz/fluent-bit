@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Container Security Layers | 컨테이너 보안 계층</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.header h1{font-size:1.6rem;color:#58a6ff;margin-bottom:4px}
+.header p{font-size:.9rem;color:#8b949e}
+.controls{display:flex;justify-content:center;gap:10px;padding:14px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#c9d1d9;cursor:pointer;font-size:.85rem;transition:all .2s}
+.controls button:hover{border-color:#58a6ff;color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.section{padding:20px 16px;max-width:1100px;margin:0 auto}
+.section-title{font-size:1.1rem;color:#58a6ff;margin-bottom:16px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.section-title span{color:#8b949e;font-size:.8rem;font-weight:400;margin-left:8px}
+
+/* Security Layers (concentric) */
+.security-layers{display:flex;flex-direction:column;align-items:center;gap:0;padding:10px 0}
+.sec-layer{border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative;opacity:0;transform:scale(.85);transition:all .6s ease;text-align:center;padding:10px 20px}
+.sec-layer.show{opacity:1;transform:scale(1)}
+.sec-layer .layer-label{font-size:.8rem;font-weight:600}
+.sec-layer .layer-desc{font-size:.68rem;color:#8b949e;margin-top:2px}
+
+.sl-outer{width:100%;max-width:800px;min-height:340px;border:2px solid #f85149;background:rgba(248,81,73,.04);flex-direction:column;padding-top:12px}
+.sl-5{width:92%;max-width:720px;min-height:280px;border:2px solid #d29922;background:rgba(210,153,34,.04);flex-direction:column;padding-top:10px}
+.sl-4{width:84%;max-width:640px;min-height:220px;border:2px solid #bd93f9;background:rgba(189,147,249,.04);flex-direction:column;padding-top:10px}
+.sl-3{width:76%;max-width:560px;min-height:160px;border:2px solid #58a6ff;background:rgba(88,166,255,.04);flex-direction:column;padding-top:10px}
+.sl-2{width:68%;max-width:480px;min-height:100px;border:2px solid #3fb950;background:rgba(63,185,80,.04);flex-direction:column;padding-top:10px}
+.sl-1{width:60%;max-width:400px;min-height:50px;border:2px solid #3fb950;background:rgba(63,185,80,.08)}
+
+.sl-outer .layer-label{color:#f85149}.sl-5 .layer-label{color:#d29922}.sl-4 .layer-label{color:#bd93f9}
+.sl-3 .layer-label{color:#58a6ff}.sl-2 .layer-label{color:#3fb950}.sl-1 .layer-label{color:#3fb950}
+.layer-tag{position:absolute;top:8px;right:12px;font-size:.6rem;padding:2px 8px;border-radius:10px;font-weight:600}
+.sl-outer .layer-tag{background:rgba(248,81,73,.15);color:#f85149}
+.sl-5 .layer-tag{background:rgba(210,153,34,.15);color:#d29922}
+.sl-4 .layer-tag{background:rgba(189,147,249,.15);color:#bd93f9}
+.sl-3 .layer-tag{background:rgba(88,166,255,.15);color:#58a6ff}
+.sl-2 .layer-tag{background:rgba(63,185,80,.15);color:#3fb950}
+
+/* Capability Dropping */
+.cap-container{display:flex;gap:20px;justify-content:center;align-items:flex-start;flex-wrap:wrap;margin-top:12px}
+.cap-box{border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;min-width:240px;max-width:320px;opacity:0;transform:translateY(20px);transition:all .5s ease}
+.cap-box.show{opacity:1;transform:translateY(0)}
+.cap-box h4{font-size:.85rem;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.cap-box.all h4{color:#f85149}
+.cap-box.drop h4{color:#d29922}
+.cap-box.minimal h4{color:#3fb950}
+.cap-list{font-family:monospace;font-size:.7rem;line-height:1.8}
+.cap-list .kept{color:#3fb950}
+.cap-list .dropped{color:#f85149;text-decoration:line-through;opacity:.6}
+.cap-arrow{font-size:1.5rem;color:#58a6ff;opacity:0;transition:opacity .5s;align-self:center}
+.cap-arrow.show{opacity:1}
+
+/* Seccomp Filter */
+.seccomp-flow{border:1px solid #30363d;border-radius:8px;padding:20px;background:#161b22;margin-top:12px;opacity:0;transition:all .5s;max-width:700px;margin-left:auto;margin-right:auto}
+.seccomp-flow.show{opacity:1}
+.seccomp-flow h4{font-size:.85rem;color:#bd93f9;margin-bottom:12px}
+.syscall-row{display:flex;align-items:center;gap:12px;padding:6px 0;font-size:.75rem;border-bottom:1px solid #21262d;opacity:0;transform:translateX(-10px);transition:all .4s ease}
+.syscall-row.show{opacity:1;transform:translateX(0)}
+.syscall-row:last-child{border-bottom:none}
+.syscall-name{font-family:monospace;width:130px;color:#c9d1d9}
+.syscall-action{padding:2px 10px;border-radius:10px;font-size:.68rem;font-weight:600}
+.syscall-action.allow{background:rgba(63,185,80,.15);color:#3fb950}
+.syscall-action.deny{background:rgba(248,81,73,.15);color:#f85149}
+.syscall-action.log{background:rgba(210,153,34,.15);color:#d29922}
+.syscall-desc{color:#8b949e;font-size:.68rem}
+
+/* Privileged vs Unprivileged */
+.priv-compare{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:12px}
+@media(max-width:700px){.priv-compare{grid-template-columns:1fr}}
+.priv-card{border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;opacity:0;transform:translateY(20px);transition:all .5s ease}
+.priv-card.show{opacity:1;transform:translateY(0)}
+.priv-card.bad{border-color:#f85149}
+.priv-card.good{border-color:#3fb950}
+.priv-card h4{font-size:.9rem;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.priv-card.bad h4{color:#f85149}
+.priv-card.good h4{color:#3fb950}
+.priv-card pre{font-size:.7rem;background:#0d1117;padding:10px;border-radius:4px;line-height:1.5;overflow-x:auto}
+.priv-card ul{font-size:.75rem;line-height:1.8;list-style:none;margin-top:10px}
+.priv-card.bad ul li::before{content:"!! ";color:#f85149;font-weight:700}
+.priv-card.good ul li::before{content:"OK ";color:#3fb950;font-weight:700}
+.risk-badge{display:inline-block;padding:3px 10px;border-radius:10px;font-size:.7rem;font-weight:600;margin-top:8px}
+.risk-high{background:rgba(248,81,73,.15);color:#f85149}
+.risk-low{background:rgba(63,185,80,.15);color:#3fb950}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>Container Security Layers</h1>
+<p>컨테이너 보안 계층 | Namespace, Cgroup, Seccomp, Capabilities</p>
+</div>
+
+<div class="controls">
+<button id="btnPlay" class="active" onclick="play()">&#9654; Play / 재생</button>
+<button id="btnPause" onclick="pause()">&#10074;&#10074; Pause / 일시정지</button>
+<button id="btnRestart" onclick="restart()">&#8634; Restart / 처음부터</button>
+</div>
+
+<!-- Section 1: Security Layers (nested) -->
+<div class="section">
+<div class="section-title">1. Defense in Depth <span>심층 방어 계층</span></div>
+<div class="security-layers">
+<div class="sec-layer sl-outer" id="sl5">
+<span class="layer-tag">Layer 6</span>
+<div class="layer-label">AppArmor / SELinux (MAC)</div>
+<div class="layer-desc">Mandatory Access Control - 파일/네트워크 접근 정책 강제</div>
+<div class="sec-layer sl-5" id="sl4">
+<span class="layer-tag">Layer 5</span>
+<div class="layer-label">Seccomp (시스템 콜 필터)</div>
+<div class="layer-desc">허용된 syscall만 실행 가능 - 커널 공격 표면 축소</div>
+<div class="sec-layer sl-4" id="sl3">
+<span class="layer-tag">Layer 4</span>
+<div class="layer-label">Linux Capabilities (권한 세분화)</div>
+<div class="layer-desc">root 권한을 세분화하여 필요한 것만 부여</div>
+<div class="sec-layer sl-3" id="sl2">
+<span class="layer-tag">Layer 3</span>
+<div class="layer-label">Cgroups (리소스 제한)</div>
+<div class="layer-desc">CPU, Memory, I/O 사용량 제한 - DoS 방지</div>
+<div class="sec-layer sl-2" id="sl1">
+<span class="layer-tag">Layer 2</span>
+<div class="layer-label">Namespaces (격리)</div>
+<div class="layer-desc">PID, Network, Mount, UTS, IPC, User 격리</div>
+<div class="sec-layer sl-1" id="sl0">
+<div class="layer-label">Rootless Container</div>
+<div class="layer-desc">비root 사용자로 실행</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 2: Capability Dropping -->
+<div class="section">
+<div class="section-title">2. Capability Dropping <span>권한 제거 (Capability Drop)</span></div>
+<div class="cap-container">
+<div class="cap-box all" id="cap0">
+<h4>ALL Capabilities (전체 권한)</h4>
+<div class="cap-list">
+<div class="dropped">CAP_SYS_ADMIN</div>
+<div class="dropped">CAP_NET_ADMIN</div>
+<div class="dropped">CAP_SYS_PTRACE</div>
+<div class="dropped">CAP_SYS_MODULE</div>
+<div class="dropped">CAP_DAC_OVERRIDE</div>
+<div class="dropped">CAP_SYS_RAWIO</div>
+<div class="dropped">CAP_NET_RAW</div>
+<div class="dropped">CAP_FOWNER</div>
+<div class="dropped">CAP_SETUID</div>
+<div class="dropped">CAP_SETGID</div>
+<div class="kept">CAP_CHOWN</div>
+<div class="kept">CAP_NET_BIND_SERVICE</div>
+<div class="kept">CAP_KILL</div>
+</div>
+</div>
+<div class="cap-arrow" id="capArr0">&#10132;<br><span style="font-size:.65rem">drop ALL</span></div>
+<div class="cap-box drop" id="cap1">
+<h4>Drop Process (제거 과정)</h4>
+<div class="cap-list" style="font-size:.72rem;color:#8b949e;line-height:2">
+<div><span style="color:#f85149">DROP</span> CAP_SYS_ADMIN (mount, 등)</div>
+<div><span style="color:#f85149">DROP</span> CAP_NET_ADMIN (iptables)</div>
+<div><span style="color:#f85149">DROP</span> CAP_SYS_PTRACE (디버그)</div>
+<div><span style="color:#f85149">DROP</span> CAP_SYS_MODULE (커널 모듈)</div>
+<div><span style="color:#f85149">DROP</span> CAP_DAC_OVERRIDE (파일 권한)</div>
+<div><span style="color:#f85149">DROP</span> CAP_SYS_RAWIO (하드웨어)</div>
+<div><span style="color:#f85149">DROP</span> CAP_NET_RAW (raw 소켓)</div>
+<div><span style="color:#d29922">KEEP</span> 최소 필요 권한만 유지</div>
+</div>
+</div>
+<div class="cap-arrow" id="capArr1">&#10132;<br><span style="font-size:.65rem">minimal set</span></div>
+<div class="cap-box minimal" id="cap2">
+<h4>Minimal Set (최소 권한)</h4>
+<div class="cap-list">
+<div class="kept">CAP_CHOWN</div>
+<div class="kept">CAP_NET_BIND_SERVICE</div>
+<div class="kept">CAP_KILL</div>
+</div>
+<div style="margin-top:12px;font-size:.7rem;color:#8b949e;background:#0d1117;padding:8px;border-radius:4px;font-family:monospace;line-height:1.5">
+securityContext:
+  capabilities:
+    drop: ["ALL"]
+    add: ["NET_BIND_SERVICE"]
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 3: Seccomp Filter -->
+<div class="section">
+<div class="section-title">3. Seccomp Filter <span>Seccomp 시스템 콜 필터링</span></div>
+<div class="seccomp-flow" id="seccompBox">
+<h4>Syscall Interception (시스템 콜 인터셉션)</h4>
+<div style="font-size:.72rem;color:#8b949e;margin-bottom:12px">
+Application Process &#10132; syscall &#10132; <span style="color:#bd93f9">Seccomp BPF Filter</span> &#10132; Kernel
+</div>
+<div class="syscall-row" id="sc0">
+<div class="syscall-name">read()</div>
+<div class="syscall-action allow">ALLOW</div>
+<div class="syscall-desc">파일 읽기 - 기본 허용</div>
+</div>
+<div class="syscall-row" id="sc1">
+<div class="syscall-name">write()</div>
+<div class="syscall-action allow">ALLOW</div>
+<div class="syscall-desc">파일 쓰기 - 기본 허용</div>
+</div>
+<div class="syscall-row" id="sc2">
+<div class="syscall-name">open()</div>
+<div class="syscall-action allow">ALLOW</div>
+<div class="syscall-desc">파일 열기 - 기본 허용</div>
+</div>
+<div class="syscall-row" id="sc3">
+<div class="syscall-name">socket()</div>
+<div class="syscall-action allow">ALLOW</div>
+<div class="syscall-desc">네트워크 소켓 - 조건부 허용</div>
+</div>
+<div class="syscall-row" id="sc4">
+<div class="syscall-name">clone()</div>
+<div class="syscall-action log">LOG</div>
+<div class="syscall-desc">프로세스 생성 - 감시 대상</div>
+</div>
+<div class="syscall-row" id="sc5">
+<div class="syscall-name">mount()</div>
+<div class="syscall-action deny">DENY</div>
+<div class="syscall-desc">파일시스템 마운트 - 차단</div>
+</div>
+<div class="syscall-row" id="sc6">
+<div class="syscall-name">ptrace()</div>
+<div class="syscall-action deny">DENY</div>
+<div class="syscall-desc">프로세스 디버깅 - 차단 (컨테이너 탈출 위험)</div>
+</div>
+<div class="syscall-row" id="sc7">
+<div class="syscall-name">reboot()</div>
+<div class="syscall-action deny">DENY</div>
+<div class="syscall-desc">시스템 재부팅 - 차단</div>
+</div>
+<div class="syscall-row" id="sc8">
+<div class="syscall-name">init_module()</div>
+<div class="syscall-action deny">DENY</div>
+<div class="syscall-desc">커널 모듈 로드 - 차단 (루트킷 방지)</div>
+</div>
+</div>
+</div>
+
+<!-- Section 4: Privileged vs Unprivileged -->
+<div class="section">
+<div class="section-title">4. Privileged vs Unprivileged <span>특권 컨테이너 비교</span></div>
+<div class="priv-compare">
+<div class="priv-card bad" id="priv0">
+<h4>Privileged Container (특권 컨테이너)</h4>
+<pre><span style="color:#f85149"># 절대 프로덕션에서 사용하지 마세요!</span>
+docker run <span style="color:#f85149">--privileged</span> ubuntu
+
+<span style="color:#8b949e"># Kubernetes</span>
+securityContext:
+  <span style="color:#f85149">privileged: true</span></pre>
+<ul>
+<li>모든 Capability 부여</li>
+<li>모든 디바이스 접근 가능 (/dev/*)</li>
+<li>Seccomp 필터 비활성화</li>
+<li>AppArmor/SELinux 비활성화</li>
+<li>호스트 커널 모듈 로드 가능</li>
+<li>호스트 파일시스템 마운트 가능</li>
+</ul>
+<div class="risk-badge risk-high">RISK: CRITICAL / 위험: 치명적</div>
+</div>
+<div class="priv-card good" id="priv1">
+<h4>Hardened Container (강화된 컨테이너)</h4>
+<pre><span style="color:#3fb950"># 프로덕션 권장 설정</span>
+docker run \
+  --read-only \
+  --cap-drop=ALL \
+  --cap-add=NET_BIND_SERVICE \
+  --security-opt=no-new-privileges \
+  --user 1000:1000 \
+  myapp
+
+<span style="color:#8b949e"># Kubernetes</span>
+securityContext:
+  <span style="color:#3fb950">runAsNonRoot: true
+  runAsUser: 1000
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false</span>
+  capabilities:
+    drop: ["ALL"]
+    add: ["NET_BIND_SERVICE"]
+  seccompProfile:
+    type: RuntimeDefault</pre>
+<ul>
+<li>비root 사용자로 실행</li>
+<li>읽기 전용 루트 파일시스템</li>
+<li>최소 Capability만 부여</li>
+<li>권한 상승 차단</li>
+<li>Seccomp 기본 프로파일 적용</li>
+<li>AppArmor 기본 프로파일 적용</li>
+</ul>
+<div class="risk-badge risk-low">RISK: LOW / 위험: 낮음</div>
+</div>
+</div>
+</div>
+
+<script>
+let timer=null,step=0,playing=false;
+const totalSteps=28;
+
+function animateStep(s){
+  // Security layers (inside-out): 0-5
+  if(s>=0&&s<=5){document.getElementById('sl'+s).classList.add('show')}
+  // Capability boxes: 6-10
+  if(s===6){document.getElementById('cap0').classList.add('show')}
+  if(s===7){document.getElementById('capArr0').classList.add('show')}
+  if(s===8){document.getElementById('cap1').classList.add('show')}
+  if(s===9){document.getElementById('capArr1').classList.add('show')}
+  if(s===10){document.getElementById('cap2').classList.add('show')}
+  // Seccomp: 11-20
+  if(s===11){document.getElementById('seccompBox').classList.add('show')}
+  if(s>=12&&s<=20){document.getElementById('sc'+(s-12)).classList.add('show')}
+  // Privileged comparison: 21-22
+  if(s===21){document.getElementById('priv0').classList.add('show')}
+  if(s===22){document.getElementById('priv1').classList.add('show')}
+}
+
+function play(){
+  if(playing)return;playing=true;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  timer=setInterval(()=>{if(step>=totalSteps){pause();return;}animateStep(step);step++;},550);
+}
+function pause(){
+  playing=false;clearInterval(timer);
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function restart(){
+  pause();step=0;
+  document.querySelectorAll('.sec-layer,.cap-box,.cap-arrow,.seccomp-flow,.syscall-row,.priv-card').forEach(e=>e.classList.remove('show'));
+  setTimeout(play,300);
+}
+window.addEventListener('load',()=>setTimeout(play,500));
+</script>
+</body>
+</html>

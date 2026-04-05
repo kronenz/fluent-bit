@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logging Pipeline Architecture | 로깅 파이프라인 아키텍처</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.header h1{font-size:1.6rem;color:#58a6ff;margin-bottom:4px}
+.header p{font-size:.9rem;color:#8b949e}
+.controls{display:flex;justify-content:center;gap:10px;padding:14px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#c9d1d9;cursor:pointer;font-size:.85rem;transition:all .2s}
+.controls button:hover{border-color:#58a6ff;color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.section{padding:20px 16px;max-width:1100px;margin:0 auto}
+.section-title{font-size:1.1rem;color:#58a6ff;margin-bottom:16px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.section-title span{color:#8b949e;font-size:.8rem;font-weight:400;margin-left:8px}
+
+/* Pipeline flow */
+.pipeline{display:flex;align-items:center;justify-content:center;gap:0;padding:20px 0;flex-wrap:wrap}
+.pipe-node{min-width:100px;padding:12px 10px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid #30363d;background:#161b22;opacity:0;transform:translateY(20px);transition:all .5s ease;text-align:center}
+.pipe-node.show{opacity:1;transform:translateY(0)}
+.pipe-node .en{font-size:.73rem;color:#58a6ff;font-weight:600}
+.pipe-node .ko{font-size:.63rem;color:#8b949e;margin-top:2px}
+.pipe-node .tag{font-size:.58rem;padding:2px 6px;border-radius:3px;margin-top:4px;background:#1f6feb22;color:#58a6ff}
+.pipe-arrow{width:36px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .4s}
+.pipe-arrow.show{opacity:1}
+.pipe-arrow svg{width:28px;height:20px}
+.pipe-arrow svg path{stroke:#3fb950;stroke-width:2;fill:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(63,185,80,.4)}50%{box-shadow:0 0 20px 4px rgba(63,185,80,.2)}}
+.pipe-node.active{animation:pulse 1.5s infinite;border-color:#3fb950}
+.pipe-node.highlight{border-color:#3fb950;box-shadow:0 0 15px rgba(63,185,80,.3)}
+@keyframes flowRight{0%{stroke-dashoffset:30}100%{stroke-dashoffset:0}}
+.pipe-arrow.animated svg path{stroke-dasharray:10 5;animation:flowRight .8s linear infinite}
+
+/* Alternative path */
+.alt-label{text-align:center;color:#f0883e;font-size:.8rem;margin:10px 0 4px;opacity:0;transition:opacity .5s}
+.alt-label.show{opacity:1}
+
+/* Parsing section */
+.parse-container{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;justify-content:center;align-items:stretch}
+.parse-box{flex:1;min-width:280px;max-width:480px;border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;opacity:0;transform:scale(.95);transition:all .5s ease}
+.parse-box.show{opacity:1;transform:scale(1)}
+.parse-box h4{font-size:.85rem;margin-bottom:10px}
+.parse-box h4.raw{color:#f85149}
+.parse-box h4.structured{color:#3fb950}
+.parse-box pre{font-size:.68rem;background:#0d1117;padding:10px;border-radius:4px;line-height:1.6;overflow-x:auto;white-space:pre-wrap}
+.parse-box pre.raw-log{color:#f85149}
+.parse-box pre.json-log{color:#3fb950}
+.parse-arrow{display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .5s;font-size:1.5rem;color:#58a6ff}
+.parse-arrow.show{opacity:1}
+
+/* Routing */
+.route-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+@media(max-width:700px){.route-grid{grid-template-columns:1fr}}
+.route-card{border:1px solid #30363d;border-radius:8px;padding:14px;background:#161b22;opacity:0;transform:translateY(15px);transition:all .5s ease}
+.route-card.show{opacity:1;transform:translateY(0)}
+.route-card h4{font-size:.82rem;margin-bottom:8px;color:#bd93f9}
+.route-card .items{font-size:.72rem;color:#8b949e;line-height:1.8}
+.route-card .item{padding:4px 8px;background:#0d1117;border-radius:4px;margin:3px 0;border-left:3px solid #bd93f9}
+.route-card .item code{color:#3fb950;font-size:.68rem}
+
+/* Flow particles animation */
+@keyframes flowParticle{0%{left:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{left:100%;opacity:0}}
+.flow-track{position:relative;height:4px;background:#21262d;border-radius:2px;margin:8px 0;overflow:hidden}
+.flow-particle{position:absolute;width:8px;height:4px;background:#3fb950;border-radius:2px;animation:flowParticle 2s linear infinite}
+.flow-particle:nth-child(2){animation-delay:.7s}
+.flow-particle:nth-child(3){animation-delay:1.4s}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>Logging Pipeline Architecture</h1>
+<p>로깅 파이프라인 아키텍처 | 앱 로그 수집부터 검색까지의 전체 흐름</p>
+</div>
+
+<div class="controls">
+<button id="btnPlay" class="active" onclick="play()">&#9654; Play / 재생</button>
+<button id="btnPause" onclick="pause()">&#10074;&#10074; Pause / 일시정지</button>
+<button id="btnRestart" onclick="restart()">&#8634; Restart / 처음부터</button>
+</div>
+
+<!-- Section 1: EFK Pipeline -->
+<div class="section">
+<div class="section-title">1. EFK Stack Pipeline <span>EFK 스택 파이프라인</span></div>
+<div class="pipeline" id="pipeline1">
+<div class="pipe-node" id="n0"><div class="en">App Logs</div><div class="ko">앱 로그 출력</div><div class="tag">stdout/stderr</div></div>
+<div class="pipe-arrow" id="a0"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n1"><div class="en">Fluent Bit</div><div class="ko">경량 수집기</div><div class="tag">DaemonSet</div></div>
+<div class="pipe-arrow" id="a1"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n2"><div class="en">Fluentd</div><div class="ko">로그 집계기</div><div class="tag">Aggregator</div></div>
+<div class="pipe-arrow" id="a2"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n3"><div class="en">Elasticsearch</div><div class="ko">검색/저장</div><div class="tag">Index</div></div>
+<div class="pipe-arrow" id="a3"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n4"><div class="en">Kibana</div><div class="ko">시각화/검색</div><div class="tag">Dashboard</div></div>
+</div>
+<div class="flow-track"><div class="flow-particle"></div><div class="flow-particle"></div><div class="flow-particle"></div></div>
+</div>
+
+<!-- Section 2: Alternative Loki Pipeline -->
+<div class="section">
+<div class="section-title">2. Loki Stack (Alternative) <span>Loki 스택 (경량 대안)</span></div>
+<div class="alt-label" id="altLabel">Alternative Pipeline / 대안 파이프라인</div>
+<div class="pipeline" id="pipeline2">
+<div class="pipe-node" id="l0"><div class="en">App Logs</div><div class="ko">앱 로그</div></div>
+<div class="pipe-arrow" id="la0"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="l1"><div class="en">Promtail</div><div class="ko">로그 수집 에이전트</div><div class="tag">DaemonSet</div></div>
+<div class="pipe-arrow" id="la1"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="l2"><div class="en">Loki</div><div class="ko">로그 저장소</div><div class="tag">Label Index Only</div></div>
+<div class="pipe-arrow" id="la2"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="l3"><div class="en">Grafana</div><div class="ko">LogQL 쿼리</div><div class="tag">Explore</div></div>
+</div>
+</div>
+
+<!-- Section 3: Log Parsing -->
+<div class="section">
+<div class="section-title">3. Log Parsing & Structuring <span>로그 파싱 및 구조화</span></div>
+<div class="parse-container">
+<div class="parse-box" id="pb0">
+<h4 class="raw">Raw Log (비구조화 로그)</h4>
+<pre class="raw-log">192.168.1.100 - - [05/Apr/2026:10:15:30 +0900] "GET /api/users HTTP/1.1" 200 1234 "-" "Mozilla/5.0"
+ERROR 2026-04-05 10:15:31 [main] c.a.api.UserService - Failed to fetch user id=42: Connection timeout after 30s
+W0405 10:15:32.123456  1 reflector.go:535] k8s.io/client-go: watch of *v1.Pod ended with: too old resource version</pre>
+</div>
+<div class="parse-arrow" id="parr">&#10140;</div>
+<div class="parse-box" id="pb1">
+<h4 class="structured">Structured JSON (구조화 로그)</h4>
+<pre class="json-log">{
+  "timestamp": "2026-04-05T10:15:31+09:00",
+  "level": "ERROR",
+  "logger": "c.a.api.UserService",
+  "message": "Failed to fetch user",
+  "user_id": 42,
+  "error": "Connection timeout after 30s",
+  "trace_id": "abc123def456",
+  "k8s.namespace": "production",
+  "k8s.pod": "api-server-7f8d9b",
+  "k8s.node": "worker-03"
+}</pre>
+</div>
+</div>
+</div>
+
+<!-- Section 4: Log Routing -->
+<div class="section">
+<div class="section-title">4. Log Routing <span>로그 라우팅 (레이블/네임스페이스 기반)</span></div>
+<div class="route-grid" id="routeGrid">
+<div class="route-card" id="rc0">
+<h4>Namespace Routing</h4>
+<div class="items">
+<div class="item"><code>production/*</code> → ES hot tier (7일 보관)</div>
+<div class="item"><code>staging/*</code> → ES warm tier (3일)</div>
+<div class="item"><code>kube-system/*</code> → Loki (1일)</div>
+</div>
+</div>
+<div class="route-card" id="rc1">
+<h4>Label-based Routing</h4>
+<div class="items">
+<div class="item"><code>app=api-gateway</code> → 전용 인덱스</div>
+<div class="item"><code>level=ERROR</code> → alert-logs 토픽</div>
+<div class="item"><code>audit=true</code> → 감사 로그 장기 보관</div>
+</div>
+</div>
+<div class="route-card" id="rc2">
+<h4>Fluent Bit Config</h4>
+<div class="items">
+<div class="item"><code>[FILTER] grep</code> 필터링</div>
+<div class="item"><code>[FILTER] parser</code> JSON 파싱</div>
+<div class="item"><code>[FILTER] modify</code> 필드 추가</div>
+<div class="item"><code>[OUTPUT] match tag.*</code> 라우팅</div>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+let timer=null,step=0,playing=false;
+const totalSteps=28;
+
+function animateStep(s){
+  // EFK Pipeline
+  if(s<=8){
+    const idx=Math.floor(s/2);
+    if(s%2===0){const n=document.getElementById('n'+idx);if(n){n.classList.add('show','active');}}
+    else{const a=document.getElementById('a'+Math.floor(s/2));if(a)a.classList.add('show','animated');}
+    if(s%2===0&&idx>0){const p=document.getElementById('n'+(idx-1));if(p)p.classList.remove('active');}
+    if(s===8){document.getElementById('n4').classList.add('highlight');document.getElementById('n4').classList.remove('active');}
+  }
+  // Loki Pipeline
+  if(s===10){document.getElementById('altLabel').classList.add('show');}
+  if(s>=11&&s<=17){
+    const li=s-11;
+    const idx2=Math.floor(li/2);
+    if(li%2===0){const n=document.getElementById('l'+idx2);if(n){n.classList.add('show','active');}}
+    else{const a=document.getElementById('la'+Math.floor(li/2));if(a)a.classList.add('show','animated');}
+    if(li%2===0&&idx2>0){const p=document.getElementById('l'+(idx2-1));if(p)p.classList.remove('active');}
+    if(s===17){const l=document.getElementById('l3');if(l){l.classList.add('highlight');l.classList.remove('active');}}
+  }
+  // Parsing
+  if(s===19){document.getElementById('pb0').classList.add('show');}
+  if(s===20){document.getElementById('parr').classList.add('show');}
+  if(s===21){document.getElementById('pb1').classList.add('show');}
+  // Routing
+  if(s>=23&&s<=25){document.getElementById('rc'+(s-23)).classList.add('show');}
+}
+
+function play(){
+  if(playing)return;playing=true;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  timer=setInterval(()=>{if(step>=totalSteps){pause();return;}animateStep(step);step++;},550);
+}
+function pause(){
+  playing=false;clearInterval(timer);
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function restart(){
+  pause();step=0;
+  document.querySelectorAll('.pipe-node,.pipe-arrow,.alt-label,.parse-box,.parse-arrow,.route-card').forEach(e=>e.classList.remove('show','active','highlight','animated'));
+  setTimeout(play,300);
+}
+window.addEventListener('load',()=>setTimeout(play,500));
+</script>
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitOps Push vs Pull Model - GitOps 푸시 vs 풀 모델</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1300px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#f85149,#58a6ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:24px;overflow:hidden}
+.section h2{font-size:1.1rem;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.badge{padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:600}
+
+/* Model Diagrams */
+.model-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.model-card{background:#0d1117;border-radius:10px;border:2px solid #30363d;padding:20px;position:relative;transition:border-color .3s}
+.model-card.highlight{border-color:#58a6ff}
+.model-card h3{font-size:.95rem;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.model-desc{font-size:.78rem;color:#8b949e;margin-bottom:16px;line-height:1.4}
+.model-tag{padding:2px 8px;border-radius:10px;font-size:.68rem;font-weight:600}
+.tag-push{background:#f8514920;color:#f85149;border:1px solid #f8514940}
+.tag-pull{background:#3fb95020;color:#3fb950;border:1px solid #3fb95040}
+
+/* Diagram */
+.diagram{position:relative;min-height:200px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.diagram-row{display:flex;align-items:center;gap:12px;width:100%}
+.diagram-node{padding:10px 16px;border-radius:8px;font-size:.75rem;text-align:center;border:1px solid #30363d;background:#161b22;opacity:0;transform:translateY(10px);transition:all .5s ease;flex:1;min-width:0}
+.diagram-node.visible{opacity:1;transform:translateY(0)}
+.diagram-node.active{box-shadow:0 0 16px var(--glow)}
+.node-ci{border-color:#58a6ff60;--glow:#58a6ff30}
+.node-ci.active{border-color:#58a6ff}
+.node-git{border-color:#f0883e60;--glow:#f0883e30}
+.node-git.active{border-color:#f0883e}
+.node-cluster{border-color:#3fb95060;--glow:#3fb95030}
+.node-cluster.active{border-color:#3fb950}
+.node-agent{border-color:#bc8cff60;--glow:#bc8cff30}
+.node-agent.active{border-color:#bc8cff}
+.diagram-arrow{font-size:.9rem;color:#30363d;opacity:0;transition:all .4s;flex-shrink:0}
+.diagram-arrow.visible{opacity:1}
+.arrow-push.visible{color:#f85149}
+.arrow-pull.visible{color:#3fb950}
+.arrow-label{font-size:.6rem;color:#8b949e;display:block}
+
+/* Reconciliation Loop */
+.recon-container{display:flex;align-items:center;gap:24px;justify-content:center;flex-wrap:wrap;margin-top:12px;padding:20px 0}
+.recon-box{padding:16px 24px;border-radius:10px;text-align:center;border:2px solid;min-width:160px;position:relative;opacity:0;transform:scale(.9);transition:all .5s ease}
+.recon-box.visible{opacity:1;transform:scale(1)}
+.recon-desired{border-color:#58a6ff60;background:#58a6ff08}
+.recon-desired.active{border-color:#58a6ff;box-shadow:0 0 20px #58a6ff30}
+.recon-actual{border-color:#f9731660;background:#f9731608}
+.recon-actual.active{border-color:#f97316;box-shadow:0 0 20px #f9731630}
+.recon-box h4{font-size:.85rem;margin-bottom:4px}
+.recon-box p{font-size:.7rem;color:#8b949e}
+.recon-status{font-size:.72rem;padding:4px 12px;border-radius:6px;margin-top:8px;display:inline-block}
+.recon-arrow-container{display:flex;flex-direction:column;align-items:center;gap:4px}
+.recon-arrow{font-size:1.4rem;opacity:0;transition:all .4s}
+.recon-arrow.visible{opacity:1}
+.recon-arrow-label{font-size:.65rem;color:#8b949e;opacity:0;transition:all .3s}
+.recon-arrow-label.visible{opacity:1}
+
+/* Drift Detection */
+.drift-container{margin-top:12px}
+.drift-timeline{display:flex;flex-direction:column;gap:0;position:relative;padding-left:20px}
+.drift-timeline::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:#30363d}
+.drift-event{display:flex;align-items:flex-start;gap:12px;padding:10px 0;position:relative;opacity:0;transform:translateX(-10px);transition:all .4s ease}
+.drift-event.visible{opacity:1;transform:translateX(0)}
+.drift-dot{width:16px;height:16px;border-radius:50%;border:2px solid #30363d;background:#0d1117;flex-shrink:0;position:relative;left:-12px;z-index:1;transition:all .3s}
+.drift-event.active .drift-dot{border-color:#f85149;background:#f85149;box-shadow:0 0 8px #f8514960}
+.drift-event.resolved .drift-dot{border-color:#3fb950;background:#3fb950;box-shadow:0 0 8px #3fb95060}
+.drift-content{flex:1}
+.drift-content strong{font-size:.8rem}
+.drift-content p{font-size:.72rem;color:#8b949e;line-height:1.4}
+.drift-tag{font-size:.65rem;padding:2px 6px;border-radius:4px;margin-left:8px}
+.tag-drift{background:#f8514920;color:#f85149}
+.tag-fix{background:#3fb95020;color:#3fb950}
+
+.pros-cons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.pro,.con{padding:8px 12px;border-radius:6px;font-size:.72rem;line-height:1.4}
+.pro{background:#3fb95010;border:1px solid #3fb95030;color:#3fb950}
+.con{background:#f8514910;border:1px solid #f8514930;color:#f85149}
+
+.info-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-top:20px}
+.info-box h3{font-size:1rem;margin-bottom:12px;color:#58a6ff}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.info-item{padding:12px;background:#0d1117;border-radius:6px;border:1px solid #21262d}
+.info-item strong{color:#e6edf3;font-size:.85rem}
+.info-item p{color:#8b949e;font-size:.78rem;margin-top:4px;line-height:1.4}
+
+@media(max-width:768px){.model-grid{grid-template-columns:1fr}.recon-container{flex-direction:column}.pros-cons{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+<h1>GitOps Push vs Pull Model</h1>
+<p class="subtitle">GitOps의 Push 모델과 Pull 모델 비교, 조정 루프(Reconciliation Loop), Drift 감지</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnim()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pauseAnim()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restartAnim()">&#8635; 다시시작 Restart</button>
+</div>
+
+<!-- Push vs Pull -->
+<div class="section">
+  <h2><span class="badge" style="background:#58a6ff30;color:#58a6ff;border:1px solid #58a6ff40">MODEL</span> Push vs Pull 모델 비교</h2>
+  <div class="model-grid">
+    <!-- Push Model -->
+    <div class="model-card" id="pushCard">
+      <h3><span class="model-tag tag-push">PUSH</span> Push 모델</h3>
+      <div class="model-desc">CI 시스템이 직접 클러스터에 배포 명령을 전달. CI가 클러스터 접근 권한 필요.<br>CI system pushes directly to cluster. Requires cluster credentials.</div>
+      <div class="diagram" id="pushDiagram">
+        <div class="diagram-row">
+          <div class="diagram-node node-git" data-push="0">&#128221; Git Repo<br><span style="font-size:.65rem;color:#8b949e">소스 코드</span></div>
+          <div class="diagram-arrow arrow-push" data-push="1">&#10132;<span class="arrow-label">trigger</span></div>
+          <div class="diagram-node node-ci" data-push="2">&#9881; CI Server<br><span style="font-size:.65rem;color:#8b949e">빌드 + 배포</span></div>
+          <div class="diagram-arrow arrow-push" data-push="3">&#10132;<span class="arrow-label">kubectl apply</span></div>
+          <div class="diagram-node node-cluster" data-push="4">&#9784; K8s Cluster<br><span style="font-size:.65rem;color:#8b949e">프로덕션</span></div>
+        </div>
+      </div>
+      <div class="pros-cons">
+        <div class="pro">&#10003; 구현이 간단하고 직관적</div>
+        <div class="con">&#10007; CI에 클러스터 자격 증명 필요</div>
+        <div class="pro">&#10003; 기존 CI 파이프라인 활용 가능</div>
+        <div class="con">&#10007; Drift 감지/자동 복구 불가</div>
+      </div>
+    </div>
+    <!-- Pull Model -->
+    <div class="model-card" id="pullCard">
+      <h3><span class="model-tag tag-pull">PULL</span> Pull 모델 (GitOps)</h3>
+      <div class="model-desc">클러스터 내 에이전트가 Git에서 상태를 가져와 적용. 클러스터 자격 증명 외부 노출 없음.<br>Agent in cluster pulls desired state from Git. No external cluster access needed.</div>
+      <div class="diagram" id="pullDiagram">
+        <div class="diagram-row">
+          <div class="diagram-node node-git" data-pull="0">&#128221; Git Repo<br><span style="font-size:.65rem;color:#8b949e">Desired State</span></div>
+          <div class="diagram-arrow arrow-pull" data-pull="1">&#11013;<span class="arrow-label">poll / watch</span></div>
+          <div class="diagram-node node-agent" data-pull="2">&#128270; Agent<br><span style="font-size:.65rem;color:#8b949e">ArgoCD / Flux</span></div>
+          <div class="diagram-arrow arrow-pull" data-pull="3">&#10132;<span class="arrow-label">reconcile</span></div>
+          <div class="diagram-node node-cluster" data-pull="4">&#9784; K8s Cluster<br><span style="font-size:.65rem;color:#8b949e">Actual State</span></div>
+        </div>
+      </div>
+      <div class="pros-cons">
+        <div class="pro">&#10003; 클러스터 자격 증명 외부 노출 없음</div>
+        <div class="con">&#10007; 추가 컴포넌트 설치 필요</div>
+        <div class="pro">&#10003; 자동 Drift 감지 및 복구</div>
+        <div class="con">&#10007; 학습 곡선이 높음</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Reconciliation Loop -->
+<div class="section">
+  <h2><span class="badge" style="background:#bc8cff30;color:#bc8cff;border:1px solid #bc8cff40">LOOP</span> 조정 루프 Reconciliation Loop</h2>
+  <p style="font-size:.8rem;color:#8b949e;margin-bottom:8px">Git의 원하는 상태(Desired State)와 클러스터의 실제 상태(Actual State)를 지속적으로 비교하고 동기화</p>
+  <div class="recon-container" id="reconContainer">
+    <div class="recon-box recon-desired" id="reconDesired">
+      <h4>&#128221; Desired State</h4>
+      <p>Git Repository</p>
+      <div class="recon-status" id="desiredStatus" style="background:#58a6ff20;color:#58a6ff">replicas: 3</div>
+    </div>
+    <div class="recon-arrow-container">
+      <div class="recon-arrow" id="reconArrow1">&#8644;</div>
+      <div class="recon-arrow-label" id="reconLabel">Compare 비교</div>
+    </div>
+    <div class="recon-box recon-actual" id="reconActual">
+      <h4>&#9784; Actual State</h4>
+      <p>Kubernetes Cluster</p>
+      <div class="recon-status" id="actualStatus" style="background:#f9731620;color:#f97316">replicas: 2</div>
+    </div>
+    <div class="recon-arrow-container">
+      <div class="recon-arrow" id="reconArrow2">&#10132;</div>
+      <div class="recon-arrow-label" id="reconResult">Sync 동기화</div>
+    </div>
+    <div class="recon-box recon-actual" id="reconFixed" style="border-color:#3fb95060;background:#3fb95008">
+      <h4>&#10003; Synced State</h4>
+      <p>After Reconciliation</p>
+      <div class="recon-status" id="fixedStatus" style="background:#3fb95020;color:#3fb950">replicas: 3</div>
+    </div>
+  </div>
+</div>
+
+<!-- Drift Detection -->
+<div class="section">
+  <h2><span class="badge" style="background:#f8514930;color:#f85149;border:1px solid #f8514940">DRIFT</span> Drift 감지 및 자동 복구</h2>
+  <p style="font-size:.8rem;color:#8b949e;margin-bottom:12px">누군가 kubectl edit로 직접 변경하면, ArgoCD가 감지하고 Git 상태로 자동 복구</p>
+  <div class="drift-container">
+    <div class="drift-timeline" id="driftTimeline">
+      <div class="drift-event" data-drift="0">
+        <div class="drift-dot"></div>
+        <div class="drift-content">
+          <strong>&#9784; 정상 상태 Synced</strong><span class="drift-tag tag-fix">Healthy</span>
+          <p>Git과 클러스터 상태가 일치. replicas: 3, image: v1.2.0</p>
+        </div>
+      </div>
+      <div class="drift-event" data-drift="1">
+        <div class="drift-dot"></div>
+        <div class="drift-content">
+          <strong>&#9888; 수동 변경 Manual Change</strong><span class="drift-tag tag-drift">Drift!</span>
+          <p>운영자가 kubectl scale --replicas=5 실행. Git과 불일치 발생.</p>
+        </div>
+      </div>
+      <div class="drift-event" data-drift="2">
+        <div class="drift-dot"></div>
+        <div class="drift-content">
+          <strong>&#128270; Drift 감지 Detection</strong><span class="drift-tag tag-drift">OutOfSync</span>
+          <p>ArgoCD가 3분 주기 폴링으로 차이를 감지. Status: OutOfSync.</p>
+        </div>
+      </div>
+      <div class="drift-event" data-drift="3">
+        <div class="drift-dot"></div>
+        <div class="drift-content">
+          <strong>&#128260; 자동 복구 Self-Heal</strong><span class="drift-tag tag-fix">Syncing</span>
+          <p>selfHeal: true 설정으로 자동 동기화 실행. Git 상태로 복원.</p>
+        </div>
+      </div>
+      <div class="drift-event" data-drift="4">
+        <div class="drift-dot"></div>
+        <div class="drift-content">
+          <strong>&#10003; 복구 완료 Restored</strong><span class="drift-tag tag-fix">Synced</span>
+          <p>replicas: 3으로 복구 완료. 클러스터 상태가 Git과 다시 일치.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Info -->
+<div class="info-box">
+  <h3>GitOps 핵심 원칙 Core Principles</h3>
+  <div class="info-grid">
+    <div class="info-item">
+      <strong>선언적 Declarative</strong>
+      <p>시스템의 원하는 상태를 선언적으로 정의. 명령형(kubectl run) 대신 선언형(YAML manifests) 사용. Define desired state declaratively, not imperatively.</p>
+    </div>
+    <div class="info-item">
+      <strong>버전 관리 Versioned</strong>
+      <p>Git이 Single Source of Truth. 모든 변경은 Git 커밋으로 추적, 감사, 롤백 가능. Git as the single source of truth for all changes.</p>
+    </div>
+    <div class="info-item">
+      <strong>자동 적용 Automated</strong>
+      <p>승인된 변경은 자동으로 시스템에 적용. 수동 개입 없이 지속적 조정(Continuous Reconciliation). Approved changes are automatically applied.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+let animTimer=null,paused=false,timers=[];
+
+function clearTimers(){timers.forEach(t=>clearTimeout(t));timers=[];if(animTimer)clearTimeout(animTimer);}
+
+function reset(){
+  clearTimers();paused=false;
+  document.querySelectorAll('.diagram-node,.diagram-arrow,.recon-box,.recon-arrow,.recon-arrow-label,.drift-event').forEach(el=>{
+    el.classList.remove('visible','active','resolved','highlight');
+  });
+  document.querySelectorAll('.model-card').forEach(c=>c.classList.remove('highlight'));
+}
+
+function schedule(fn,delay){const t=setTimeout(()=>{if(!paused)fn()},delay);timers.push(t);return t;}
+
+function animatePush(){
+  const items=document.querySelectorAll('[data-push]');
+  items.forEach((el,i)=>{
+    schedule(()=>{el.classList.add('visible');if(el.classList.contains('diagram-node'))el.classList.add('active')},i*500);
+    if(i>0&&el.classList.contains('diagram-node')){
+      schedule(()=>{items[i-2]&&items[i-2].classList.remove('active')},i*500);
+    }
+  });
+  schedule(()=>document.getElementById('pushCard').classList.add('highlight'),items.length*500);
+}
+
+function animatePull(){
+  const items=document.querySelectorAll('[data-pull]');
+  const offset=2800;
+  items.forEach((el,i)=>{
+    schedule(()=>{el.classList.add('visible');if(el.classList.contains('diagram-node'))el.classList.add('active')},offset+i*500);
+  });
+  schedule(()=>document.getElementById('pullCard').classList.add('highlight'),offset+items.length*500);
+}
+
+function animateRecon(){
+  const offset=5800;
+  const boxes=['reconDesired','reconActual','reconFixed'];
+  schedule(()=>{document.getElementById('reconDesired').classList.add('visible','active')},offset);
+  schedule(()=>{document.getElementById('reconArrow1').classList.add('visible');document.getElementById('reconLabel').classList.add('visible')},offset+600);
+  schedule(()=>{document.getElementById('reconActual').classList.add('visible','active')},offset+1000);
+  schedule(()=>{document.getElementById('reconArrow2').classList.add('visible');document.getElementById('reconResult').classList.add('visible')},offset+1600);
+  schedule(()=>{document.getElementById('reconFixed').classList.add('visible')},offset+2200);
+}
+
+function animateDrift(){
+  const offset=8500;
+  const events=document.querySelectorAll('.drift-event');
+  events.forEach((ev,i)=>{
+    schedule(()=>{
+      ev.classList.add('visible');
+      if(i===1||i===2)ev.classList.add('active');
+      else ev.classList.add('resolved');
+    },offset+i*900);
+  });
+}
+
+function startAnim(){
+  if(paused){paused=false;return;}
+  reset();
+  animatePush();
+  animatePull();
+  animateRecon();
+  animateDrift();
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+}
+function pauseAnim(){
+  paused=true;
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function restartAnim(){reset();startAnim();}
+startAnim();
+</script>
+</body>
+</html>

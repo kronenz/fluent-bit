@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Distributed Tracing | 분산 추적</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.header h1{font-size:1.6rem;color:#58a6ff;margin-bottom:4px}
+.header .key-badge{display:inline-block;padding:2px 10px;background:#f0883e22;color:#f0883e;border:1px solid #f0883e55;border-radius:10px;font-size:.7rem;margin-bottom:4px}
+.header p{font-size:.9rem;color:#8b949e}
+.controls{display:flex;justify-content:center;gap:10px;padding:14px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#c9d1d9;cursor:pointer;font-size:.85rem;transition:all .2s}
+.controls button:hover{border-color:#58a6ff;color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.section{padding:20px 16px;max-width:1100px;margin:0 auto}
+.section-title{font-size:1.1rem;color:#58a6ff;margin-bottom:16px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.section-title span{color:#8b949e;font-size:.8rem;font-weight:400;margin-left:8px}
+
+/* Request flow */
+.req-flow{display:flex;align-items:center;justify-content:center;gap:0;padding:20px 0;flex-wrap:wrap;position:relative}
+.svc-node{min-width:130px;padding:14px 12px;border-radius:10px;display:flex;flex-direction:column;align-items:center;border:2px solid #30363d;background:#161b22;opacity:0;transform:translateY(20px);transition:all .5s ease;text-align:center;position:relative}
+.svc-node.show{opacity:1;transform:translateY(0)}
+.svc-node .en{font-size:.8rem;font-weight:600}
+.svc-node .ko{font-size:.65rem;color:#8b949e;margin-top:2px}
+.svc-node .span-time{font-size:.6rem;padding:3px 8px;border-radius:3px;margin-top:6px;background:#0d1117}
+.svc-node:nth-child(1) .en{color:#58a6ff}
+.svc-node:nth-child(1){border-color:#58a6ff44}
+.svc-node:nth-child(1) .span-time{color:#58a6ff}
+.svc-arrow{width:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity .4s;gap:2px}
+.svc-arrow.show{opacity:1}
+.svc-arrow svg{width:40px;height:16px}
+.svc-arrow svg path{stroke:#3fb950;stroke-width:2;fill:none}
+.svc-arrow .hdr{font-size:.55rem;color:#f0883e;white-space:nowrap}
+@keyframes flowRight{0%{stroke-dashoffset:30}100%{stroke-dashoffset:0}}
+.svc-arrow.animated svg path{stroke-dasharray:10 5;animation:flowRight .8s linear infinite}
+
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(63,185,80,.4)}50%{box-shadow:0 0 20px 4px rgba(63,185,80,.2)}}
+.svc-node.active{animation:pulse 1.5s infinite;border-color:#3fb950}
+
+/* Color coding for services */
+.svc-a{border-color:#58a6ff55}.svc-a .en{color:#58a6ff}.svc-a .span-time{color:#58a6ff}
+.svc-b{border-color:#3fb95055}.svc-b .en{color:#3fb950}.svc-b .span-time{color:#3fb950}
+.svc-c{border-color:#a371f755}.svc-c .en{color:#a371f7}.svc-c .span-time{color:#a371f7}
+.svc-d{border-color:#f0883e55}.svc-d .en{color:#f0883e}.svc-d .span-time{color:#f0883e}
+
+/* Context propagation */
+.ctx-box{border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;margin-top:12px;opacity:0;transform:scale(.95);transition:all .5s ease}
+.ctx-box.show{opacity:1;transform:scale(1)}
+.ctx-box h4{font-size:.85rem;color:#f0883e;margin-bottom:10px}
+.ctx-headers{display:flex;flex-wrap:wrap;gap:8px}
+.ctx-header{padding:8px 12px;background:#0d1117;border-radius:6px;border:1px solid #30363d;font-size:.7rem;font-family:monospace;transition:border-color .3s}
+.ctx-header .key{color:#bd93f9}
+.ctx-header .val{color:#3fb950}
+.ctx-box.show .ctx-header{border-color:#f0883e55}
+
+/* Waterfall timeline */
+.waterfall{margin-top:12px;border:1px solid #21262d;border-radius:8px;padding:16px;background:#161b22;opacity:0;transition:opacity .5s}
+.waterfall.show{opacity:1}
+.wf-header{display:grid;grid-template-columns:120px 1fr;font-size:.7rem;color:#8b949e;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.wf-row{display:grid;grid-template-columns:120px 1fr;align-items:center;margin:6px 0;font-size:.73rem}
+.wf-label{display:flex;align-items:center;gap:6px}
+.wf-dot{width:8px;height:8px;border-radius:50%}
+.wf-bar-track{height:22px;position:relative;background:#0d1117;border-radius:3px}
+.wf-bar{position:absolute;height:100%;border-radius:3px;opacity:0;transition:all 1s ease;width:0}
+.wf-bar.show{opacity:1}
+.wf-bar .wf-dur{position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:.6rem;color:#fff;white-space:nowrap}
+.wf-bar.a{background:linear-gradient(90deg,#58a6ff,#58a6ffaa)}
+.wf-bar.b{background:linear-gradient(90deg,#3fb950,#3fb950aa)}
+.wf-bar.c{background:linear-gradient(90deg,#a371f7,#a371f7aa)}
+.wf-bar.d{background:linear-gradient(90deg,#f0883e,#f0883eaa)}
+
+/* Time markers */
+.wf-time-markers{display:flex;justify-content:space-between;font-size:.6rem;color:#484f58;margin-top:4px;padding-left:120px}
+
+/* Sampling */
+.sample-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}
+@media(max-width:700px){.sample-grid{grid-template-columns:1fr}}
+.sample-card{border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;opacity:0;transform:translateY(15px);transition:all .5s ease}
+.sample-card.show{opacity:1;transform:translateY(0)}
+.sample-card h4{font-size:.85rem;margin-bottom:8px}
+.sample-card h4.head{color:#58a6ff}
+.sample-card h4.tail{color:#a371f7}
+.sample-card .desc{font-size:.75rem;color:#8b949e;line-height:1.7}
+.sample-card pre{font-size:.68rem;background:#0d1117;padding:8px;border-radius:4px;color:#3fb950;margin-top:8px;line-height:1.5}
+.sample-card .pros{color:#3fb950;font-size:.72rem;margin-top:6px}
+.sample-card .cons{color:#f85149;font-size:.72rem;margin-top:2px}
+</style>
+</head>
+<body>
+
+<div class="header">
+<div class="key-badge">KEY VISUAL</div>
+<h1>Distributed Tracing</h1>
+<p>분산 추적 시스템 | 마이크로서비스 간 요청 흐름 추적 및 성능 분석</p>
+</div>
+
+<div class="controls">
+<button id="btnPlay" class="active" onclick="play()">&#9654; Play / 재생</button>
+<button id="btnPause" onclick="pause()">&#10074;&#10074; Pause / 일시정지</button>
+<button id="btnRestart" onclick="restart()">&#8634; Restart / 처음부터</button>
+</div>
+
+<!-- Section 1: Request Flow with Spans -->
+<div class="section">
+<div class="section-title">1. Request Flow with Spans <span>요청 흐름 및 스팬 생성</span></div>
+<div class="req-flow" id="reqFlow">
+<div class="svc-node svc-a" id="s0">
+<div class="en">Client Request</div>
+<div class="ko">클라이언트 요청</div>
+</div>
+<div class="svc-arrow" id="sa0">
+<div class="hdr">traceparent header</div>
+<svg viewBox="0 0 40 16"><path d="M2 8 L32 8 M28 3 L34 8 L28 13"/></svg>
+</div>
+<div class="svc-node svc-a" id="s1">
+<div class="en">API Gateway</div>
+<div class="ko">Span A (root)</div>
+<div class="span-time">0 ~ 350ms</div>
+</div>
+<div class="svc-arrow" id="sa1">
+<div class="hdr">trace-id propagation</div>
+<svg viewBox="0 0 40 16"><path d="M2 8 L32 8 M28 3 L34 8 L28 13"/></svg>
+</div>
+<div class="svc-node svc-b" id="s2">
+<div class="en">User Service</div>
+<div class="ko">Span B (child)</div>
+<div class="span-time">50 ~ 200ms</div>
+</div>
+<div class="svc-arrow" id="sa2">
+<div class="hdr">context forwarded</div>
+<svg viewBox="0 0 40 16"><path d="M2 8 L32 8 M28 3 L34 8 L28 13"/></svg>
+</div>
+<div class="svc-node svc-c" id="s3">
+<div class="en">DB Query</div>
+<div class="ko">Span C (child)</div>
+<div class="span-time">80 ~ 180ms</div>
+</div>
+</div>
+</div>
+
+<!-- Section 2: Context Propagation -->
+<div class="section">
+<div class="section-title">2. Trace Context Propagation <span>추적 컨텍스트 전파 (W3C TraceContext)</span></div>
+<div class="ctx-box" id="ctxBox">
+<h4>HTTP Headers for Context Propagation</h4>
+<div class="ctx-headers">
+<div class="ctx-header"><span class="key">traceparent:</span> <span class="val">00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01</span></div>
+<div class="ctx-header"><span class="key">tracestate:</span> <span class="val">congo=t61rcWkgMzE,rojo=00f067aa0ba902b7</span></div>
+<div class="ctx-header"><span class="key">b3:</span> <span class="val">4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-1</span></div>
+<div class="ctx-header"><span class="key">x-request-id:</span> <span class="val">a3ce929d-0e0e-4736-b34d-4bf92f3577b3</span></div>
+</div>
+</div>
+</div>
+
+<!-- Section 3: Waterfall Timeline -->
+<div class="section">
+<div class="section-title">3. Waterfall Timeline View <span>워터폴 타임라인 뷰</span></div>
+<div class="waterfall" id="waterfall">
+<div class="wf-header"><span>Service</span><span>Timeline (0ms — 350ms)</span></div>
+<div class="wf-row">
+<div class="wf-label"><div class="wf-dot" style="background:#58a6ff"></div>API Gateway</div>
+<div class="wf-bar-track"><div class="wf-bar a" id="wb0" style="left:0;width:0"><div class="wf-dur">350ms</div></div></div>
+</div>
+<div class="wf-row">
+<div class="wf-label"><div class="wf-dot" style="background:#3fb950"></div>User Service</div>
+<div class="wf-bar-track"><div class="wf-bar b" id="wb1" style="left:0;width:0"><div class="wf-dur">150ms</div></div></div>
+</div>
+<div class="wf-row">
+<div class="wf-label"><div class="wf-dot" style="background:#a371f7"></div>DB Query</div>
+<div class="wf-bar-track"><div class="wf-bar c" id="wb2" style="left:0;width:0"><div class="wf-dur">100ms</div></div></div>
+</div>
+<div class="wf-row">
+<div class="wf-label"><div class="wf-dot" style="background:#f0883e"></div>Cache Check</div>
+<div class="wf-bar-track"><div class="wf-bar d" id="wb3" style="left:0;width:0"><div class="wf-dur">15ms</div></div></div>
+</div>
+<div class="wf-time-markers"><span>0ms</span><span>100ms</span><span>200ms</span><span>350ms</span></div>
+</div>
+</div>
+
+<!-- Section 4: Sampling -->
+<div class="section">
+<div class="section-title">4. Sampling Strategies <span>샘플링 전략</span></div>
+<div class="sample-grid">
+<div class="sample-card" id="sc0">
+<h4 class="head">Head-based Sampling (헤드 기반)</h4>
+<div class="desc">요청 시작 시점에 샘플링 결정. 첫 번째 서비스에서 결정하면 이후 모든 서비스가 동일하게 따름.</div>
+<pre>// 요청 시작 시 결정
+if random() < sampling_rate:
+    trace.sampled = true
+// 이후 모든 하위 서비스에 전파
+traceparent: ...-01  (sampled flag)</pre>
+<div class="pros">+ 구현 간단, 오버헤드 낮음</div>
+<div class="cons">- 에러/느린 요청을 놓칠 수 있음</div>
+</div>
+<div class="sample-card" id="sc1">
+<h4 class="tail">Tail-based Sampling (테일 기반)</h4>
+<div class="desc">요청 완료 후 전체 트레이스를 보고 샘플링 결정. 에러나 지연이 큰 요청을 확실히 수집.</div>
+<pre>// 모든 스팬 수집 후 판단
+collector.evaluate(trace):
+  if trace.has_error: keep
+  if trace.duration > 2s: keep
+  if trace.status >= 500: keep
+  else: probabilistic(0.1)</pre>
+<div class="pros">+ 중요한 트레이스 보장 수집</div>
+<div class="cons">- 메모리/리소스 사용량 높음, 지연</div>
+</div>
+</div>
+</div>
+
+<script>
+let timer=null,step=0,playing=false;
+const totalSteps=24;
+
+function animateStep(s){
+  // Request flow
+  if(s<=6){
+    const idx=Math.floor(s/2);
+    if(s%2===0){const n=document.getElementById('s'+idx);if(n){n.classList.add('show','active');}}
+    else{const a=document.getElementById('sa'+Math.floor(s/2));if(a)a.classList.add('show','animated');}
+    if(s%2===0&&idx>0){document.getElementById('s'+(idx-1)).classList.remove('active');}
+    if(s===6)document.getElementById('s3').classList.remove('active');
+  }
+  // Context box
+  if(s===8){document.getElementById('ctxBox').classList.add('show');}
+  // Waterfall
+  if(s===10){document.getElementById('waterfall').classList.add('show');}
+  if(s===11){const b=document.getElementById('wb0');b.style.width='100%';b.classList.add('show');}
+  if(s===12){const b=document.getElementById('wb1');b.style.left='14%';b.style.width='43%';b.classList.add('show');}
+  if(s===13){const b=document.getElementById('wb2');b.style.left='23%';b.style.width='29%';b.classList.add('show');}
+  if(s===14){const b=document.getElementById('wb3');b.style.left='5%';b.style.width='4%';b.classList.add('show');}
+  // Sampling
+  if(s===17){document.getElementById('sc0').classList.add('show');}
+  if(s===18){document.getElementById('sc1').classList.add('show');}
+}
+
+function play(){
+  if(playing)return;playing=true;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  timer=setInterval(()=>{if(step>=totalSteps){pause();return;}animateStep(step);step++;},600);
+}
+function pause(){
+  playing=false;clearInterval(timer);
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function restart(){
+  pause();step=0;
+  document.querySelectorAll('.svc-node,.svc-arrow,.ctx-box,.waterfall,.sample-card').forEach(e=>e.classList.remove('show','active','animated'));
+  document.querySelectorAll('.wf-bar').forEach(b=>{b.classList.remove('show');b.style.width='0';});
+  setTimeout(play,300);
+}
+window.addEventListener('load',()=>setTimeout(play,500));
+</script>
+</body>
+</html>

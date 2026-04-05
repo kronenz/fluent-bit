@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>멀티 클라우드 아키텍처 - Multi-Cloud Architecture</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.tabs{display:flex;justify-content:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.tabs button{padding:6px 16px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#8b949e;cursor:pointer;font-size:0.82rem;transition:all .2s}
+.tabs button.active{background:#1f6feb;color:#e6edf3;border-color:#58a6ff}
+.progress-bar{width:100%;height:4px;background:#21262d;border-radius:2px;margin-bottom:20px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#f0883e,#0078d4);width:0%;transition:width 0.5s ease;border-radius:2px}
+
+.scene{display:none}.scene.active{display:block}
+
+/* Multi-cloud diagram */
+.mc-area{position:relative;background:#161b22;border:1px solid #30363d;border-radius:12px;min-height:440px;padding:16px;overflow:hidden}
+
+.cloud-zone{position:absolute;border-radius:12px;border:2px solid;padding:10px;opacity:0;transition:all 0.6s ease}
+.cloud-zone.show{opacity:1}
+.cloud-label{font-size:0.8rem;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+
+.mc-node{position:absolute;border-radius:8px;padding:10px 12px;border:2px solid #30363d;background:#0d1117;font-size:0.75rem;text-align:center;opacity:0;transform:scale(0.85);transition:all 0.5s ease}
+.mc-node.show{opacity:1;transform:scale(1)}
+.mc-node.active{border-color:var(--clr);box-shadow:0 0 14px color-mix(in srgb,var(--clr) 30%,transparent)}
+.mc-node.pulse{animation:mcPulse 1.5s ease-in-out infinite}
+@keyframes mcPulse{0%,100%{box-shadow:0 0 8px color-mix(in srgb,var(--clr) 20%,transparent)}50%{box-shadow:0 0 20px color-mix(in srgb,var(--clr) 50%,transparent)}}
+.mc-icon{font-size:1.4rem;margin-bottom:4px}
+.mc-title{font-weight:700;font-size:0.78rem}
+.mc-sub{color:#8b949e;font-size:0.65rem;margin-top:2px}
+
+/* VPN connection line */
+.vpn-line{position:absolute;top:50%;left:44%;width:12%;height:3px;background:linear-gradient(90deg,#f0883e,#0078d4);border-radius:2px;opacity:0;transition:all 0.5s}
+.vpn-line.show{opacity:1;animation:vpnPulse 2s ease-in-out infinite}
+@keyframes vpnPulse{0%,100%{opacity:0.5;box-shadow:0 0 8px #58a6ff40}50%{opacity:1;box-shadow:0 0 16px #58a6ff80}}
+.vpn-label{position:absolute;top:46%;left:45%;font-size:0.68rem;color:#58a6ff;opacity:0;transition:opacity 0.5s;white-space:nowrap}
+.vpn-label.show{opacity:1}
+
+/* DR Failover */
+.dr-area{position:relative;background:#161b22;border:1px solid #30363d;border-radius:12px;min-height:300px;padding:20px;overflow:hidden}
+.dr-region{position:absolute;border-radius:10px;border:2px solid;padding:12px;text-align:center;opacity:0;transition:all 0.6s}
+.dr-region.show{opacity:1}
+.dr-region .dr-label{font-size:0.8rem;font-weight:700;margin-bottom:6px}
+.dr-region .dr-status{font-size:0.7rem;padding:4px 12px;border-radius:12px;display:inline-block;font-weight:700;margin-top:4px}
+.dr-region .dr-services{font-size:0.68rem;color:#8b949e;margin-top:6px;line-height:1.5}
+
+.dr-arrow{position:absolute;opacity:0;transition:all 0.5s}
+.dr-arrow.show{opacity:1}
+.dr-arrow-body{height:3px;border-radius:2px}
+
+/* Cost comparison */
+.cost-area{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;margin:0}
+.cost-area h3{font-size:0.95rem;color:#58a6ff;margin-bottom:16px;text-align:center}
+.cost-row{display:flex;align-items:center;gap:12px;margin:10px 0}
+.cost-label{width:120px;font-size:0.78rem;font-weight:600;flex-shrink:0}
+.cost-bar{flex:1;height:28px;background:#21262d;border-radius:6px;overflow:hidden;position:relative}
+.cost-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:10px;font-size:0.7rem;font-weight:700;transition:width 1s ease;width:0}
+.cost-val{width:80px;text-align:right;font-size:0.78rem;font-weight:600;flex-shrink:0}
+
+/* Vendor lock-in risks */
+.lockin-area{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;margin-top:16px}
+.lockin-area h3{font-size:0.95rem;color:#d29922;margin-bottom:16px;text-align:center}
+.lockin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.lockin-card{padding:12px;border-radius:8px;border:2px solid #30363d;background:#0d1117;text-align:center;opacity:0;transition:all 0.5s}
+.lockin-card.show{opacity:1}
+.lockin-card.high{border-color:#f85149;background:#f8514908}
+.lockin-card.medium{border-color:#d29922;background:#d2992208}
+.lockin-card.low{border-color:#3fb950;background:#3fb95008}
+.lockin-level{font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:4px}
+.lockin-card.high .lockin-level{background:#f8514930;color:#f85149}
+.lockin-card.medium .lockin-level{background:#d2992230;color:#d29922}
+.lockin-card.low .lockin-level{background:#3fb95030;color:#3fb950}
+.lockin-name{font-size:0.82rem;font-weight:700;margin:4px 0}
+.lockin-desc{font-size:0.68rem;color:#8b949e}
+
+.log-output{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px;margin-top:16px;font-family:'Cascadia Code','Fira Code',monospace;font-size:0.72rem;max-height:160px;overflow-y:auto;line-height:1.6}
+.log-add{color:#3fb950}.log-info{color:#58a6ff}.log-warn{color:#d29922}.log-err{color:#f85149}.log-aws{color:#f0883e}.log-azure{color:#0078d4}
+
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:20px}
+.info-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px}
+.info-card h3{font-size:0.85rem;margin-bottom:6px}
+.info-card p{font-size:0.78rem;color:#8b949e;line-height:1.5}
+
+@media(max-width:768px){.mc-area,.dr-area{min-height:500px}.container{padding:12px}.cost-label{width:80px;font-size:0.7rem}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>멀티 클라우드 아키텍처</h1>
+<p class="subtitle">Multi-Cloud Architecture - AWS + Azure / DR Failover / Cost / Vendor Lock-in</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="play()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8635; 다시시작 Restart</button>
+</div>
+
+<div class="tabs">
+  <button class="active" onclick="switchTab(0)">Multi-Cloud Connectivity</button>
+  <button onclick="switchTab(1)">DR Failover</button>
+  <button onclick="switchTab(2)">Cost & Lock-in</button>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<!-- Scene 0: Multi-cloud connectivity -->
+<div class="scene active" id="scene0">
+  <div class="mc-area" id="mcArea">
+    <!-- AWS Region -->
+    <div class="cloud-zone" id="cz-aws" style="left:2%;top:4%;width:40%;bottom:4%;border-color:#f0883e;background:#f0883e08">
+      <div class="cloud-label" style="color:#f0883e">&#9729;&#65039; AWS (ap-northeast-2)</div>
+    </div>
+    <!-- Azure Region -->
+    <div class="cloud-zone" id="cz-azure" style="right:2%;top:4%;width:40%;bottom:4%;border-color:#0078d4;background:#0078d408">
+      <div class="cloud-label" style="color:#0078d4">&#9729;&#65039; Azure (Korea Central)</div>
+    </div>
+
+    <!-- AWS resources -->
+    <div class="mc-node" id="mc-vpc" style="left:5%;top:18%;width:15%;--clr:#f0883e">
+      <div class="mc-icon">&#127760;</div>
+      <div class="mc-title">VPC</div>
+      <div class="mc-sub">10.0.0.0/16</div>
+    </div>
+    <div class="mc-node" id="mc-eks" style="left:22%;top:18%;width:17%;--clr:#f0883e">
+      <div class="mc-icon">&#9784;&#65039;</div>
+      <div class="mc-title">EKS Cluster</div>
+      <div class="mc-sub">Primary (Active)</div>
+    </div>
+    <div class="mc-node" id="mc-rds" style="left:5%;top:48%;width:15%;--clr:#f0883e">
+      <div class="mc-icon">&#128451;</div>
+      <div class="mc-title">RDS PostgreSQL</div>
+      <div class="mc-sub">Primary DB</div>
+    </div>
+    <div class="mc-node" id="mc-s3" style="left:22%;top:48%;width:17%;--clr:#f0883e">
+      <div class="mc-icon">&#128230;</div>
+      <div class="mc-title">S3 Bucket</div>
+      <div class="mc-sub">Static Assets</div>
+    </div>
+    <div class="mc-node" id="mc-vpngw-aws" style="left:5%;top:76%;width:34%;--clr:#58a6ff">
+      <div class="mc-icon">&#128274;</div>
+      <div class="mc-title">AWS VPN Gateway</div>
+      <div class="mc-sub">Site-to-Site VPN / Direct Connect</div>
+    </div>
+
+    <!-- Azure resources -->
+    <div class="mc-node" id="mc-vnet" style="right:22%;top:18%;width:15%;--clr:#0078d4">
+      <div class="mc-icon">&#127760;</div>
+      <div class="mc-title">VNET</div>
+      <div class="mc-sub">10.1.0.0/16</div>
+    </div>
+    <div class="mc-node" id="mc-aks" style="right:5%;top:18%;width:17%;--clr:#0078d4">
+      <div class="mc-icon">&#9784;&#65039;</div>
+      <div class="mc-title">AKS Cluster</div>
+      <div class="mc-sub">Secondary (Standby)</div>
+    </div>
+    <div class="mc-node" id="mc-psql" style="right:22%;top:48%;width:15%;--clr:#0078d4">
+      <div class="mc-icon">&#128451;</div>
+      <div class="mc-title">Azure DB for PG</div>
+      <div class="mc-sub">Read Replica</div>
+    </div>
+    <div class="mc-node" id="mc-blob" style="right:5%;top:48%;width:17%;--clr:#0078d4">
+      <div class="mc-icon">&#128230;</div>
+      <div class="mc-title">Blob Storage</div>
+      <div class="mc-sub">Replicated Assets</div>
+    </div>
+    <div class="mc-node" id="mc-vpngw-az" style="right:5%;top:76%;width:34%;--clr:#58a6ff">
+      <div class="mc-icon">&#128274;</div>
+      <div class="mc-title">Azure VPN Gateway</div>
+      <div class="mc-sub">Site-to-Site VPN / ExpressRoute</div>
+    </div>
+
+    <!-- VPN connection -->
+    <div class="vpn-line" id="vpnLine"></div>
+    <div class="vpn-label" id="vpnLabel">&#128274; VPN Tunnel (Encrypted)</div>
+  </div>
+  <div class="log-output" id="mcLog"></div>
+</div>
+
+<!-- Scene 1: DR Failover -->
+<div class="scene" id="scene1">
+  <div class="dr-area" id="drArea">
+    <div class="dr-region" id="dr-primary" style="left:5%;top:10%;width:38%;bottom:10%;border-color:#3fb950">
+      <div class="dr-label" style="color:#3fb950">&#9989; Primary (AWS Seoul)</div>
+      <div class="dr-status" id="dr-pri-status" style="background:#3fb95030;color:#3fb950">ACTIVE</div>
+      <div class="dr-services">EKS Cluster<br>RDS Primary<br>CloudFront<br>Route 53 (Weighted 100%)</div>
+    </div>
+    <div class="dr-region" id="dr-secondary" style="right:5%;top:10%;width:38%;bottom:10%;border-color:#8b949e">
+      <div class="dr-label" style="color:#8b949e">&#128260; Secondary (Azure Korea)</div>
+      <div class="dr-status" id="dr-sec-status" style="background:#8b949e30;color:#8b949e">STANDBY</div>
+      <div class="dr-services">AKS Cluster (scaled down)<br>PG Read Replica<br>Azure Front Door<br>Traffic Manager (0%)</div>
+    </div>
+    <!-- Arrow between regions -->
+    <div style="position:absolute;top:48%;left:44%;width:12%;text-align:center;font-size:0.7rem;color:#58a6ff;opacity:0;transition:opacity 0.5s" id="dr-sync">
+      <div>&#128260; Data Sync</div>
+      <div style="font-size:0.6rem;color:#8b949e">Cross-Region Replication</div>
+    </div>
+  </div>
+  <div class="log-output" id="drLog"></div>
+</div>
+
+<!-- Scene 2: Cost & Lock-in -->
+<div class="scene" id="scene2">
+  <div class="cost-area" id="costArea">
+    <h3>&#128176; 월간 비용 비교 (Monthly Cost Comparison)</h3>
+    <div class="cost-row">
+      <div class="cost-label" style="color:#f0883e">AWS EKS</div>
+      <div class="cost-bar"><div class="cost-fill" id="cf-eks" style="background:linear-gradient(90deg,#f0883e,#d29922)">$2,400</div></div>
+      <div class="cost-val" style="color:#f0883e">$2,400</div>
+    </div>
+    <div class="cost-row">
+      <div class="cost-label" style="color:#0078d4">Azure AKS</div>
+      <div class="cost-bar"><div class="cost-fill" id="cf-aks" style="background:linear-gradient(90deg,#0078d4,#50e6ff)">$2,100</div></div>
+      <div class="cost-val" style="color:#0078d4">$2,100</div>
+    </div>
+    <div class="cost-row">
+      <div class="cost-label" style="color:#f0883e">AWS RDS</div>
+      <div class="cost-bar"><div class="cost-fill" id="cf-rds" style="background:linear-gradient(90deg,#f0883e,#d29922)">$800</div></div>
+      <div class="cost-val" style="color:#f0883e">$800</div>
+    </div>
+    <div class="cost-row">
+      <div class="cost-label" style="color:#0078d4">Azure PG</div>
+      <div class="cost-bar"><div class="cost-fill" id="cf-pg" style="background:linear-gradient(90deg,#0078d4,#50e6ff)">$750</div></div>
+      <div class="cost-val" style="color:#0078d4">$750</div>
+    </div>
+    <div class="cost-row">
+      <div class="cost-label" style="color:#d29922">VPN / Peering</div>
+      <div class="cost-bar"><div class="cost-fill" id="cf-vpn" style="background:linear-gradient(90deg,#d29922,#f0883e)">$350</div></div>
+      <div class="cost-val" style="color:#d29922">$350</div>
+    </div>
+    <div class="cost-row">
+      <div class="cost-label" style="color:#f85149">Data Transfer</div>
+      <div class="cost-bar"><div class="cost-fill" id="cf-dt" style="background:linear-gradient(90deg,#f85149,#f0883e)">$500</div></div>
+      <div class="cost-val" style="color:#f85149">$500</div>
+    </div>
+  </div>
+
+  <div class="lockin-area" id="lockinArea">
+    <h3>&#9888;&#65039; Vendor Lock-in 위험도 (Risk Zones)</h3>
+    <div class="lockin-grid">
+      <div class="lockin-card" id="li0">
+        <div class="lockin-level">HIGH</div>
+        <div class="lockin-name">AWS Lambda</div>
+        <div class="lockin-desc">이벤트 소스, 런타임 전용</div>
+      </div>
+      <div class="lockin-card" id="li1">
+        <div class="lockin-level">HIGH</div>
+        <div class="lockin-name">DynamoDB</div>
+        <div class="lockin-desc">독점 NoSQL API</div>
+      </div>
+      <div class="lockin-card" id="li2">
+        <div class="lockin-level">HIGH</div>
+        <div class="lockin-name">Azure Functions</div>
+        <div class="lockin-desc">Bindings / Triggers 전용</div>
+      </div>
+      <div class="lockin-card" id="li3">
+        <div class="lockin-level">MEDIUM</div>
+        <div class="lockin-name">S3 / Blob</div>
+        <div class="lockin-desc">API 호환 가능 (MinIO)</div>
+      </div>
+      <div class="lockin-card" id="li4">
+        <div class="lockin-level">MEDIUM</div>
+        <div class="lockin-name">CloudWatch / Monitor</div>
+        <div class="lockin-desc">Prometheus로 대체 가능</div>
+      </div>
+      <div class="lockin-card" id="li5">
+        <div class="lockin-level">LOW</div>
+        <div class="lockin-name">EKS / AKS</div>
+        <div class="lockin-desc">표준 Kubernetes API</div>
+      </div>
+      <div class="lockin-card" id="li6">
+        <div class="lockin-level">LOW</div>
+        <div class="lockin-name">RDS PG / Azure PG</div>
+        <div class="lockin-desc">표준 PostgreSQL</div>
+      </div>
+      <div class="lockin-card" id="li7">
+        <div class="lockin-level">LOW</div>
+        <div class="lockin-name">Terraform</div>
+        <div class="lockin-desc">멀티 클라우드 IaC 추상화</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="info-grid">
+  <div class="info-card">
+    <h3 style="color:#58a6ff">Multi-Cloud 전략</h3>
+    <p>단일 클라우드 의존 리스크를 줄이고 각 CSP의 강점을 활용합니다. VPN/Peering으로 네트워크를 연결하고 Terraform으로 통합 관리합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#3fb950">Active-Passive DR</h3>
+    <p>Primary 장애 시 Secondary로 자동/수동 전환합니다. RPO(복구시점목표)와 RTO(복구시간목표)를 기반으로 설계합니다. 데이터 동기화가 핵심입니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#d29922">비용 관리 전략</h3>
+    <p>Multi-Cloud 환경은 비용이 증가합니다. Cross-region 데이터 전송 비용, 이중 인프라 비용을 고려하여 ROI를 분석해야 합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#f85149">Vendor Lock-in 회피</h3>
+    <p>Kubernetes, PostgreSQL, Terraform 등 오픈 표준을 활용합니다. 독점 서비스(Lambda, DynamoDB) 사용 시 추상화 레이어를 고려합니다.</p>
+  </div>
+</div>
+</div>
+
+<script>
+let currentTab=0,timer=null,paused=false,step=0;
+const STEPS_PER_TAB=[16,16,16];
+
+function switchTab(idx){
+  currentTab=idx;
+  document.querySelectorAll('.scene').forEach((s,i)=>s.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tabs button').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  restart();
+}
+function showE(id,cls){const el=document.getElementById(id);if(el){el.classList.add('show');if(cls)el.classList.add(cls);}}
+
+function tickMC(){
+  const log=document.getElementById('mcLog');
+  function addLog(t,c){const d=document.createElement('div');d.className=c;d.textContent=t;log.appendChild(d);log.scrollTop=log.scrollHeight;}
+
+  if(step===0){showE('cz-aws');addLog('AWS Region ap-northeast-2 구성 시작...','log-aws');}
+  if(step===1){showE('mc-vpc','active');showE('mc-eks','active');addLog('VPC 10.0.0.0/16 + EKS Cluster 배포','log-aws');}
+  if(step===2){showE('mc-rds','active');showE('mc-s3','active');addLog('RDS PostgreSQL + S3 Bucket 배포','log-aws');}
+  if(step===4){showE('cz-azure');addLog('Azure Korea Central 구성 시작...','log-azure');}
+  if(step===5){showE('mc-vnet','active');showE('mc-aks','active');addLog('VNET 10.1.0.0/16 + AKS Cluster 배포','log-azure');}
+  if(step===6){showE('mc-psql','active');showE('mc-blob','active');addLog('Azure DB for PostgreSQL + Blob Storage 배포','log-azure');}
+  if(step===8){showE('mc-vpngw-aws','active');showE('mc-vpngw-az','active');addLog('VPN Gateway 양쪽 배포 중...','log-info');}
+  if(step===10){showE('vpnLine');showE('vpnLabel');addLog('Site-to-Site VPN Tunnel 연결 완료!','log-add');addLog('CIDR: 10.0.0.0/16 <-> 10.1.0.0/16 라우팅 설정','log-add');}
+  if(step===12){addLog('Cross-region 데이터 복제 설정 완료','log-info');}
+}
+
+function tickDR(){
+  const log=document.getElementById('drLog');
+  function addLog(t,c){const d=document.createElement('div');d.className=c;d.textContent=t;log.appendChild(d);log.scrollTop=log.scrollHeight;}
+
+  if(step===0){showE('dr-primary');showE('dr-secondary');document.getElementById('dr-sync').style.opacity='1';addLog('Active-Passive DR 구성 동작 중...','log-info');}
+  if(step===1)addLog('Primary (AWS): 100% 트래픽 처리 중','log-add');
+  if(step===2)addLog('Secondary (Azure): Standby, 데이터 동기화 중','log-info');
+  // Failure!
+  if(step===4){
+    addLog('!!! PRIMARY 장애 감지 !!!','log-err');
+    addLog('Health check failed: EKS API Server unreachable','log-err');
+    document.getElementById('dr-primary').style.borderColor='#f85149';
+    document.getElementById('dr-pri-status').style.background='#f8514930';
+    document.getElementById('dr-pri-status').style.color='#f85149';
+    document.getElementById('dr-pri-status').textContent='FAILURE';
+  }
+  if(step===5)addLog('DNS Failover 트리거: Route 53 health check UNHEALTHY','log-warn');
+  if(step===6){
+    addLog('Secondary 활성화 시작...','log-warn');
+    addLog('AKS: Scale up from 0 to 3 replicas','log-info');
+  }
+  if(step===7)addLog('PG Read Replica -> Primary 승격 (Promote)','log-warn');
+  if(step===8){
+    addLog('Azure Front Door: 트래픽 수신 시작','log-azure');
+    document.getElementById('dr-secondary').style.borderColor='#3fb950';
+    document.getElementById('dr-sec-status').style.background='#3fb95030';
+    document.getElementById('dr-sec-status').style.color='#3fb950';
+    document.getElementById('dr-sec-status').textContent='ACTIVE';
+  }
+  if(step===10){
+    addLog('DNS 전환 완료: Traffic Manager -> Azure (100%)','log-add');
+    addLog('RTO 달성: ~5분 / RPO: ~30초 (비동기 복제)','log-add');
+  }
+  if(step===12)addLog('DR Failover 완료! Azure가 트래픽 처리 중','log-add');
+}
+
+function tickCost(){
+  // Animate cost bars
+  if(step===0)document.getElementById('cf-eks').style.width='80%';
+  if(step===1)document.getElementById('cf-aks').style.width='70%';
+  if(step===2)document.getElementById('cf-rds').style.width='27%';
+  if(step===3)document.getElementById('cf-pg').style.width='25%';
+  if(step===4)document.getElementById('cf-vpn').style.width='12%';
+  if(step===5)document.getElementById('cf-dt').style.width='17%';
+
+  // Lock-in cards
+  const liMap={6:'high',7:'high',8:'high',9:'medium',10:'medium',11:'low',12:'low',13:'low'};
+  if(step>=6&&step<=13){
+    const idx=step-6;
+    const el=document.getElementById('li'+idx);
+    el.classList.add('show',liMap[step]);
+  }
+}
+
+function tick(){
+  if(paused)return;
+  const maxS=STEPS_PER_TAB[currentTab];
+  document.getElementById('progressFill').style.width=Math.min(100,((step+1)/maxS)*100)+'%';
+  if(currentTab===0)tickMC();
+  if(currentTab===1)tickDR();
+  if(currentTab===2)tickCost();
+  if(step>=maxS){clearInterval(timer);timer=null;return;}
+  step++;
+}
+
+function play(){if(timer)return;paused=false;document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');timer=setInterval(tick,900);}
+function pause(){paused=!paused;document.getElementById('btnPause').classList.toggle('active',paused);document.getElementById('btnPlay').classList.toggle('active',!paused);}
+function restart(){
+  clearInterval(timer);timer=null;step=0;paused=false;
+  document.getElementById('progressFill').style.width='0%';
+  document.querySelectorAll('.cloud-zone,.mc-node,.vpn-line,.vpn-label').forEach(e=>e.classList.remove('show','active','pulse'));
+  document.querySelectorAll('.dr-region').forEach(e=>{e.classList.remove('show');e.style.borderColor='';});
+  document.getElementById('dr-pri-status').textContent='ACTIVE';document.getElementById('dr-pri-status').style.background='#3fb95030';document.getElementById('dr-pri-status').style.color='#3fb950';
+  document.getElementById('dr-sec-status').textContent='STANDBY';document.getElementById('dr-sec-status').style.background='#8b949e30';document.getElementById('dr-sec-status').style.color='#8b949e';
+  document.getElementById('dr-sync').style.opacity='0';
+  ['mcLog','drLog'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='';});
+  // Reset cost bars
+  ['cf-eks','cf-aks','cf-rds','cf-pg','cf-vpn','cf-dt'].forEach(id=>{document.getElementById(id).style.width='0';});
+  // Reset lock-in cards
+  for(let i=0;i<8;i++){const el=document.getElementById('li'+i);el.classList.remove('show','high','medium','low');}
+  play();
+}
+play();
+</script>
+</body>
+</html>
