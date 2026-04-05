@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>장점과 단점 — SWOT 분석</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#f0883e,#ffb86c);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:28px;font-size:0.95rem}
+.section-title{font-size:1.1rem;margin-bottom:16px;color:#e6edf3;display:flex;align-items:center;gap:8px}
+.section-title .icon{font-size:1.2rem}
+
+/* Radar Chart */
+.radar-section{margin-bottom:32px}
+.radar-container{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:32px}
+.radar-canvas{position:relative;width:320px;height:320px;flex-shrink:0}
+.radar-bg{position:absolute;top:0;left:0;width:100%;height:100%}
+.radar-labels{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.radar-label{position:absolute;font-size:0.78rem;color:#8b949e;white-space:nowrap;transform:translate(-50%,-50%);transition:color .3s}
+.radar-label.highlight{color:#f0883e;font-weight:600}
+.radar-legend{display:flex;flex-direction:column;gap:12px;min-width:200px}
+.radar-legend-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;transition:all .3s;cursor:default}
+.radar-legend-item:hover{border-color:#f0883e;transform:translateX(4px)}
+.radar-legend-item .rli-bar{flex:1;height:6px;background:#21262d;border-radius:3px;overflow:hidden}
+.radar-legend-item .rli-fill{height:100%;border-radius:3px;width:0;transition:width 1.2s ease}
+.radar-legend-item .rli-label{font-size:0.82rem;min-width:100px}
+.radar-legend-item .rli-val{font-size:0.82rem;font-weight:600;color:#f0883e;min-width:32px;text-align:right}
+
+/* Weakness Pivot */
+.pivot-section{margin-bottom:32px}
+.pivot-container{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;perspective:800px}
+.pivot-card-wrapper{position:relative;width:100%;max-width:500px;margin:0 auto;height:200px;cursor:pointer}
+.pivot-card{position:absolute;width:100%;height:100%;transition:transform .8s ease;transform-style:preserve-3d;border-radius:12px}
+.pivot-card.flipped{transform:rotateY(180deg)}
+.pivot-face{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+.pivot-front{background:linear-gradient(135deg,#21262d,#161b22);border:2px solid #f8514960}
+.pivot-back{background:linear-gradient(135deg,#21262d,#161b22);border:2px solid #3fb95060;transform:rotateY(180deg)}
+.pivot-emoji{font-size:2.4rem;margin-bottom:12px}
+.pivot-title{font-size:1.1rem;font-weight:700;margin-bottom:8px}
+.pivot-front .pivot-title{color:#f85149}
+.pivot-back .pivot-title{color:#3fb950}
+.pivot-desc{font-size:0.85rem;color:#8b949e;line-height:1.5}
+.pivot-hint{text-align:center;color:#8b949e;font-size:0.8rem;margin-top:12px;opacity:.7}
+
+/* Three-step structure */
+.step-structure{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}
+.step-box{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;text-align:center;opacity:0;transform:translateY(20px);transition:all .5s ease}
+.step-box.visible{opacity:1;transform:translateY(0)}
+.step-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;margin:0 auto 8px;border:2px solid}
+.step-box:nth-child(1) .step-num{border-color:#f85149;color:#f85149}
+.step-box:nth-child(2) .step-num{border-color:#d29922;color:#d29922}
+.step-box:nth-child(3) .step-num{border-color:#3fb950;color:#3fb950}
+.step-label{font-size:0.9rem;font-weight:600;margin-bottom:6px}
+.step-desc{font-size:0.78rem;color:#8b949e;line-height:1.4}
+
+/* Experience Mapping */
+.mapping-section{margin-bottom:32px}
+.mapping-grid{display:grid;grid-template-columns:1fr 40px 1fr;gap:8px;align-items:center}
+.map-item{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;font-size:0.82rem;opacity:0;transition:all .5s ease}
+.map-item.left{transform:translateX(-20px);border-left:3px solid #8b949e}
+.map-item.right{transform:translateX(20px);border-left:3px solid #3fb950}
+.map-item.visible{opacity:1;transform:translateX(0)}
+.map-item .mi-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.map-item.left .mi-label{color:#8b949e}
+.map-item.right .mi-label{color:#3fb950}
+.map-arrow{text-align:center;color:#f0883e;font-size:1.1rem;opacity:0;transition:opacity .5s}
+.map-arrow.visible{opacity:1}
+
+/* Additional strengths */
+.extra-section{margin-bottom:20px}
+.extra-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.extra-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;cursor:pointer;transition:all .3s}
+.extra-card:hover{border-color:#f0883e;transform:translateY(-2px)}
+.extra-card .ec-type{font-size:0.7rem;padding:2px 8px;border-radius:4px;display:inline-block;margin-bottom:8px}
+.extra-card.strength .ec-type{background:#3fb95020;color:#3fb950;border:1px solid #3fb95040}
+.extra-card.weakness .ec-type{background:#d2992220;color:#d29922;border:1px solid #d2992240}
+.extra-card .ec-title{font-size:0.95rem;font-weight:600;margin-bottom:8px}
+.extra-card .ec-body{font-size:0.8rem;color:#8b949e;line-height:1.5;max-height:0;overflow:hidden;transition:max-height .4s ease}
+.extra-card.open .ec-body{max-height:300px}
+
+@media(max-width:768px){
+  .radar-container{flex-direction:column}
+  .radar-canvas{width:260px;height:260px}
+  .step-structure{grid-template-columns:1fr}
+  .mapping-grid{grid-template-columns:1fr;gap:4px}
+  .map-arrow{transform:rotate(90deg)}
+  .map-item{transform:translateY(10px) !important}
+  .container{padding:12px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>장점과 단점 분석</h1>
+<p class="subtitle">Strengths &amp; Weaknesses &mdash; 레이더 차트 + 경력 피벗 + 경험 매핑</p>
+
+<!-- Radar Chart -->
+<div class="radar-section">
+  <div class="section-title"><span class="icon">&#128202;</span> 강점 레이더 차트</div>
+  <div class="radar-container">
+    <div class="radar-canvas" id="radarCanvas">
+      <svg class="radar-bg" viewBox="0 0 320 320" id="radarSvg">
+        <!-- Grid lines -->
+        <polygon fill="none" stroke="#21262d" stroke-width="1" points="" id="grid5"/>
+        <polygon fill="none" stroke="#21262d" stroke-width="1" points="" id="grid4"/>
+        <polygon fill="none" stroke="#21262d" stroke-width="1" points="" id="grid3"/>
+        <polygon fill="none" stroke="#21262d" stroke-width="1" points="" id="grid2"/>
+        <polygon fill="none" stroke="#21262d" stroke-width="1" points="" id="grid1"/>
+        <!-- Axes -->
+        <g id="axes"></g>
+        <!-- Data polygon -->
+        <polygon fill="rgba(240,136,62,.15)" stroke="#f0883e" stroke-width="2" points="" id="dataPolygon" style="transition:all 1s ease">
+        </polygon>
+        <!-- Data dots -->
+        <g id="dataDots"></g>
+      </svg>
+      <div class="radar-labels" id="radarLabels"></div>
+    </div>
+    <div class="radar-legend" id="radarLegend"></div>
+  </div>
+</div>
+
+<!-- Weakness Pivot -->
+<div class="pivot-section">
+  <div class="section-title"><span class="icon">&#128260;</span> 단점 피벗: 클릭하여 뒤집기</div>
+  <div class="pivot-container">
+    <div class="pivot-card-wrapper" onclick="this.querySelector('.pivot-card').classList.toggle('flipped')">
+      <div class="pivot-card" id="pivotCard">
+        <div class="pivot-face pivot-front">
+          <div class="pivot-emoji">&#128566;</div>
+          <div class="pivot-title">&ldquo;순수 DevOps 경력이 짧다&rdquo;</div>
+          <div class="pivot-desc">DevOps Engineer 타이틀로 일한 경력은 짧습니다.<br>Terraform, ArgoCD 등 모던 도구 실무 경험이 부족합니다.</div>
+        </div>
+        <div class="pivot-face pivot-back">
+          <div class="pivot-emoji">&#128170;</div>
+          <div class="pivot-title">&ldquo;10년 인프라가 곧 DevOps의 본질&rdquo;</div>
+          <div class="pivot-desc">서버 프로비저닝 자동화, 배포 프로세스 표준화, 장애 원인 분석 &mdash;<br>해온 일의 본질이 DevOps와 정확히 겹칩니다.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pivot-hint">&#128070; 카드를 클릭하면 피벗 관점으로 전환됩니다</div>
+
+    <!-- Three-step structure -->
+    <div class="step-structure" id="stepStructure">
+      <div class="step-box">
+        <div class="step-num">1</div>
+        <div class="step-label">인정</div>
+        <div class="step-desc">DevOps 타이틀 경력은 짧다는 것을 솔직히 인정</div>
+      </div>
+      <div class="step-box">
+        <div class="step-num">2</div>
+        <div class="step-label">피벗</div>
+        <div class="step-desc">해온 일의 본질이 DevOps가 추구하는 것과 겹침을 강조</div>
+      </div>
+      <div class="step-box">
+        <div class="step-num">3</div>
+        <div class="step-label">보완</div>
+        <div class="step-desc">개인 K8s 클러스터, Terraform, GitHub Actions로 실습 중</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Experience Mapping -->
+<div class="mapping-section">
+  <div class="section-title"><span class="icon">&#128203;</span> 경험 매핑: 온프레미스 &rarr; DevOps</div>
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px">
+    <div class="mapping-grid" id="mappingGrid">
+      <div class="map-item left" data-idx="0"><div class="mi-label">기존 경험</div>Ansible로 서버 프로비저닝 자동화</div>
+      <div class="map-arrow" data-idx="0">&#10145;</div>
+      <div class="map-item right" data-idx="0"><div class="mi-label">DevOps 매핑</div><strong>IaC</strong> (Infrastructure as Code)</div>
+
+      <div class="map-item left" data-idx="1"><div class="mi-label">기존 경험</div>배포 절차 문서화 + 스크립팅</div>
+      <div class="map-arrow" data-idx="1">&#10145;</div>
+      <div class="map-item right" data-idx="1"><div class="mi-label">DevOps 매핑</div><strong>CI/CD</strong> 파이프라인 설계</div>
+
+      <div class="map-item left" data-idx="2"><div class="mi-label">기존 경험</div>장애 원인 분석 + 재발 방지</div>
+      <div class="map-arrow" data-idx="2">&#10145;</div>
+      <div class="map-item right" data-idx="2"><div class="mi-label">DevOps 매핑</div><strong>SRE</strong> / 인시던트 관리</div>
+
+      <div class="map-item left" data-idx="3"><div class="mi-label">기존 경험</div>폐쇄망 패키지 의존성 관리</div>
+      <div class="map-arrow" data-idx="3">&#10145;</div>
+      <div class="map-item right" data-idx="3"><div class="mi-label">DevOps 매핑</div><strong>컨테이너 이미지</strong> 빌드 최적화</div>
+
+      <div class="map-item left" data-idx="4"><div class="mi-label">기존 경험</div>서버 성능 튜닝</div>
+      <div class="map-arrow" data-idx="4">&#10145;</div>
+      <div class="map-item right" data-idx="4"><div class="mi-label">DevOps 매핑</div><strong>옵저버빌리티</strong> + 용량 계획</div>
+
+      <div class="map-item left" data-idx="5"><div class="mi-label">기존 경험</div>다양한 고객 환경 대응</div>
+      <div class="map-arrow" data-idx="5">&#10145;</div>
+      <div class="map-item right" data-idx="5"><div class="mi-label">DevOps 매핑</div><strong>멀티 환경</strong> 배포 전략</div>
+    </div>
+  </div>
+</div>
+
+<!-- Additional -->
+<div class="extra-section">
+  <div class="section-title"><span class="icon">&#128204;</span> 추가 장단점 (2번째 질문 대비)</div>
+  <div class="extra-grid">
+    <div class="extra-card strength" onclick="this.classList.toggle('open')">
+      <span class="ec-type">추가 장점</span>
+      <div class="ec-title">&#128293; 문제 해결 끈기</div>
+      <div class="ec-body">&ldquo;일단 재시작&rdquo;이 아니라 &ldquo;왜 발생했는지&rdquo; 근본 원인을 끝까지 추적합니다. 폐쇄망에서 구글링 없이 매뉴얼과 소스 코드, 시스템 로그만으로 문제를 해결하던 환경이 이 습관을 만들었습니다.</div>
+    </div>
+    <div class="extra-card weakness" onclick="this.classList.toggle('open')">
+      <span class="ec-type">추가 단점</span>
+      <div class="ec-title">&#129300; 혼자 해결하려는 경향</div>
+      <div class="ec-body">끝까지 파고드는 게 장점이지만, 때로는 빨리 도움을 요청하는 게 팀 전체에 효율적입니다. 인식하고 &ldquo;30분 룰&rdquo;을 적용 중 &mdash; 30분 안에 실마리가 없으면 동료에게 공유합니다.</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// Radar Chart Data
+const skills = [
+  {name:'시스템 이해',value:92},
+  {name:'트러블슈팅',value:88},
+  {name:'보안/폐쇄망',value:85},
+  {name:'네트워킹',value:82},
+  {name:'자동화/IaC',value:70},
+  {name:'컨테이너/K8s',value:65}
+];
+const colors = ['#f0883e','#58a6ff','#a371f7','#3fb950','#d29922','#f778ba'];
+const cx=160,cy=160,maxR=120,levels=5;
+
+function polarToCart(angle,r){return{x:cx+r*Math.cos(angle-Math.PI/2),y:cy+r*Math.sin(angle-Math.PI/2)}}
+function polyPoints(vals,max){
+  const n=vals.length;
+  return vals.map((v,i)=>{
+    const angle=(2*Math.PI/n)*i;
+    const r=(v/max)*maxR;
+    const p=polarToCart(angle,r);
+    return p.x+','+p.y;
+  }).join(' ');
+}
+
+// Draw grid
+for(let l=1;l<=levels;l++){
+  const pts=skills.map((_,i)=>{
+    const angle=(2*Math.PI/skills.length)*i;
+    const r=(l/levels)*maxR;
+    const p=polarToCart(angle,r);
+    return p.x+','+p.y;
+  }).join(' ');
+  document.getElementById('grid'+l).setAttribute('points',pts);
+}
+
+// Draw axes
+const axesG=document.getElementById('axes');
+skills.forEach((_,i)=>{
+  const angle=(2*Math.PI/skills.length)*i;
+  const p=polarToCart(angle,maxR);
+  const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+  line.setAttribute('x1',cx);line.setAttribute('y1',cy);
+  line.setAttribute('x2',p.x);line.setAttribute('y2',p.y);
+  line.setAttribute('stroke','#21262d');line.setAttribute('stroke-width','1');
+  axesG.appendChild(line);
+});
+
+// Labels
+const labelsDiv=document.getElementById('radarLabels');
+skills.forEach((s,i)=>{
+  const angle=(2*Math.PI/skills.length)*i;
+  const p=polarToCart(angle,maxR+28);
+  const lbl=document.createElement('div');
+  lbl.className='radar-label';
+  lbl.textContent=s.name;
+  lbl.style.left=p.x+'px';lbl.style.top=p.y+'px';
+  labelsDiv.appendChild(lbl);
+});
+
+// Legend
+const legendDiv=document.getElementById('radarLegend');
+skills.forEach((s,i)=>{
+  const item=document.createElement('div');
+  item.className='radar-legend-item';
+  item.innerHTML=`<div class="rli-label">${s.name}</div><div class="rli-bar"><div class="rli-fill" style="background:${colors[i]}" data-w="${s.value}%"></div></div><div class="rli-val">${s.value}</div>`;
+  legendDiv.appendChild(item);
+});
+
+// Animate data polygon
+function animateRadar(){
+  const vals=skills.map(s=>s.value);
+  const dp=document.getElementById('dataPolygon');
+  // Start at 0
+  dp.setAttribute('points',polyPoints(skills.map(()=>0),100));
+  setTimeout(()=>{
+    dp.setAttribute('points',polyPoints(vals,100));
+  },300);
+
+  // Dots
+  const dotsG=document.getElementById('dataDots');
+  dotsG.innerHTML='';
+  vals.forEach((v,i)=>{
+    const angle=(2*Math.PI/skills.length)*i;
+    const r=(v/100)*maxR;
+    const p=polarToCart(angle,r);
+    const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',p.x);circle.setAttribute('cy',p.y);
+    circle.setAttribute('r','4');circle.setAttribute('fill',colors[i]);
+    circle.setAttribute('opacity','0');
+    circle.style.transition='opacity .5s ease '+(i*0.15)+'s';
+    dotsG.appendChild(circle);
+    setTimeout(()=>circle.setAttribute('opacity','1'),400);
+  });
+
+  // Legend bars
+  document.querySelectorAll('.rli-fill').forEach(el=>{
+    setTimeout(()=>{el.style.width=el.dataset.w},500);
+  });
+}
+
+// Intersection observers
+const obs=new IntersectionObserver((entries,o)=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      if(e.target.id==='radarCanvas'){animateRadar()}
+      if(e.target.classList.contains('step-box')){
+        const idx=[...e.target.parentElement.children].indexOf(e.target);
+        setTimeout(()=>e.target.classList.add('visible'),idx*200);
+      }
+      if(e.target.classList.contains('map-item')||e.target.classList.contains('map-arrow')){
+        const idx=parseInt(e.target.dataset.idx);
+        setTimeout(()=>e.target.classList.add('visible'),idx*150);
+      }
+      o.unobserve(e.target);
+    }
+  });
+},{threshold:0.2});
+
+obs.observe(document.getElementById('radarCanvas'));
+document.querySelectorAll('.step-box,.map-item,.map-arrow').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>

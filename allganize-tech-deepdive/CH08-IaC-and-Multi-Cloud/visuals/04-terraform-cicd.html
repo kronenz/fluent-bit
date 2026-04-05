@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terraform CI/CD 파이프라인 - CI/CD Pipeline</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.progress-bar{width:100%;height:4px;background:#21262d;border-radius:2px;margin-bottom:20px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#58a6ff,#bc8cff);width:0%;transition:width 0.5s ease;border-radius:2px}
+
+/* Pipeline flow */
+.pipeline{display:flex;align-items:stretch;justify-content:center;gap:0;margin:20px 0;flex-wrap:wrap;padding:10px}
+.pipe-stage{background:#161b22;border:2px solid #30363d;border-radius:12px;padding:16px;text-align:center;flex:1;min-width:130px;max-width:180px;position:relative;opacity:0.3;transform:scale(0.92);transition:all 0.5s ease}
+.pipe-stage.active{opacity:1;transform:scale(1);border-color:var(--clr)}
+.pipe-stage.done{opacity:0.8;transform:scale(0.96);border-color:#3fb950}
+.pipe-stage.running{animation:stagePulse 1.5s ease-in-out infinite}
+@keyframes stagePulse{0%,100%{box-shadow:0 0 8px color-mix(in srgb,var(--clr) 30%,transparent)}50%{box-shadow:0 0 24px color-mix(in srgb,var(--clr) 60%,transparent)}}
+.pipe-icon{font-size:1.8rem;margin-bottom:6px}
+.pipe-title{font-size:0.85rem;font-weight:700;color:var(--clr)}
+.pipe-desc{font-size:0.7rem;color:#8b949e;margin-top:3px}
+.pipe-status{font-size:0.68rem;margin-top:8px;font-weight:600;min-height:16px}
+.pipe-arrow{color:#30363d;font-size:1.2rem;display:flex;align-items:center;padding:0 4px;opacity:0.3;transition:all 0.5s}
+.pipe-arrow.active{color:#58a6ff;opacity:1}
+
+/* Plan output diff */
+.plan-output{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:16px;margin:20px 0;font-family:'Cascadia Code','Fira Code',monospace;font-size:0.74rem;max-height:280px;overflow-y:auto;line-height:1.7}
+.plan-output h3{font-family:'Segoe UI',sans-serif;font-size:0.95rem;color:#58a6ff;margin-bottom:12px}
+.diff-line{padding:2px 8px;border-radius:3px;margin:1px 0}
+.diff-add{background:#3fb95015;color:#3fb950;border-left:3px solid #3fb950}
+.diff-change{background:#d2992215;color:#d29922;border-left:3px solid #d29922}
+.diff-destroy{background:#f8514915;color:#f85149;border-left:3px solid #f85149}
+.diff-info{color:#58a6ff}
+.diff-header{color:#bc8cff;font-weight:700;margin-top:8px}
+
+/* Atlantis workflow */
+.workflow-area{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;margin:20px 0}
+.workflow-area h3{font-size:0.95rem;color:#bc8cff;margin-bottom:16px;text-align:center}
+.wf-row{display:flex;align-items:center;gap:8px;margin:8px 0;padding:8px 12px;border-radius:6px;background:#0d1117;border:1px solid #21262d;opacity:0.3;transition:all 0.5s}
+.wf-row.active{opacity:1;border-color:#58a6ff}
+.wf-row.done{opacity:0.8;border-color:#3fb950}
+.wf-actor{width:90px;font-size:0.72rem;font-weight:700;flex-shrink:0}
+.wf-action{flex:1;font-size:0.75rem;color:#8b949e}
+.wf-badge{padding:3px 10px;border-radius:12px;font-size:0.65rem;font-weight:700}
+.wf-badge.pending{background:#30363d;color:#8b949e}
+.wf-badge.running{background:#1f6feb40;color:#58a6ff}
+.wf-badge.success{background:#3fb95040;color:#3fb950}
+.wf-badge.review{background:#d2992240;color:#d29922}
+
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:20px}
+.info-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px}
+.info-card h3{font-size:0.85rem;margin-bottom:6px}
+.info-card p{font-size:0.78rem;color:#8b949e;line-height:1.5}
+
+@media(max-width:768px){.pipeline{flex-direction:column;align-items:center}.pipe-stage{max-width:100%;min-width:unset;width:100%}.pipe-arrow{transform:rotate(90deg)}.container{padding:12px}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Terraform CI/CD 파이프라인</h1>
+<p class="subtitle">CI/CD Pipeline - PR / Auto Plan / Review / Approve / Merge / Auto Apply</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="play()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8635; 다시시작 Restart</button>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<!-- Pipeline -->
+<div class="pipeline" id="pipeline">
+  <div class="pipe-stage" id="ps-pr" style="--clr:#bc8cff">
+    <div class="pipe-icon">&#128221;</div>
+    <div class="pipe-title">PR Created</div>
+    <div class="pipe-desc">코드 변경 PR 생성</div>
+    <div class="pipe-status" id="st-pr"></div>
+  </div>
+  <div class="pipe-arrow" id="pa1">&#10145;</div>
+  <div class="pipe-stage" id="ps-plan" style="--clr:#58a6ff">
+    <div class="pipe-icon">&#128200;</div>
+    <div class="pipe-title">Auto Plan</div>
+    <div class="pipe-desc">자동 Plan 실행</div>
+    <div class="pipe-status" id="st-plan"></div>
+  </div>
+  <div class="pipe-arrow" id="pa2">&#10145;</div>
+  <div class="pipe-stage" id="ps-review" style="--clr:#d29922">
+    <div class="pipe-icon">&#128064;</div>
+    <div class="pipe-title">Review</div>
+    <div class="pipe-desc">팀 리뷰 & 승인</div>
+    <div class="pipe-status" id="st-review"></div>
+  </div>
+  <div class="pipe-arrow" id="pa3">&#10145;</div>
+  <div class="pipe-stage" id="ps-merge" style="--clr:#f0883e">
+    <div class="pipe-icon">&#128279;</div>
+    <div class="pipe-title">Merge</div>
+    <div class="pipe-desc">main 브랜치 병합</div>
+    <div class="pipe-status" id="st-merge"></div>
+  </div>
+  <div class="pipe-arrow" id="pa4">&#10145;</div>
+  <div class="pipe-stage" id="ps-apply" style="--clr:#3fb950">
+    <div class="pipe-icon">&#9989;</div>
+    <div class="pipe-title">Auto Apply</div>
+    <div class="pipe-desc">인프라 자동 반영</div>
+    <div class="pipe-status" id="st-apply"></div>
+  </div>
+</div>
+
+<!-- Plan output diff -->
+<div class="plan-output" id="planOutput">
+  <h3>&#128196; Plan Output (Diff)</h3>
+</div>
+
+<!-- Atlantis/Spacelift workflow -->
+<div class="workflow-area">
+  <h3>&#9881;&#65039; Atlantis / Spacelift Workflow</h3>
+  <div class="wf-row" id="wf0">
+    <div class="wf-actor" style="color:#bc8cff">Developer</div>
+    <div class="wf-action">git push -> PR 생성 (feat/add-rds)</div>
+    <div class="wf-badge pending" id="wb0">Pending</div>
+  </div>
+  <div class="wf-row" id="wf1">
+    <div class="wf-actor" style="color:#58a6ff">Atlantis Bot</div>
+    <div class="wf-action">Webhook 수신 -> terraform plan 자동 실행</div>
+    <div class="wf-badge pending" id="wb1">Pending</div>
+  </div>
+  <div class="wf-row" id="wf2">
+    <div class="wf-actor" style="color:#58a6ff">Atlantis Bot</div>
+    <div class="wf-action">Plan 결과를 PR 코멘트로 게시</div>
+    <div class="wf-badge pending" id="wb2">Pending</div>
+  </div>
+  <div class="wf-row" id="wf3">
+    <div class="wf-actor" style="color:#d29922">Reviewer</div>
+    <div class="wf-action">Plan 결과 확인 -> "atlantis apply" 코멘트</div>
+    <div class="wf-badge pending" id="wb3">Pending</div>
+  </div>
+  <div class="wf-row" id="wf4">
+    <div class="wf-actor" style="color:#3fb950">Atlantis Bot</div>
+    <div class="wf-action">terraform apply 실행 -> 결과 코멘트</div>
+    <div class="wf-badge pending" id="wb4">Pending</div>
+  </div>
+  <div class="wf-row" id="wf5">
+    <div class="wf-actor" style="color:#3fb950">Auto-merge</div>
+    <div class="wf-action">Apply 성공 -> PR 자동 병합</div>
+    <div class="wf-badge pending" id="wb5">Pending</div>
+  </div>
+</div>
+
+<div class="info-grid">
+  <div class="info-card">
+    <h3 style="color:#bc8cff">GitOps for Infrastructure</h3>
+    <p>인프라 변경을 Git 워크플로우로 관리합니다. PR 기반으로 변경사항을 리뷰하고 자동화된 파이프라인이 Plan/Apply를 수행합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#58a6ff">Atlantis</h3>
+    <p>PR 기반 Terraform 자동화 도구입니다. Webhook으로 PR 이벤트를 감지하고 자동으로 Plan을 실행하여 코멘트로 결과를 보여줍니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#f0883e">Spacelift</h3>
+    <p>Terraform/OpenTofu 전용 CI/CD 플랫폼입니다. Policy as Code, Drift Detection, Stack Dependencies 등 고급 기능을 제공합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#3fb950">Plan Diff 읽기</h3>
+    <p>+ (녹색) = 리소스 생성, ~ (노란색) = 리소스 수정, - (빨간색) = 리소스 삭제. Apply 전 반드시 Plan 결과를 확인해야 합니다.</p>
+  </div>
+</div>
+</div>
+
+<script>
+const STAGES=['pr','plan','review','merge','apply'];
+const PLAN_DIFF=[
+  {text:'Terraform will perform the following actions:',cls:'diff-info'},
+  {text:'',cls:''},
+  {text:'# aws_db_instance.main will be created',cls:'diff-header'},
+  {text:'+ resource "aws_db_instance" "main" {',cls:'diff-add'},
+  {text:'+   allocated_storage    = 20',cls:'diff-add'},
+  {text:'+   engine               = "postgres"',cls:'diff-add'},
+  {text:'+   engine_version       = "15.4"',cls:'diff-add'},
+  {text:'+   instance_class       = "db.t3.medium"',cls:'diff-add'},
+  {text:'+   db_name              = "allganize_prod"',cls:'diff-add'},
+  {text:'+   multi_az             = true',cls:'diff-add'},
+  {text:'+   skip_final_snapshot  = false',cls:'diff-add'},
+  {text:'+ }',cls:'diff-add'},
+  {text:'',cls:''},
+  {text:'# aws_security_group.rds will be created',cls:'diff-header'},
+  {text:'+ resource "aws_security_group" "rds" {',cls:'diff-add'},
+  {text:'+   name        = "rds-sg"',cls:'diff-add'},
+  {text:'+   vpc_id      = "vpc-abc123"',cls:'diff-add'},
+  {text:'+ }',cls:'diff-add'},
+  {text:'',cls:''},
+  {text:'# aws_security_group_rule.eks_to_rds will be created',cls:'diff-header'},
+  {text:'+ resource "aws_security_group_rule" "eks_to_rds" {',cls:'diff-add'},
+  {text:'+   type              = "ingress"',cls:'diff-add'},
+  {text:'+   from_port         = 5432',cls:'diff-add'},
+  {text:'+   to_port           = 5432',cls:'diff-add'},
+  {text:'+   protocol          = "tcp"',cls:'diff-add'},
+  {text:'+ }',cls:'diff-add'},
+  {text:'',cls:''},
+  {text:'# aws_route53_record.rds will be updated',cls:'diff-header'},
+  {text:'~ resource "aws_route53_record" "rds" {',cls:'diff-change'},
+  {text:'~   records = ["old-endpoint"] -> ["new-endpoint"]',cls:'diff-change'},
+  {text:'~ }',cls:'diff-change'},
+  {text:'',cls:''},
+  {text:'Plan: 3 to add, 1 to change, 0 to destroy.',cls:'diff-info'}
+];
+
+let timer=null,paused=false,step=0,diffIdx=0;
+const TOTAL=26;
+
+function setPS(stageIdx,state){
+  STAGES.forEach((s,i)=>{
+    const el=document.getElementById('ps-'+s);
+    el.classList.remove('active','done','running');
+    if(i<stageIdx)el.classList.add('done');
+    if(i===stageIdx){el.classList.add('active');if(state==='running')el.classList.add('running');}
+  });
+  document.querySelectorAll('.pipe-arrow').forEach((a,i)=>a.classList.toggle('active',i<stageIdx));
+}
+
+function addDiffLines(count){
+  const out=document.getElementById('planOutput');
+  for(let i=0;i<count&&diffIdx<PLAN_DIFF.length;i++,diffIdx++){
+    const d=PLAN_DIFF[diffIdx];
+    if(!d.text&&!d.cls)continue;
+    const div=document.createElement('div');
+    div.className='diff-line '+(d.cls||'');
+    div.textContent=d.text;
+    div.style.opacity='0';div.style.animation='fadeIn 0.3s ease forwards';
+    out.appendChild(div);
+  }
+  out.scrollTop=out.scrollHeight;
+}
+
+function setWF(idx,state){
+  const el=document.getElementById('wf'+idx);
+  const badge=document.getElementById('wb'+idx);
+  el.classList.remove('active','done');
+  el.classList.add(state==='done'?'done':'active');
+  badge.className='wf-badge '+(state==='done'?'success':state==='review'?'review':'running');
+  badge.textContent=state==='done'?'Done':state==='review'?'Review':'Running';
+}
+
+function tick(){
+  if(paused)return;
+  document.getElementById('progressFill').style.width=Math.min(100,((step+1)/TOTAL)*100)+'%';
+
+  // PR
+  if(step===0){setPS(0,'running');document.getElementById('st-pr').textContent='PR 생성 중...';document.getElementById('st-pr').style.color='#bc8cff';}
+  if(step===1){setWF(0,'active');}
+  if(step===2){setPS(0,'done');document.getElementById('st-pr').textContent='PR #142 Open';setWF(0,'done');}
+  // Auto Plan
+  if(step===3){setPS(1,'running');document.getElementById('st-plan').textContent='Plan 실행 중...';document.getElementById('st-plan').style.color='#58a6ff';setWF(1,'active');}
+  if(step===4){addDiffLines(6);}
+  if(step===5){addDiffLines(8);}
+  if(step===6){addDiffLines(8);}
+  if(step===7){addDiffLines(12);setWF(1,'done');setWF(2,'active');}
+  if(step===8){setPS(1);document.getElementById('ps-plan').classList.add('done');document.getElementById('st-plan').textContent='Plan: +3, ~1, -0';setWF(2,'done');}
+  // Review
+  if(step===9){setPS(2,'running');document.getElementById('st-review').textContent='리뷰 대기 중...';document.getElementById('st-review').style.color='#d29922';setWF(3,'review');}
+  if(step===11){document.getElementById('st-review').textContent='Approved!';}
+  if(step===12){setPS(2);document.getElementById('ps-review').classList.add('done');document.getElementById('st-review').style.color='#3fb950';setWF(3,'done');}
+  // Merge
+  if(step===13){setPS(3,'running');document.getElementById('st-merge').textContent='Merging...';document.getElementById('st-merge').style.color='#f0883e';}
+  if(step===15){setPS(3);document.getElementById('ps-merge').classList.add('done');document.getElementById('st-merge').textContent='Merged to main';}
+  // Apply
+  if(step===16){setPS(4,'running');document.getElementById('st-apply').textContent='Apply 실행 중...';document.getElementById('st-apply').style.color='#3fb950';setWF(4,'active');}
+  if(step===18){document.getElementById('st-apply').textContent='3 added, 1 changed';}
+  if(step===20){setWF(4,'done');setWF(5,'active');}
+  if(step===21){setPS(4);document.getElementById('ps-apply').classList.add('done');document.getElementById('st-apply').textContent='Apply Complete!';setWF(5,'done');}
+
+  if(step>=TOTAL){clearInterval(timer);timer=null;return;}
+  step++;
+}
+
+function play(){if(timer)return;paused=false;document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');timer=setInterval(tick,800);}
+function pause(){paused=!paused;document.getElementById('btnPause').classList.toggle('active',paused);document.getElementById('btnPlay').classList.toggle('active',!paused);}
+function restart(){
+  clearInterval(timer);timer=null;step=0;diffIdx=0;paused=false;
+  document.getElementById('progressFill').style.width='0%';
+  STAGES.forEach(s=>{document.getElementById('ps-'+s).classList.remove('active','done','running');document.getElementById('st-'+s).textContent='';document.getElementById('st-'+s).style.color='';});
+  document.querySelectorAll('.pipe-arrow').forEach(a=>a.classList.remove('active'));
+  const out=document.getElementById('planOutput');out.querySelectorAll('.diff-line').forEach(d=>d.remove());
+  for(let i=0;i<6;i++){const el=document.getElementById('wf'+i);el.classList.remove('active','done');document.getElementById('wb'+i).className='wf-badge pending';document.getElementById('wb'+i).textContent='Pending';}
+  play();
+}
+// inject fadeIn animation
+const sty=document.createElement('style');sty.textContent='@keyframes fadeIn{to{opacity:1}}';document.head.appendChild(sty);
+play();
+</script>
+</body>
+</html>

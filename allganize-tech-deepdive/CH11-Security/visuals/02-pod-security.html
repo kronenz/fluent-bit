@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pod Security Layers | Pod 보안 계층</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+  .header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+  .header h1{font-size:1.5rem;color:#58a6ff;margin-bottom:4px}
+  .header p{font-size:.85rem;color:#8b949e}
+  .controls{display:flex;justify-content:center;gap:10px;padding:14px}
+  .controls button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:7px 18px;cursor:pointer;font-size:.85rem;transition:background .2s}
+  .controls button:hover{background:#30363d}
+  .controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+  .step-indicator{text-align:center;padding:4px;font-size:.8rem;color:#8b949e}
+  .step-indicator .current{color:#58a6ff;font-weight:600}
+
+  .tabs{display:flex;justify-content:center;gap:6px;padding:8px 16px;flex-wrap:wrap}
+  .tabs button{background:#161b22;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:.78rem;transition:all .2s}
+  .tabs button:hover{color:#c9d1d9;border-color:#58a6ff}
+  .tabs button.tab-active{background:#1f6feb22;color:#58a6ff;border-color:#1f6feb}
+
+  .scene{display:none;position:relative;width:100%;max-width:960px;height:540px;margin:0 auto;overflow:hidden}
+  .scene.active-scene{display:block}
+
+  .node{position:absolute;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:all .4s;opacity:0;transform:scale(.85)}
+  .node.visible{opacity:1;transform:scale(1)}
+  .node.highlight{box-shadow:0 0 24px rgba(88,166,255,.45);transform:scale(1.06)}
+  .node.glow-green{box-shadow:0 0 24px rgba(63,185,80,.5);border-color:#3fb950!important}
+  .node.glow-red{box-shadow:0 0 24px rgba(248,81,73,.5);border-color:#f85149!important}
+  .node.glow-yellow{box-shadow:0 0 24px rgba(210,153,34,.5);border-color:#d29922!important}
+  .node .icon{font-size:1.5rem;margin-bottom:4px}
+  .node .label{font-size:.78rem;font-weight:600}
+  .node .sublabel{font-size:.65rem;color:#8b949e;margin-top:2px}
+
+  .arrows-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+  .arrow-path{fill:none;stroke-width:2;stroke-dasharray:8 4;opacity:0;transition:opacity .4s}
+  .arrow-path.visible{opacity:1}
+  .arrow-path.active{animation:dashFlow .8s linear infinite}
+  @keyframes dashFlow{to{stroke-dashoffset:-12}}
+  .arrow-head{opacity:0;transition:opacity .4s}
+  .arrow-head.visible{opacity:1}
+
+  .flow-label{position:absolute;font-size:.6rem;color:#8b949e;opacity:0;transition:opacity .5s;pointer-events:none;white-space:nowrap}
+  .flow-label.visible{opacity:1;color:#c9d1d9}
+
+  .scope-box{position:absolute;border-radius:10px;border:2px dashed;padding:10px;opacity:0;transition:opacity .5s}
+  .scope-box.visible{opacity:1}
+  .scope-box .scope-title{font-size:.7rem;font-weight:600;margin-bottom:4px}
+
+  .pss-bar{position:absolute;border-radius:8px;padding:10px 16px;opacity:0;transition:all .5s;display:flex;align-items:center;gap:10px}
+  .pss-bar.visible{opacity:1}
+  .pss-indicator{width:14px;height:14px;border-radius:50%}
+  .pss-text{font-size:.75rem;font-weight:600}
+  .pss-desc{font-size:.65rem;color:#8b949e}
+
+  .field-row{position:absolute;display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:6px;opacity:0;transition:all .5s;font-size:.72rem}
+  .field-row.visible{opacity:1}
+  .field-key{color:#79c0ff;font-family:monospace}
+  .field-val{font-family:monospace;font-weight:600}
+  .field-val.val-true{color:#3fb950}
+  .field-val.val-false{color:#f85149}
+
+  .compare-col{position:absolute;border-radius:10px;padding:14px;opacity:0;transition:all .5s}
+  .compare-col.visible{opacity:1}
+  .compare-col h3{font-size:.85rem;margin-bottom:8px}
+  .compare-item{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:.72rem}
+  .compare-item .ci-icon{font-size:.85rem}
+
+  .info{max-width:960px;margin:10px auto;padding:0 16px}
+  .info-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;font-size:.78rem;line-height:1.6;min-height:60px}
+  .info-box .step-title{color:#58a6ff;font-weight:700;margin-bottom:4px}
+  .info-box .desc{color:#c9d1d9}
+  .info-box .desc-ko{color:#8b949e;font-size:.72rem;margin-top:2px}
+
+  @media(max-width:700px){.scene{height:500px;transform:scale(.7);transform-origin:top center}.header h1{font-size:1.1rem}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Pod Security Layers</h1>
+  <p>Pod 보안 계층 및 보안 강화</p>
+</div>
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="play()">&#9654; Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8635; Restart</button>
+</div>
+<div class="step-indicator">Step <span id="curStep" class="current">0</span> / <span id="totStep">0</span></div>
+
+<div class="tabs">
+  <button class="tab-active" onclick="switchTab(0,this)">SecurityContext</button>
+  <button onclick="switchTab(1,this)">PSS Levels</button>
+  <button onclick="switchTab(2,this)">SecurityContext Fields</button>
+  <button onclick="switchTab(3,this)">Before / After</button>
+</div>
+
+<!-- Scene 0: SecurityContext Application -->
+<div class="scene active-scene" id="scene0">
+  <svg class="arrows-svg">
+    <line id="s0a1" class="arrow-path" x1="480" y1="60" x2="480" y2="140" stroke="#58a6ff"/>
+    <polygon id="s0h1" class="arrow-head" points="475,138 480,148 485,138" fill="#58a6ff"/>
+    <line id="s0a2" class="arrow-path" x1="350" y1="260" x2="350" y2="340" stroke="#3fb950"/>
+    <polygon id="s0h2" class="arrow-head" points="345,338 350,348 355,338" fill="#3fb950"/>
+    <line id="s0a3" class="arrow-path" x1="620" y1="260" x2="620" y2="340" stroke="#d29922"/>
+    <polygon id="s0h3" class="arrow-head" points="615,338 620,348 625,338" fill="#d29922"/>
+  </svg>
+
+  <div class="node" id="s0n1" style="left:380px;top:10px;width:200px;height:50px;background:#0c2d6b;border:2px solid #1f6feb">
+    <div class="label">Pod Spec (YAML)</div><div class="sublabel">보안 설정 정의</div>
+  </div>
+
+  <div class="scope-box" id="s0scope1" style="left:60px;top:140px;width:840px;height:360px;border-color:#1f6feb">
+    <div class="scope-title" style="color:#1f6feb">&#128230; Pod Level SecurityContext (Pod 수준)</div>
+  </div>
+
+  <div class="node" id="s0n2" style="left:100px;top:170px;width:760px;height:80px;background:#161b22;border:2px solid #1f6feb">
+    <div class="icon">&#128230;</div>
+    <div class="label">Pod SecurityContext</div>
+    <div class="sublabel">runAsUser: 1000 | runAsGroup: 3000 | fsGroup: 2000 | seccompProfile: RuntimeDefault</div>
+  </div>
+
+  <div class="scope-box" id="s0scope2" style="left:100px;top:280px;width:360px;height:200px;border-color:#3fb950">
+    <div class="scope-title" style="color:#3fb950">Container A SecurityContext</div>
+  </div>
+  <div class="scope-box" id="s0scope3" style="left:500px;top:280px;width:360px;height:200px;border-color:#d29922">
+    <div class="scope-title" style="color:#d29922">Container B SecurityContext</div>
+  </div>
+
+  <div class="node" id="s0n3" style="left:130px;top:340px;width:300px;height:120px;background:#0c2d1e;border:2px solid #3fb950">
+    <div class="icon">&#128230;</div>
+    <div class="label">Container A (Override)</div>
+    <div class="sublabel">runAsUser: 2000 (overrides Pod)<br/>readOnlyRootFilesystem: true<br/>allowPrivilegeEscalation: false<br/>capabilities: drop ALL</div>
+  </div>
+  <div class="node" id="s0n4" style="left:530px;top:340px;width:300px;height:120px;background:#2d1a0c;border:2px solid #d29922">
+    <div class="icon">&#128230;</div>
+    <div class="label">Container B (Inherit)</div>
+    <div class="sublabel">runAsUser: 1000 (from Pod)<br/>runAsGroup: 3000 (from Pod)<br/>Container 수준 미설정 시<br/>Pod 수준 값을 상속</div>
+  </div>
+
+  <div class="flow-label" id="s0f1" style="left:488px;top:90px">Apply</div>
+  <div class="flow-label" id="s0f2" style="left:358px;top:300px">Override</div>
+  <div class="flow-label" id="s0f3" style="left:628px;top:300px">Inherit</div>
+</div>
+
+<!-- Scene 1: PSS Levels -->
+<div class="scene" id="scene1">
+  <div class="pss-bar" id="s1pss1" style="left:60px;top:40px;width:840px;background:#2d0c0c;border:2px solid #f85149">
+    <div class="pss-indicator" style="background:#f85149"></div>
+    <div><div class="pss-text" style="color:#f85149">Privileged (특권)</div>
+    <div class="pss-desc">Unrestricted / 모든 것 허용. 시스템 워크로드용</div></div>
+  </div>
+  <div class="node" id="s1n1" style="left:100px;top:90px;width:760px;height:70px;background:#161b22;border:1px solid #30363d">
+    <div class="sublabel" style="color:#f85149;font-size:.7rem">hostNetwork: true | hostPID: true | privileged: true | ALL capabilities | hostPath volumes</div>
+    <div class="sublabel">호스트 네트워크, PID, 특권 컨테이너, 모든 볼륨 마운트 가능</div>
+  </div>
+
+  <div class="pss-bar" id="s1pss2" style="left:60px;top:180px;width:840px;background:#2d1a0c;border:2px solid #d29922">
+    <div class="pss-indicator" style="background:#d29922"></div>
+    <div><div class="pss-text" style="color:#d29922">Baseline (기본)</div>
+    <div class="pss-desc">Known privilege escalations blocked / 알려진 권한 상승 차단</div></div>
+  </div>
+  <div class="node" id="s1n2" style="left:100px;top:230px;width:760px;height:70px;background:#161b22;border:1px solid #30363d">
+    <div class="sublabel" style="color:#d29922;font-size:.7rem">No hostNetwork | No hostPID | No privileged | Limited capabilities | No hostPath</div>
+    <div class="sublabel">hostNetwork/PID 금지, 특권 모드 금지, 제한된 capabilities, hostPath 금지</div>
+  </div>
+
+  <div class="pss-bar" id="s1pss3" style="left:60px;top:320px;width:840px;background:#0c2d1e;border:2px solid #3fb950">
+    <div class="pss-indicator" style="background:#3fb950"></div>
+    <div><div class="pss-text" style="color:#3fb950">Restricted (제한)</div>
+    <div class="pss-desc">Maximum hardening / 최대 보안 강화. 프로덕션 권장</div></div>
+  </div>
+  <div class="node" id="s1n3" style="left:100px;top:370px;width:760px;height:80px;background:#161b22;border:1px solid #30363d">
+    <div class="sublabel" style="color:#3fb950;font-size:.7rem">runAsNonRoot: true | drop ALL caps | readOnlyRootFilesystem | seccompProfile: RuntimeDefault | No privilege escalation</div>
+    <div class="sublabel">비 root 실행 필수, 모든 capabilities 제거, 읽기전용 파일시스템, seccomp 프로필 필수</div>
+  </div>
+
+  <div class="flow-label" id="s1f1" style="left:440px;top:165px;font-size:.75rem;color:#d29922">&#9660; 보안 강화</div>
+  <div class="flow-label" id="s1f2" style="left:440px;top:305px;font-size:.75rem;color:#3fb950">&#9660; 최대 보안</div>
+</div>
+
+<!-- Scene 2: SecurityContext Fields -->
+<div class="scene" id="scene2">
+  <div class="field-row" id="s2f1" style="left:60px;top:30px;width:840px;background:#161b22;border:1px solid #30363d">
+    <span class="field-key">runAsNonRoot:</span><span class="field-val val-true">true</span>
+    <span style="color:#8b949e;font-size:.65rem">| 컨테이너를 root(UID 0)로 실행하지 않도록 강제. 위반 시 Pod 시작 실패</span>
+  </div>
+  <div class="field-row" id="s2f2" style="left:60px;top:80px;width:840px;background:#161b22;border:1px solid #30363d">
+    <span class="field-key">runAsUser:</span><span class="field-val val-true">1000</span>
+    <span style="color:#8b949e;font-size:.65rem">| 컨테이너 프로세스의 UID를 지정. 0이 아닌 값 사용 권장</span>
+  </div>
+  <div class="field-row" id="s2f3" style="left:60px;top:130px;width:840px;background:#161b22;border:1px solid #30363d">
+    <span class="field-key">readOnlyRootFilesystem:</span><span class="field-val val-true">true</span>
+    <span style="color:#8b949e;font-size:.65rem">| 컨테이너의 루트 파일시스템을 읽기 전용으로 설정. 악성코드 쓰기 방지</span>
+  </div>
+  <div class="field-row" id="s2f4" style="left:60px;top:180px;width:840px;background:#161b22;border:1px solid #30363d">
+    <span class="field-key">allowPrivilegeEscalation:</span><span class="field-val val-false">false</span>
+    <span style="color:#8b949e;font-size:.65rem">| 프로세스가 부모보다 높은 권한을 얻지 못하게 함. setuid 바이너리 차단</span>
+  </div>
+  <div class="field-row" id="s2f5" style="left:60px;top:230px;width:840px;background:#161b22;border:1px solid #30363d">
+    <span class="field-key">capabilities.drop:</span><span class="field-val val-true">["ALL"]</span>
+    <span style="color:#8b949e;font-size:.65rem">| 모든 Linux capabilities 제거. 필요한 것만 add로 추가 (최소 권한)</span>
+  </div>
+  <div class="field-row" id="s2f6" style="left:60px;top:280px;width:840px;background:#161b22;border:1px solid #30363d">
+    <span class="field-key">seccompProfile.type:</span><span class="field-val val-true">RuntimeDefault</span>
+    <span style="color:#8b949e;font-size:.65rem">| 런타임 기본 seccomp 프로필 적용. 위험한 시스템 콜 차단</span>
+  </div>
+  <div class="field-row" id="s2f7" style="left:60px;top:330px;width:840px;background:#161b22;border:1px solid #30363d">
+    <span class="field-key">seLinuxOptions:</span><span class="field-val" style="color:#58a6ff">{level: "s0:c123"}</span>
+    <span style="color:#8b949e;font-size:.65rem">| SELinux 컨텍스트 설정. MCS/MLS 기반 격리 강화</span>
+  </div>
+  <div class="field-row" id="s2f8" style="left:60px;top:380px;width:840px;background:#161b22;border:1px solid #30363d">
+    <span class="field-key">procMount:</span><span class="field-val val-true">Default</span>
+    <span style="color:#8b949e;font-size:.65rem">| /proc 마운트 방식. Default는 런타임이 마스킹 처리 (정보 노출 방지)</span>
+  </div>
+</div>
+
+<!-- Scene 3: Before/After -->
+<div class="scene" id="scene3">
+  <div class="compare-col" id="s3before" style="left:40px;top:20px;width:420px;height:480px;background:#2d0c0c22;border:2px solid #f85149;border-radius:10px">
+    <h3 style="color:#f85149">&#10060; Before: Insecure Pod (보안 미적용)</h3>
+    <div class="compare-item"><span class="ci-icon">&#128308;</span><span style="color:#f85149">root (UID 0)</span>으로 실행</div>
+    <div class="compare-item"><span class="ci-icon">&#128308;</span><span style="color:#f85149">privileged: true</span> - 호스트 커널 전체 접근</div>
+    <div class="compare-item"><span class="ci-icon">&#128308;</span>모든 <span style="color:#f85149">capabilities</span> 보유</div>
+    <div class="compare-item"><span class="ci-icon">&#128308;</span><span style="color:#f85149">writable</span> root filesystem</div>
+    <div class="compare-item"><span class="ci-icon">&#128308;</span><span style="color:#f85149">hostNetwork: true</span></div>
+    <div class="compare-item"><span class="ci-icon">&#128308;</span><span style="color:#f85149">hostPID: true</span></div>
+    <div class="compare-item"><span class="ci-icon">&#128308;</span>No <span style="color:#f85149">seccomp</span> profile</div>
+    <div class="compare-item"><span class="ci-icon">&#128308;</span><span style="color:#f85149">allowPrivilegeEscalation: true</span></div>
+    <div style="margin-top:12px;padding:10px;background:#1c1c1c;border-radius:6px;font-family:monospace;font-size:.65rem;color:#f85149;line-height:1.6">
+      spec:<br/>
+      &nbsp;&nbsp;containers:<br/>
+      &nbsp;&nbsp;- name: app<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;image: myapp:latest<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;securityContext:<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;privileged: true<br/>
+      &nbsp;&nbsp;hostNetwork: true<br/>
+      &nbsp;&nbsp;hostPID: true
+    </div>
+  </div>
+  <div class="compare-col" id="s3after" style="left:500px;top:20px;width:420px;height:480px;background:#0c2d1e22;border:2px solid #3fb950;border-radius:10px">
+    <h3 style="color:#3fb950">&#9989; After: Hardened Pod (보안 강화)</h3>
+    <div class="compare-item"><span class="ci-icon">&#128994;</span><span style="color:#3fb950">runAsNonRoot: true</span> (UID 1000)</div>
+    <div class="compare-item"><span class="ci-icon">&#128994;</span><span style="color:#3fb950">privileged: false</span></div>
+    <div class="compare-item"><span class="ci-icon">&#128994;</span>capabilities: <span style="color:#3fb950">drop ALL</span></div>
+    <div class="compare-item"><span class="ci-icon">&#128994;</span><span style="color:#3fb950">readOnlyRootFilesystem: true</span></div>
+    <div class="compare-item"><span class="ci-icon">&#128994;</span><span style="color:#3fb950">hostNetwork: false</span></div>
+    <div class="compare-item"><span class="ci-icon">&#128994;</span><span style="color:#3fb950">hostPID: false</span></div>
+    <div class="compare-item"><span class="ci-icon">&#128994;</span>seccomp: <span style="color:#3fb950">RuntimeDefault</span></div>
+    <div class="compare-item"><span class="ci-icon">&#128994;</span><span style="color:#3fb950">allowPrivilegeEscalation: false</span></div>
+    <div style="margin-top:12px;padding:10px;background:#1c1c1c;border-radius:6px;font-family:monospace;font-size:.65rem;color:#3fb950;line-height:1.6">
+      spec:<br/>
+      &nbsp;&nbsp;securityContext:<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;runAsNonRoot: true<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;runAsUser: 1000<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;seccompProfile:<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RuntimeDefault<br/>
+      &nbsp;&nbsp;containers:<br/>
+      &nbsp;&nbsp;- securityContext:<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;readOnlyRootFilesystem: true<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;allowPrivilegeEscalation: false<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;capabilities:<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drop: ["ALL"]
+    </div>
+  </div>
+</div>
+
+<div class="info">
+  <div class="info-box" id="infoBox">
+    <div class="step-title">Ready</div>
+    <div class="desc">Press Play to start the animation.</div>
+    <div class="desc-ko">Play 버튼을 눌러 애니메이션을 시작하세요.</div>
+  </div>
+</div>
+
+<script>
+const scenes=[
+  [ // Scene 0: SecurityContext Application
+    {title:"Step 1: Pod Spec Definition",desc:"Security settings are defined in the Pod YAML spec. SecurityContext can be set at Pod level and Container level.",ko:"보안 설정은 Pod YAML 스펙에서 정의됩니다. SecurityContext는 Pod 수준과 Container 수준에서 설정 가능합니다.",action(){show('s0n1');showA('s0a1','s0h1');act('s0a1');showL('s0f1')}},
+    {title:"Step 2: Pod Level SecurityContext",desc:"Pod-level settings apply to ALL containers. Includes: runAsUser, runAsGroup, fsGroup, seccompProfile, sysctls.",ko:"Pod 수준 설정은 모든 컨테이너에 적용됩니다. runAsUser, runAsGroup, fsGroup, seccompProfile, sysctls 포함.",action(){show('s0n2');showEl('s0scope1');hl('s0n2')}},
+    {title:"Step 3: Container Level Override",desc:"Container-level SecurityContext OVERRIDES Pod-level settings. Container A sets its own runAsUser: 2000, overriding Pod's 1000.",ko:"Container 수준 SecurityContext가 Pod 수준 설정을 덮어씁니다. Container A는 자체 runAsUser: 2000을 설정하여 Pod의 1000을 재정의합니다.",action(){show('s0n3');showEl('s0scope2');showA('s0a2','s0h2');act('s0a2');showL('s0f2');hl('s0n3')}},
+    {title:"Step 4: Container Level Inherit",desc:"Container B does NOT set its own SecurityContext, so it inherits ALL Pod-level settings (runAsUser: 1000, runAsGroup: 3000).",ko:"Container B는 자체 SecurityContext를 설정하지 않으므로 Pod 수준 설정을 모두 상속받습니다 (runAsUser: 1000, runAsGroup: 3000).",action(){show('s0n4');showEl('s0scope3');showA('s0a3','s0h3');act('s0a3');showL('s0f3');hl('s0n4')}}
+  ],
+  [ // Scene 1: PSS Levels
+    {title:"PSS: Pod Security Standards",desc:"Kubernetes defines 3 Pod Security Standards (PSS) levels. PSS replaces the deprecated PodSecurityPolicy (PSP).",ko:"Kubernetes는 3가지 Pod Security Standards(PSS) 수준을 정의합니다. PSS는 더 이상 사용되지 않는 PodSecurityPolicy(PSP)를 대체합니다.",action(){showEl('s1pss1');show('s1n1')}},
+    {title:"Privileged (특권)",desc:"Unrestricted policy - allows everything. Only for system-level workloads (kube-system, monitoring agents, CNI plugins).",ko:"무제한 정책 - 모든 것을 허용합니다. 시스템 수준 워크로드(kube-system, 모니터링 에이전트, CNI 플러그인)에만 사용.",action(){g('s1n1').classList.add('glow-red');hl('s1n1')}},
+    {title:"Baseline (기본)",desc:"Prevents known privilege escalations. Blocks hostNetwork, hostPID, privileged containers, but allows some flexibility.",ko:"알려진 권한 상승을 방지합니다. hostNetwork, hostPID, 특권 컨테이너를 차단하지만 일부 유연성을 허용합니다.",action(){showEl('s1pss2');show('s1n2');showL('s1f1');g('s1n2').classList.add('glow-yellow');hl('s1n2')}},
+    {title:"Restricted (제한)",desc:"Maximum hardening. Requires runAsNonRoot, drops ALL capabilities, enforces seccomp profile. Recommended for production workloads.",ko:"최대 보안 강화. runAsNonRoot 필수, 모든 capabilities 제거, seccomp 프로필 강제. 프로덕션 워크로드에 권장.",action(){showEl('s1pss3');show('s1n3');showL('s1f2');g('s1n3').classList.add('glow-green');hl('s1n3')}}
+  ],
+  [ // Scene 2: SecurityContext Fields
+    {title:"SecurityContext Fields (보안 컨텍스트 필드)",desc:"Key SecurityContext fields for container hardening. Each field controls a specific security aspect.",ko:"컨테이너 보안 강화를 위한 주요 SecurityContext 필드. 각 필드가 특정 보안 측면을 제어합니다.",action(){showEl('s2f1');showEl('s2f2')}},
+    {title:"Filesystem & Process Security",desc:"readOnlyRootFilesystem prevents malicious writes. allowPrivilegeEscalation blocks setuid/setgid escalation.",ko:"readOnlyRootFilesystem은 악성 파일 쓰기를 방지합니다. allowPrivilegeEscalation은 setuid/setgid 권한 상승을 차단합니다.",action(){showEl('s2f3');showEl('s2f4')}},
+    {title:"Capabilities & Seccomp",desc:"Drop ALL capabilities and add only what's needed (least privilege). RuntimeDefault seccomp profile blocks dangerous syscalls.",ko:"모든 capabilities를 제거하고 필요한 것만 추가합니다 (최소 권한). RuntimeDefault seccomp 프로필이 위험한 시스템 콜을 차단합니다.",action(){showEl('s2f5');showEl('s2f6')}},
+    {title:"SELinux & ProcMount",desc:"SELinux options provide mandatory access control. procMount Default masks sensitive /proc entries from containers.",ko:"SELinux 옵션은 강제 접근 제어를 제공합니다. procMount Default는 컨테이너에서 민감한 /proc 항목을 마스킹합니다.",action(){showEl('s2f7');showEl('s2f8')}}
+  ],
+  [ // Scene 3: Before/After
+    {title:"Before: Insecure Pod",desc:"A pod running as root with privileged mode, host networking, all capabilities - maximum attack surface.",ko:"root로 실행되는 Pod, 특권 모드, 호스트 네트워킹, 모든 capabilities - 최대 공격 표면.",action(){showEl('s3before');g('s3before').style.transform='scale(1)'}},
+    {title:"After: Hardened Pod",desc:"The same pod with security hardening applied. Non-root, no privileges, read-only filesystem, minimal capabilities - minimal attack surface.",ko:"보안 강화가 적용된 동일한 Pod. 비 root, 무 특권, 읽기전용 파일시스템, 최소 capabilities - 최소 공격 표면.",action(){showEl('s3after');g('s3after').style.transform='scale(1)'}},
+    {title:"Key Principle: Defense in Depth",desc:"Apply multiple security layers. Even if one fails, others protect. PSS Restricted + NetworkPolicy + RBAC = comprehensive security.",ko:"다중 보안 계층을 적용합니다. 하나가 실패해도 다른 것이 보호합니다. PSS Restricted + NetworkPolicy + RBAC = 포괄적 보안.",action(){g('s3before').classList.add('glow-red');g('s3after').classList.add('glow-green')}}
+  ]
+];
+
+let curScene=0,cur=0,timer=null,paused=false;
+const g=id=>document.getElementById(id);
+function show(id){g(id).classList.add('visible')}
+function hl(id){document.querySelectorAll('.scene.active-scene .node').forEach(n=>n.classList.remove('highlight'));g(id).classList.add('highlight')}
+function showA(l,h){g(l).classList.add('visible');g(h).classList.add('visible')}
+function act(l){g(l).classList.add('active')}
+function showL(id){g(id).classList.add('visible')}
+function showEl(id){g(id).classList.add('visible')}
+
+function updateInfo(s){g('infoBox').innerHTML=`<div class="step-title">${s.title}</div><div class="desc">${s.desc}</div><div class="desc-ko">${s.ko}</div>`}
+
+function resetScene(){
+  const sc=g('scene'+curScene);
+  sc.querySelectorAll('.node').forEach(n=>{n.classList.remove('visible','highlight','glow-green','glow-red','glow-yellow');n.style.transform=''});
+  sc.querySelectorAll('.arrow-path').forEach(a=>a.classList.remove('visible','active'));
+  sc.querySelectorAll('.arrow-head').forEach(a=>a.classList.remove('visible'));
+  sc.querySelectorAll('.flow-label').forEach(l=>l.classList.remove('visible'));
+  sc.querySelectorAll('.scope-box').forEach(b=>b.classList.remove('visible'));
+  sc.querySelectorAll('.pss-bar').forEach(b=>b.classList.remove('visible'));
+  sc.querySelectorAll('.field-row').forEach(f=>f.classList.remove('visible'));
+  sc.querySelectorAll('.compare-col').forEach(c=>{c.classList.remove('visible','glow-green','glow-red');c.style.transform=''});
+}
+
+function switchTab(idx,btn){
+  clearInterval(timer);timer=null;
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('tab-active'));
+  btn.classList.add('tab-active');
+  document.querySelectorAll('.scene').forEach(s=>s.classList.remove('active-scene'));
+  resetScene();curScene=idx;cur=0;paused=false;
+  g('scene'+idx).classList.add('active-scene');
+  g('totStep').textContent=scenes[idx].length;g('curStep').textContent='0';
+  g('btnPlay').classList.remove('active');g('btnPause').classList.remove('active');
+  g('infoBox').innerHTML='<div class="step-title">Ready</div><div class="desc">Press Play to start the animation.</div><div class="desc-ko">Play 버튼을 눌러 애니메이션을 시작하세요.</div>';
+  setTimeout(()=>play(),300);
+}
+
+function runStep(){
+  const st=scenes[curScene];if(cur>=st.length){clearInterval(timer);timer=null;return}
+  const s=st[cur];s.action();updateInfo(s);g('curStep').textContent=cur+1;cur++;
+}
+function play(){if(timer)return;paused=false;g('btnPlay').classList.add('active');g('btnPause').classList.remove('active');runStep();timer=setInterval(()=>{if(!paused)runStep()},2400)}
+function pause(){paused=true;g('btnPause').classList.add('active');g('btnPlay').classList.remove('active')}
+function restart(){clearInterval(timer);timer=null;cur=0;paused=false;g('btnPlay').classList.remove('active');g('btnPause').classList.remove('active');resetScene();g('curStep').textContent='0';g('infoBox').innerHTML='<div class="step-title">Ready</div><div class="desc">Press Play to start the animation.</div><div class="desc-ko">Play 버튼을 눌러 애니메이션을 시작하세요.</div>';setTimeout(()=>play(),300)}
+
+document.addEventListener('DOMContentLoaded',()=>{g('totStep').textContent=scenes[0].length;setTimeout(play,600)});
+</script>
+</body>
+</html>

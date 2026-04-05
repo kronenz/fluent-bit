@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNS Resolution 흐름</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh}
+.container{max-width:1100px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#f0883e);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.section-title{font-size:1.1rem;color:#58a6ff;margin:24px 0 16px;padding-left:12px;border-left:3px solid #58a6ff}
+.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:20px;overflow:hidden}
+/* DNS recursive query flow */
+.dns-flow{position:relative;min-height:420px;padding:20px 0}
+.dns-node{position:absolute;width:130px;text-align:center;padding:14px 8px;border-radius:10px;border:2px solid #30363d;background:#0d1117;z-index:2;opacity:0;transform:scale(0.8);transition:all 0.5s}
+.dns-node.visible{opacity:1;transform:scale(1)}
+.dns-node.active{border-color:#58a6ff;box-shadow:0 0 20px #58a6ff20}
+.dns-node.cached{border-color:#f0883e;box-shadow:0 0 15px #f0883e15}
+.dns-node .dn-icon{font-size:1.5rem;display:block;margin-bottom:4px}
+.dns-node .dn-label{font-size:0.8rem;font-weight:600}
+.dns-node .dn-sub{font-size:0.6rem;color:#8b949e;margin-top:2px}
+.dns-node .ttl-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.6rem;margin-top:6px;background:#f0883e20;color:#f0883e;border:1px solid #f0883e40}
+.dns-node .ttl-badge.counting{animation:ttlPulse 1s ease infinite}
+@keyframes ttlPulse{0%,100%{opacity:1}50%{opacity:0.5}}
+/* Position nodes for large screens */
+.dn-client{left:5%;top:180px}
+.dn-resolver{left:28%;top:180px}
+.dn-root{right:28%;top:20px}
+.dn-tld{right:5%;top:180px}
+.dn-auth{right:28%;top:340px}
+/* Arrows */
+.dns-arrow{position:absolute;height:2px;z-index:1;opacity:0;transition:all 0.4s}
+.dns-arrow.visible{opacity:1}
+.dns-arrow .arr-line{height:100%;border-radius:1px}
+.dns-arrow .arr-label{position:absolute;font-size:0.6rem;padding:2px 6px;border-radius:3px;white-space:nowrap;top:-18px;left:50%;transform:translateX(-50%)}
+.dns-arrow.query .arr-line{background:#58a6ff}
+.dns-arrow.query .arr-label{color:#58a6ff;background:#58a6ff10}
+.dns-arrow.response .arr-line{background:#3fb950}
+.dns-arrow.response .arr-label{color:#3fb950;background:#3fb95010}
+.dns-arrow.referral .arr-line{background:#f0883e}
+.dns-arrow.referral .arr-label{color:#f0883e;background:#f0883e10}
+/* Step tracker */
+.step-tracker{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px;justify-content:center}
+.st-step{padding:6px 12px;border-radius:6px;font-size:0.75rem;background:#21262d;border:1px solid #30363d;color:#8b949e;transition:all 0.3s}
+.st-step.active{background:#1f6feb20;border-color:#58a6ff;color:#58a6ff}
+.st-step.done{background:#2ea04320;border-color:#3fb950;color:#3fb950}
+/* K8s CoreDNS */
+.coredns-flow{position:relative;min-height:300px;padding:20px 0}
+.cdn-node{position:absolute;padding:12px 14px;border-radius:8px;border:1px solid #30363d;background:#0d1117;font-size:0.75rem;text-align:center;min-width:110px;opacity:0;transition:all 0.5s}
+.cdn-node.visible{opacity:1}
+.cdn-node.active{border-color:#d2a8ff;box-shadow:0 0 12px #d2a8ff15}
+.cdn-node .cdn-icon{font-size:1.2rem;display:block;margin-bottom:2px}
+.cdn-node .cdn-label{font-weight:600}
+.cdn-node .cdn-sub{font-size:0.6rem;color:#8b949e;margin-top:2px}
+.cdn-pod{left:5%;top:120px}
+.cdn-coredns{left:35%;top:120px}
+.cdn-search{right:5%;top:20px}
+.cdn-upstream{right:5%;top:120px}
+.cdn-result{right:5%;top:220px}
+.ndots-box{position:absolute;left:35%;top:10px;width:250px;padding:10px;border-radius:8px;background:#d2a8ff08;border:1px dashed #d2a8ff30;font-size:0.65rem;color:#d2a8ff;opacity:0;transition:all 0.5s}
+.ndots-box.visible{opacity:1}
+.ndots-box strong{display:block;margin-bottom:4px;font-size:0.75rem}
+.ndots-box code{background:#21262d;padding:1px 4px;border-radius:3px;font-size:0.6rem}
+.cdn-arrow{position:absolute;height:2px;background:#58a6ff;opacity:0;transition:all 0.3s;z-index:1}
+.cdn-arrow.visible{opacity:1}
+.cdn-arrow.response{background:#3fb950}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px}
+.info-card{padding:12px;background:#0d1117;border:1px solid #21262d;border-radius:6px}
+.info-card strong{font-size:0.85rem;color:#e6edf3}
+.info-card p{font-size:0.78rem;color:#8b949e;margin-top:4px;line-height:1.4}
+.info-card code{background:#21262d;padding:1px 4px;border-radius:3px;font-size:0.72rem;color:#f0883e}
+@media(max-width:768px){
+  .dns-flow{min-height:600px}
+  .dn-client{left:5%;top:10px}
+  .dn-resolver{left:5%;top:160px}
+  .dn-root{left:50%;top:160px;right:auto}
+  .dn-tld{left:5%;top:310px}
+  .dn-auth{left:50%;top:310px;right:auto}
+  .dns-node{width:110px;padding:10px 6px}
+  .coredns-flow{min-height:500px}
+  .cdn-pod{left:5%;top:10px}
+  .cdn-coredns{left:5%;top:140px}
+  .cdn-search{left:5%;top:270px;right:auto}
+  .cdn-upstream{left:50%;top:270px;right:auto}
+  .cdn-result{left:5%;top:400px;right:auto}
+  .ndots-box{left:50%;top:140px;width:45%}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>DNS Resolution 흐름</h1>
+<p class="subtitle">Recursive DNS Query와 K8s CoreDNS 동작 원리</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnim()">&#9654; 재생</button>
+  <button id="btnPause" onclick="pauseAnim()">&#10074;&#10074; 일시정지</button>
+  <button id="btnRestart" onclick="restartAnim()">&#8635; 다시시작</button>
+</div>
+
+<div class="section-title">1. 재귀적 DNS 질의 (Recursive DNS Resolution)</div>
+<div class="card">
+<p style="font-size:0.85rem;color:#8b949e;margin-bottom:8px">Query: <strong style="color:#58a6ff">www.allganize.ai</strong> 의 IP 주소를 찾는 과정</p>
+<div class="dns-flow" id="dnsFlow">
+  <div class="dns-node dn-client" id="dnClient">
+    <span class="dn-icon">&#128187;</span>
+    <span class="dn-label">Client</span>
+    <span class="dn-sub">클라이언트</span>
+  </div>
+  <div class="dns-node dn-resolver" id="dnResolver">
+    <span class="dn-icon">&#128269;</span>
+    <span class="dn-label">Resolver</span>
+    <span class="dn-sub">재귀 리졸버 (ISP)</span>
+    <span class="ttl-badge" id="ttlResolver">Cache TTL: 300s</span>
+  </div>
+  <div class="dns-node dn-root" id="dnRoot">
+    <span class="dn-icon">&#127759;</span>
+    <span class="dn-label">Root DNS</span>
+    <span class="dn-sub">. (13개 루트 서버)</span>
+    <span class="ttl-badge" id="ttlRoot">TTL: 48h</span>
+  </div>
+  <div class="dns-node dn-tld" id="dnTld">
+    <span class="dn-icon">&#127758;</span>
+    <span class="dn-label">.ai TLD</span>
+    <span class="dn-sub">Top-Level Domain</span>
+    <span class="ttl-badge" id="ttlTld">TTL: 24h</span>
+  </div>
+  <div class="dns-node dn-auth" id="dnAuth">
+    <span class="dn-icon">&#128272;</span>
+    <span class="dn-label">Authoritative</span>
+    <span class="dn-sub">allganize.ai NS</span>
+    <span class="ttl-badge" id="ttlAuth">TTL: 300s</span>
+  </div>
+</div>
+
+<div class="step-tracker" id="stepTracker">
+  <div class="st-step" id="ds1">1. Client -> Resolver</div>
+  <div class="st-step" id="ds2">2. Resolver -> Root</div>
+  <div class="st-step" id="ds3">3. Root: ".ai는 여기로"</div>
+  <div class="st-step" id="ds4">4. Resolver -> .ai TLD</div>
+  <div class="st-step" id="ds5">5. TLD: "allganize.ai NS"</div>
+  <div class="st-step" id="ds6">6. Resolver -> Auth NS</div>
+  <div class="st-step" id="ds7">7. Auth: "A 1.2.3.4"</div>
+  <div class="st-step" id="ds8">8. Resolver -> Client</div>
+</div>
+</div>
+
+<div class="section-title">2. K8s CoreDNS와 ndots 설정</div>
+<div class="card">
+<div class="coredns-flow" id="corednsFlow">
+  <div class="cdn-node cdn-pod" id="cdnPod">
+    <span class="cdn-icon">&#128230;</span>
+    <span class="cdn-label">Pod</span>
+    <span class="cdn-sub">my-app pod</span>
+  </div>
+  <div class="cdn-node cdn-coredns" id="cdnCore">
+    <span class="cdn-icon">&#128269;</span>
+    <span class="cdn-label">CoreDNS</span>
+    <span class="cdn-sub">kube-system</span>
+  </div>
+  <div class="ndots-box" id="ndotsBox">
+    <strong>ndots:5 Search Domain 확장</strong>
+    Query: <code>api-server</code> (dots &lt; 5)<br>
+    1. <code>api-server.default.svc.cluster.local</code><br>
+    2. <code>api-server.svc.cluster.local</code><br>
+    3. <code>api-server.cluster.local</code><br>
+    4. <code>api-server.</code> (absolute)
+  </div>
+  <div class="cdn-node cdn-search" id="cdnSearch">
+    <span class="cdn-icon">&#128196;</span>
+    <span class="cdn-label">Search Domains</span>
+    <span class="cdn-sub">.svc.cluster.local</span>
+  </div>
+  <div class="cdn-node cdn-upstream" id="cdnUp">
+    <span class="cdn-icon">&#127760;</span>
+    <span class="cdn-label">Upstream DNS</span>
+    <span class="cdn-sub">외부 DNS 서버</span>
+  </div>
+  <div class="cdn-node cdn-result" id="cdnResult">
+    <span class="cdn-icon">&#9989;</span>
+    <span class="cdn-label">10.96.0.100</span>
+    <span class="cdn-sub">ClusterIP 반환</span>
+  </div>
+</div>
+</div>
+
+<div class="info-grid">
+  <div class="info-card">
+    <strong>ndots 설정</strong>
+    <p>기본값 <code>ndots:5</code>. 쿼리의 dot 수가 ndots 미만이면 search domain을 먼저 시도. FQDN은 끝에 . 붙여 바로 질의.</p>
+  </div>
+  <div class="info-card">
+    <strong>TTL 캐싱</strong>
+    <p>각 DNS 서버가 TTL(Time To Live)만큼 결과를 캐시. TTL 만료 전 동일 쿼리는 캐시에서 즉시 응답.</p>
+  </div>
+  <div class="info-card">
+    <strong>CoreDNS Plugins</strong>
+    <p><code>kubernetes</code> 플러그인이 Service/Pod DNS 자동 생성. <code>forward</code>로 외부 쿼리 전달.</p>
+  </div>
+  <div class="info-card">
+    <strong>DNS Record Types</strong>
+    <p>A (IPv4), AAAA (IPv6), CNAME (별칭), SRV (서비스 포트), MX (메일), TXT (검증)</p>
+  </div>
+</div>
+</div>
+
+<script>
+let state='stopped',timers=[];
+function clear(){timers.forEach(t=>clearTimeout(t));timers=[];
+  ['dnClient','dnResolver','dnRoot','dnTld','dnAuth'].forEach(id=>{const e=document.getElementById(id);e.classList.remove('visible','active','cached')});
+  for(let i=1;i<=8;i++)document.getElementById('ds'+i).classList.remove('active','done');
+  ['cdnPod','cdnCore','cdnSearch','cdnUp','cdnResult'].forEach(id=>{document.getElementById(id).classList.remove('visible','active')});
+  document.getElementById('ndotsBox').classList.remove('visible');
+}
+function s(fn,d){timers.push(setTimeout(fn,d))}
+function activate(id){document.getElementById(id).classList.add('active')}
+function deactivate(id){document.getElementById(id).classList.remove('active')}
+function show(id){document.getElementById(id).classList.add('visible')}
+function stepDone(n){document.getElementById('ds'+n).classList.remove('active');document.getElementById('ds'+n).classList.add('done')}
+function stepActive(n){document.getElementById('ds'+n).classList.add('active')}
+
+function startAnim(){
+  if(state==='running')return;clear();state='running';
+  document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');
+  let d=200;
+  // Show all DNS nodes
+  s(()=>{show('dnClient');show('dnResolver');show('dnRoot');show('dnTld');show('dnAuth')},d);d+=400;
+  // Step 1: Client -> Resolver
+  s(()=>{activate('dnClient');stepActive(1)},d);d+=600;
+  s(()=>{deactivate('dnClient');activate('dnResolver');stepDone(1);stepActive(2)},d);d+=600;
+  // Step 2: Resolver -> Root
+  s(()=>{activate('dnRoot');stepDone(2);stepActive(3)},d);d+=600;
+  // Step 3: Root referral
+  s(()=>{deactivate('dnRoot');document.getElementById('dnRoot').classList.add('cached');stepDone(3);stepActive(4)},d);d+=600;
+  // Step 4: Resolver -> TLD
+  s(()=>{activate('dnTld');stepDone(4);stepActive(5)},d);d+=600;
+  // Step 5: TLD referral
+  s(()=>{deactivate('dnTld');document.getElementById('dnTld').classList.add('cached');stepDone(5);stepActive(6)},d);d+=600;
+  // Step 6: Resolver -> Auth
+  s(()=>{activate('dnAuth');stepDone(6);stepActive(7)},d);d+=600;
+  // Step 7: Auth answer
+  s(()=>{deactivate('dnAuth');document.getElementById('dnAuth').classList.add('cached');stepDone(7);stepActive(8)},d);d+=600;
+  // Step 8: Answer to client
+  s(()=>{deactivate('dnResolver');document.getElementById('dnResolver').classList.add('cached');activate('dnClient');stepDone(8)},d);d+=400;
+  // TTL countdown animation
+  s(()=>{['ttlResolver','ttlRoot','ttlTld','ttlAuth'].forEach(id=>document.getElementById(id).classList.add('counting'))},d);d+=800;
+
+  // CoreDNS animation
+  s(()=>{show('cdnPod');activate('cdnPod')},d);d+=500;
+  s(()=>{show('cdnCore');activate('cdnCore');deactivate('cdnPod')},d);d+=500;
+  s(()=>{document.getElementById('ndotsBox').classList.add('visible')},d);d+=600;
+  s(()=>{show('cdnSearch');activate('cdnSearch');deactivate('cdnCore')},d);d+=500;
+  s(()=>{deactivate('cdnSearch');show('cdnUp')},d);d+=500;
+  s(()=>{show('cdnResult');activate('cdnResult')},d);
+}
+function pauseAnim(){state='paused';document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active')}
+function restartAnim(){state='stopped';clear();setTimeout(startAnim,100)}
+startAnim();
+</script>
+</body>
+</html>

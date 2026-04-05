@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>프로세스 생명주기 (Process Lifecycle) - CH02</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:1.8rem;margin-bottom:8px;background:linear-gradient(90deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{background:#21262d;border:1px solid #30363d;color:#e6edf3;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:0.9rem;transition:all 0.2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.step-indicator{display:flex;justify-content:center;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+.step-dot{width:32px;height:32px;border-radius:50%;background:#21262d;border:2px solid #30363d;display:flex;align-items:center;justify-content:center;font-size:0.75rem;transition:all 0.3s}
+.step-dot.active{background:#1f6feb;border-color:#58a6ff;transform:scale(1.15)}
+.step-dot.done{background:#238636;border-color:#3fb950}
+.sections{display:grid;gap:24px}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;position:relative;overflow:hidden}
+.section h2{font-size:1.2rem;margin-bottom:16px;color:#58a6ff}
+.section h2 span{color:#8b949e;font-size:0.85rem;font-weight:normal}
+
+/* Fork/Exec Flow */
+.fork-flow{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;min-height:180px;position:relative}
+.process-box{width:140px;padding:16px 12px;border-radius:10px;text-align:center;position:relative;opacity:0;transform:scale(0.7);transition:all 0.5s cubic-bezier(0.34,1.56,0.64,1)}
+.process-box.visible{opacity:1;transform:scale(1)}
+.process-box .pid{font-size:0.75rem;color:#8b949e;margin-bottom:4px}
+.process-box .name{font-weight:bold;font-size:0.95rem}
+.process-box .detail{font-size:0.7rem;margin-top:6px;color:#8b949e}
+.parent-proc{background:linear-gradient(135deg,#1a3a5c,#1a2744);border:2px solid #58a6ff}
+.child-proc{background:linear-gradient(135deg,#1a3c2a,#1a2c22);border:2px solid #3fb950}
+.exec-proc{background:linear-gradient(135deg,#3a2a1a,#2c2218);border:2px solid #d29922}
+
+.flow-arrow{width:60px;height:2px;background:#30363d;position:relative;opacity:0;transition:all 0.4s}
+.flow-arrow.visible{opacity:1}
+.flow-arrow::after{content:'';position:absolute;right:-6px;top:-5px;border:6px solid transparent;border-left:8px solid #58a6ff}
+.flow-arrow.green::after{border-left-color:#3fb950}
+.flow-arrow.yellow::after{border-left-color:#d29922}
+.flow-arrow .label{position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:0.7rem;color:#58a6ff;white-space:nowrap}
+.flow-arrow.green .label{color:#3fb950}
+.flow-arrow.yellow .label{color:#d29922}
+.flow-arrow-line{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,#58a6ff,#58a6ff);width:0%;transition:width 0.6s ease}
+.flow-arrow.visible .flow-arrow-line{width:100%}
+.flow-arrow.green .flow-arrow-line{background:linear-gradient(90deg,#3fb950,#3fb950)}
+.flow-arrow.yellow .flow-arrow-line{background:linear-gradient(90deg,#d29922,#d29922)}
+
+/* Process States */
+.state-diagram{display:flex;flex-wrap:wrap;justify-content:center;gap:20px;min-height:260px;align-items:center;position:relative}
+.state-node{width:120px;height:60px;border-radius:30px;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:bold;text-align:center;opacity:0.3;transform:scale(0.85);transition:all 0.5s;position:relative}
+.state-node.active{opacity:1;transform:scale(1);box-shadow:0 0 20px rgba(0,0,0,0.5)}
+.state-node.highlight{animation:statePulse 0.8s ease infinite}
+@keyframes statePulse{0%,100%{box-shadow:0 0 10px rgba(88,166,255,0.3)}50%{box-shadow:0 0 25px rgba(88,166,255,0.6)}}
+.state-created{background:linear-gradient(135deg,#1a3a5c,#1a2744);border:2px solid #58a6ff}
+.state-ready{background:linear-gradient(135deg,#2a3a1a,#222c1a);border:2px solid #7ee787}
+.state-running{background:linear-gradient(135deg,#1a3c2a,#1a2c22);border:2px solid #3fb950}
+.state-waiting{background:linear-gradient(135deg,#3a2a1a,#2c2218);border:2px solid #d29922}
+.state-terminated{background:linear-gradient(135deg,#3a1a1a,#2c1818);border:2px solid #f85149}
+.state-arrow-container{display:flex;align-items:center}
+.state-arrow{font-size:1.5rem;color:#30363d;opacity:0;transition:all 0.4s}
+.state-arrow.visible{opacity:1;color:#58a6ff}
+
+/* Zombie */
+.zombie-scene{display:flex;align-items:flex-start;justify-content:center;gap:40px;min-height:220px;flex-wrap:wrap}
+.zombie-actor{text-align:center;padding:20px;border-radius:12px;min-width:160px;opacity:0;transform:translateY(20px);transition:all 0.5s}
+.zombie-actor.visible{opacity:1;transform:translateY(0)}
+.zombie-parent{background:#161b22;border:2px solid #58a6ff}
+.zombie-child{background:#161b22;border:2px solid #3fb950}
+.zombie-child.zombie{border-color:#f85149;animation:zombieGlow 1.5s ease infinite}
+@keyframes zombieGlow{0%,100%{box-shadow:0 0 10px rgba(248,81,73,0.2)}50%{box-shadow:0 0 30px rgba(248,81,73,0.5)}}
+.zombie-actor .icon{font-size:2rem;margin-bottom:8px}
+.zombie-actor .status{font-size:0.75rem;padding:4px 10px;border-radius:12px;margin-top:8px;display:inline-block}
+.status-running{background:#238636;color:#e6edf3}
+.status-exited{background:#8b4513;color:#e6edf3}
+.status-zombie{background:#9e1c1c;color:#e6edf3}
+.status-reaped{background:#1a3a5c;color:#e6edf3}
+.zombie-message{text-align:center;padding:12px 20px;border-radius:8px;font-size:0.85rem;margin-top:12px;opacity:0;transition:all 0.5s}
+.zombie-message.visible{opacity:1}
+.msg-warning{background:rgba(210,153,34,0.15);border:1px solid #d29922;color:#d29922}
+.msg-danger{background:rgba(248,81,73,0.15);border:1px solid #f85149;color:#f85149}
+.msg-success{background:rgba(63,185,80,0.15);border:1px solid #3fb950;color:#3fb950}
+
+/* Signal Delivery */
+.signal-scene{display:flex;flex-direction:column;align-items:center;gap:16px;min-height:200px}
+.signal-target{width:200px;padding:20px;border-radius:12px;text-align:center;border:2px solid #3fb950;background:linear-gradient(135deg,#1a3c2a,#1a2c22);transition:all 0.5s}
+.signal-target.warned{border-color:#d29922;background:linear-gradient(135deg,#3a2a1a,#2c2218);animation:shake 0.5s ease}
+.signal-target.killed{border-color:#f85149;background:linear-gradient(135deg,#3a1a1a,#2c1818);animation:explode 0.6s ease forwards}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@keyframes explode{0%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:0.8}100%{transform:scale(0.5);opacity:0}}
+.signal-packet{display:inline-block;padding:6px 16px;border-radius:8px;font-size:0.85rem;font-weight:bold;opacity:0;transform:translateX(-80px);transition:all 0.5s}
+.signal-packet.sent{opacity:1;transform:translateX(0)}
+.signal-sigterm{background:rgba(210,153,34,0.2);border:1px solid #d29922;color:#d29922}
+.signal-sigkill{background:rgba(248,81,73,0.2);border:1px solid #f85149;color:#f85149}
+.signal-timeline{display:flex;align-items:center;gap:8px;font-size:0.8rem;color:#8b949e}
+.signal-timeline .dot{width:8px;height:8px;border-radius:50%;background:#30363d}
+.signal-timeline .dot.active-y{background:#d29922}
+.signal-timeline .dot.active-r{background:#f85149}
+.grace-bar{width:200px;height:6px;background:#21262d;border-radius:3px;overflow:hidden;margin:8px 0}
+.grace-fill{height:100%;width:0%;border-radius:3px;transition:width 3s linear}
+.grace-fill.running{width:100%;background:linear-gradient(90deg,#d29922,#f85149)}
+
+@media(max-width:768px){
+  .fork-flow{flex-direction:column}
+  .flow-arrow{width:2px;height:40px;transform:rotate(90deg)}
+  .process-box{width:120px;padding:12px 8px}
+  .state-diagram{flex-direction:column;align-items:center}
+  .zombie-scene{flex-direction:column;align-items:center}
+  h1{font-size:1.4rem}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>프로세스 생명주기 (Process Lifecycle)</h1>
+  <p class="subtitle">Linux 프로세스의 생성, 상태 전이, 좀비 프로세스, 시그널 전달 과정</p>
+
+  <div class="controls">
+    <button id="btnPlay" class="active" onclick="play()">&#9654; 재생</button>
+    <button id="btnPause" onclick="pause()">&#10074;&#10074; 일시정지</button>
+    <button id="btnRestart" onclick="restart()">&#8634; 처음부터</button>
+  </div>
+
+  <div class="step-indicator" id="stepIndicator"></div>
+
+  <div class="sections">
+    <!-- Section 1: Fork/Exec -->
+    <div class="section" id="sec1">
+      <h2>Step 1. fork() → exec() 흐름 <span>(PID 할당)</span></h2>
+      <div class="fork-flow" id="forkFlow">
+        <div class="process-box parent-proc" id="parentProc">
+          <div class="pid">PID 1000</div>
+          <div class="name">bash</div>
+          <div class="detail">부모 프로세스 (Parent)</div>
+        </div>
+        <div class="flow-arrow" id="forkArrow">
+          <div class="flow-arrow-line"></div>
+          <div class="label">fork()</div>
+        </div>
+        <div class="process-box child-proc" id="childProc">
+          <div class="pid">PID 1001</div>
+          <div class="name">bash (copy)</div>
+          <div class="detail">자식 프로세스 (Child)<br>COW 복사</div>
+        </div>
+        <div class="flow-arrow yellow" id="execArrow">
+          <div class="flow-arrow-line"></div>
+          <div class="label">exec()</div>
+        </div>
+        <div class="process-box exec-proc" id="execProc">
+          <div class="pid">PID 1001</div>
+          <div class="name">nginx</div>
+          <div class="detail">새 프로그램 로드<br>(메모리 교체)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Process States -->
+    <div class="section" id="sec2">
+      <h2>Step 2. 프로세스 상태 전이 <span>(Process States)</span></h2>
+      <div class="state-diagram" id="stateDiagram">
+        <div class="state-node state-created" id="stCreated">Created<br><small>생성됨</small></div>
+        <div class="state-arrow-container"><span class="state-arrow" id="sa1">&#10132;</span></div>
+        <div class="state-node state-ready" id="stReady">Ready<br><small>준비</small></div>
+        <div class="state-arrow-container"><span class="state-arrow" id="sa2">&#10132;</span></div>
+        <div class="state-node state-running" id="stRunning">Running<br><small>실행 중</small></div>
+        <div class="state-arrow-container"><span class="state-arrow" id="sa3">&#10132;</span></div>
+        <div class="state-node state-waiting" id="stWaiting">Waiting<br><small>대기 (I/O)</small></div>
+        <div class="state-arrow-container"><span class="state-arrow" id="sa4">&#10132;</span></div>
+        <div class="state-node state-terminated" id="stTerminated">Terminated<br><small>종료됨</small></div>
+      </div>
+    </div>
+
+    <!-- Section 3: Zombie Process -->
+    <div class="section" id="sec3">
+      <h2>Step 3. 좀비 프로세스 <span>(Zombie Process)</span></h2>
+      <div class="zombie-scene" id="zombieScene">
+        <div class="zombie-actor zombie-parent" id="zParent">
+          <div class="icon">&#128187;</div>
+          <div class="name">Parent (PID 1000)</div>
+          <div class="status status-running" id="zParentStatus">RUNNING</div>
+        </div>
+        <div class="zombie-actor zombie-child" id="zChild">
+          <div class="icon" id="zChildIcon">&#9881;</div>
+          <div class="name">Child (PID 1001)</div>
+          <div class="status status-running" id="zChildStatus">RUNNING</div>
+        </div>
+      </div>
+      <div class="zombie-message" id="zombieMsg"></div>
+    </div>
+
+    <!-- Section 4: Signal Delivery -->
+    <div class="section" id="sec4">
+      <h2>Step 4. 시그널 전달 <span>(SIGTERM → SIGKILL 에스컬레이션)</span></h2>
+      <div class="signal-scene" id="signalScene">
+        <div class="signal-timeline">
+          <span>t=0s</span>
+          <span class="dot" id="sd1"></span>
+          <span class="dot" id="sd2"></span>
+          <span class="dot" id="sd3"></span>
+          <span class="dot" id="sd4"></span>
+          <span class="dot" id="sd5"></span>
+          <span>t=30s</span>
+        </div>
+        <div class="signal-packet signal-sigterm" id="sigterm">SIGTERM (15) - 정상 종료 요청</div>
+        <div class="grace-bar"><div class="grace-fill" id="graceFill"></div></div>
+        <div style="font-size:0.8rem;color:#8b949e" id="graceLabel">Grace Period (유예 기간): 30초</div>
+        <div class="signal-target" id="signalTarget">
+          <div style="font-size:1.5rem;margin-bottom:6px">&#9881;</div>
+          <div class="name">nginx worker</div>
+          <div class="detail" id="sigTargetDetail">정상 실행 중</div>
+        </div>
+        <div class="signal-packet signal-sigkill" id="sigkill">SIGKILL (9) - 강제 종료</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOTAL_STEPS = 12;
+let currentStep = 0;
+let playing = true;
+let timer = null;
+
+function buildStepIndicator() {
+  const el = document.getElementById('stepIndicator');
+  el.innerHTML = '';
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const d = document.createElement('div');
+    d.className = 'step-dot';
+    d.textContent = i;
+    d.id = 'sd_' + i;
+    el.appendChild(d);
+  }
+}
+buildStepIndicator();
+
+function setStep(n) {
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const d = document.getElementById('sd_' + i);
+    d.className = 'step-dot' + (i < n ? ' done' : '') + (i === n ? ' active' : '');
+  }
+}
+
+function resetAll() {
+  document.querySelectorAll('.process-box').forEach(e => e.classList.remove('visible'));
+  document.querySelectorAll('.flow-arrow').forEach(e => e.classList.remove('visible'));
+  document.querySelectorAll('.state-node').forEach(e => { e.classList.remove('active','highlight'); });
+  document.querySelectorAll('.state-arrow').forEach(e => e.classList.remove('visible'));
+  document.querySelectorAll('.zombie-actor').forEach(e => { e.classList.remove('visible'); e.classList.remove('zombie'); });
+  document.getElementById('zChildStatus').className = 'status status-running';
+  document.getElementById('zChildStatus').textContent = 'RUNNING';
+  document.getElementById('zChildIcon').textContent = '\u2699';
+  document.getElementById('zParentStatus').className = 'status status-running';
+  document.getElementById('zParentStatus').textContent = 'RUNNING';
+  const zm = document.getElementById('zombieMsg');
+  zm.className = 'zombie-message';
+  zm.textContent = '';
+  document.getElementById('sigterm').classList.remove('sent');
+  document.getElementById('sigkill').classList.remove('sent');
+  document.getElementById('signalTarget').className = 'signal-target';
+  document.getElementById('sigTargetDetail').textContent = '정상 실행 중';
+  document.getElementById('graceFill').className = 'grace-fill';
+  document.getElementById('graceLabel').textContent = 'Grace Period (유예 기간): 30초';
+  ['sd1','sd2','sd3','sd4','sd5'].forEach(id => {
+    document.getElementById(id).className = 'dot';
+  });
+}
+
+const steps = [
+  () => { document.getElementById('parentProc').classList.add('visible'); },
+  () => { document.getElementById('forkArrow').classList.add('visible'); },
+  () => { document.getElementById('childProc').classList.add('visible'); },
+  () => { document.getElementById('execArrow').classList.add('visible'); document.getElementById('execProc').classList.add('visible'); },
+  () => { document.getElementById('stCreated').classList.add('active','highlight'); },
+  () => { document.getElementById('stCreated').classList.remove('highlight'); document.getElementById('sa1').classList.add('visible'); document.getElementById('stReady').classList.add('active','highlight'); },
+  () => { document.getElementById('stReady').classList.remove('highlight'); document.getElementById('sa2').classList.add('visible'); document.getElementById('stRunning').classList.add('active','highlight'); },
+  () => { document.getElementById('stRunning').classList.remove('highlight'); document.getElementById('sa3').classList.add('visible'); document.getElementById('stWaiting').classList.add('active','highlight'); setTimeout(() => { document.getElementById('stWaiting').classList.remove('highlight'); document.getElementById('sa4').classList.add('visible'); document.getElementById('stTerminated').classList.add('active','highlight'); }, 800); },
+  () => {
+    const p = document.getElementById('zParent'); p.classList.add('visible');
+    const c = document.getElementById('zChild'); c.classList.add('visible');
+  },
+  () => {
+    document.getElementById('zChildStatus').className = 'status status-zombie';
+    document.getElementById('zChildStatus').textContent = 'ZOMBIE (Z)';
+    document.getElementById('zChildIcon').textContent = '\uD83E\uDDDF';
+    document.getElementById('zChild').classList.add('zombie');
+    const zm = document.getElementById('zombieMsg');
+    zm.className = 'zombie-message visible msg-danger';
+    zm.innerHTML = '자식이 exit() 했지만 부모가 wait() 하지 않음 → <strong>좀비 프로세스</strong> 발생!<br><code>defunct</code> 상태로 프로세스 테이블 점유';
+  },
+  () => {
+    document.getElementById('sigterm').classList.add('sent');
+    document.getElementById('signalTarget').classList.add('warned');
+    document.getElementById('sigTargetDetail').textContent = 'SIGTERM 수신 - Graceful Shutdown 시도...';
+    document.getElementById('sd1').classList.add('active-y');
+    document.getElementById('sd2').classList.add('active-y');
+    document.getElementById('graceFill').classList.add('running');
+    document.getElementById('graceLabel').textContent = 'Grace Period 진행 중... 프로세스가 응답하지 않음';
+  },
+  () => {
+    document.getElementById('sigkill').classList.add('sent');
+    document.getElementById('signalTarget').classList.add('killed');
+    document.getElementById('sigTargetDetail').textContent = 'SIGKILL - 강제 종료됨';
+    document.getElementById('sd3').classList.add('active-r');
+    document.getElementById('sd4').classList.add('active-r');
+    document.getElementById('sd5').classList.add('active-r');
+    document.getElementById('graceLabel').textContent = 'Grace Period 만료 → SIGKILL 전송 (무시 불가)';
+  }
+];
+
+function advance() {
+  if (currentStep >= TOTAL_STEPS) { pause(); return; }
+  currentStep++;
+  setStep(currentStep);
+  steps[currentStep - 1]();
+}
+
+function play() {
+  playing = true;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  if (timer) clearInterval(timer);
+  timer = setInterval(() => { if (playing) advance(); }, 1200);
+}
+
+function pause() {
+  playing = false;
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+  if (timer) { clearInterval(timer); timer = null; }
+}
+
+function restart() {
+  pause();
+  currentStep = 0;
+  resetAll();
+  setStep(0);
+  setTimeout(() => play(), 300);
+}
+
+play();
+</script>
+</body>
+</html>

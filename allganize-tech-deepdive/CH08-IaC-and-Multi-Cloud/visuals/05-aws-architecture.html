@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWS 인프라 아키텍처 - AWS Infrastructure</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.tabs{display:flex;justify-content:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.tabs button{padding:6px 16px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#8b949e;cursor:pointer;font-size:0.82rem;transition:all .2s}
+.tabs button.active{background:#1f6feb;color:#e6edf3;border-color:#58a6ff}
+.progress-bar{width:100%;height:4px;background:#21262d;border-radius:2px;margin-bottom:20px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#f0883e,#d29922);width:0%;transition:width 0.5s ease;border-radius:2px}
+
+.scene{display:none}.scene.active{display:block}
+
+/* Architecture diagram */
+.arch{position:relative;background:#161b22;border:1px solid #30363d;border-radius:12px;min-height:480px;padding:16px;overflow:hidden}
+.zone{position:absolute;border-radius:10px;border:2px dashed;padding:8px;opacity:0;transition:all 0.6s ease}
+.zone.show{opacity:1}
+.zone-label{font-size:0.7rem;font-weight:700;margin-bottom:4px}
+
+.node{position:absolute;border-radius:8px;padding:10px 12px;border:2px solid #30363d;background:#0d1117;font-size:0.75rem;text-align:center;opacity:0;transform:scale(0.85);transition:all 0.5s ease}
+.node.show{opacity:1;transform:scale(1)}
+.node.active{border-color:var(--clr,#58a6ff);box-shadow:0 0 14px color-mix(in srgb,var(--clr,#58a6ff) 30%,transparent)}
+.node-icon{font-size:1.4rem;margin-bottom:4px}
+.node-title{font-weight:700;font-size:0.78rem}
+.node-sub{color:#8b949e;font-size:0.65rem;margin-top:2px}
+
+/* Flow arrows */
+.flow-line{position:absolute;opacity:0;transition:opacity 0.5s}
+.flow-line.show{opacity:1}
+.flow-line .line-body{height:3px;background:linear-gradient(90deg,var(--from,#58a6ff),var(--to,#3fb950));border-radius:2px}
+.flow-line .line-body-v{width:3px;background:linear-gradient(180deg,var(--from,#58a6ff),var(--to,#3fb950));border-radius:2px}
+.flow-line.animated .line-body,.flow-line.animated .line-body-v{animation:flowGlow 2s ease-in-out infinite}
+@keyframes flowGlow{0%,100%{opacity:0.5}50%{opacity:1}}
+
+/* IRSA chain */
+.irsa-chain{display:flex;align-items:center;gap:0;justify-content:center;margin:20px 0;flex-wrap:wrap;padding:10px}
+.irsa-step{background:#0d1117;border:2px solid #30363d;border-radius:10px;padding:12px 16px;text-align:center;min-width:120px;opacity:0.3;transform:scale(0.9);transition:all 0.5s}
+.irsa-step.active{opacity:1;transform:scale(1);border-color:var(--clr)}
+.irsa-step.done{opacity:0.8;border-color:#3fb950}
+.irsa-icon{font-size:1.4rem;margin-bottom:4px}
+.irsa-title{font-size:0.8rem;font-weight:700;color:var(--clr)}
+.irsa-sub{font-size:0.65rem;color:#8b949e;margin-top:2px}
+.irsa-arrow{font-size:1rem;color:#30363d;padding:0 4px;opacity:0.3;transition:all 0.5s}
+.irsa-arrow.active{color:#58a6ff;opacity:1}
+
+.log-output{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px;margin-top:16px;font-family:'Cascadia Code','Fira Code',monospace;font-size:0.72rem;max-height:160px;overflow-y:auto;line-height:1.6}
+.log-add{color:#3fb950}.log-info{color:#58a6ff}.log-warn{color:#d29922}
+
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:20px}
+.info-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px}
+.info-card h3{font-size:0.85rem;margin-bottom:6px}
+.info-card p{font-size:0.78rem;color:#8b949e;line-height:1.5}
+
+@media(max-width:768px){.arch{min-height:520px}.node{padding:6px 8px;font-size:0.68rem}.irsa-chain{flex-direction:column}.irsa-arrow{transform:rotate(90deg)}.container{padding:12px}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>AWS 인프라 아키텍처</h1>
+<p class="subtitle">AWS Infrastructure - VPC / EKS / IAM IRSA 구성 시뮬레이션</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="play()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8635; 다시시작 Restart</button>
+</div>
+
+<div class="tabs">
+  <button class="active" onclick="switchTab(0)">VPC Architecture</button>
+  <button onclick="switchTab(1)">EKS Cluster</button>
+  <button onclick="switchTab(2)">IAM IRSA Chain</button>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<!-- Scene 0: VPC -->
+<div class="scene active" id="scene0">
+  <div class="arch" id="arch0">
+    <!-- Region -->
+    <div class="zone" id="z-region" style="left:2%;top:2%;right:2%;bottom:2%;border-color:#f0883e40;background:#f0883e08">
+      <div class="zone-label" style="color:#f0883e">&#127758; AWS Region (ap-northeast-2 / 서울)</div>
+    </div>
+    <!-- VPC -->
+    <div class="zone" id="z-vpc" style="left:4%;top:10%;right:4%;bottom:4%;border-color:#58a6ff40;background:#58a6ff08">
+      <div class="zone-label" style="color:#58a6ff">VPC 10.0.0.0/16</div>
+    </div>
+    <!-- AZ-a -->
+    <div class="zone" id="z-aza" style="left:6%;top:18%;width:42%;bottom:6%;border-color:#bc8cff40;background:#bc8cff05">
+      <div class="zone-label" style="color:#bc8cff">AZ-a (ap-northeast-2a)</div>
+    </div>
+    <!-- AZ-c -->
+    <div class="zone" id="z-azc" style="right:6%;top:18%;width:42%;bottom:6%;border-color:#bc8cff40;background:#bc8cff05">
+      <div class="zone-label" style="color:#bc8cff">AZ-c (ap-northeast-2c)</div>
+    </div>
+
+    <!-- Public subnets -->
+    <div class="node" id="n-pub-a" style="left:8%;top:26%;width:18%;--clr:#3fb950">
+      <div class="node-icon">&#127760;</div>
+      <div class="node-title">Public Subnet</div>
+      <div class="node-sub">10.0.1.0/24</div>
+    </div>
+    <div class="node" id="n-pub-c" style="right:8%;top:26%;width:18%;--clr:#3fb950">
+      <div class="node-icon">&#127760;</div>
+      <div class="node-title">Public Subnet</div>
+      <div class="node-sub">10.0.3.0/24</div>
+    </div>
+
+    <!-- Private subnets -->
+    <div class="node" id="n-priv-a" style="left:8%;top:55%;width:18%;--clr:#58a6ff">
+      <div class="node-icon">&#128274;</div>
+      <div class="node-title">Private Subnet</div>
+      <div class="node-sub">10.0.2.0/24</div>
+    </div>
+    <div class="node" id="n-priv-c" style="right:8%;top:55%;width:18%;--clr:#58a6ff">
+      <div class="node-icon">&#128274;</div>
+      <div class="node-title">Private Subnet</div>
+      <div class="node-sub">10.0.4.0/24</div>
+    </div>
+
+    <!-- IGW -->
+    <div class="node" id="n-igw" style="left:35%;top:26%;width:14%;--clr:#f0883e">
+      <div class="node-icon">&#127758;</div>
+      <div class="node-title">IGW</div>
+      <div class="node-sub">Internet Gateway</div>
+    </div>
+
+    <!-- NAT GW -->
+    <div class="node" id="n-nat-a" style="left:28%;top:42%;width:12%;--clr:#d29922">
+      <div class="node-icon">&#128257;</div>
+      <div class="node-title">NAT GW</div>
+      <div class="node-sub">AZ-a</div>
+    </div>
+    <div class="node" id="n-nat-c" style="right:28%;top:42%;width:12%;--clr:#d29922">
+      <div class="node-icon">&#128257;</div>
+      <div class="node-title">NAT GW</div>
+      <div class="node-sub">AZ-c</div>
+    </div>
+
+    <!-- Workloads -->
+    <div class="node" id="n-alb" style="left:35%;top:55%;width:14%;--clr:#bc8cff">
+      <div class="node-icon">&#9878;&#65039;</div>
+      <div class="node-title">ALB</div>
+      <div class="node-sub">Application LB</div>
+    </div>
+    <div class="node" id="n-worker-a" style="left:8%;top:76%;width:18%;--clr:#f85149">
+      <div class="node-icon">&#128187;</div>
+      <div class="node-title">Worker Nodes</div>
+      <div class="node-sub">EKS Managed NG</div>
+    </div>
+    <div class="node" id="n-worker-c" style="right:8%;top:76%;width:18%;--clr:#f85149">
+      <div class="node-icon">&#128187;</div>
+      <div class="node-title">Worker Nodes</div>
+      <div class="node-sub">EKS Managed NG</div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 1: EKS -->
+<div class="scene" id="scene1">
+  <div class="arch" id="arch1">
+    <!-- AWS Managed -->
+    <div class="zone" id="z-managed" style="left:2%;top:2%;right:2%;height:38%;border-color:#f0883e40;background:#f0883e08">
+      <div class="zone-label" style="color:#f0883e">AWS Managed (Control Plane)</div>
+    </div>
+    <!-- Customer Managed -->
+    <div class="zone" id="z-customer" style="left:2%;top:44%;right:2%;bottom:2%;border-color:#58a6ff40;background:#58a6ff08">
+      <div class="zone-label" style="color:#58a6ff">Customer Managed (Data Plane)</div>
+    </div>
+
+    <!-- Control plane -->
+    <div class="node" id="n-api" style="left:10%;top:10%;width:22%;--clr:#f0883e">
+      <div class="node-icon">&#9881;&#65039;</div>
+      <div class="node-title">API Server</div>
+      <div class="node-sub">kube-apiserver (HA)</div>
+    </div>
+    <div class="node" id="n-etcd" style="left:38%;top:10%;width:22%;--clr:#f0883e">
+      <div class="node-icon">&#128451;</div>
+      <div class="node-title">etcd</div>
+      <div class="node-sub">Encrypted, Managed</div>
+    </div>
+    <div class="node" id="n-ctrl" style="right:5%;top:10%;width:24%;--clr:#f0883e">
+      <div class="node-icon">&#128260;</div>
+      <div class="node-title">Controllers</div>
+      <div class="node-sub">scheduler, controller-manager</div>
+    </div>
+
+    <!-- Worker nodes -->
+    <div class="node" id="n-w1" style="left:4%;top:52%;width:28%;--clr:#58a6ff">
+      <div class="node-icon">&#128187;</div>
+      <div class="node-title">Worker Node 1</div>
+      <div class="node-sub">kubelet, kube-proxy, containerd</div>
+    </div>
+    <div class="node" id="n-w2" style="left:36%;top:52%;width:28%;--clr:#58a6ff">
+      <div class="node-icon">&#128187;</div>
+      <div class="node-title">Worker Node 2</div>
+      <div class="node-sub">kubelet, kube-proxy, containerd</div>
+    </div>
+    <div class="node" id="n-w3" style="right:4%;top:52%;width:28%;--clr:#58a6ff">
+      <div class="node-icon">&#128187;</div>
+      <div class="node-title">Worker Node 3</div>
+      <div class="node-sub">kubelet, kube-proxy, containerd</div>
+    </div>
+
+    <!-- Pods -->
+    <div class="node" id="n-p1" style="left:6%;top:76%;width:12%;--clr:#3fb950">
+      <div class="node-title" style="color:#3fb950">Pod</div>
+      <div class="node-sub">app-api</div>
+    </div>
+    <div class="node" id="n-p2" style="left:20%;top:76%;width:12%;--clr:#3fb950">
+      <div class="node-title" style="color:#3fb950">Pod</div>
+      <div class="node-sub">app-api</div>
+    </div>
+    <div class="node" id="n-p3" style="left:38%;top:76%;width:12%;--clr:#bc8cff">
+      <div class="node-title" style="color:#bc8cff">Pod</div>
+      <div class="node-sub">worker</div>
+    </div>
+    <div class="node" id="n-p4" style="left:54%;top:76%;width:12%;--clr:#bc8cff">
+      <div class="node-title" style="color:#bc8cff">Pod</div>
+      <div class="node-sub">worker</div>
+    </div>
+    <div class="node" id="n-p5" style="right:6%;top:76%;width:12%;--clr:#d29922">
+      <div class="node-title" style="color:#d29922">Pod</div>
+      <div class="node-sub">monitoring</div>
+    </div>
+    <div class="node" id="n-p6" style="right:20%;top:76%;width:12%;--clr:#d29922">
+      <div class="node-title" style="color:#d29922">Pod</div>
+      <div class="node-sub">logging</div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 2: IRSA -->
+<div class="scene" id="scene2">
+  <div class="irsa-chain" id="irsaChain">
+    <div class="irsa-step" id="ir-pod" style="--clr:#3fb950">
+      <div class="irsa-icon">&#128230;</div>
+      <div class="irsa-title">Pod</div>
+      <div class="irsa-sub">app-api Container</div>
+    </div>
+    <div class="irsa-arrow" id="ia1">&#10145;</div>
+    <div class="irsa-step" id="ir-sa" style="--clr:#58a6ff">
+      <div class="irsa-icon">&#128100;</div>
+      <div class="irsa-title">ServiceAccount</div>
+      <div class="irsa-sub">k8s SA with annotation</div>
+    </div>
+    <div class="irsa-arrow" id="ia2">&#10145;</div>
+    <div class="irsa-step" id="ir-oidc" style="--clr:#bc8cff">
+      <div class="irsa-icon">&#128273;</div>
+      <div class="irsa-title">OIDC Provider</div>
+      <div class="irsa-sub">EKS IRSA federation</div>
+    </div>
+    <div class="irsa-arrow" id="ia3">&#10145;</div>
+    <div class="irsa-step" id="ir-sts" style="--clr:#d29922">
+      <div class="irsa-icon">&#128274;</div>
+      <div class="irsa-title">STS AssumeRole</div>
+      <div class="irsa-sub">sts:AssumeRoleWithWebIdentity</div>
+    </div>
+    <div class="irsa-arrow" id="ia4">&#10145;</div>
+    <div class="irsa-step" id="ir-role" style="--clr:#f0883e">
+      <div class="irsa-icon">&#127919;</div>
+      <div class="irsa-title">IAM Role</div>
+      <div class="irsa-sub">S3ReadOnly Policy</div>
+    </div>
+    <div class="irsa-arrow" id="ia5">&#10145;</div>
+    <div class="irsa-step" id="ir-api" style="--clr:#f85149">
+      <div class="irsa-icon">&#9729;&#65039;</div>
+      <div class="irsa-title">AWS API</div>
+      <div class="irsa-sub">s3:GetObject</div>
+    </div>
+  </div>
+  <div class="log-output" id="irsaLog"></div>
+</div>
+
+<div class="info-grid">
+  <div class="info-card">
+    <h3 style="color:#f0883e">VPC Architecture</h3>
+    <p>Multi-AZ 구성으로 고가용성을 확보합니다. Public Subnet에 ALB/NAT GW, Private Subnet에 Worker Node를 배치합니다. CIDR 설계가 중요합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#58a6ff">EKS Control Plane</h3>
+    <p>AWS가 완전 관리하는 Kubernetes Control Plane입니다. API Server, etcd, Controller가 Multi-AZ로 HA 구성됩니다. 업그레이드도 AWS가 처리합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#bc8cff">IRSA (IAM Roles for Service Accounts)</h3>
+    <p>Pod 단위로 최소 권한 IAM Role을 부여합니다. OIDC Federation을 통해 ServiceAccount와 IAM Role을 매핑합니다. Node Role 공유보다 안전합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#3fb950">Managed Node Group</h3>
+    <p>AWS가 EC2 인스턴스 수명주기를 관리합니다. Auto Scaling, 자동 AMI 업데이트, Graceful Drain을 지원합니다. Spot Instance도 혼합 가능합니다.</p>
+  </div>
+</div>
+</div>
+
+<script>
+let currentTab=0,timer=null,paused=false,step=0;
+const STEPS_PER_TAB=[14,12,14];
+
+function switchTab(idx){
+  currentTab=idx;
+  document.querySelectorAll('.scene').forEach((s,i)=>s.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tabs button').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  restart();
+}
+
+function showN(id,cls){const el=document.getElementById(id);if(el){el.classList.add('show');if(cls)el.classList.add(cls);}}
+function showZ(id){const el=document.getElementById(id);if(el)el.classList.add('show');}
+
+function tickVPC(){
+  if(step===0)showZ('z-region');
+  if(step===1)showZ('z-vpc');
+  if(step===2){showZ('z-aza');showZ('z-azc');}
+  if(step===3){showN('n-igw','active');}
+  if(step===4){showN('n-pub-a','active');showN('n-pub-c','active');}
+  if(step===5){showN('n-nat-a','active');showN('n-nat-c','active');}
+  if(step===7){showN('n-priv-a','active');showN('n-priv-c','active');}
+  if(step===9){showN('n-alb','active');}
+  if(step===10){showN('n-worker-a','active');showN('n-worker-c','active');}
+}
+
+function tickEKS(){
+  if(step===0)showZ('z-managed');
+  if(step===1){showN('n-api','active');showN('n-etcd','active');showN('n-ctrl','active');}
+  if(step===3)showZ('z-customer');
+  if(step===4){showN('n-w1','active');showN('n-w2','active');showN('n-w3','active');}
+  if(step===6){showN('n-p1','active');showN('n-p2','active');}
+  if(step===7){showN('n-p3','active');showN('n-p4','active');}
+  if(step===8){showN('n-p5','active');showN('n-p6','active');}
+}
+
+const IRSA_IDS=['ir-pod','ir-sa','ir-oidc','ir-sts','ir-role','ir-api'];
+const IRSA_ARROWS=['ia1','ia2','ia3','ia4','ia5'];
+const IRSA_LOGS=[
+  {t:'1. Pod app-api 시작 -> ServiceAccount "app-api-sa" 마운트',c:'log-info'},
+  {t:'2. SA annotation: eks.amazonaws.com/role-arn: arn:aws:iam::role/app-api',c:'log-info'},
+  {t:'3. kubelet -> OIDC JWT 토큰 주입 (/var/run/secrets/...)',c:'log-info'},
+  {t:'4. AWS SDK -> STS AssumeRoleWithWebIdentity 호출',c:'log-warn'},
+  {t:'5. STS 검증: OIDC issuer + audience + subject 확인',c:'log-warn'},
+  {t:'6. 임시 자격증명 발급 (AccessKey, SecretKey, SessionToken)',c:'log-add'},
+  {t:'7. s3:GetObject 호출 -> 성공!',c:'log-add'},
+];
+
+function tickIRSA(){
+  const log=document.getElementById('irsaLog');
+  function addLog(idx){if(idx>=IRSA_LOGS.length)return;const d=document.createElement('div');d.className=IRSA_LOGS[idx].c;d.textContent=IRSA_LOGS[idx].t;log.appendChild(d);log.scrollTop=log.scrollHeight;}
+
+  if(step>=0&&step<6){
+    const i=Math.floor(step);
+    if(i<IRSA_IDS.length){
+      const el=document.getElementById(IRSA_IDS[i]);el.classList.add('active');
+      if(i>0){document.getElementById(IRSA_ARROWS[i-1]).classList.add('active');document.getElementById(IRSA_IDS[i-1]).classList.remove('active');document.getElementById(IRSA_IDS[i-1]).classList.add('done');}
+    }
+  }
+  if(step===0)addLog(0);
+  if(step===1)addLog(1);
+  if(step===2)addLog(2);
+  if(step===3){addLog(3);addLog(4);}
+  if(step===4)addLog(5);
+  if(step===5){addLog(6);document.getElementById(IRSA_IDS[5]).classList.remove('active');document.getElementById(IRSA_IDS[5]).classList.add('done');}
+}
+
+function tick(){
+  if(paused)return;
+  const maxS=STEPS_PER_TAB[currentTab];
+  document.getElementById('progressFill').style.width=Math.min(100,((step+1)/maxS)*100)+'%';
+  if(currentTab===0)tickVPC();
+  if(currentTab===1)tickEKS();
+  if(currentTab===2)tickIRSA();
+  if(step>=maxS){clearInterval(timer);timer=null;return;}
+  step++;
+}
+
+function play(){if(timer)return;paused=false;document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');timer=setInterval(tick,900);}
+function pause(){paused=!paused;document.getElementById('btnPause').classList.toggle('active',paused);document.getElementById('btnPlay').classList.toggle('active',!paused);}
+function restart(){
+  clearInterval(timer);timer=null;step=0;paused=false;
+  document.getElementById('progressFill').style.width='0%';
+  document.querySelectorAll('.node,.zone').forEach(e=>e.classList.remove('show','active','done'));
+  document.querySelectorAll('.irsa-step').forEach(e=>e.classList.remove('active','done'));
+  document.querySelectorAll('.irsa-arrow').forEach(e=>e.classList.remove('active'));
+  const log=document.getElementById('irsaLog');if(log)log.innerHTML='';
+  play();
+}
+play();
+</script>
+</body>
+</html>

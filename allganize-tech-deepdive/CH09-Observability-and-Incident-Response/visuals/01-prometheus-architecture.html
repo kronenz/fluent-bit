@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prometheus Architecture | 프로메테우스 아키텍처</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.header h1{font-size:1.6rem;color:#58a6ff;margin-bottom:4px}
+.header p{font-size:.9rem;color:#8b949e}
+.controls{display:flex;justify-content:center;gap:10px;padding:14px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#c9d1d9;cursor:pointer;font-size:.85rem;transition:all .2s}
+.controls button:hover{border-color:#58a6ff;color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.section{padding:20px 16px;max-width:1100px;margin:0 auto}
+.section-title{font-size:1.1rem;color:#58a6ff;margin-bottom:16px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.section-title span{color:#8b949e;font-size:.8rem;font-weight:400;margin-left:8px}
+
+/* Pipeline */
+.pipeline{display:flex;align-items:center;justify-content:center;gap:0;padding:20px 0;flex-wrap:wrap}
+.pipe-node{min-width:110px;padding:12px 10px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid #30363d;background:#161b22;position:relative;opacity:0;transform:translateY(20px);transition:all .5s ease;text-align:center}
+.pipe-node.show{opacity:1;transform:translateY(0)}
+.pipe-node .en{font-size:.75rem;color:#58a6ff;font-weight:600}
+.pipe-node .ko{font-size:.65rem;color:#8b949e;margin-top:2px}
+.pipe-arrow{width:40px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .4s ease}
+.pipe-arrow.show{opacity:1}
+.pipe-arrow svg{width:30px;height:20px}
+.pipe-arrow svg path{stroke:#3fb950;stroke-width:2;fill:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(63,185,80,.4)}50%{box-shadow:0 0 20px 4px rgba(63,185,80,.2)}}
+.pipe-node.active{animation:pulse 1.5s infinite;border-color:#3fb950}
+.pipe-node.highlight{border-color:#3fb950;box-shadow:0 0 15px rgba(63,185,80,.3)}
+@keyframes flowRight{0%{stroke-dashoffset:30}100%{stroke-dashoffset:0}}
+.pipe-arrow.animated svg path{stroke-dasharray:10 5;animation:flowRight .8s linear infinite}
+
+/* Metric Types */
+.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:12px}
+@media(max-width:700px){.metric-grid{grid-template-columns:1fr}}
+.metric-card{border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;opacity:0;transform:scale(.95);transition:all .5s ease;position:relative;overflow:hidden}
+.metric-card.show{opacity:1;transform:scale(1)}
+.metric-card h3{font-size:.95rem;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.metric-card.counter h3{color:#f0883e}
+.metric-card.gauge h3{color:#a371f7}
+.metric-card.histogram h3{color:#3fb950}
+.metric-card .desc{font-size:.78rem;color:#8b949e;line-height:1.6;margin-bottom:10px}
+.metric-card .visual{height:60px;position:relative;background:#0d1117;border-radius:4px;overflow:hidden}
+
+/* Counter animation */
+.counter-line{position:absolute;bottom:0;left:0;width:100%;height:100%}
+.counter-line svg{width:100%;height:100%}
+.counter-path{stroke:#f0883e;stroke-width:2;fill:none;stroke-dasharray:200;stroke-dashoffset:200;transition:stroke-dashoffset 2s ease}
+.metric-card.show .counter-path{stroke-dashoffset:0}
+
+/* Gauge animation */
+.gauge-bar{position:absolute;bottom:0;left:10%;width:80%;height:0;background:linear-gradient(0deg,#a371f7,#8957e5);border-radius:4px 4px 0 0;transition:height 2s ease}
+.metric-card.show .gauge-bar{animation:gaugeUpDown 3s ease infinite}
+@keyframes gaugeUpDown{0%{height:30%}50%{height:80%}100%{height:30%}}
+
+/* Histogram animation */
+.hist-bars{display:flex;align-items:flex-end;justify-content:center;gap:3px;height:100%;padding:4px}
+.hist-bar{width:14%;background:#3fb950;border-radius:2px 2px 0 0;transition:height 1s ease;height:0}
+.metric-card.show .hist-bar{opacity:1}
+.metric-card.show .hist-bar:nth-child(1){height:15%;transition-delay:.1s}
+.metric-card.show .hist-bar:nth-child(2){height:35%;transition-delay:.2s}
+.metric-card.show .hist-bar:nth-child(3){height:70%;transition-delay:.3s}
+.metric-card.show .hist-bar:nth-child(4){height:90%;transition-delay:.4s}
+.metric-card.show .hist-bar:nth-child(5){height:60%;transition-delay:.5s}
+.metric-card.show .hist-bar:nth-child(6){height:25%;transition-delay:.6s}
+.metric-card.show .hist-bar:nth-child(7){height:10%;transition-delay:.7s}
+
+.metric-card code{font-size:.7rem;background:#0d1117;padding:6px 8px;border-radius:4px;display:block;margin-top:8px;color:#3fb950;line-height:1.5}
+
+/* Service Discovery */
+.sd-flow{display:flex;align-items:stretch;justify-content:center;gap:16px;margin-top:12px;flex-wrap:wrap}
+.sd-step{flex:1;min-width:200px;max-width:300px;border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;opacity:0;transform:translateX(-20px);transition:all .6s ease}
+.sd-step.show{opacity:1;transform:translateX(0)}
+.sd-step h4{color:#bd93f9;font-size:.85rem;margin-bottom:8px}
+.sd-step .items{font-size:.75rem;color:#8b949e;line-height:1.8}
+.sd-step .items .item{padding:4px 8px;background:#0d1117;border-radius:4px;margin:4px 0;border-left:3px solid #30363d;transition:border-color .3s}
+.sd-step.show .items .item{border-left-color:#bd93f9}
+
+/* Fork arrows for Grafana/Alertmanager */
+.fork-container{display:flex;flex-direction:column;align-items:center;gap:8px}
+.fork-label{font-size:.65rem;color:#8b949e}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>Prometheus Architecture</h1>
+<p>프로메테우스 메트릭 수집 아키텍처 | Pull-based 모니터링 시스템의 전체 흐름</p>
+</div>
+
+<div class="controls">
+<button id="btnPlay" class="active" onclick="play()">&#9654; Play / 재생</button>
+<button id="btnPause" onclick="pause()">&#10074;&#10074; Pause / 일시정지</button>
+<button id="btnRestart" onclick="restart()">&#8634; Restart / 처음부터</button>
+</div>
+
+<!-- Section 1: Prometheus Scrape Pipeline -->
+<div class="section">
+<div class="section-title">1. Prometheus Metrics Flow <span>프로메테우스 메트릭 수집 흐름</span></div>
+<div class="pipeline" id="pipeline">
+<div class="pipe-node" id="n0"><div class="en">Targets</div><div class="ko">수집 대상 (앱/노드)</div></div>
+<div class="pipe-arrow" id="a0"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n1"><div class="en">Prometheus Scrape</div><div class="ko">Pull 방식 수집</div></div>
+<div class="pipe-arrow" id="a1"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n2"><div class="en">TSDB Storage</div><div class="ko">시계열 DB 저장</div></div>
+<div class="pipe-arrow" id="a2"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="pipe-node" id="n3"><div class="en">PromQL Query</div><div class="ko">쿼리 엔진</div></div>
+<div class="pipe-arrow" id="a3"><svg viewBox="0 0 30 20"><path d="M2 10 L22 10 M18 5 L24 10 L18 15"/></svg></div>
+<div class="fork-container">
+<div class="pipe-node" id="n4a"><div class="en">Grafana</div><div class="ko">대시보드 시각화</div></div>
+<div class="pipe-node" id="n4b" style="margin-top:8px"><div class="en">Alertmanager</div><div class="ko">알림 관리</div></div>
+</div>
+</div>
+</div>
+
+<!-- Section 2: Metric Types -->
+<div class="section">
+<div class="section-title">2. Metric Types <span>메트릭 유형</span></div>
+<div class="metric-grid" id="metricGrid">
+<div class="metric-card counter" id="mc0">
+<h3>Counter (카운터)</h3>
+<div class="desc">단조 증가만 하는 값. 요청 수, 에러 수 등에 사용. 리셋 시 0부터 다시 시작.</div>
+<div class="visual">
+<svg class="counter-line" viewBox="0 0 200 60" preserveAspectRatio="none">
+<path class="counter-path" d="M0 55 L30 50 L60 42 L90 35 L120 25 L150 18 L180 10 L200 5"/>
+</svg>
+</div>
+<code>http_requests_total{method="GET"} 1027
+rate(http_requests_total[5m])</code>
+</div>
+<div class="metric-card gauge" id="mc1">
+<h3>Gauge (게이지)</h3>
+<div class="desc">올라가거나 내려갈 수 있는 값. CPU 사용률, 메모리, 온도 등 현재 상태 표현.</div>
+<div class="visual">
+<div class="gauge-bar"></div>
+</div>
+<code>node_memory_MemAvailable_bytes 4.2e+09
+process_resident_memory_bytes</code>
+</div>
+<div class="metric-card histogram" id="mc2">
+<h3>Histogram (히스토그램)</h3>
+<div class="desc">관측값을 버킷별로 분류. 요청 지연시간 분포 파악에 사용. le 레이블로 버킷 구분.</div>
+<div class="visual">
+<div class="hist-bars">
+<div class="hist-bar"></div>
+<div class="hist-bar"></div>
+<div class="hist-bar"></div>
+<div class="hist-bar"></div>
+<div class="hist-bar"></div>
+<div class="hist-bar"></div>
+<div class="hist-bar"></div>
+</div>
+</div>
+<code>http_request_duration_seconds_bucket{le="0.5"}
+histogram_quantile(0.99, ...)</code>
+</div>
+</div>
+</div>
+
+<!-- Section 3: Service Discovery -->
+<div class="section">
+<div class="section-title">3. Service Discovery <span>서비스 디스커버리</span></div>
+<div class="sd-flow" id="sdFlow">
+<div class="sd-step" id="sd0">
+<h4>Kubernetes API</h4>
+<div class="items">
+<div class="item">Node 목록 조회</div>
+<div class="item">Pod / Service 엔드포인트</div>
+<div class="item">Annotation 기반 필터링</div>
+</div>
+</div>
+<div class="sd-step" id="sd1">
+<h4>Endpoints Discovery</h4>
+<div class="items">
+<div class="item">prometheus.io/scrape: "true"</div>
+<div class="item">prometheus.io/port: "8080"</div>
+<div class="item">prometheus.io/path: "/metrics"</div>
+</div>
+</div>
+<div class="sd-step" id="sd2">
+<h4>Scrape Config</h4>
+<div class="items">
+<div class="item">scrape_interval: 15s</div>
+<div class="item">scrape_timeout: 10s</div>
+<div class="item">relabel_configs: [...]</div>
+<div class="item">metric_relabel_configs: [...]</div>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+let timer=null,step=0,playing=false;
+const totalSteps=22;
+
+function animateStep(s){
+  if(s<=8){
+    const idx=Math.floor(s/2);
+    if(s%2===0){
+      const nodeId=idx<=3?'n'+idx:(idx===4?'n4a':null);
+      const node=document.getElementById(nodeId);
+      if(node){node.classList.add('show');node.classList.add('active');}
+      if(idx>0){
+        const prevId=idx<=4?'n'+(idx-1):null;
+        const prev=prevId?document.getElementById(prevId):null;
+        if(prev)prev.classList.remove('active');
+      }
+    } else {
+      const arrow=document.getElementById('a'+Math.floor(s/2));
+      if(arrow)arrow.classList.add('show','animated');
+    }
+  }
+  if(s===9){
+    const n4b=document.getElementById('n4b');
+    if(n4b){n4b.classList.add('show','highlight');}
+    const n4a=document.getElementById('n4a');
+    if(n4a){n4a.classList.add('highlight');n4a.classList.remove('active');}
+  }
+  if(s>=10&&s<=12){
+    const card=document.getElementById('mc'+(s-10));
+    if(card)card.classList.add('show');
+  }
+  if(s>=14&&s<=16){
+    const sd=document.getElementById('sd'+(s-14));
+    if(sd)sd.classList.add('show');
+  }
+}
+
+function play(){
+  if(playing)return;playing=true;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  timer=setInterval(()=>{if(step>=totalSteps){pause();return;}animateStep(step);step++;},600);
+}
+function pause(){
+  playing=false;clearInterval(timer);
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function restart(){
+  pause();step=0;
+  document.querySelectorAll('.pipe-node').forEach(n=>n.classList.remove('show','active','highlight'));
+  document.querySelectorAll('.pipe-arrow').forEach(a=>a.classList.remove('show','animated'));
+  document.querySelectorAll('.metric-card').forEach(c=>c.classList.remove('show'));
+  document.querySelectorAll('.sd-step').forEach(o=>o.classList.remove('show'));
+  setTimeout(play,300);
+}
+window.addEventListener('load',()=>setTimeout(play,500));
+</script>
+</body>
+</html>

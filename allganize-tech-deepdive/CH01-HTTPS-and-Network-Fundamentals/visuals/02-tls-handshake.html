@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TLS 1.2 vs 1.3 핸드셰이크 비교</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh}
+.container{max-width:1100px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.handshake-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
+@media(max-width:768px){.handshake-grid{grid-template-columns:1fr}}
+.hs-card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;position:relative}
+.hs-card h2{font-size:1.1rem;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.badge12{background:#da363340;color:#f0883e;border:1px solid #f0883e40;padding:2px 10px;border-radius:12px;font-size:0.75rem}
+.badge13{background:#2ea04340;color:#3fb950;border:1px solid #3fb95040;padding:2px 10px;border-radius:12px;font-size:0.75rem}
+.hs-desc{color:#8b949e;font-size:0.8rem;margin-bottom:16px}
+.rtt-label{position:absolute;top:20px;right:20px;font-size:0.85rem;font-weight:700;padding:4px 12px;border-radius:6px}
+.rtt12{background:#f0883e20;color:#f0883e;border:1px solid #f0883e40}
+.rtt13{background:#3fb95020;color:#3fb950;border:1px solid #3fb95040}
+.timeline{position:relative;padding:0 60px;min-height:500px}
+.tl-col{position:absolute;top:0;bottom:0;width:2px}
+.tl-client{left:58px;background:linear-gradient(180deg,#58a6ff,#58a6ff80)}
+.tl-server{right:58px;background:linear-gradient(180deg,#3fb950,#3fb95080)}
+.tl-header{position:absolute;top:-8px;font-size:0.75rem;font-weight:600;padding:2px 8px;border-radius:4px}
+.tl-header.client-h{left:28px;background:#1f6feb30;color:#58a6ff}
+.tl-header.server-h{right:28px;background:#2ea04330;color:#3fb950}
+.msg{position:absolute;left:68px;right:68px;display:flex;align-items:center;opacity:0;height:auto;min-height:36px}
+.msg.visible{animation:msgAppear 0.6s ease forwards}
+.msg.fwd{flex-direction:row}
+.msg.bwd{flex-direction:row-reverse}
+@keyframes msgAppear{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+.msg-arrow{flex:1;height:2px;position:relative;min-width:20px}
+.msg-arrow::after{content:'';position:absolute;width:0;height:0;border:5px solid transparent}
+.fwd .msg-arrow{background:linear-gradient(90deg,#58a6ff,#58a6ff80)}
+.fwd .msg-arrow::after{right:-2px;top:-4px;border-left-color:#58a6ff;border-right:none}
+.bwd .msg-arrow{background:linear-gradient(270deg,#3fb950,#3fb95080)}
+.bwd .msg-arrow::after{left:-2px;top:-4px;border-right-color:#3fb950;border-left:none}
+.msg-label{font-size:0.65rem;padding:4px 8px;border-radius:4px;white-space:nowrap;max-width:120px;text-align:center;line-height:1.3}
+.fwd .msg-label{background:#1f6feb20;color:#58a6ff;border:1px solid #58a6ff30}
+.bwd .msg-label{background:#2ea04320;color:#3fb950;border:1px solid #3fb95030}
+.phase-bar{position:absolute;left:0;right:0;height:100%;border-radius:4px;opacity:0.08;z-index:0}
+.phase-plain{background:#f85149}
+.phase-enc{background:#3fb950}
+.rtt-marker{position:absolute;left:0;right:0;border-top:1px dashed #8b949e40;display:flex;align-items:flex-start;padding-top:2px}
+.rtt-marker span{font-size:0.6rem;color:#8b949e;background:#161b22;padding:0 4px}
+.key-gen{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:4px;font-size:0.6rem;color:#d2a8ff;opacity:0;white-space:nowrap}
+.key-gen.visible{animation:keyPulse 1s ease forwards}
+@keyframes keyPulse{0%{opacity:0;transform:translateX(-50%) scale(0.8)}50%{opacity:1;transform:translateX(-50%) scale(1.1)}100%{opacity:1;transform:translateX(-50%) scale(1)}}
+.key-icon{display:inline-block;font-size:1rem}
+.encrypted-channel{position:absolute;left:60px;right:60px;bottom:20px;height:30px;border:2px solid #3fb950;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#3fb950;opacity:0;background:#3fb95010}
+.encrypted-channel.visible{animation:channelOpen 0.8s ease forwards}
+@keyframes channelOpen{0%{opacity:0;transform:scaleX(0)}100%{opacity:1;transform:scaleX(1)}}
+.comparison-table{background:#161b22;border:1px solid #30363d;border-radius:12px;overflow:hidden;margin-top:20px}
+.ct-row{display:grid;grid-template-columns:180px 1fr 1fr;border-bottom:1px solid #21262d}
+.ct-row:last-child{border-bottom:none}
+.ct-header{background:#21262d}
+.ct-cell{padding:12px 16px;font-size:0.8rem;color:#8b949e}
+.ct-header .ct-cell{color:#e6edf3;font-weight:600;font-size:0.85rem}
+.ct-cell:first-child{color:#e6edf3;border-right:1px solid #21262d}
+.ct-cell:nth-child(2){border-right:1px solid #21262d}
+.legend{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin:16px 0;padding:12px;background:#161b22;border-radius:8px;border:1px solid #30363d}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#8b949e}
+.legend-dot{width:12px;height:12px;border-radius:3px}
+.paused .msg.visible{animation-play-state:paused}
+.paused .key-gen.visible,.paused .encrypted-channel.visible{animation-play-state:paused}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>TLS 1.2 vs TLS 1.3 핸드셰이크</h1>
+<p class="subtitle">TLS Handshake Comparison - RTT 기반 성능 비교</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnim()">&#9654; 재생</button>
+  <button id="btnPause" onclick="pauseAnim()">&#10074;&#10074; 일시정지</button>
+  <button id="btnRestart" onclick="restartAnim()">&#8635; 다시시작</button>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#f85149"></div> 평문 Plaintext</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div> 암호화 Encrypted</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div> Client → Server</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d2a8ff"></div> Key 생성</div>
+</div>
+
+<div class="handshake-grid">
+  <!-- TLS 1.2 -->
+  <div class="hs-card" id="tls12card">
+    <h2><span class="badge12">TLS 1.2</span> 2-RTT 핸드셰이크</h2>
+    <p class="hs-desc">Full handshake requires 2 round trips before encrypted data</p>
+    <div class="rtt-label rtt12">2-RTT</div>
+    <div class="timeline" id="tl12" style="height:520px">
+      <div class="tl-col tl-client"></div>
+      <div class="tl-col tl-server"></div>
+      <div class="tl-header client-h">Client</div>
+      <div class="tl-header server-h">Server</div>
+      <!-- Phase bars -->
+      <div class="phase-bar phase-plain" style="top:20px;height:340px"></div>
+      <div class="phase-bar phase-enc" style="top:360px;height:140px"></div>
+      <!-- RTT markers -->
+      <div class="rtt-marker" style="top:170px"><span>RTT 1</span></div>
+      <div class="rtt-marker" style="top:330px"><span>RTT 2</span></div>
+      <!-- Messages -->
+      <div class="msg fwd" id="t12m1" style="top:40px"><div class="msg-label">ClientHello<br><small>지원 암호 목록</small></div><div class="msg-arrow"></div></div>
+      <div class="msg bwd" id="t12m2" style="top:90px"><div class="msg-label">ServerHello<br><small>선택된 암호</small></div><div class="msg-arrow"></div></div>
+      <div class="msg bwd" id="t12m3" style="top:140px"><div class="msg-label">Certificate<br><small>서버 인증서</small></div><div class="msg-arrow"></div></div>
+      <div class="msg bwd" id="t12m4" style="top:190px"><div class="msg-label">ServerKeyExchange<br><small>키 교환 파라미터</small></div><div class="msg-arrow"></div></div>
+      <div class="msg bwd" id="t12m5" style="top:240px"><div class="msg-label">ServerHelloDone</div><div class="msg-arrow"></div></div>
+      <div class="msg fwd" id="t12m6" style="top:280px"><div class="msg-label">ClientKeyExchange<br><small>Pre-master secret</small></div><div class="msg-arrow"></div></div>
+      <div class="key-gen" id="t12k" style="top:320px">&#128273; Master Secret 생성</div>
+      <div class="msg fwd" id="t12m7" style="top:350px"><div class="msg-label">ChangeCipherSpec<br><small>암호화 시작</small></div><div class="msg-arrow"></div></div>
+      <div class="msg fwd" id="t12m8" style="top:395px"><div class="msg-label" style="background:#2ea04320;color:#3fb950;border-color:#3fb95030">Finished<br><small>검증 완료</small></div><div class="msg-arrow" style="background:linear-gradient(90deg,#3fb950,#3fb95080)"></div></div>
+      <div class="msg bwd" id="t12m9" style="top:440px"><div class="msg-label" style="background:#2ea04320;color:#3fb950;border-color:#3fb95030">Finished<br><small>검증 완료</small></div><div class="msg-arrow" style="background:linear-gradient(270deg,#3fb950,#3fb95080)"></div></div>
+      <div class="encrypted-channel" id="t12enc">&#128274; Encrypted Channel 암호화 채널 수립</div>
+    </div>
+  </div>
+
+  <!-- TLS 1.3 -->
+  <div class="hs-card" id="tls13card">
+    <h2><span class="badge13">TLS 1.3</span> 1-RTT 핸드셰이크</h2>
+    <p class="hs-desc">Key share in first message - encrypted data after 1 round trip</p>
+    <div class="rtt-label rtt13">1-RTT</div>
+    <div class="timeline" id="tl13" style="height:520px">
+      <div class="tl-col tl-client"></div>
+      <div class="tl-col tl-server"></div>
+      <div class="tl-header client-h">Client</div>
+      <div class="tl-header server-h">Server</div>
+      <!-- Phase bars -->
+      <div class="phase-bar phase-plain" style="top:20px;height:120px"></div>
+      <div class="phase-bar phase-enc" style="top:140px;height:360px"></div>
+      <!-- RTT marker -->
+      <div class="rtt-marker" style="top:200px"><span>RTT 1</span></div>
+      <!-- Messages -->
+      <div class="msg fwd" id="t13m1" style="top:40px"><div class="msg-label">ClientHello<br><small>+ KeyShare 키 공유</small></div><div class="msg-arrow"></div></div>
+      <div class="msg bwd" id="t13m2" style="top:100px"><div class="msg-label" style="background:#2ea04320;color:#3fb950;border-color:#3fb95030">ServerHello<br><small>+ KeyShare</small></div><div class="msg-arrow" style="background:linear-gradient(270deg,#3fb950,#3fb95080)"></div></div>
+      <div class="key-gen" id="t13k" style="top:155px">&#128273; Handshake Keys 즉시 생성</div>
+      <div class="msg bwd" id="t13m3" style="top:180px"><div class="msg-label" style="background:#2ea04320;color:#3fb950;border-color:#3fb95030">EncryptedExtensions<br><small>암호화된 확장</small></div><div class="msg-arrow" style="background:linear-gradient(270deg,#3fb950,#3fb95080)"></div></div>
+      <div class="msg bwd" id="t13m4" style="top:230px"><div class="msg-label" style="background:#2ea04320;color:#3fb950;border-color:#3fb95030">Certificate<br><small>암호화된 인증서</small></div><div class="msg-arrow" style="background:linear-gradient(270deg,#3fb950,#3fb95080)"></div></div>
+      <div class="msg bwd" id="t13m5" style="top:280px"><div class="msg-label" style="background:#2ea04320;color:#3fb950;border-color:#3fb95030">CertVerify + Finished</div><div class="msg-arrow" style="background:linear-gradient(270deg,#3fb950,#3fb95080)"></div></div>
+      <div class="msg fwd" id="t13m6" style="top:340px"><div class="msg-label" style="background:#2ea04320;color:#3fb950;border-color:#3fb95030">Finished<br><small>검증 완료</small></div><div class="msg-arrow" style="background:linear-gradient(90deg,#3fb950,#3fb95080)"></div></div>
+      <div class="msg fwd" id="t13m7" style="top:390px"><div class="msg-label" style="background:#d2a8ff20;color:#d2a8ff;border-color:#d2a8ff30">Application Data<br><small>즉시 전송 가능!</small></div><div class="msg-arrow" style="background:linear-gradient(90deg,#d2a8ff,#d2a8ff80)"></div></div>
+      <div class="encrypted-channel" id="t13enc" style="bottom:30px">&#128274; Encrypted Channel - 더 빠른 수립!</div>
+    </div>
+  </div>
+</div>
+
+<div class="comparison-table">
+  <div class="ct-row ct-header">
+    <div class="ct-cell">비교 항목</div>
+    <div class="ct-cell">TLS 1.2</div>
+    <div class="ct-cell">TLS 1.3</div>
+  </div>
+  <div class="ct-row"><div class="ct-cell">RTT (Round Trip)</div><div class="ct-cell" style="color:#f0883e">2-RTT</div><div class="ct-cell" style="color:#3fb950">1-RTT (0-RTT 재개 가능)</div></div>
+  <div class="ct-row"><div class="ct-cell">Key Exchange</div><div class="ct-cell">RSA, DHE, ECDHE</div><div class="ct-cell">ECDHE, DHE만 허용</div></div>
+  <div class="ct-row"><div class="ct-cell">Cipher Suites</div><div class="ct-cell">수십 개 (약한 암호 포함)</div><div class="ct-cell">5개만 (모두 AEAD)</div></div>
+  <div class="ct-row"><div class="ct-cell">Forward Secrecy</div><div class="ct-cell">선택적 (RSA일 때 없음)</div><div class="ct-cell">필수 (항상 보장)</div></div>
+  <div class="ct-row"><div class="ct-cell">인증서 암호화</div><div class="ct-cell" style="color:#f85149">평문 전송</div><div class="ct-cell" style="color:#3fb950">암호화 전송</div></div>
+  <div class="ct-row"><div class="ct-cell">0-RTT Resumption</div><div class="ct-cell">미지원</div><div class="ct-cell" style="color:#3fb950">지원 (PSK 기반)</div></div>
+</div>
+</div>
+
+<script>
+let state='stopped',timers=[];
+const seq12=['t12m1','t12m2','t12m3','t12m4','t12m5','t12m6','t12k','t12m7','t12m8','t12m9','t12enc'];
+const seq13=['t13m1','t13m2','t13k','t13m3','t13m4','t13m5','t13m6','t13m7','t13enc'];
+function clearAll(){timers.forEach(t=>clearTimeout(t));timers=[];[...seq12,...seq13].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('visible')})}
+function animateSeq(ids,baseDelay,interval){ids.forEach((id,i)=>{const t=setTimeout(()=>{const el=document.getElementById(id);if(el)el.classList.add('visible')},baseDelay+i*interval);timers.push(t)})}
+function startAnim(){
+  if(state==='running')return;
+  if(state==='paused'){document.body.classList.remove('paused');state='running';return}
+  clearAll();state='running';
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  animateSeq(seq12,200,450);
+  animateSeq(seq13,200,350);
+}
+function pauseAnim(){state='paused';document.body.classList.add('paused');document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active')}
+function restartAnim(){state='stopped';document.body.classList.remove('paused');clearAll();setTimeout(startAnim,100)}
+startAnim();
+</script>
+</body>
+</html>

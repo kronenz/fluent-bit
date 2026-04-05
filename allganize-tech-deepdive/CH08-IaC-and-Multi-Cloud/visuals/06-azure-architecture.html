@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Azure 인프라 아키텍처 - Azure Infrastructure</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.tabs{display:flex;justify-content:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.tabs button{padding:6px 16px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#8b949e;cursor:pointer;font-size:0.82rem;transition:all .2s}
+.tabs button.active{background:#1f6feb;color:#e6edf3;border-color:#58a6ff}
+.progress-bar{width:100%;height:4px;background:#21262d;border-radius:2px;margin-bottom:20px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#0078d4,#50e6ff);width:0%;transition:width 0.5s ease;border-radius:2px}
+
+.scene{display:none}.scene.active{display:block}
+
+.arch{position:relative;background:#161b22;border:1px solid #30363d;border-radius:12px;min-height:460px;padding:16px;overflow:hidden}
+.zone{position:absolute;border-radius:10px;border:2px dashed;padding:8px;opacity:0;transition:all 0.6s ease}
+.zone.show{opacity:1}
+.zone-label{font-size:0.7rem;font-weight:700;margin-bottom:4px}
+
+.node{position:absolute;border-radius:8px;padding:10px 12px;border:2px solid #30363d;background:#0d1117;font-size:0.75rem;text-align:center;opacity:0;transform:scale(0.85);transition:all 0.5s ease}
+.node.show{opacity:1;transform:scale(1)}
+.node.active{border-color:var(--clr,#0078d4);box-shadow:0 0 14px color-mix(in srgb,var(--clr,#0078d4) 30%,transparent)}
+.node-icon{font-size:1.4rem;margin-bottom:4px}
+.node-title{font-weight:700;font-size:0.78rem}
+.node-sub{color:#8b949e;font-size:0.65rem;margin-top:2px}
+
+/* AAD flow */
+.aad-flow{display:flex;align-items:center;gap:0;justify-content:center;margin:20px 0;flex-wrap:wrap;padding:10px}
+.aad-step{background:#0d1117;border:2px solid #30363d;border-radius:10px;padding:12px 16px;text-align:center;min-width:130px;opacity:0.3;transform:scale(0.9);transition:all 0.5s}
+.aad-step.active{opacity:1;transform:scale(1);border-color:var(--clr)}
+.aad-step.done{opacity:0.8;border-color:#3fb950}
+.aad-icon{font-size:1.4rem;margin-bottom:4px}
+.aad-title{font-size:0.8rem;font-weight:700;color:var(--clr)}
+.aad-sub{font-size:0.65rem;color:#8b949e;margin-top:2px}
+.aad-arrow{font-size:1rem;color:#30363d;padding:0 4px;opacity:0.3;transition:all 0.5s}
+.aad-arrow.active{color:#0078d4;opacity:1}
+
+/* Policy enforcement */
+.policy-area{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;margin:20px 0}
+.policy-row{display:flex;align-items:center;gap:12px;margin:10px 0;padding:10px 14px;border-radius:8px;background:#0d1117;border:1px solid #21262d;opacity:0.3;transition:all 0.5s}
+.policy-row.show{opacity:1}
+.policy-row.allow{border-color:#3fb950}
+.policy-row.deny{border-color:#f85149}
+.policy-row.audit{border-color:#d29922}
+.policy-icon{font-size:1.2rem;width:30px;text-align:center}
+.policy-name{flex:1;font-size:0.8rem;font-weight:600}
+.policy-effect{padding:3px 10px;border-radius:12px;font-size:0.68rem;font-weight:700}
+.policy-effect.allow-badge{background:#3fb95030;color:#3fb950}
+.policy-effect.deny-badge{background:#f8514930;color:#f85149}
+.policy-effect.audit-badge{background:#d2992230;color:#d29922}
+.policy-desc{font-size:0.7rem;color:#8b949e;width:200px;text-align:right}
+
+.log-output{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px;margin-top:16px;font-family:'Cascadia Code','Fira Code',monospace;font-size:0.72rem;max-height:160px;overflow-y:auto;line-height:1.6}
+.log-add{color:#3fb950}.log-info{color:#0078d4}.log-warn{color:#d29922}.log-deny{color:#f85149}
+
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:20px}
+.info-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px}
+.info-card h3{font-size:0.85rem;margin-bottom:6px}
+.info-card p{font-size:0.78rem;color:#8b949e;line-height:1.5}
+
+@media(max-width:768px){.arch{min-height:520px}.aad-flow{flex-direction:column}.aad-arrow{transform:rotate(90deg)}.container{padding:12px}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Azure 인프라 아키텍처</h1>
+<p class="subtitle">Azure Infrastructure - VNET / AKS / AAD Integration / Azure Policy</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="play()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8635; 다시시작 Restart</button>
+</div>
+
+<div class="tabs">
+  <button class="active" onclick="switchTab(0)">VNET & AKS</button>
+  <button onclick="switchTab(1)">AAD Integration</button>
+  <button onclick="switchTab(2)">Azure Policy</button>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<!-- Scene 0: VNET & AKS -->
+<div class="scene active" id="scene0">
+  <div class="arch" id="arch0">
+    <!-- Resource Group -->
+    <div class="zone" id="z-rg" style="left:2%;top:2%;right:2%;bottom:2%;border-color:#0078d440;background:#0078d408">
+      <div class="zone-label" style="color:#0078d4">Resource Group: rg-allganize-prod</div>
+    </div>
+    <!-- VNET -->
+    <div class="zone" id="z-vnet" style="left:4%;top:10%;right:4%;bottom:4%;border-color:#50e6ff40;background:#50e6ff05">
+      <div class="zone-label" style="color:#50e6ff">VNET 10.0.0.0/16</div>
+    </div>
+
+    <!-- Subnets -->
+    <div class="node" id="n-sub-aks" style="left:6%;top:22%;width:26%;--clr:#0078d4">
+      <div class="node-icon">&#9784;&#65039;</div>
+      <div class="node-title">AKS Subnet</div>
+      <div class="node-sub">10.0.0.0/22 (1024 IPs)</div>
+    </div>
+    <div class="node" id="n-sub-db" style="left:37%;top:22%;width:24%;--clr:#50e6ff">
+      <div class="node-icon">&#128451;</div>
+      <div class="node-title">DB Subnet</div>
+      <div class="node-sub">10.0.4.0/24 (PE)</div>
+    </div>
+    <div class="node" id="n-sub-agw" style="right:6%;top:22%;width:24%;--clr:#bc8cff">
+      <div class="node-icon">&#9878;&#65039;</div>
+      <div class="node-title">AppGW Subnet</div>
+      <div class="node-sub">10.0.5.0/24</div>
+    </div>
+
+    <!-- NSGs -->
+    <div class="node" id="n-nsg1" style="left:6%;top:46%;width:18%;--clr:#d29922">
+      <div class="node-icon">&#128737;&#65039;</div>
+      <div class="node-title">NSG: aks</div>
+      <div class="node-sub">Inbound: 443,80</div>
+    </div>
+    <div class="node" id="n-nsg2" style="left:28%;top:46%;width:18%;--clr:#d29922">
+      <div class="node-icon">&#128737;&#65039;</div>
+      <div class="node-title">NSG: db</div>
+      <div class="node-sub">Inbound: 5432</div>
+    </div>
+
+    <!-- AKS Cluster -->
+    <div class="node" id="n-aks" style="left:6%;top:66%;width:55%;--clr:#0078d4">
+      <div class="node-icon">&#9784;&#65039;</div>
+      <div class="node-title">AKS Cluster (allganize-prod-aks)</div>
+      <div class="node-sub">Kubernetes 1.28 | System + User Node Pools | CNI Overlay</div>
+    </div>
+
+    <!-- App GW -->
+    <div class="node" id="n-agw" style="right:6%;top:46%;width:22%;--clr:#bc8cff">
+      <div class="node-icon">&#127760;</div>
+      <div class="node-title">App Gateway</div>
+      <div class="node-sub">WAF v2 + AGIC</div>
+    </div>
+
+    <!-- Private Endpoint -->
+    <div class="node" id="n-pe" style="right:6%;top:66%;width:22%;--clr:#50e6ff">
+      <div class="node-icon">&#128274;</div>
+      <div class="node-title">Private Endpoint</div>
+      <div class="node-sub">PostgreSQL Flexible</div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 1: AAD Integration -->
+<div class="scene" id="scene1">
+  <div class="aad-flow" id="aadFlow">
+    <div class="aad-step" id="aad-user" style="--clr:#0078d4">
+      <div class="aad-icon">&#128100;</div>
+      <div class="aad-title">Developer</div>
+      <div class="aad-sub">kubectl get pods</div>
+    </div>
+    <div class="aad-arrow" id="aa1">&#10145;</div>
+    <div class="aad-step" id="aad-login" style="--clr:#50e6ff">
+      <div class="aad-icon">&#128273;</div>
+      <div class="aad-title">az login</div>
+      <div class="aad-sub">Azure AD 인증</div>
+    </div>
+    <div class="aad-arrow" id="aa2">&#10145;</div>
+    <div class="aad-step" id="aad-token" style="--clr:#bc8cff">
+      <div class="aad-icon">&#127919;</div>
+      <div class="aad-title">AAD Token</div>
+      <div class="aad-sub">JWT Bearer Token</div>
+    </div>
+    <div class="aad-arrow" id="aa3">&#10145;</div>
+    <div class="aad-step" id="aad-api" style="--clr:#f0883e">
+      <div class="aad-icon">&#9881;&#65039;</div>
+      <div class="aad-title">API Server</div>
+      <div class="aad-sub">Token 검증 (AAD)</div>
+    </div>
+    <div class="aad-arrow" id="aa4">&#10145;</div>
+    <div class="aad-step" id="aad-rbac" style="--clr:#d29922">
+      <div class="aad-icon">&#128274;</div>
+      <div class="aad-title">Azure RBAC</div>
+      <div class="aad-sub">ClusterRole 매핑</div>
+    </div>
+    <div class="aad-arrow" id="aa5">&#10145;</div>
+    <div class="aad-step" id="aad-result" style="--clr:#3fb950">
+      <div class="aad-icon">&#9989;</div>
+      <div class="aad-title">Authorized</div>
+      <div class="aad-sub">pods 목록 반환</div>
+    </div>
+  </div>
+  <div class="log-output" id="aadLog"></div>
+</div>
+
+<!-- Scene 2: Azure Policy -->
+<div class="scene" id="scene2">
+  <div class="policy-area" id="policyArea">
+    <div class="policy-row" id="pol0">
+      <div class="policy-icon">&#128737;&#65039;</div>
+      <div class="policy-name">Allowed VM SKUs</div>
+      <div class="policy-effect deny-badge">Deny</div>
+      <div class="policy-desc">허용된 VM 크기만 배포 가능</div>
+    </div>
+    <div class="policy-row" id="pol1">
+      <div class="policy-icon">&#128274;</div>
+      <div class="policy-name">Require HTTPS on Storage</div>
+      <div class="policy-effect deny-badge">Deny</div>
+      <div class="policy-desc">Storage Account HTTPS 필수</div>
+    </div>
+    <div class="policy-row" id="pol2">
+      <div class="policy-icon">&#127758;</div>
+      <div class="policy-name">Allowed Locations</div>
+      <div class="policy-effect deny-badge">Deny</div>
+      <div class="policy-desc">Korea Central/South만 허용</div>
+    </div>
+    <div class="policy-row" id="pol3">
+      <div class="policy-icon">&#128200;</div>
+      <div class="policy-name">Require Resource Tags</div>
+      <div class="policy-effect audit-badge">Audit</div>
+      <div class="policy-desc">태그 미설정 리소스 감사</div>
+    </div>
+    <div class="policy-row" id="pol4">
+      <div class="policy-icon">&#128230;</div>
+      <div class="policy-name">AKS: No Privileged Containers</div>
+      <div class="policy-effect deny-badge">Deny</div>
+      <div class="policy-desc">특권 컨테이너 차단</div>
+    </div>
+    <div class="policy-row" id="pol5">
+      <div class="policy-icon">&#128272;</div>
+      <div class="policy-name">Disk Encryption Required</div>
+      <div class="policy-effect deny-badge">Deny</div>
+      <div class="policy-desc">관리 디스크 암호화 필수</div>
+    </div>
+    <div class="policy-row" id="pol6">
+      <div class="policy-icon">&#128101;</div>
+      <div class="policy-name">Deploy Diagnostic Settings</div>
+      <div class="policy-effect allow-badge">DeployIfNotExists</div>
+      <div class="policy-desc">진단 설정 자동 배포</div>
+    </div>
+  </div>
+  <div class="log-output" id="policyLog"></div>
+</div>
+
+<div class="info-grid">
+  <div class="info-card">
+    <h3 style="color:#0078d4">VNET & Subnet 설계</h3>
+    <p>AKS CNI에서는 Pod마다 VNET IP가 필요합니다. /22 이상의 충분한 Subnet이 필요하며, Private Endpoint로 PaaS 서비스에 안전하게 접근합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#50e6ff">AKS + AAD Integration</h3>
+    <p>Azure AD를 AKS 인증 백엔드로 사용합니다. AAD 그룹과 ClusterRoleBinding을 매핑하여 RBAC을 관리합니다. Conditional Access도 적용 가능합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#bc8cff">NSG (Network Security Group)</h3>
+    <p>Subnet 레벨의 방화벽입니다. Inbound/Outbound 규칙으로 트래픽을 제어합니다. AKS Subnet에서는 필요한 포트만 허용합니다.</p>
+  </div>
+  <div class="info-card">
+    <h3 style="color:#d29922">Azure Policy</h3>
+    <p>조직의 거버넌스 규칙을 코드로 정의합니다. Deny(차단), Audit(감사), DeployIfNotExists(자동배포) 효과로 컴플라이언스를 강제합니다.</p>
+  </div>
+</div>
+</div>
+
+<script>
+let currentTab=0,timer=null,paused=false,step=0;
+const STEPS_PER_TAB=[14,14,14];
+
+function switchTab(idx){
+  currentTab=idx;
+  document.querySelectorAll('.scene').forEach((s,i)=>s.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tabs button').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  restart();
+}
+function showN(id,cls){const el=document.getElementById(id);if(el){el.classList.add('show');if(cls)el.classList.add(cls);}}
+function showZ(id){const el=document.getElementById(id);if(el)el.classList.add('show');}
+
+function tickVNET(){
+  if(step===0)showZ('z-rg');
+  if(step===1)showZ('z-vnet');
+  if(step===2){showN('n-sub-aks','active');showN('n-sub-db','active');showN('n-sub-agw','active');}
+  if(step===4){showN('n-nsg1','active');showN('n-nsg2','active');}
+  if(step===6)showN('n-aks','active');
+  if(step===8)showN('n-agw','active');
+  if(step===10)showN('n-pe','active');
+}
+
+const AAD_IDS=['aad-user','aad-login','aad-token','aad-api','aad-rbac','aad-result'];
+const AAD_ARROWS=['aa1','aa2','aa3','aa4','aa5'];
+const AAD_LOGS=[
+  {t:'$ kubectl get pods -n production',c:'log-info'},
+  {t:'-> kubeconfig: az aks get-credentials 설정 확인',c:'log-info'},
+  {t:'-> Azure AD 로그인 (MFA 인증)',c:'log-info'},
+  {t:'-> AAD JWT Token 발급 (audience: AKS cluster)',c:'log-warn'},
+  {t:'-> API Server: Bearer Token 검증 (AAD issuer)',c:'log-warn'},
+  {t:'-> Azure RBAC: Azure Kubernetes Service Cluster User Role',c:'log-warn'},
+  {t:'-> ClusterRoleBinding: devops-team -> cluster-admin',c:'log-add'},
+  {t:'NAME          READY   STATUS    RESTARTS   AGE',c:'log-add'},
+  {t:'app-api-xxx   1/1     Running   0          2d',c:'log-add'},
+];
+
+function tickAAD(){
+  const log=document.getElementById('aadLog');
+  function addLog(idx){if(idx>=AAD_LOGS.length)return;const d=document.createElement('div');d.className=AAD_LOGS[idx].c;d.textContent=AAD_LOGS[idx].t;log.appendChild(d);log.scrollTop=log.scrollHeight;}
+
+  if(step<6){
+    const el=document.getElementById(AAD_IDS[step]);el.classList.add('active');
+    if(step>0){document.getElementById(AAD_ARROWS[step-1]).classList.add('active');document.getElementById(AAD_IDS[step-1]).classList.remove('active');document.getElementById(AAD_IDS[step-1]).classList.add('done');}
+  }
+  if(step===0)addLog(0);
+  if(step===1){addLog(1);addLog(2);}
+  if(step===2)addLog(3);
+  if(step===3)addLog(4);
+  if(step===4)addLog(5);
+  if(step===5){addLog(6);addLog(7);addLog(8);document.getElementById(AAD_IDS[5]).classList.remove('active');document.getElementById(AAD_IDS[5]).classList.add('done');}
+}
+
+const POLICY_LOGS=[
+  {t:'Azure Policy 평가 시작...','c':'log-info'},
+  {t:'[DENY] VM SKU "Standard_D64s_v5" 허용 목록에 없음 -> 배포 차단',c:'log-deny'},
+  {t:'[DENY] Storage Account "mystoragehttp" HTTPS 미설정 -> 차단',c:'log-deny'},
+  {t:'[DENY] Location "eastus" 허용 목록 외 -> 차단',c:'log-deny'},
+  {t:'[AUDIT] Resource "vm-test" 태그 미설정 -> 감사 로그 기록',c:'log-warn'},
+  {t:'[DENY] AKS Pod "debug-pod" privileged=true -> 차단',c:'log-deny'},
+  {t:'[DENY] Disk "data-disk-1" 암호화 미설정 -> 차단',c:'log-deny'},
+  {t:'[DEPLOY] Diagnostic Settings 자동 배포 -> Log Analytics 연결',c:'log-add'},
+  {t:'Policy 평가 완료: 5 Deny, 1 Audit, 1 Auto-deploy',c:'log-info'},
+];
+
+function tickPolicy(){
+  const log=document.getElementById('policyLog');
+  function addLog(idx){if(idx>=POLICY_LOGS.length)return;const d=document.createElement('div');d.className=POLICY_LOGS[idx].c;d.textContent=POLICY_LOGS[idx].t;log.appendChild(d);log.scrollTop=log.scrollHeight;}
+
+  if(step===0)addLog(0);
+  for(let i=0;i<7;i++){
+    if(step===i+1){
+      const el=document.getElementById('pol'+i);
+      el.classList.add('show');
+      if(i<3||i===4||i===5)el.classList.add('deny');
+      else if(i===3)el.classList.add('audit');
+      else el.classList.add('allow');
+      addLog(i+1);
+    }
+  }
+  if(step===8)addLog(8);
+}
+
+function tick(){
+  if(paused)return;
+  const maxS=STEPS_PER_TAB[currentTab];
+  document.getElementById('progressFill').style.width=Math.min(100,((step+1)/maxS)*100)+'%';
+  if(currentTab===0)tickVNET();
+  if(currentTab===1)tickAAD();
+  if(currentTab===2)tickPolicy();
+  if(step>=maxS){clearInterval(timer);timer=null;return;}
+  step++;
+}
+
+function play(){if(timer)return;paused=false;document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');timer=setInterval(tick,900);}
+function pause(){paused=!paused;document.getElementById('btnPause').classList.toggle('active',paused);document.getElementById('btnPlay').classList.toggle('active',!paused);}
+function restart(){
+  clearInterval(timer);timer=null;step=0;paused=false;
+  document.getElementById('progressFill').style.width='0%';
+  document.querySelectorAll('.node,.zone').forEach(e=>e.classList.remove('show','active'));
+  document.querySelectorAll('.aad-step').forEach(e=>e.classList.remove('active','done'));
+  document.querySelectorAll('.aad-arrow').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.policy-row').forEach(e=>{e.classList.remove('show','deny','audit','allow');});
+  ['aadLog','policyLog'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='';});
+  play();
+}
+play();
+</script>
+</body>
+</html>

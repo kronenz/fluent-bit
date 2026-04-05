@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Algorithm Patterns - 알고리즘 패턴 시각화</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1300px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:24px;overflow:hidden}
+.section h2{font-size:1.1rem;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.badge{padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:600}
+.progress-bar{height:4px;background:#21262d;border-radius:2px;margin-top:16px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#58a6ff,#bc8cff);width:0%;transition:width .3s;border-radius:2px}
+.op-label{text-align:center;color:#8b949e;font-size:.82rem;margin-top:8px;min-height:24px}
+.op-label code{background:#30363d;padding:2px 8px;border-radius:4px;font-family:'Fira Code',monospace;color:#f0883e;font-size:.78rem}
+
+/* Sorting bars */
+.sort-container{display:flex;gap:24px;flex-wrap:wrap;justify-content:center}
+.sort-panel{flex:1;min-width:280px;max-width:500px}
+.sort-panel h3{font-size:.9rem;margin-bottom:8px;color:#8b949e}
+.sort-bars{display:flex;align-items:flex-end;gap:3px;height:160px;padding:0 8px;background:#0d1117;border-radius:8px;border:1px solid #21262d}
+.sort-bar{flex:1;border-radius:3px 3px 0 0;transition:height .3s ease,background .15s;min-width:8px;position:relative}
+.sort-bar.comparing{background:#f0883e!important}
+.sort-bar.sorted{background:#3fb950!important}
+.sort-bar.pivot{background:#bc8cff!important}
+.sort-stats{display:flex;justify-content:space-between;margin-top:8px;font-size:.72rem;color:#8b949e}
+
+/* Two Pointers */
+.tp-array{display:flex;align-items:center;justify-content:center;gap:4px;padding:16px 0;flex-wrap:wrap}
+.tp-cell{width:50px;height:50px;border:2px solid #30363d;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;background:#0d1117;position:relative;transition:all .4s}
+.tp-cell .ptr{position:absolute;font-size:.6rem;font-weight:600;padding:1px 6px;border-radius:4px}
+.tp-cell .ptr-l{top:-18px;background:#58a6ff30;color:#58a6ff}
+.tp-cell .ptr-r{bottom:-18px;background:#f0883e30;color:#f0883e}
+.tp-cell.active-l{border-color:#58a6ff;background:#58a6ff15}
+.tp-cell.active-r{border-color:#f0883e;background:#f0883e15}
+.tp-cell.matched{border-color:#3fb950;background:#3fb95015}
+.tp-target{text-align:center;margin-bottom:12px;font-size:.85rem;color:#d2a8ff}
+
+/* Stack */
+.stack-container{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.stack-visual{width:120px;display:flex;flex-direction:column-reverse;gap:4px;min-height:200px;background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:8px;align-items:center;position:relative}
+.stack-visual::after{content:'STACK';position:absolute;bottom:-20px;font-size:.6rem;color:#6e7681}
+.stack-item{width:100px;padding:8px;text-align:center;border-radius:6px;font-size:.85rem;font-weight:600;animation:stackPush .3s ease;transition:all .3s}
+@keyframes stackPush{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+.stack-item.bracket-open{background:#58a6ff20;border:1px solid #58a6ff60;color:#58a6ff}
+.stack-item.bracket-close{background:#3fb95020;border:1px solid #3fb95060;color:#3fb950}
+.stack-item.error{background:#f8514920;border:1px solid #f8514960;color:#f85149}
+.bracket-input{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-bottom:12px}
+.bracket-char{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:2px solid #30363d;border-radius:6px;font-size:1rem;font-weight:700;background:#0d1117;transition:all .3s}
+.bracket-char.current{border-color:#f0883e;background:#f0883e15;transform:scale(1.15)}
+.bracket-char.done{border-color:#3fb950;color:#3fb950}
+.bracket-char.fail{border-color:#f85149;color:#f85149}
+.match-log{flex:1;min-width:200px;max-width:400px}
+.match-log-item{font-size:.75rem;color:#8b949e;padding:4px 0;border-bottom:1px solid #21262d}
+
+/* BFS */
+.bfs-container{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.graph-area{position:relative;width:360px;height:280px;background:#0d1117;border:1px solid #21262d;border-radius:8px}
+.graph-node{position:absolute;width:44px;height:44px;border-radius:50%;border:2px solid #30363d;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;background:#161b22;transition:all .4s;z-index:2}
+.graph-node.visited{border-color:#3fb950;background:#3fb95020;color:#3fb950}
+.graph-node.current{border-color:#f0883e;background:#f0883e20;color:#f0883e;box-shadow:0 0 16px #f0883e40;transform:scale(1.15)}
+.graph-node.queued{border-color:#58a6ff;background:#58a6ff20;color:#58a6ff}
+.graph-edge{position:absolute;background:#21262d;z-index:1;transition:background .4s}
+.graph-edge.active{background:#3fb950}
+.queue-display{min-width:200px}
+.queue-display h3{font-size:.85rem;color:#8b949e;margin-bottom:8px}
+.queue-items{display:flex;gap:4px;flex-wrap:wrap;min-height:40px}
+.queue-item{padding:6px 12px;border-radius:6px;font-size:.8rem;font-weight:600;background:#58a6ff20;border:1px solid #58a6ff60;color:#58a6ff;animation:stackPush .3s ease}
+.visited-list{margin-top:12px}
+.visited-list h3{font-size:.85rem;color:#8b949e;margin-bottom:8px}
+
+/* HashMap freq */
+.freq-input{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-bottom:16px}
+.freq-char{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:2px solid #30363d;border-radius:6px;font-size:.9rem;font-weight:600;background:#0d1117;transition:all .3s}
+.freq-char.scanning{border-color:#f0883e;background:#f0883e15;transform:scale(1.1)}
+.freq-char.counted{border-color:#3fb950;opacity:.6}
+.freq-table{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px;margin-top:8px}
+.freq-slot{background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:8px;text-align:center;transition:all .4s;font-size:.8rem}
+.freq-slot.active{border-color:#bc8cff;background:#bc8cff15}
+.freq-slot .fk{color:#d2a8ff;font-weight:700;font-size:1rem}
+.freq-slot .fv{color:#58a6ff;font-size:.75rem;margin-top:2px}
+
+.paused .sort-bar,.paused .tp-cell,.paused .graph-node{transition:none!important}
+@media(max-width:768px){.container{padding:12px}.sort-container{flex-direction:column}.graph-area{width:100%;height:240px}.bfs-container{flex-direction:column;align-items:stretch}}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+<h1>Algorithm Patterns - 알고리즘 패턴 시각화</h1>
+<p class="subtitle">정렬, 투 포인터, 스택, BFS, 해시맵 패턴 애니메이션</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnim()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pauseAnim()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restartAnim()">&#8635; 다시시작 Restart</button>
+</div>
+
+<!-- SORTING -->
+<div class="section">
+  <h2><span class="badge" style="background:#f0883e30;color:#f0883e;border:1px solid #f0883e40">SORT</span> 정렬 비교 Bubble Sort vs Quick Sort</h2>
+  <div class="sort-container">
+    <div class="sort-panel">
+      <h3>Bubble Sort - 버블 정렬 O(n<sup>2</sup>)</h3>
+      <div class="sort-bars" id="bubbleBars"></div>
+      <div class="sort-stats"><span id="bubbleSwaps">교환: 0</span><span id="bubbleComps">비교: 0</span></div>
+    </div>
+    <div class="sort-panel">
+      <h3>Quick Sort - 퀵 정렬 O(n log n)</h3>
+      <div class="sort-bars" id="quickBars"></div>
+      <div class="sort-stats"><span id="quickSwaps">교환: 0</span><span id="quickComps">비교: 0</span></div>
+    </div>
+  </div>
+  <div class="op-label" id="sortLabel">정렬 애니메이션 시작 대기 중...</div>
+  <div class="progress-bar"><div class="progress-fill" id="sortProgress"></div></div>
+</div>
+
+<!-- TWO POINTERS -->
+<div class="section">
+  <h2><span class="badge" style="background:#58a6ff30;color:#58a6ff;border:1px solid #58a6ff40">2PTR</span> 투 포인터 Two Pointer Technique</h2>
+  <div class="tp-target" id="tpTarget">Target Sum = 10 (정렬된 배열에서 합이 10인 쌍 찾기)</div>
+  <div class="tp-array" id="tpArray"></div>
+  <div class="op-label" id="tpLabel">투 포인터 시작 대기 중...</div>
+</div>
+
+<!-- STACK -->
+<div class="section">
+  <h2><span class="badge" style="background:#3fb95030;color:#3fb950;border:1px solid #3fb95040">STACK</span> 스택 - 괄호 매칭 Bracket Matching</h2>
+  <div class="bracket-input" id="bracketInput"></div>
+  <div class="stack-container">
+    <div class="stack-visual" id="stackViz"></div>
+    <div class="match-log" id="matchLog"></div>
+  </div>
+  <div class="op-label" id="stackLabel">괄호 매칭 시작 대기 중...</div>
+</div>
+
+<!-- BFS -->
+<div class="section">
+  <h2><span class="badge" style="background:#bc8cff30;color:#bc8cff;border:1px solid #bc8cff40">BFS</span> 너비 우선 탐색 Breadth-First Search</h2>
+  <div class="bfs-container">
+    <div class="graph-area" id="graphArea"></div>
+    <div>
+      <div class="queue-display">
+        <h3>Queue 큐</h3>
+        <div class="queue-items" id="queueItems"></div>
+      </div>
+      <div class="visited-list">
+        <h3>Visited 방문순서</h3>
+        <div class="queue-items" id="visitedItems"></div>
+      </div>
+    </div>
+  </div>
+  <div class="op-label" id="bfsLabel">BFS 탐색 시작 대기 중...</div>
+</div>
+
+<!-- HASHMAP FREQ -->
+<div class="section">
+  <h2><span class="badge" style="background:#d2a8ff30;color:#d2a8ff;border:1px solid #d2a8ff40">MAP</span> 해시맵 빈도 카운팅 Frequency Counter</h2>
+  <div class="freq-input" id="freqInput"></div>
+  <div class="freq-table" id="freqTable"></div>
+  <div class="op-label" id="freqLabel">빈도 카운팅 시작 대기 중...</div>
+</div>
+
+</div>
+
+<script>
+let animTimer=null,paused=false,phase=0,stepInPhase=0;
+
+/* ===== SORTING ===== */
+const origArr=[38,27,43,3,9,82,10,55,17,61,44,22];
+let bubbleArr,quickArr,bubbleOps=[],quickOps=[],bubbleSwaps=0,bubbleComps=0,quickSwaps=0,quickComps=0;
+
+function genSortOps(){
+  bubbleArr=[...origArr];quickArr=[...origArr];
+  bubbleOps=[];quickOps=[];bubbleSwaps=0;bubbleComps=0;quickSwaps=0;quickComps=0;
+  // bubble sort
+  let a=[...origArr];
+  for(let i=0;i<a.length;i++)for(let j=0;j<a.length-i-1;j++){
+    bubbleOps.push({type:'cmp',i:j,j:j+1,arr:[...a]});
+    if(a[j]>a[j+1]){[a[j],a[j+1]]=[a[j+1],a[j]];bubbleOps.push({type:'swap',i:j,j:j+1,arr:[...a]});}
+  }
+  bubbleOps.push({type:'done',arr:[...a]});
+  // quick sort
+  let b=[...origArr];
+  function qs(lo,hi){
+    if(lo>=hi)return;
+    let pivot=b[hi],idx=lo;
+    quickOps.push({type:'pivot',p:hi,arr:[...b]});
+    for(let i=lo;i<hi;i++){
+      quickOps.push({type:'cmp',i:i,j:hi,arr:[...b]});
+      if(b[i]<pivot){[b[i],b[idx]]=[b[idx],b[i]];quickOps.push({type:'swap',i:i,j:idx,arr:[...b]});idx++;}
+    }
+    [b[idx],b[hi]]=[b[hi],b[idx]];
+    quickOps.push({type:'swap',i:idx,j:hi,arr:[...b]});
+    qs(lo,idx-1);qs(idx+1,hi);
+  }
+  qs(0,b.length-1);
+  quickOps.push({type:'done',arr:[...b]});
+}
+
+function renderBars(containerId,arr,highlights,pivotIdx){
+  const c=document.getElementById(containerId);
+  const max=Math.max(...arr);
+  c.innerHTML='';
+  arr.forEach((v,i)=>{
+    const bar=document.createElement('div');
+    bar.className='sort-bar';
+    bar.style.height=(v/max*140)+'px';
+    bar.style.background='#58a6ff60';
+    if(highlights&&highlights.includes(i))bar.classList.add('comparing');
+    if(pivotIdx===i)bar.classList.add('pivot');
+    c.appendChild(bar);
+  });
+}
+
+function markSorted(containerId,arr){
+  const c=document.getElementById(containerId);
+  c.querySelectorAll('.sort-bar').forEach(b=>b.classList.add('sorted'));
+}
+
+let bOp=0,qOp=0;
+function sortStep(){
+  // bubble
+  if(bOp<bubbleOps.length){
+    const op=bubbleOps[bOp];
+    if(op.type==='done'){markSorted('bubbleBars',op.arr);}
+    else{
+      renderBars('bubbleBars',op.arr,op.type==='cmp'||op.type==='swap'?[op.i,op.j]:null);
+      if(op.type==='cmp')bubbleComps++;if(op.type==='swap')bubbleSwaps++;
+      document.getElementById('bubbleSwaps').textContent='교환 Swaps: '+bubbleSwaps;
+      document.getElementById('bubbleComps').textContent='비교 Comps: '+bubbleComps;
+    }
+    bOp+=3; // skip some for speed
+  }
+  // quick
+  if(qOp<quickOps.length){
+    const op=quickOps[qOp];
+    if(op.type==='done'){markSorted('quickBars',op.arr);}
+    else{
+      const piv=op.type==='pivot'?op.p:null;
+      renderBars('quickBars',op.arr,op.type==='cmp'||op.type==='swap'?[op.i,op.j]:null,piv);
+      if(op.type==='cmp')quickComps++;if(op.type==='swap')quickSwaps++;
+      document.getElementById('quickSwaps').textContent='교환 Swaps: '+quickSwaps;
+      document.getElementById('quickComps').textContent='비교 Comps: '+quickComps;
+    }
+    qOp+=2;
+  }
+  const maxOps=Math.max(bubbleOps.length,quickOps.length);
+  const pct=Math.min(100,(Math.max(bOp,qOp)/maxOps)*100);
+  document.getElementById('sortProgress').style.width=pct+'%';
+  document.getElementById('sortLabel').innerHTML='정렬 진행 중... Bubble: '+bubbleComps+' 비교, Quick: '+quickComps+' 비교';
+  return bOp>=bubbleOps.length&&qOp>=quickOps.length;
+}
+
+/* ===== TWO POINTERS ===== */
+const tpArr=[1,2,3,4,5,6,7,8,9];
+const tpTarget=10;
+let tpL=0,tpR=tpArr.length-1,tpFound=[];
+function initTP(){
+  tpL=0;tpR=tpArr.length-1;tpFound=[];
+  renderTP();
+}
+function renderTP(){
+  const c=document.getElementById('tpArray');c.innerHTML='';
+  tpArr.forEach((v,i)=>{
+    const d=document.createElement('div');
+    d.className='tp-cell';
+    if(tpFound.some(p=>p[0]===i||p[1]===i))d.classList.add('matched');
+    else if(i===tpL)d.classList.add('active-l');
+    else if(i===tpR)d.classList.add('active-r');
+    let ptrs='';
+    if(i===tpL)ptrs+='<span class="ptr ptr-l">L</span>';
+    if(i===tpR)ptrs+='<span class="ptr ptr-r">R</span>';
+    d.innerHTML=ptrs+v;
+    c.appendChild(d);
+  });
+}
+function tpStep(){
+  if(tpL>=tpR){document.getElementById('tpLabel').innerHTML='완료! Found '+tpFound.length+' pairs';return true;}
+  const sum=tpArr[tpL]+tpArr[tpR];
+  if(sum===tpTarget){
+    tpFound.push([tpL,tpR]);
+    document.getElementById('tpLabel').innerHTML='<code>'+tpArr[tpL]+' + '+tpArr[tpR]+' = '+tpTarget+'</code> 쌍 발견! Pair found!';
+    tpL++;tpR--;
+  } else if(sum<tpTarget){
+    document.getElementById('tpLabel').innerHTML='<code>'+tpArr[tpL]+' + '+tpArr[tpR]+' = '+sum+' < '+tpTarget+'</code> L 이동 Move L right';
+    tpL++;
+  } else {
+    document.getElementById('tpLabel').innerHTML='<code>'+tpArr[tpL]+' + '+tpArr[tpR]+' = '+sum+' > '+tpTarget+'</code> R 이동 Move R left';
+    tpR--;
+  }
+  renderTP();
+  return false;
+}
+
+/* ===== STACK BRACKET ===== */
+const brackets='({[()]})';
+let bIdx=0,stack=[];
+function initBrackets(){
+  bIdx=0;stack=[];
+  const c=document.getElementById('bracketInput');c.innerHTML='';
+  for(const ch of brackets){const d=document.createElement('div');d.className='bracket-char';d.textContent=ch;c.appendChild(d);}
+  document.getElementById('stackViz').innerHTML='';
+  document.getElementById('matchLog').innerHTML='';
+}
+const matchMap={')':'(',']':'[','}':'{'};
+function bracketStep(){
+  if(bIdx>=brackets.length){
+    const ok=stack.length===0;
+    document.getElementById('stackLabel').innerHTML=ok?'<span style="color:#3fb950">모든 괄호 매칭 성공! All brackets matched!</span>':'<span style="color:#f85149">매칭 실패! Unmatched brackets remain</span>';
+    return true;
+  }
+  const ch=brackets[bIdx];
+  const chars=document.querySelectorAll('#bracketInput .bracket-char');
+  chars.forEach((c,i)=>{c.classList.remove('current');if(i<bIdx)c.classList.add('done');});
+  chars[bIdx].classList.add('current');
+  const sv=document.getElementById('stackViz');
+  const ml=document.getElementById('matchLog');
+  if('({['.includes(ch)){
+    stack.push(ch);
+    const item=document.createElement('div');
+    item.className='stack-item bracket-open';item.textContent=ch;
+    sv.appendChild(item);
+    ml.innerHTML+='<div class="match-log-item">Push <strong style="color:#58a6ff">'+ch+'</strong> onto stack</div>';
+    document.getElementById('stackLabel').innerHTML='<code>push("'+ch+'")</code> 여는 괄호 스택에 추가';
+  } else {
+    const top=stack.pop();
+    if(top===matchMap[ch]){
+      if(sv.lastChild)sv.removeChild(sv.lastChild);
+      ml.innerHTML+='<div class="match-log-item"><span style="color:#3fb950">Match!</span> <strong>'+top+'</strong> == <strong>'+ch+'</strong></div>';
+      document.getElementById('stackLabel').innerHTML='<code>pop() -> "'+top+'"</code> 매칭 성공! <span style="color:#3fb950">'+top+' matches '+ch+'</span>';
+      chars[bIdx].classList.add('done');
+    } else {
+      ml.innerHTML+='<div class="match-log-item"><span style="color:#f85149">Mismatch!</span></div>';
+      chars[bIdx].classList.add('fail');
+    }
+  }
+  bIdx++;
+  return false;
+}
+
+/* ===== BFS ===== */
+const nodes=[
+  {id:0,x:160,y:30},{id:1,x:60,y:100},{id:2,x:260,y:100},
+  {id:3,x:20,y:190},{id:4,x:120,y:190},{id:5,x:210,y:190},{id:6,x:310,y:190},
+  {id:7,x:60,y:250},{id:8,x:260,y:250}
+];
+const edges=[[0,1],[0,2],[1,3],[1,4],[2,5],[2,6],[3,7],[5,8]];
+let bfsQueue=[],bfsVisited=new Set(),bfsEdgeActive=new Set();
+
+function initBFS(){
+  bfsQueue=[0];bfsVisited=new Set();bfsEdgeActive=new Set();
+  const ga=document.getElementById('graphArea');ga.innerHTML='';
+  // draw edges
+  edges.forEach(([a,b],idx)=>{
+    const n1=nodes[a],n2=nodes[b];
+    const dx=n2.x-n1.x,dy=n2.y-n1.y;
+    const len=Math.sqrt(dx*dx+dy*dy);
+    const angle=Math.atan2(dy,dx)*180/Math.PI;
+    const edge=document.createElement('div');
+    edge.className='graph-edge';edge.id='edge-'+idx;
+    edge.style.cssText='width:'+len+'px;height:2px;left:'+(n1.x+22)+'px;top:'+(n1.y+22)+'px;transform-origin:0 0;transform:rotate('+angle+'deg)';
+    ga.appendChild(edge);
+  });
+  // draw nodes
+  nodes.forEach(n=>{
+    const d=document.createElement('div');
+    d.className='graph-node';d.id='gnode-'+n.id;
+    d.style.left=n.x+'px';d.style.top=n.y+'px';
+    d.textContent=n.id;
+    ga.appendChild(d);
+  });
+  document.getElementById('queueItems').innerHTML='<div class="queue-item">0</div>';
+  document.getElementById('visitedItems').innerHTML='';
+}
+
+function bfsStep(){
+  if(bfsQueue.length===0){document.getElementById('bfsLabel').innerHTML='BFS 탐색 완료! Traversal Complete';return true;}
+  const curr=bfsQueue.shift();
+  if(bfsVisited.has(curr)){return false;}
+  bfsVisited.add(curr);
+  const nd=document.getElementById('gnode-'+curr);
+  // mark previous current as visited
+  document.querySelectorAll('.graph-node.current').forEach(n=>n.classList.replace('current','visited'));
+  nd.classList.add('current');nd.classList.remove('queued');
+  // add neighbors
+  const neighbors=[];
+  edges.forEach(([a,b],idx)=>{
+    let nb=-1;
+    if(a===curr&&!bfsVisited.has(b))nb=b;
+    if(b===curr&&!bfsVisited.has(a))nb=a;
+    if(nb>=0&&!bfsQueue.includes(nb)){
+      neighbors.push(nb);bfsQueue.push(nb);
+      document.getElementById('gnode-'+nb).classList.add('queued');
+      document.getElementById('edge-'+idx).classList.add('active');
+    }
+  });
+  // update queue display
+  const qi=document.getElementById('queueItems');qi.innerHTML='';
+  bfsQueue.forEach(q=>{const d=document.createElement('div');d.className='queue-item';d.textContent=q;qi.appendChild(d);});
+  const vi=document.getElementById('visitedItems');
+  const vd=document.createElement('div');vd.className='queue-item';vd.style.background='#3fb95020';vd.style.borderColor='#3fb95060';vd.style.color='#3fb950';
+  vd.textContent=curr;vi.appendChild(vd);
+  document.getElementById('bfsLabel').innerHTML='방문 Visit: <code>'+curr+'</code> | 큐 Queue: ['+bfsQueue.join(', ')+'] | 이웃 추가: ['+neighbors.join(', ')+']';
+  return false;
+}
+
+/* ===== HASHMAP FREQUENCY ===== */
+const freqStr='abracadabra';
+let fIdx=0,freqMap={};
+function initFreq(){
+  fIdx=0;freqMap={};
+  const c=document.getElementById('freqInput');c.innerHTML='';
+  for(const ch of freqStr){const d=document.createElement('div');d.className='freq-char';d.textContent=ch;c.appendChild(d);}
+  document.getElementById('freqTable').innerHTML='';
+}
+function freqStep(){
+  if(fIdx>=freqStr.length){document.getElementById('freqLabel').innerHTML='빈도 카운팅 완료! Frequency counting done';return true;}
+  const ch=freqStr[fIdx];
+  const chars=document.querySelectorAll('#freqInput .freq-char');
+  chars.forEach((c,i)=>{c.classList.remove('scanning');if(i<fIdx)c.classList.add('counted');});
+  chars[fIdx].classList.add('scanning');
+  freqMap[ch]=(freqMap[ch]||0)+1;
+  // render table
+  const t=document.getElementById('freqTable');t.innerHTML='';
+  Object.entries(freqMap).sort().forEach(([k,v])=>{
+    const d=document.createElement('div');d.className='freq-slot'+(k===ch?' active':'');
+    d.innerHTML='<div class="fk">'+k+'</div><div class="fv">count: '+v+'</div>';
+    t.appendChild(d);
+  });
+  document.getElementById('freqLabel').innerHTML='<code>map["'+ch+'"] = '+(freqMap[ch])+'</code>';
+  fIdx++;
+  return false;
+}
+
+/* ===== MAIN CONTROLLER ===== */
+const phases=[
+  {name:'sort',steps:40,fn:sortStep},
+  {name:'tp',steps:10,fn:tpStep},
+  {name:'bracket',steps:brackets.length+1,fn:bracketStep},
+  {name:'bfs',steps:10,fn:bfsStep},
+  {name:'freq',steps:freqStr.length+1,fn:freqStep},
+];
+
+function initAll(){
+  genSortOps();bOp=0;qOp=0;
+  renderBars('bubbleBars',origArr);renderBars('quickBars',origArr);
+  initTP();initBrackets();initBFS();initFreq();
+}
+
+function runStep(){
+  if(paused)return;
+  if(phase>=phases.length)return;
+  const p=phases[phase];
+  const done=p.fn();
+  stepInPhase++;
+  if(done||stepInPhase>=p.steps){phase++;stepInPhase=0;}
+  if(phase<phases.length){animTimer=setTimeout(runStep,phase===0?120:700);}
+}
+
+function startAnim(){
+  paused=false;document.getElementById('app').classList.remove('paused');
+  document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');
+  if(!animTimer)runStep();
+}
+function pauseAnim(){
+  paused=true;clearTimeout(animTimer);animTimer=null;
+  document.getElementById('app').classList.add('paused');
+  document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active');
+}
+function restartAnim(){
+  clearTimeout(animTimer);animTimer=null;phase=0;stepInPhase=0;paused=false;
+  document.getElementById('app').classList.remove('paused');
+  document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');
+  initAll();setTimeout(()=>runStep(),400);
+}
+
+initAll();
+setTimeout(()=>startAnim(),800);
+</script>
+</body>
+</html>

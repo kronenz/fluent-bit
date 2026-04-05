@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM 서빙 인프라 - LLM Serving Infrastructure</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.allganize-tag{text-align:center;margin-bottom:20px}
+.allganize-tag span{display:inline-block;padding:4px 16px;border-radius:20px;font-size:0.75rem;font-weight:600;background:linear-gradient(135deg,#58a6ff20,#bc8cff20);border:1px solid #bc8cff40;color:#bc8cff}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;margin-bottom:20px;overflow:hidden}
+.section h2{font-size:1.05rem;margin-bottom:16px;color:#58a6ff;display:flex;align-items:center;gap:8px}
+.badge{padding:2px 10px;border-radius:12px;font-size:0.7rem;font-weight:600;background:#1f6feb30;border:1px solid #58a6ff40;color:#58a6ff}
+.badge.green{background:#2ea04330;border-color:#3fb95040;color:#3fb950}
+.badge.purple{background:#bc8cff30;border-color:#bc8cff40;color:#bc8cff}
+.badge.orange{background:#f0883e30;border-color:#f0883e40;color:#f0883e}
+.badge.key{background:linear-gradient(135deg,#f0883e30,#f8514930);border-color:#f0883e;color:#f0883e;font-size:0.75rem}
+
+/* Request Flow Pipeline */
+.pipeline{display:flex;align-items:center;gap:0;background:#0d1117;border-radius:8px;border:1px solid #21262d;padding:16px 12px;overflow-x:auto;position:relative}
+.pipe-node{flex:0 0 auto;text-align:center;padding:10px 14px;border-radius:8px;border:1px solid #30363d;transition:all .5s;opacity:0.3;transform:scale(0.9);position:relative;min-width:100px}
+.pipe-node.active{opacity:1;transform:scale(1);box-shadow:0 0 16px rgba(88,166,255,0.2)}
+.pipe-node .pn-icon{font-size:1.3rem;margin-bottom:4px}
+.pipe-node .pn-name{font-size:0.75rem;font-weight:600}
+.pipe-node .pn-desc{font-size:0.6rem;color:#8b949e;margin-top:2px}
+.pipe-arrow{flex:0 0 30px;text-align:center;color:#30363d;font-size:1rem;transition:color .5s}
+.pipe-arrow.active{color:#58a6ff}
+
+.pipe-node:nth-child(1).active{border-color:#58a6ff;background:#58a6ff10}
+.pipe-node:nth-child(3).active{border-color:#3fb950;background:#3fb95010}
+.pipe-node:nth-child(5).active{border-color:#f0883e;background:#f0883e10}
+.pipe-node:nth-child(7).active{border-color:#bc8cff;background:#bc8cff10}
+.pipe-node:nth-child(9).active{border-color:#76e4f7;background:#76e4f710}
+.pipe-node:nth-child(11).active{border-color:#f85149;background:#f8514910}
+
+.pipe-packet{position:absolute;top:50%;width:8px;height:8px;border-radius:50%;background:#58a6ff;box-shadow:0 0 10px #58a6ff;transform:translateY(-50%);z-index:5;opacity:0;left:0}
+
+/* PagedAttention KV-Cache */
+.paged-area{background:#0d1117;border-radius:8px;border:1px solid #21262d;padding:16px}
+.paged-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.paged-header .ph-title{font-size:0.85rem;font-weight:600}
+.paged-header .ph-stats{font-size:0.7rem;color:#8b949e}
+
+.kv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(36px,1fr));gap:4px;margin-bottom:12px}
+.kv-block{width:100%;aspect-ratio:1;border-radius:4px;border:1px solid #30363d;background:#21262d;transition:all .3s;display:flex;align-items:center;justify-content:center;font-size:0.5rem;font-weight:600;color:transparent}
+.kv-block.alloc{border-color:#58a6ff60;background:#58a6ff20;color:#58a6ff}
+.kv-block.alloc2{border-color:#bc8cff60;background:#bc8cff20;color:#bc8cff}
+.kv-block.alloc3{border-color:#3fb95060;background:#3fb95020;color:#3fb950}
+.kv-block.freed{border-color:#f8514940;background:#f8514910;color:#f85149;opacity:0.5}
+
+.kv-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:0.7rem;color:#8b949e}
+.kv-legend span{display:flex;align-items:center;gap:4px}
+.kv-legend .dot{width:10px;height:10px;border-radius:3px}
+
+/* TTFT & TPS Visualization */
+.metrics-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.metric-panel{background:#0d1117;border-radius:8px;border:1px solid #21262d;padding:16px}
+.metric-panel .mp-label{font-size:0.75rem;color:#8b949e;margin-bottom:4px}
+.metric-panel .mp-value{font-size:2rem;font-weight:700;margin-bottom:4px}
+.metric-panel .mp-sub{font-size:0.7rem;color:#8b949e}
+.metric-panel .mp-bar{height:6px;background:#21262d;border-radius:3px;margin-top:8px;overflow:hidden}
+.metric-panel .mp-bar-fill{height:100%;border-radius:3px;transition:width 1s ease;width:0}
+.metric-panel.ttft .mp-value{color:#f0883e}
+.metric-panel.ttft .mp-bar-fill{background:linear-gradient(90deg,#3fb950,#f0883e)}
+.metric-panel.tps .mp-value{color:#3fb950}
+.metric-panel.tps .mp-bar-fill{background:linear-gradient(90deg,#58a6ff,#3fb950)}
+
+.token-stream{display:flex;gap:4px;flex-wrap:wrap;margin-top:12px;min-height:30px}
+.token{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600;opacity:0;transform:translateY(5px);transition:all .3s}
+.token.show{opacity:1;transform:translateY(0)}
+.token.t1{background:#58a6ff20;border:1px solid #58a6ff40;color:#58a6ff}
+.token.t2{background:#bc8cff20;border:1px solid #bc8cff40;color:#bc8cff}
+.token.t3{background:#3fb95020;border:1px solid #3fb95040;color:#3fb950}
+
+/* Continuous Batching */
+.batch-area{background:#0d1117;border-radius:8px;border:1px solid #21262d;padding:16px}
+.batch-timeline{position:relative}
+.batch-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.batch-label{width:70px;font-size:0.7rem;color:#8b949e;text-align:right}
+.batch-track{flex:1;height:22px;background:#21262d;border-radius:4px;display:flex;overflow:hidden;position:relative}
+.batch-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:0.55rem;font-weight:600;color:#fff;transition:width .5s ease;width:0;overflow:hidden}
+.batch-marker{position:absolute;top:-6px;width:1px;height:calc(100% + 52px);background:#58a6ff40;z-index:1}
+.batch-marker-label{position:absolute;top:-18px;font-size:0.6rem;color:#58a6ff;white-space:nowrap}
+
+.batch-info{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
+.batch-info-card{padding:8px 12px;background:#21262d;border-radius:6px;font-size:0.7rem;flex:1;min-width:140px}
+.batch-info-card strong{display:block;margin-bottom:2px}
+.batch-info-card.green strong{color:#3fb950}
+.batch-info-card.blue strong{color:#58a6ff}
+.batch-info-card.purple strong{color:#bc8cff}
+
+.paused *{animation-play-state:paused!important}
+@media(max-width:768px){.container{padding:12px}.metrics-row{grid-template-columns:1fr}.pipeline{flex-wrap:wrap;justify-content:center}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>LLM 서빙 인프라 - LLM Serving Infrastructure</h1>
+<p class="subtitle">vLLM / PagedAttention / Continuous Batching 시각화</p>
+<div class="allganize-tag"><span>Allganize 핵심 인프라 KEY INFRASTRUCTURE</span></div>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnimation()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pauseAnimation()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restartAnimation()">&#8635; 다시시작 Restart</button>
+</div>
+
+<!-- Request Flow Pipeline -->
+<div class="section">
+  <h2><span class="badge key">KEY</span> 요청 처리 흐름 LLM Request Pipeline</h2>
+  <div class="pipeline" id="pipeline">
+    <div class="pipe-node" id="pn0"><div class="pn-icon">👤</div><div class="pn-name">User</div><div class="pn-desc">사용자 요청</div></div>
+    <div class="pipe-arrow" id="pa0">→</div>
+    <div class="pipe-node" id="pn1"><div class="pn-icon">🚪</div><div class="pn-name">API GW</div><div class="pn-desc">인증/레이트리밋</div></div>
+    <div class="pipe-arrow" id="pa1">→</div>
+    <div class="pipe-node" id="pn2"><div class="pn-icon">⚖️</div><div class="pn-name">Load Balancer</div><div class="pn-desc">GPU 인스턴스 분배</div></div>
+    <div class="pipe-arrow" id="pa2">→</div>
+    <div class="pipe-node" id="pn3"><div class="pn-icon">🧠</div><div class="pn-name">vLLM Server</div><div class="pn-desc">모델 서버</div></div>
+    <div class="pipe-arrow" id="pa3">→</div>
+    <div class="pipe-node" id="pn4"><div class="pn-icon">⚡</div><div class="pn-name">GPU Inference</div><div class="pn-desc">GPU 추론 실행</div></div>
+    <div class="pipe-arrow" id="pa4">→</div>
+    <div class="pipe-node" id="pn5"><div class="pn-icon">📨</div><div class="pn-name">Response</div><div class="pn-desc">스트리밍 응답</div></div>
+  </div>
+</div>
+
+<!-- PagedAttention KV-Cache -->
+<div class="section">
+  <h2><span class="badge purple">PAGED</span> PagedAttention KV-Cache 블록 관리</h2>
+  <div class="paged-area">
+    <div class="paged-header">
+      <div class="ph-title">KV-Cache 메모리 블록 (Physical Pages)</div>
+      <div class="ph-stats" id="kvStats">사용: 0/48 블록 | 가용: 48</div>
+    </div>
+    <div class="kv-grid" id="kvGrid"></div>
+    <div class="kv-legend">
+      <span><div class="dot" style="background:#58a6ff"></div>Seq A (요청 A)</span>
+      <span><div class="dot" style="background:#bc8cff"></div>Seq B (요청 B)</span>
+      <span><div class="dot" style="background:#3fb950"></div>Seq C (요청 C)</span>
+      <span><div class="dot" style="background:#21262d;border:1px solid #30363d"></div>Free 가용</span>
+      <span><div class="dot" style="background:#f8514920;border:1px solid #f8514940"></div>Freed 해제</span>
+    </div>
+  </div>
+</div>
+
+<!-- TTFT & TPS -->
+<div class="section">
+  <h2><span class="badge green">PERF</span> TTFT / TPS 성능 지표</h2>
+  <div class="metrics-row">
+    <div class="metric-panel ttft">
+      <div class="mp-label">TTFT (Time to First Token) 첫 토큰까지 시간</div>
+      <div class="mp-value" id="ttftVal">0ms</div>
+      <div class="mp-sub">목표: &lt; 200ms | Prefill 단계 소요</div>
+      <div class="mp-bar"><div class="mp-bar-fill" id="ttftBar"></div></div>
+    </div>
+    <div class="metric-panel tps">
+      <div class="mp-label">TPS (Tokens Per Second) 초당 토큰 수</div>
+      <div class="mp-value" id="tpsVal">0</div>
+      <div class="mp-sub">목표: &gt; 30 TPS | Decode 단계 처리량</div>
+      <div class="mp-bar"><div class="mp-bar-fill" id="tpsBar"></div></div>
+    </div>
+  </div>
+  <div class="token-stream" id="tokenStream"></div>
+</div>
+
+<!-- Continuous Batching -->
+<div class="section">
+  <h2><span class="badge orange">BATCH</span> Continuous Batching 연속 배칭</h2>
+  <div class="batch-area">
+    <div class="batch-timeline" id="batchTimeline">
+      <div class="batch-row"><div class="batch-label">Req A</div><div class="batch-track" id="btA"></div></div>
+      <div class="batch-row"><div class="batch-label">Req B</div><div class="batch-track" id="btB"></div></div>
+      <div class="batch-row"><div class="batch-label">Req C</div><div class="batch-track" id="btC"></div></div>
+      <div class="batch-row"><div class="batch-label">Req D (new)</div><div class="batch-track" id="btD"></div></div>
+      <div class="batch-row"><div class="batch-label">Batch</div><div class="batch-track" id="btBatch"></div></div>
+    </div>
+    <div class="batch-info">
+      <div class="batch-info-card green"><strong>장점 Benefits</strong>GPU 유휴시간 최소화<br>새 요청 즉시 합류 가능</div>
+      <div class="batch-info-card blue"><strong>작동 방식 How It Works</strong>완료된 시퀀스 슬롯에<br>새 요청이 바로 투입</div>
+      <div class="batch-info-card purple"><strong>vs Static Batching</strong>처리량 2-3x 향상<br>지연시간 일관성 유지</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+let animTimer=null,isPaused=false,step=0;
+const totalSteps=100;
+function setActive(id){document.querySelectorAll('.controls button').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active')}
+
+// Pipeline flow
+function updatePipeline(progress){
+  const nodeCount=6;
+  const activeIdx=Math.floor(progress*nodeCount*1.3);
+  for(let i=0;i<nodeCount;i++){
+    const node=document.getElementById('pn'+i);
+    const arrow=document.getElementById('pa'+i);
+    if(i<=activeIdx){node.classList.add('active');if(arrow)arrow.classList.add('active')}
+    else{node.classList.remove('active');if(arrow)arrow.classList.remove('active')}
+  }
+}
+
+// KV-Cache blocks
+function initKVGrid(){
+  const grid=document.getElementById('kvGrid');
+  grid.innerHTML='';
+  for(let i=0;i<48;i++){
+    const b=document.createElement('div');b.className='kv-block';b.id='kv'+i;b.textContent=i;
+    grid.appendChild(b);
+  }
+}
+
+function updateKVCache(progress){
+  // Phase 1: Seq A allocates (0-0.3), Phase 2: Seq B (0.2-0.5), Phase 3: Seq C (0.4-0.7), Phase 4: Seq A freed (0.7-0.9)
+  const seqA=Math.min(Math.floor(Math.max(progress-0,0)/0.3*12),12);
+  const seqB=Math.min(Math.floor(Math.max(progress-0.2,0)/0.3*10),10);
+  const seqC=Math.min(Math.floor(Math.max(progress-0.4,0)/0.3*8),8);
+  const freeA=progress>0.75;
+
+  for(let i=0;i<48;i++){
+    const el=document.getElementById('kv'+i);
+    el.className='kv-block';
+    if(i<seqA){el.classList.add(freeA?'freed':'alloc')}
+    else if(i>=12&&i<12+seqB){el.classList.add('alloc2')}
+    else if(i>=22&&i<22+seqC){el.classList.add('alloc3')}
+  }
+
+  const used=freeA?seqB+seqC:seqA+seqB+seqC;
+  document.getElementById('kvStats').textContent='사용: '+used+'/48 블록 | 가용: '+(48-used)+(freeA?' | A 해제됨 (freed)':'');
+}
+
+// TTFT & TPS
+const tokenWords=['안녕하세요','Allganize','LLM','서비스는','빠르고','안정적인','추론을','제공합니다','.','사용자','경험을','최적화','합니다','.'];
+function updatePerformance(progress){
+  const ttft=Math.round(150*Math.min(progress*3,1));
+  const tps=Math.round(42*Math.min(progress*1.5,1));
+  document.getElementById('ttftVal').textContent=ttft+'ms';
+  document.getElementById('ttftBar').style.width=Math.min(ttft/300*100,100)+'%';
+  document.getElementById('tpsVal').textContent=tps+' tok/s';
+  document.getElementById('tpsBar').style.width=Math.min(tps/60*100,100)+'%';
+
+  const stream=document.getElementById('tokenStream');
+  const shown=Math.min(Math.floor(progress*tokenWords.length*1.5),tokenWords.length);
+  if(stream.children.length!==tokenWords.length){
+    stream.innerHTML='';
+    tokenWords.forEach((w,i)=>{
+      const t=document.createElement('span');
+      t.className='token t'+(i%3+1);t.textContent=w;
+      stream.appendChild(t);
+    });
+  }
+  for(let i=0;i<tokenWords.length;i++){
+    if(i<shown)stream.children[i].classList.add('show');
+    else stream.children[i].classList.remove('show');
+  }
+}
+
+// Continuous Batching
+function updateBatching(progress){
+  const tracks={btA:{color:'#58a6ff',start:0,end:0.6},btB:{color:'#bc8cff',start:0.1,end:0.8},btC:{color:'#3fb950',start:0.2,end:0.7},btD:{color:'#f0883e',start:0.55,end:1.0}};
+  const batchColors=['#58a6ff','#bc8cff','#3fb950','#f0883e'];
+
+  Object.keys(tracks).forEach(tid=>{
+    const t=tracks[tid];
+    const el=document.getElementById(tid);
+    el.innerHTML='';
+    if(progress>=t.start){
+      const fillPct=Math.min((progress-t.start)/(t.end-t.start),1)*100;
+      // Wait/empty before start
+      const waitPct=t.start*100;
+      const wait=document.createElement('div');wait.style.width=waitPct+'%';wait.style.height='100%';
+      const seg=document.createElement('div');seg.className='batch-seg';seg.style.width=fillPct*(1-t.start)+'%';seg.style.background=t.color;
+      seg.textContent=tid.replace('bt','Req ')+' '+(fillPct>=100?'Done':'...');
+      el.appendChild(wait);el.appendChild(seg);
+    }
+  });
+
+  // Batch track: combined view
+  const batch=document.getElementById('btBatch');
+  batch.innerHTML='';
+  const labels=['A','B','C','D'];
+  const allTracks=[tracks.btA,tracks.btB,tracks.btC,tracks.btD];
+  let batchSlots=Math.floor(progress*16);
+  for(let s=0;s<Math.min(batchSlots,16);s++){
+    const active=[];
+    const slotTime=s/16;
+    allTracks.forEach((t,i)=>{if(slotTime>=t.start&&slotTime<t.end)active.push(i)});
+    const seg=document.createElement('div');seg.className='batch-seg';
+    seg.style.width=(100/16)+'%';
+    if(active.length>0){
+      seg.style.background=batchColors[active[active.length-1]];
+      seg.textContent=active.map(a=>labels[a]).join('+');
+    }else{
+      seg.style.background='#21262d';
+    }
+    batch.appendChild(seg);
+  }
+}
+
+function tick(){
+  if(isPaused)return;
+  step++;
+  const p=step/totalSteps;
+  updatePipeline(p);updateKVCache(p);updatePerformance(p);updateBatching(p);
+  if(step>=totalSteps)clearInterval(animTimer);
+}
+
+function startAnimation(){
+  if(isPaused){isPaused=false;setActive('btnPlay');document.body.classList.remove('paused');return}
+  step=0;isPaused=false;setActive('btnPlay');
+  initKVGrid();
+  if(animTimer)clearInterval(animTimer);
+  animTimer=setInterval(tick,100);
+}
+function pauseAnimation(){isPaused=true;setActive('btnPause');document.body.classList.add('paused')}
+function restartAnimation(){if(animTimer)clearInterval(animTimer);isPaused=false;step=0;document.body.classList.remove('paused');startAnimation()}
+
+initKVGrid();
+startAnimation();
+</script>
+</body>
+</html>

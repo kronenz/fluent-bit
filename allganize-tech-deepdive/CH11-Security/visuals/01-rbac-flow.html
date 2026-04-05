@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K8s RBAC Authorization Flow | RBAC 인가 흐름</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+  .header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+  .header h1{font-size:1.5rem;color:#58a6ff;margin-bottom:4px}
+  .header p{font-size:.85rem;color:#8b949e}
+  .controls{display:flex;justify-content:center;gap:10px;padding:14px}
+  .controls button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:7px 18px;cursor:pointer;font-size:.85rem;transition:background .2s}
+  .controls button:hover{background:#30363d}
+  .controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+  .step-indicator{text-align:center;padding:4px;font-size:.8rem;color:#8b949e}
+  .step-indicator .current{color:#58a6ff;font-weight:600}
+
+  .tabs{display:flex;justify-content:center;gap:6px;padding:8px 16px;flex-wrap:wrap}
+  .tabs button{background:#161b22;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:.78rem;transition:all .2s}
+  .tabs button:hover{color:#c9d1d9;border-color:#58a6ff}
+  .tabs button.tab-active{background:#1f6feb22;color:#58a6ff;border-color:#1f6feb}
+
+  .scene{display:none;position:relative;width:100%;max-width:960px;height:520px;margin:0 auto;overflow:hidden}
+  .scene.active-scene{display:block}
+
+  .node{position:absolute;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:box-shadow .4s,transform .4s,opacity .4s;opacity:0;transform:scale(.85)}
+  .node.visible{opacity:1;transform:scale(1)}
+  .node.highlight{box-shadow:0 0 24px rgba(88,166,255,.45);transform:scale(1.06)}
+  .node.glow-green{box-shadow:0 0 24px rgba(63,185,80,.5);border-color:#3fb950!important}
+  .node.glow-red{box-shadow:0 0 24px rgba(248,81,73,.5);border-color:#f85149!important}
+  .node .icon{font-size:1.5rem;margin-bottom:4px}
+  .node .label{font-size:.78rem;font-weight:600}
+  .node .sublabel{font-size:.65rem;color:#8b949e;margin-top:2px}
+
+  .arrows-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+  .arrow-path{fill:none;stroke-width:2;stroke-dasharray:8 4;opacity:0;transition:opacity .4s}
+  .arrow-path.visible{opacity:1}
+  .arrow-path.active{animation:dashFlow .8s linear infinite}
+  @keyframes dashFlow{to{stroke-dashoffset:-12}}
+  .arrow-head{opacity:0;transition:opacity .4s}
+  .arrow-head.visible{opacity:1}
+
+  .flow-label{position:absolute;font-size:.6rem;color:#8b949e;opacity:0;transition:opacity .5s;pointer-events:none;white-space:nowrap}
+  .flow-label.visible{opacity:1;color:#c9d1d9}
+
+  .badge{position:absolute;border-radius:12px;padding:3px 10px;font-size:.65rem;font-weight:600;opacity:0;transition:opacity .5s,transform .3s;transform:scale(.8)}
+  .badge.visible{opacity:1;transform:scale(1)}
+  .badge-allow{background:#0c2d1e;border:1px solid #3fb950;color:#3fb950}
+  .badge-deny{background:#2d0c0c;border:1px solid #f85149;color:#f85149}
+  .badge-info{background:#0c2d6b;border:1px solid #1f6feb;color:#58a6ff}
+
+  .scope-box{position:absolute;border-radius:10px;border:2px dashed;padding:10px;opacity:0;transition:opacity .5s}
+  .scope-box.visible{opacity:1}
+  .scope-box .scope-title{font-size:.7rem;font-weight:600;margin-bottom:4px}
+
+  .info{max-width:960px;margin:10px auto;padding:0 16px}
+  .info-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;font-size:.78rem;line-height:1.6;min-height:60px;transition:opacity .3s}
+  .info-box .step-title{color:#58a6ff;font-weight:700;margin-bottom:4px}
+  .info-box .desc{color:#c9d1d9}
+  .info-box .desc-ko{color:#8b949e;font-size:.72rem;margin-top:2px}
+
+  @media(max-width:700px){
+    .scene{height:480px;transform:scale(.7);transform-origin:top center}
+    .header h1{font-size:1.1rem}
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Kubernetes RBAC Authorization Flow</h1>
+  <p>RBAC 인가 흐름 및 인증 메커니즘</p>
+</div>
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="play()">&#9654; Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8635; Restart</button>
+</div>
+<div class="step-indicator">Step <span id="curStep" class="current">0</span> / <span id="totStep">0</span></div>
+
+<div class="tabs">
+  <button class="tab-active" onclick="switchTab(0,this)">RBAC Flow</button>
+  <button onclick="switchTab(1,this)">Role vs ClusterRole</button>
+  <button onclick="switchTab(2,this)">OIDC Flow</button>
+  <button onclick="switchTab(3,this)">IRSA (AWS)</button>
+</div>
+
+<!-- Scene 0: RBAC Flow -->
+<div class="scene active-scene" id="scene0">
+  <svg class="arrows-svg">
+    <line id="s0a1" class="arrow-path" x1="120" y1="100" x2="250" y2="100" stroke="#6e7681"/>
+    <polygon id="s0h1" class="arrow-head" points="248,95 258,100 248,105" fill="#6e7681"/>
+    <line id="s0a2" class="arrow-path" x1="410" y1="100" x2="530" y2="100" stroke="#d2a8ff"/>
+    <polygon id="s0h2" class="arrow-head" points="528,95 538,100 528,105" fill="#d2a8ff"/>
+    <line id="s0a3" class="arrow-path" x1="680" y1="100" x2="800" y2="100" stroke="#1f6feb"/>
+    <polygon id="s0h3" class="arrow-head" points="798,95 808,100 798,105" fill="#1f6feb"/>
+    <line id="s0a4" class="arrow-path" x1="870" y1="140" x2="870" y2="230" stroke="#1f6feb"/>
+    <polygon id="s0h4" class="arrow-head" points="865,228 870,238 875,228" fill="#1f6feb"/>
+    <line id="s0a5" class="arrow-path" x1="810" y1="270" x2="680" y2="270" stroke="#3fb950"/>
+    <polygon id="s0h5" class="arrow-head" points="682,265 672,270 682,275" fill="#3fb950"/>
+    <line id="s0a6" class="arrow-path" x1="620" y1="310" x2="620" y2="380" stroke="#3fb950"/>
+    <polygon id="s0h6" class="arrow-head" points="615,378 620,388 625,378" fill="#3fb950"/>
+    <line id="s0a7" class="arrow-path" x1="810" y1="310" x2="810" y2="380" stroke="#f85149"/>
+    <polygon id="s0h7" class="arrow-head" points="805,378 810,388 815,378" fill="#f85149"/>
+  </svg>
+
+  <div class="node" id="s0n1" style="left:20px;top:65px;width:100px;height:72px;background:#1c2333;border:2px solid #6e7681">
+    <div class="icon">&#128100;</div><div class="label">User / SA</div><div class="sublabel">사용자 / 서비스계정</div>
+  </div>
+  <div class="node" id="s0n2" style="left:250px;top:60px;width:160px;height:80px;background:#1a0c2e;border:2px solid #a371f7">
+    <div class="icon">&#128272;</div><div class="label">Authentication</div><div class="sublabel">인증 (신원 확인)</div>
+  </div>
+  <div class="node" id="s0n3" style="left:530px;top:60px;width:150px;height:80px;background:#0c2d6b;border:2px solid #1f6feb">
+    <div class="icon">&#128274;</div><div class="label">Authorization</div><div class="sublabel">인가 (권한 확인)</div>
+  </div>
+  <div class="node" id="s0n4" style="left:800px;top:60px;width:140px;height:80px;background:#0c2d6b;border:2px solid #1f6feb">
+    <div class="icon">&#9881;</div><div class="label">RBAC Check</div><div class="sublabel">Role + RoleBinding</div>
+  </div>
+  <div class="node" id="s0n5" style="left:560px;top:240px;width:120px;height:70px;background:#0c2d1e;border:2px solid #3fb950">
+    <div class="icon">&#9989;</div><div class="label">ALLOW</div><div class="sublabel">허용</div>
+  </div>
+  <div class="node" id="s0n6" style="left:750px;top:240px;width:120px;height:70px;background:#2d0c0c;border:2px solid #f85149">
+    <div class="icon">&#10060;</div><div class="label">DENY</div><div class="sublabel">거부</div>
+  </div>
+  <div class="node" id="s0n7" style="left:530px;top:390px;width:210px;height:100px;background:#161b22;border:2px solid #30363d">
+    <div class="icon">&#128196;</div><div class="label">Admission Control</div><div class="sublabel">어드미션 컨트롤<br/>Mutating → Validating</div>
+  </div>
+
+  <div class="flow-label" id="s0f1" style="left:155px;top:82px">API Request</div>
+  <div class="flow-label" id="s0f2" style="left:440px;top:82px">Authenticated</div>
+  <div class="flow-label" id="s0f3" style="left:710px;top:82px">Check Roles</div>
+  <div class="flow-label" id="s0f4" style="left:878px;top:180px">Evaluate</div>
+  <div class="flow-label" id="s0f5" style="left:720px;top:252px">Match found</div>
+  <div class="flow-label" id="s0f6" style="left:628px;top:345px">Proceed</div>
+  <div class="flow-label" id="s0f7" style="left:818px;top:345px">403 Forbidden</div>
+</div>
+
+<!-- Scene 1: Role vs ClusterRole -->
+<div class="scene" id="scene1">
+  <svg class="arrows-svg">
+    <line id="s1a1" class="arrow-path" x1="200" y1="80" x2="200" y2="150" stroke="#3fb950"/>
+    <polygon id="s1h1" class="arrow-head" points="195,148 200,158 205,148" fill="#3fb950"/>
+    <line id="s1a2" class="arrow-path" x1="700" y1="80" x2="700" y2="150" stroke="#d29922"/>
+    <polygon id="s1h2" class="arrow-head" points="695,148 700,158 705,148" fill="#d29922"/>
+    <line id="s1a3" class="arrow-path" x1="200" y1="230" x2="200" y2="310" stroke="#3fb950"/>
+    <polygon id="s1h3" class="arrow-head" points="195,308 200,318 205,308" fill="#3fb950"/>
+    <line id="s1a4" class="arrow-path" x1="700" y1="230" x2="700" y2="310" stroke="#d29922"/>
+    <polygon id="s1h4" class="arrow-head" points="695,308 700,318 705,308" fill="#d29922"/>
+  </svg>
+
+  <div class="scope-box" id="s1scope1" style="left:40px;top:40px;width:340px;height:420px;border-color:#3fb950">
+    <div class="scope-title" style="color:#3fb950">&#128230; Namespace Scoped (네임스페이스 범위)</div>
+  </div>
+  <div class="scope-box" id="s1scope2" style="left:540px;top:40px;width:380px;height:420px;border-color:#d29922">
+    <div class="scope-title" style="color:#d29922">&#127760; Cluster Scoped (클러스터 범위)</div>
+  </div>
+
+  <div class="node" id="s1n1" style="left:110px;top:70px;width:180px;height:70px;background:#0c2d1e;border:2px solid #3fb950">
+    <div class="icon">&#128221;</div><div class="label">Role</div><div class="sublabel">특정 네임스페이스 내 권한</div>
+  </div>
+  <div class="node" id="s1n2" style="left:90px;top:160px;width:220px;height:70px;background:#0c2d1e;border:2px solid #3fb950">
+    <div class="icon">&#128279;</div><div class="label">RoleBinding</div><div class="sublabel">Role ↔ Subject 연결</div>
+  </div>
+  <div class="node" id="s1n3" style="left:80px;top:320px;width:240px;height:100px;background:#161b22;border:2px solid #30363d">
+    <div class="icon">&#128230;</div><div class="label">Namespace: dev</div><div class="sublabel">pods, services, configmaps<br/>해당 NS 내 리소스만 접근</div>
+  </div>
+  <div class="node" id="s1n4" style="left:590px;top:70px;width:220px;height:70px;background:#2d1a0c;border:2px solid #d29922">
+    <div class="icon">&#128221;</div><div class="label">ClusterRole</div><div class="sublabel">클러스터 전체 권한</div>
+  </div>
+  <div class="node" id="s1n5" style="left:570px;top:160px;width:260px;height:70px;background:#2d1a0c;border:2px solid #d29922">
+    <div class="icon">&#128279;</div><div class="label">ClusterRoleBinding</div><div class="sublabel">ClusterRole ↔ Subject 연결</div>
+  </div>
+  <div class="node" id="s1n6" style="left:580px;top:320px;width:240px;height:100px;background:#161b22;border:2px solid #30363d">
+    <div class="icon">&#127760;</div><div class="label">All Namespaces</div><div class="sublabel">nodes, PVs, namespaces<br/>클러스터 전체 리소스 접근</div>
+  </div>
+</div>
+
+<!-- Scene 2: OIDC Flow -->
+<div class="scene" id="scene2">
+  <svg class="arrows-svg">
+    <line id="s2a1" class="arrow-path" x1="130" y1="100" x2="280" y2="100" stroke="#d2a8ff"/>
+    <polygon id="s2h1" class="arrow-head" points="278,95 288,100 278,105" fill="#d2a8ff"/>
+    <line id="s2a2" class="arrow-path" x1="440" y1="100" x2="580" y2="100" stroke="#d2a8ff"/>
+    <polygon id="s2h2" class="arrow-head" points="578,95 588,100 578,105" fill="#d2a8ff"/>
+    <line id="s2a3" class="arrow-path" x1="660" y1="140" x2="660" y2="230" stroke="#1f6feb"/>
+    <polygon id="s2h3" class="arrow-head" points="655,228 660,238 665,228" fill="#1f6feb"/>
+    <line id="s2a4" class="arrow-path" x1="600" y1="270" x2="460" y2="270" stroke="#1f6feb"/>
+    <polygon id="s2h4" class="arrow-head" points="462,265 452,270 462,275" fill="#1f6feb"/>
+    <line id="s2a5" class="arrow-path" x1="340" y1="310" x2="340" y2="400" stroke="#3fb950"/>
+    <polygon id="s2h5" class="arrow-head" points="335,398 340,408 345,398" fill="#3fb950"/>
+  </svg>
+
+  <div class="node" id="s2n1" style="left:30px;top:65px;width:100px;height:72px;background:#1c2333;border:2px solid #6e7681">
+    <div class="icon">&#128100;</div><div class="label">User</div><div class="sublabel">사용자</div>
+  </div>
+  <div class="node" id="s2n2" style="left:280px;top:60px;width:160px;height:80px;background:#1a0c2e;border:2px solid #a371f7">
+    <div class="icon">&#127919;</div><div class="label">External IdP</div><div class="sublabel">OIDC Provider<br/>(Google, Okta 등)</div>
+  </div>
+  <div class="node" id="s2n3" style="left:580px;top:60px;width:160px;height:80px;background:#1c2333;border:2px solid #6e7681">
+    <div class="icon">&#128196;</div><div class="label">ID Token (JWT)</div><div class="sublabel">사용자 정보 포함</div>
+  </div>
+  <div class="node" id="s2n4" style="left:580px;top:240px;width:160px;height:70px;background:#0c2d6b;border:2px solid #1f6feb">
+    <div class="icon">&#9881;</div><div class="label">API Server</div><div class="sublabel">토큰 검증</div>
+  </div>
+  <div class="node" id="s2n5" style="left:280px;top:240px;width:180px;height:70px;background:#0c2d6b;border:2px solid #1f6feb">
+    <div class="icon">&#128272;</div><div class="label">Token Verification</div><div class="sublabel">서명 검증 + 클레임 확인</div>
+  </div>
+  <div class="node" id="s2n6" style="left:270px;top:410px;width:160px;height:70px;background:#0c2d1e;border:2px solid #3fb950">
+    <div class="icon">&#9989;</div><div class="label">Authenticated</div><div class="sublabel">인증 완료 → RBAC 진행</div>
+  </div>
+
+  <div class="flow-label" id="s2f1" style="left:170px;top:82px">1. Login</div>
+  <div class="flow-label" id="s2f2" style="left:470px;top:82px">2. Issue Token</div>
+  <div class="flow-label" id="s2f3" style="left:670px;top:180px">3. Present Token</div>
+  <div class="flow-label" id="s2f4" style="left:480px;top:252px">4. Verify JWT</div>
+  <div class="flow-label" id="s2f5" style="left:348px;top:355px">5. Proceed</div>
+</div>
+
+<!-- Scene 3: IRSA -->
+<div class="scene" id="scene3">
+  <svg class="arrows-svg">
+    <line id="s3a1" class="arrow-path" x1="130" y1="90" x2="260" y2="90" stroke="#6e7681"/>
+    <polygon id="s3h1" class="arrow-head" points="258,85 268,90 258,95" fill="#6e7681"/>
+    <line id="s3a2" class="arrow-path" x1="420" y1="90" x2="550" y2="90" stroke="#d29922"/>
+    <polygon id="s3h2" class="arrow-head" points="548,85 558,90 548,95" fill="#d29922"/>
+    <line id="s3a3" class="arrow-path" x1="680" y1="130" x2="680" y2="220" stroke="#d29922"/>
+    <polygon id="s3h3" class="arrow-head" points="675,218 680,228 685,218" fill="#d29922"/>
+    <line id="s3a4" class="arrow-path" x1="620" y1="260" x2="460" y2="260" stroke="#ff7b72"/>
+    <polygon id="s3h4" class="arrow-head" points="462,255 452,260 462,265" fill="#ff7b72"/>
+    <line id="s3a5" class="arrow-path" x1="340" y1="300" x2="340" y2="380" stroke="#3fb950"/>
+    <polygon id="s3h5" class="arrow-head" points="335,378 340,388 345,378" fill="#3fb950"/>
+  </svg>
+
+  <div class="node" id="s3n1" style="left:20px;top:55px;width:110px;height:72px;background:#1c2333;border:2px solid #6e7681">
+    <div class="icon">&#128230;</div><div class="label">Pod</div><div class="sublabel">워크로드</div>
+  </div>
+  <div class="node" id="s3n2" style="left:260px;top:50px;width:160px;height:82px;background:#0c2d6b;border:2px solid #1f6feb">
+    <div class="icon">&#128100;</div><div class="label">ServiceAccount</div><div class="sublabel">Projected Token<br/>(OIDC JWT)</div>
+  </div>
+  <div class="node" id="s3n3" style="left:550px;top:50px;width:160px;height:82px;background:#2d1a0c;border:2px solid #d29922">
+    <div class="icon">&#9889;</div><div class="label">AWS STS</div><div class="sublabel">AssumeRoleWithWebIdentity</div>
+  </div>
+  <div class="node" id="s3n4" style="left:560px;top:230px;width:160px;height:70px;background:#2d1a0c;border:2px solid #d29922">
+    <div class="icon">&#128274;</div><div class="label">IAM Role</div><div class="sublabel">AWS 리소스 접근 권한</div>
+  </div>
+  <div class="node" id="s3n5" style="left:260px;top:230px;width:180px;height:70px;background:#2d1a0c;border:2px solid #d29922">
+    <div class="icon">&#128196;</div><div class="label">Temporary Credentials</div><div class="sublabel">임시 자격 증명</div>
+  </div>
+  <div class="node" id="s3n6" style="left:260px;top:390px;width:180px;height:70px;background:#0c2d1e;border:2px solid #3fb950">
+    <div class="icon">&#9989;</div><div class="label">Access AWS Resource</div><div class="sublabel">S3, DynamoDB 등 접근</div>
+  </div>
+
+  <div class="flow-label" id="s3f1" style="left:155px;top:72px">1. Projected Token</div>
+  <div class="flow-label" id="s3f2" style="left:450px;top:72px">2. STS Request</div>
+  <div class="flow-label" id="s3f3" style="left:690px;top:170px">3. Validate</div>
+  <div class="flow-label" id="s3f4" style="left:480px;top:242px">4. Credentials</div>
+  <div class="flow-label" id="s3f5" style="left:348px;top:345px">5. Access</div>
+</div>
+
+<div class="info">
+  <div class="info-box" id="infoBox">
+    <div class="step-title">Ready</div>
+    <div class="desc">Press Play to start the animation.</div>
+    <div class="desc-ko">Play 버튼을 눌러 애니메이션을 시작하세요.</div>
+  </div>
+</div>
+
+<script>
+const scenes=[
+  [ // Scene 0: RBAC Flow
+    {title:"Step 1: API Request",desc:"A user or ServiceAccount sends an API request to the Kubernetes API server.",ko:"사용자 또는 서비스 계정이 Kubernetes API 서버로 요청을 보냅니다.",action(){show('s0n1');show('s0n2');showA('s0a1','s0h1');act('s0a1');showL('s0f1')}},
+    {title:"Step 2: Authentication (인증)",desc:"The API server verifies identity: X.509 certs, Bearer tokens, OIDC tokens, or ServiceAccount tokens. WHO are you?",ko:"API 서버가 신원을 확인합니다: X.509 인증서, Bearer 토큰, OIDC 토큰, 서비스 계정 토큰 등. 당신은 누구인가?",action(){hl('s0n2');showA('s0a2','s0h2');act('s0a2');showL('s0f2')}},
+    {title:"Step 3: Authorization (인가) - RBAC",desc:"After authentication, RBAC checks if the user has permission. It evaluates Role/ClusterRole + RoleBinding/ClusterRoleBinding. WHAT can you do?",ko:"인증 후 RBAC이 권한을 확인합니다. Role/ClusterRole + RoleBinding/ClusterRoleBinding을 평가합니다. 당신은 무엇을 할 수 있는가?",action(){show('s0n3');show('s0n4');showA('s0a3','s0h3');act('s0a3');showL('s0f3');hl('s0n3')}},
+    {title:"Step 4: RBAC Evaluation",desc:"RBAC checks: Subject (user/group/SA) + Verb (get/list/create/delete) + Resource (pods/services) + Namespace. Rules are additive (no deny rules).",ko:"RBAC 확인: Subject(사용자/그룹/SA) + Verb(get/list/create/delete) + Resource(pods/services) + Namespace. 규칙은 추가 방식입니다 (거부 규칙 없음).",action(){showA('s0a4','s0h4');act('s0a4');showL('s0f4');hl('s0n4')}},
+    {title:"Step 5: ALLOW - Permission Granted",desc:"If a matching Role+RoleBinding is found, the request is allowed and proceeds to Admission Control (Mutating → Validating webhooks).",ko:"일치하는 Role+RoleBinding이 발견되면 요청이 허용되고 Admission Control(Mutating → Validating 웹훅)로 진행됩니다.",action(){show('s0n5');show('s0n7');showA('s0a5','s0h5');showA('s0a6','s0h6');act('s0a5');showL('s0f5');showL('s0f6');g('s0n5').classList.add('glow-green');hl('s0n7')}},
+    {title:"Step 6: DENY - 403 Forbidden",desc:"If no matching rule is found, the request is denied with 403 Forbidden. RBAC is default-deny: no permission means no access.",ko:"일치하는 규칙이 없으면 403 Forbidden으로 거부됩니다. RBAC은 기본 거부: 권한이 없으면 접근 불가.",action(){show('s0n6');showA('s0a7','s0h7');act('s0a7');showL('s0f7');g('s0n6').classList.add('glow-red')}}
+  ],
+  [ // Scene 1: Role vs ClusterRole
+    {title:"Role vs ClusterRole",desc:"Kubernetes has two types of roles: Role (namespace-scoped) and ClusterRole (cluster-wide). Understanding scope is critical for security.",ko:"Kubernetes는 두 가지 역할 유형을 제공합니다: Role(네임스페이스 범위)과 ClusterRole(클러스터 범위). 범위 이해가 보안에 중요합니다.",action(){showEl('s1scope1');showEl('s1scope2')}},
+    {title:"Role (Namespace Scoped)",desc:"A Role defines permissions within a specific namespace. Example: allow 'get', 'list' on pods in 'dev' namespace only.",ko:"Role은 특정 네임스페이스 내에서 권한을 정의합니다. 예: 'dev' 네임스페이스의 pods에 대해 'get', 'list'만 허용.",action(){show('s1n1');showA('s1a1','s1h1');act('s1a1');hl('s1n1')}},
+    {title:"RoleBinding",desc:"RoleBinding connects a Role to a Subject (User, Group, or ServiceAccount) within the same namespace.",ko:"RoleBinding은 동일 네임스페이스 내에서 Role과 Subject(User, Group, ServiceAccount)를 연결합니다.",action(){show('s1n2');show('s1n3');showA('s1a3','s1h3');act('s1a3');hl('s1n2')}},
+    {title:"ClusterRole (Cluster Scoped)",desc:"A ClusterRole defines cluster-wide permissions. Can access non-namespaced resources (nodes, PVs) or all namespaces.",ko:"ClusterRole은 클러스터 전체 권한을 정의합니다. 비 네임스페이스 리소스(nodes, PVs) 또는 모든 네임스페이스에 접근 가능.",action(){show('s1n4');showA('s1a2','s1h2');act('s1a2');hl('s1n4')}},
+    {title:"ClusterRoleBinding",desc:"ClusterRoleBinding connects a ClusterRole to subjects across the entire cluster. Use with extreme caution - grants broad access.",ko:"ClusterRoleBinding은 클러스터 전체에서 ClusterRole과 Subject를 연결합니다. 광범위한 접근 권한을 부여하므로 주의 필요.",action(){show('s1n5');show('s1n6');showA('s1a4','s1h4');act('s1a4');hl('s1n5')}}
+  ],
+  [ // Scene 2: OIDC
+    {title:"OIDC Authentication Flow",desc:"OpenID Connect (OIDC) allows Kubernetes to delegate authentication to an external Identity Provider (IdP) like Google, Okta, or Azure AD.",ko:"OpenID Connect(OIDC)를 통해 Kubernetes가 외부 IdP(Google, Okta, Azure AD 등)에 인증을 위임합니다.",action(){show('s2n1');show('s2n2');showA('s2a1','s2h1');act('s2a1');showL('s2f1')}},
+    {title:"ID Token Issued",desc:"After successful login, the IdP issues a signed JWT (ID Token) containing user claims (name, email, groups).",ko:"로그인 성공 후 IdP가 사용자 클레임(이름, 이메일, 그룹)을 포함한 서명된 JWT(ID Token)를 발급합니다.",action(){show('s2n3');showA('s2a2','s2h2');act('s2a2');showL('s2f2');hl('s2n3')}},
+    {title:"Token Presented to API Server",desc:"The user includes the ID Token in API requests via kubectl (--token flag or kubeconfig). The API server receives the JWT.",ko:"사용자가 kubectl(--token 플래그 또는 kubeconfig)을 통해 API 요청에 ID Token을 포함합니다. API 서버가 JWT를 수신합니다.",action(){show('s2n4');showA('s2a3','s2h3');act('s2a3');showL('s2f3');hl('s2n4')}},
+    {title:"JWT Verification",desc:"API server verifies the token: checks signature using IdP's public keys (JWKS), validates issuer, audience, and expiration claims.",ko:"API 서버가 토큰을 검증합니다: IdP의 공개키(JWKS)로 서명 확인, 발급자/대상/만료 클레임 검증.",action(){show('s2n5');showA('s2a4','s2h4');act('s2a4');showL('s2f4');hl('s2n5')}},
+    {title:"Authentication Complete",desc:"After successful verification, the user identity is extracted from the token and passed to the RBAC authorization phase.",ko:"검증 성공 후 토큰에서 사용자 정보를 추출하여 RBAC 인가 단계로 전달합니다.",action(){show('s2n6');showA('s2a5','s2h5');act('s2a5');showL('s2f5');g('s2n6').classList.add('glow-green')}}
+  ],
+  [ // Scene 3: IRSA
+    {title:"IRSA: IAM Roles for Service Accounts",desc:"IRSA allows Kubernetes pods to assume AWS IAM roles without storing credentials. Uses projected ServiceAccount tokens.",ko:"IRSA는 자격 증명 저장 없이 K8s Pod가 AWS IAM 역할을 수임할 수 있게 합니다. 프로젝티드 서비스 계정 토큰을 사용합니다.",action(){show('s3n1');show('s3n2');showA('s3a1','s3h1');act('s3a1');showL('s3f1')}},
+    {title:"STS AssumeRole Request",desc:"The pod's projected OIDC token is sent to AWS STS via AssumeRoleWithWebIdentity. STS validates the token against the OIDC provider (EKS).",ko:"Pod의 프로젝티드 OIDC 토큰이 AssumeRoleWithWebIdentity를 통해 AWS STS로 전송됩니다. STS가 OIDC 프로바이더(EKS)와 토큰을 검증합니다.",action(){show('s3n3');showA('s3a2','s3h2');act('s3a2');showL('s3f2');hl('s3n3')}},
+    {title:"IAM Role Validation",desc:"AWS STS validates the OIDC token, checks the IAM role's trust policy (service account name + namespace), and issues temporary credentials.",ko:"AWS STS가 OIDC 토큰을 검증하고, IAM 역할의 신뢰 정책(서비스 계정 이름 + 네임스페이스)을 확인한 후 임시 자격 증명을 발급합니다.",action(){show('s3n4');showA('s3a3','s3h3');act('s3a3');showL('s3f3');hl('s3n4')}},
+    {title:"Temporary Credentials",desc:"STS returns temporary AWS credentials (AccessKeyId, SecretAccessKey, SessionToken) that are automatically injected into the pod.",ko:"STS가 임시 AWS 자격 증명(AccessKeyId, SecretAccessKey, SessionToken)을 반환하고 Pod에 자동 주입됩니다.",action(){show('s3n5');showA('s3a4','s3h4');act('s3a4');showL('s3f4');hl('s3n5')}},
+    {title:"Access AWS Resources",desc:"The pod uses temporary credentials to access AWS resources (S3, DynamoDB, etc.) with least-privilege permissions defined in the IAM role.",ko:"Pod가 임시 자격 증명으로 IAM 역할에 정의된 최소 권한으로 AWS 리소스(S3, DynamoDB 등)에 접근합니다.",action(){show('s3n6');showA('s3a5','s3h5');act('s3a5');showL('s3f5');g('s3n6').classList.add('glow-green')}}
+  ]
+];
+
+let curScene=0,cur=0,timer=null,paused=false;
+const g=id=>document.getElementById(id);
+
+function show(id){g(id).classList.add('visible')}
+function hl(id){document.querySelectorAll('.scene.active-scene .node').forEach(n=>n.classList.remove('highlight'));g(id).classList.add('highlight')}
+function showA(l,h){g(l).classList.add('visible');g(h).classList.add('visible')}
+function act(l){g(l).classList.add('active')}
+function showL(id){g(id).classList.add('visible')}
+function showEl(id){g(id).classList.add('visible')}
+
+function updateInfo(s){g('infoBox').innerHTML=`<div class="step-title">${s.title}</div><div class="desc">${s.desc}</div><div class="desc-ko">${s.ko}</div>`}
+
+function resetScene(){
+  const sc=g('scene'+curScene);
+  sc.querySelectorAll('.node').forEach(n=>n.classList.remove('visible','highlight','glow-green','glow-red'));
+  sc.querySelectorAll('.arrow-path').forEach(a=>a.classList.remove('visible','active'));
+  sc.querySelectorAll('.arrow-head').forEach(a=>a.classList.remove('visible'));
+  sc.querySelectorAll('.flow-label').forEach(l=>l.classList.remove('visible'));
+  sc.querySelectorAll('.scope-box').forEach(b=>b.classList.remove('visible'));
+  sc.querySelectorAll('.badge').forEach(b=>b.classList.remove('visible'));
+}
+
+function switchTab(idx,btn){
+  clearInterval(timer);timer=null;
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('tab-active'));
+  btn.classList.add('tab-active');
+  document.querySelectorAll('.scene').forEach(s=>s.classList.remove('active-scene'));
+  resetScene();
+  curScene=idx;cur=0;paused=false;
+  g('scene'+idx).classList.add('active-scene');
+  g('totStep').textContent=scenes[idx].length;
+  g('curStep').textContent='0';
+  g('btnPlay').classList.remove('active');g('btnPause').classList.remove('active');
+  g('infoBox').innerHTML='<div class="step-title">Ready</div><div class="desc">Press Play to start the animation.</div><div class="desc-ko">Play 버튼을 눌러 애니메이션을 시작하세요.</div>';
+  setTimeout(()=>play(),300);
+}
+
+function runStep(){
+  const st=scenes[curScene];
+  if(cur>=st.length){clearInterval(timer);timer=null;return}
+  const s=st[cur];s.action();updateInfo(s);g('curStep').textContent=cur+1;cur++;
+}
+
+function play(){
+  if(timer)return;paused=false;
+  g('btnPlay').classList.add('active');g('btnPause').classList.remove('active');
+  runStep();timer=setInterval(()=>{if(!paused)runStep()},2200);
+}
+function pause(){paused=true;g('btnPause').classList.add('active');g('btnPlay').classList.remove('active')}
+function restart(){
+  clearInterval(timer);timer=null;cur=0;paused=false;
+  g('btnPlay').classList.remove('active');g('btnPause').classList.remove('active');
+  resetScene();
+  g('curStep').textContent='0';
+  g('infoBox').innerHTML='<div class="step-title">Ready</div><div class="desc">Press Play to start the animation.</div><div class="desc-ko">Play 버튼을 눌러 애니메이션을 시작하세요.</div>';
+  setTimeout(()=>play(),300);
+}
+
+document.addEventListener('DOMContentLoaded',()=>{g('totStep').textContent=scenes[0].length;setTimeout(play,600)});
+</script>
+</body>
+</html>

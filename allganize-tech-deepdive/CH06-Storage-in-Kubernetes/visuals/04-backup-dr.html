@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backup & DR Flow - Kubernetes</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --text: #c9d1d9; --text-dim: #8b949e;
+    --blue: #58a6ff; --green: #3fb950; --orange: #d29922;
+    --red: #f85149; --purple: #bc8cff; --cyan: #39d2c0; --pink: #f778ba; --yellow: #e3b341;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;min-height:100vh}
+
+  .header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid var(--border)}
+  .header h1{font-size:1.5rem;color:var(--blue)}
+  .header p{font-size:0.85rem;color:var(--text-dim);margin-top:4px}
+
+  .controls{display:flex;justify-content:center;gap:10px;padding:16px;flex-wrap:wrap}
+  .controls button{background:var(--surface);color:var(--text);border:1px solid var(--border);padding:8px 18px;border-radius:6px;cursor:pointer;font-size:0.85rem;transition:all 0.2s}
+  .controls button:hover{border-color:var(--blue);color:var(--blue)}
+  .controls button.active{background:var(--blue);color:var(--bg);border-color:var(--blue)}
+
+  .tabs{display:flex;justify-content:center;gap:4px;padding:0 16px 16px;flex-wrap:wrap}
+  .tab{background:var(--surface);color:var(--text-dim);border:1px solid var(--border);padding:6px 16px;border-radius:6px 6px 0 0;cursor:pointer;font-size:0.8rem;transition:all 0.2s}
+  .tab.active{background:var(--border);color:var(--blue);border-bottom-color:var(--bg)}
+
+  .scene-container{max-width:1020px;margin:0 auto;padding:0 16px 32px}
+  .scene{display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px 24px;min-height:500px;position:relative;overflow:hidden}
+  .scene.active{display:block}
+  .scene-title{font-size:1rem;color:var(--cyan);margin-bottom:20px;text-align:center}
+
+  .steps{display:flex;justify-content:center;gap:8px;margin-bottom:16px}
+  .step-dot{width:10px;height:10px;border-radius:50%;background:var(--border);transition:background 0.3s}
+  .step-dot.done{background:var(--green)}
+  .step-dot.current{background:var(--blue);box-shadow:0 0 8px var(--blue)}
+
+  .el{position:absolute;border-radius:10px;padding:12px 14px;font-size:0.76rem;text-align:center;opacity:0;transform:translateY(10px);transition:all 0.5s ease}
+  .el.vis{opacity:1;transform:translateY(0)}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(63,185,80,0.3)}50%{box-shadow:0 0 16px 3px rgba(63,185,80,0.25)}}
+  .glow{animation:pulse 1.5s infinite}
+
+  /* === Scene 0: Velero Backup === */
+  .velero-step{
+    position:absolute;border-radius:8px;padding:12px 16px;font-size:0.74rem;
+    text-align:center;opacity:0;transform:translateX(-15px);transition:all 0.5s ease;min-width:130px;
+  }
+  .velero-step.vis{opacity:1;transform:translateX(0)}
+
+  .flow-arrow{
+    position:absolute;font-size:1.4rem;color:var(--text-dim);
+    opacity:0;transition:opacity 0.3s;
+  }
+  .flow-arrow.vis{opacity:1}
+
+  /* === Scene 1: Restore === */
+  /* reuses velero-step */
+
+  /* === Scene 2: DR Tiers === */
+  .tier-card{
+    position:absolute;border-radius:10px;padding:14px;font-size:0.72rem;
+    text-align:center;opacity:0;transform:scale(0.9);transition:all 0.5s ease;width:22%;
+  }
+  .tier-card.vis{opacity:1;transform:scale(1)}
+  .tier-card h3{font-size:0.88rem;margin-bottom:6px}
+  .tier-card .metrics{margin-top:8px;padding:6px;border-radius:4px;font-size:0.68rem}
+
+  /* === Scene 3: etcd snapshot === */
+  .etcd-el{
+    position:absolute;border-radius:10px;padding:12px 16px;font-size:0.74rem;
+    text-align:center;opacity:0;transform:translateY(12px);transition:all 0.5s ease;
+  }
+  .etcd-el.vis{opacity:1;transform:translateY(0)}
+
+  @media(max-width:700px){
+    .scene{padding:20px 12px;min-height:580px}
+    .tier-card{width:90%;position:relative!important;left:auto!important;top:auto!important;margin:8px auto}
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Backup & Disaster Recovery</h1>
+  <p>Kubernetes 백업 및 재해 복구 전략 시각화</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="sw(0)">Velero Backup<br><small>벨레로 백업</small></div>
+  <div class="tab" onclick="sw(1)">Velero Restore<br><small>벨레로 복원</small></div>
+  <div class="tab" onclick="sw(2)">DR Strategy Tiers<br><small>DR 전략 단계</small></div>
+  <div class="tab" onclick="sw(3)">etcd Snapshot<br><small>etcd 스냅샷</small></div>
+</div>
+
+<div class="controls">
+  <button id="btnPlay" onclick="play()" class="active">&#9654; Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8634; Restart</button>
+</div>
+
+<div class="scene-container">
+  <!-- Scene 0: Velero Backup -->
+  <div class="scene active" id="scene0">
+    <div class="steps" id="steps0"></div>
+    <div class="scene-title">Velero Backup Flow: 리소스 검색 → PV 스냅샷 → S3 업로드</div>
+
+    <div class="velero-step" id="vb0" style="left:3%;top:60px;background:#0f1923;border:2px solid var(--cyan);color:var(--cyan);min-width:150px">
+      <b>Velero Server</b><br>Backup Controller<br><small>velero namespace</small>
+    </div>
+    <div class="flow-arrow" id="vba0" style="left:22%;top:75px">&#8594;</div>
+    <div class="velero-step" id="vb1" style="left:26%;top:60px;background:#1a2332;border:2px solid var(--blue);color:var(--blue)">
+      <b>1. Discover</b><br>K8s API 호출<br>리소스 목록 수집
+    </div>
+    <div class="flow-arrow" id="vba1" style="left:44%;top:75px">&#8594;</div>
+    <div class="velero-step" id="vb2" style="left:48%;top:60px;background:#1a1d2e;border:2px solid var(--purple);color:var(--purple)">
+      <b>2. Snapshot PVs</b><br>CSI VolumeSnapshot<br>또는 Restic/Kopia
+    </div>
+    <div class="flow-arrow" id="vba2" style="left:68%;top:75px">&#8594;</div>
+    <div class="velero-step" id="vb3" style="left:72%;top:60px;background:#122a1e;border:2px solid var(--green);color:var(--green)">
+      <b>3. Upload to S3</b><br>리소스 JSON +<br>PV 데이터 → S3
+    </div>
+
+    <div class="el" id="vb-s3" style="left:15%;top:190px;width:70%;background:#1a1520;border:2px solid var(--orange);color:var(--orange)">
+      <b>S3 Bucket (BackupStorageLocation)</b><br><br>
+      <span style="font-size:0.7rem;color:var(--text-dim)">
+        /backups/daily-20240101/<br>
+        ├── velero-backup.json (메타데이터)<br>
+        ├── resources/ (K8s 리소스 JSON)<br>
+        └── data/ (PV 스냅샷 데이터)
+      </span>
+    </div>
+
+    <div class="el" id="vb-note" style="left:10%;top:330px;width:80%;background:#0f1923;border:2px solid var(--text-dim);color:var(--text-dim);font-size:0.72rem">
+      <b style="color:var(--cyan)">Schedule 지원:</b> <code>velero schedule create daily --schedule="0 2 * * *"</code><br>
+      <b style="color:var(--orange)">Include/Exclude:</b> namespace, resource type, label selector로 백업 범위 제어
+    </div>
+  </div>
+
+  <!-- Scene 1: Velero Restore -->
+  <div class="scene" id="scene1">
+    <div class="steps" id="steps1"></div>
+    <div class="scene-title">Velero Restore Flow: S3 다운로드 → 리소스 재생성 → PV 복원</div>
+
+    <div class="velero-step" id="vr0" style="left:3%;top:60px;background:#1a1520;border:2px solid var(--orange);color:var(--orange);min-width:140px">
+      <b>S3 Bucket</b><br>백업 데이터<br>다운로드
+    </div>
+    <div class="flow-arrow" id="vra0" style="left:20%;top:75px">&#8594;</div>
+    <div class="velero-step" id="vr1" style="left:24%;top:60px;background:#0f1923;border:2px solid var(--cyan);color:var(--cyan)">
+      <b>1. Download</b><br>백업 메타데이터 +<br>리소스 JSON 다운로드
+    </div>
+    <div class="flow-arrow" id="vra1" style="left:43%;top:75px">&#8594;</div>
+    <div class="velero-step" id="vr2" style="left:47%;top:60px;background:#1a2332;border:2px solid var(--blue);color:var(--blue)">
+      <b>2. Recreate</b><br>K8s 리소스 재생성<br>순서 보장 (NS→CRD→...)
+    </div>
+    <div class="flow-arrow" id="vra2" style="left:67%;top:75px">&#8594;</div>
+    <div class="velero-step" id="vr3" style="left:71%;top:60px;background:#122a1e;border:2px solid var(--green);color:var(--green)">
+      <b>3. Restore PVs</b><br>스냅샷→PV 복원<br>PVC 자동 바인딩
+    </div>
+
+    <div class="el" id="vr-target" style="left:15%;top:190px;width:70%;background:#1a2332;border:2px solid var(--purple);color:var(--purple)">
+      <b>Target Cluster (복원 대상)</b><br><br>
+      <span style="font-size:0.7rem;color:var(--text-dim)">
+        Namespace, Deployment, Service, ConfigMap, Secret...<br>
+        PVC → PV → Cloud Volume (스냅샷에서 복원)<br>
+        <b style="color:var(--green)">원본 클러스터 또는 다른 클러스터로 복원 가능</b>
+      </span>
+    </div>
+
+    <div class="el" id="vr-note" style="left:10%;top:320px;width:80%;background:#0f1923;border:2px solid var(--text-dim);color:var(--text-dim);font-size:0.72rem">
+      <b style="color:var(--blue)">Restore Options:</b> --namespace-mappings, --restore-volumes, --include-resources<br>
+      <b style="color:var(--orange)">Conflict:</b> 기존 리소스와 충돌 시 skip (기본) 또는 --existing-resource-policy=update
+    </div>
+  </div>
+
+  <!-- Scene 2: DR Strategy Tiers -->
+  <div class="scene" id="scene2">
+    <div class="steps" id="steps2"></div>
+    <div class="scene-title">DR Strategy Tiers: RPO/RTO 기반 복구 전략 단계</div>
+
+    <div class="tier-card" id="dr0" style="left:2%;top:55px;background:#2a1419;border:2px solid var(--red)">
+      <h3 style="color:var(--red)">Tier 1</h3>
+      <b style="color:var(--red)">Backup & Restore</b><br>
+      <small style="color:var(--text-dim)">Velero + S3<br>주기적 백업<br>수동 복원</small>
+      <div class="metrics" style="background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.2)">
+        <b>RPO:</b> hours<br><b>RTO:</b> hours<br><b>Cost:</b> $
+      </div>
+    </div>
+
+    <div class="tier-card" id="dr1" style="left:26%;top:55px;background:#1a1520;border:2px solid var(--orange)">
+      <h3 style="color:var(--orange)">Tier 2</h3>
+      <b style="color:var(--orange)">Pilot Light</b><br>
+      <small style="color:var(--text-dim)">최소 인프라 대기<br>DB 복제만 유지<br>장애 시 스케일업</small>
+      <div class="metrics" style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.2)">
+        <b>RPO:</b> minutes<br><b>RTO:</b> 10s min<br><b>Cost:</b> $$
+      </div>
+    </div>
+
+    <div class="tier-card" id="dr2" style="left:50%;top:55px;background:#1a2332;border:2px solid var(--blue)">
+      <h3 style="color:var(--blue)">Tier 3</h3>
+      <b style="color:var(--blue)">Warm Standby</b><br>
+      <small style="color:var(--text-dim)">축소된 복제본 상시 구동<br>ArgoCD로 동기화<br>장애 시 스케일아웃</small>
+      <div class="metrics" style="background:rgba(88,166,255,0.1);border:1px solid rgba(88,166,255,0.2)">
+        <b>RPO:</b> seconds<br><b>RTO:</b> minutes<br><b>Cost:</b> $$$
+      </div>
+    </div>
+
+    <div class="tier-card" id="dr3" style="left:74%;top:55px;background:#122a1e;border:2px solid var(--green)">
+      <h3 style="color:var(--green)">Tier 4</h3>
+      <b style="color:var(--green)">Active-Active</b><br>
+      <small style="color:var(--text-dim)">멀티 리전 동시 운영<br>Global LB 트래픽 분산<br>데이터 양방향 복제</small>
+      <div class="metrics" style="background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.2)">
+        <b>RPO:</b> ~0<br><b>RTO:</b> ~0<br><b>Cost:</b> $$$$
+      </div>
+    </div>
+
+    <div class="el" id="dr-arrow" style="left:5%;top:340px;width:90%;text-align:center;color:var(--text-dim);font-size:0.85rem">
+      <span style="color:var(--red)">LOW</span>
+      &#9472;&#9472;&#9472;&#9472;&#9472;&#9472; Cost & Complexity &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+      <span style="color:var(--green)">HIGH</span><br>
+      <span style="color:var(--green)">HIGH</span>
+      &#9472;&#9472;&#9472;&#9472;&#9472;&#9472; RPO / RTO &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+      <span style="color:var(--red)">LOW</span>
+    </div>
+  </div>
+
+  <!-- Scene 3: etcd Snapshot -->
+  <div class="scene" id="scene3">
+    <div class="steps" id="steps3"></div>
+    <div class="scene-title">etcd Snapshot & Restore: 클러스터 상태 백업/복원</div>
+
+    <div style="position:absolute;left:5%;top:45px;font-size:0.78rem;color:var(--green)"><b>&#9654; Snapshot (백업)</b></div>
+    <div class="etcd-el" id="et0" style="left:5%;top:72px;width:27%;background:#0f1923;border:2px solid var(--cyan);color:var(--cyan)">
+      <b>etcd Cluster</b><br>클러스터 전체 상태<br><small>모든 K8s 리소스 저장소</small>
+    </div>
+    <div class="flow-arrow" id="eta0" style="left:35%;top:87px">&#8594;</div>
+    <div class="etcd-el" id="et1" style="left:38%;top:72px;width:27%;background:#1a2332;border:2px solid var(--blue);color:var(--blue)">
+      <b>etcdctl snapshot save</b><br>/backup/etcd-snap.db<br><small>ETCDCTL_API=3</small>
+    </div>
+    <div class="flow-arrow" id="eta1" style="left:68%;top:87px">&#8594;</div>
+    <div class="etcd-el" id="et2" style="left:71%;top:72px;width:26%;background:#122a1e;border:2px solid var(--green);color:var(--green)">
+      <b>Off-site Storage</b><br>S3 / NFS 외부 저장<br><small>암호화 + 버저닝</small>
+    </div>
+
+    <div style="position:absolute;left:5%;top:185px;font-size:0.78rem;color:var(--orange)"><b>&#9632; Restore (복원)</b></div>
+    <div class="etcd-el" id="et3" style="left:5%;top:212px;width:27%;background:#122a1e;border:2px solid var(--green);color:var(--green)">
+      <b>Snapshot 파일</b><br>etcd-snap.db<br><small>외부 저장소에서 복사</small>
+    </div>
+    <div class="flow-arrow" id="eta3" style="left:35%;top:227px">&#8594;</div>
+    <div class="etcd-el" id="et4" style="left:38%;top:212px;width:27%;background:#1a1d2e;border:2px solid var(--purple);color:var(--purple)">
+      <b>etcdctl snapshot restore</b><br>--data-dir 지정<br><small>새 데이터 디렉토리 생성</small>
+    </div>
+    <div class="flow-arrow" id="eta4" style="left:68%;top:227px">&#8594;</div>
+    <div class="etcd-el" id="et5" style="left:71%;top:212px;width:26%;background:#0f1923;border:2px solid var(--cyan);color:var(--cyan)">
+      <b>etcd 재시작</b><br>복원된 데이터로<br><small>kube-apiserver 재연결</small>
+    </div>
+
+    <div class="etcd-el" id="et-note" style="left:8%;top:340px;width:84%;background:#2a1419;border:2px solid var(--red);color:var(--text-dim);font-size:0.72rem">
+      <b style="color:var(--red)">&#9888; 주의:</b> 관리형 K8s(EKS, AKS, GKE)는 etcd를 클라우드 제공자가 관리 → 직접 스냅샷 불가<br>
+      <b style="color:var(--orange)">권장:</b> self-managed 클러스터에서 CronJob으로 주기적 스냅샷 + 외부 저장소 백업
+    </div>
+  </div>
+</div>
+
+<script>
+  let cur=0,timer=null,paused=false,step=0;
+  const scenes=[
+    // Velero Backup
+    [()=>{v('vb0')},()=>{va('vba0');v('vb1')},()=>{va('vba1');v('vb2')},()=>{va('vba2');v('vb3')},()=>{v('vb-s3')},()=>{v('vb-note')}],
+    // Velero Restore
+    [()=>{v('vr0')},()=>{va('vra0');v('vr1')},()=>{va('vra1');v('vr2')},()=>{va('vra2');v('vr3')},()=>{v('vr-target')},()=>{v('vr-note')}],
+    // DR Tiers
+    [()=>{v('dr0')},()=>{v('dr1')},()=>{v('dr2')},()=>{v('dr3')},()=>{v('dr-arrow')}],
+    // etcd
+    [()=>{v('et0')},()=>{va('eta0');v('et1')},()=>{va('eta1');v('et2')},()=>{v('et3')},()=>{va('eta3');v('et4')},()=>{va('eta4');v('et5')},()=>{v('et-note')}]
+  ];
+  function v(id){document.getElementById(id).classList.add('vis')}
+  function va(id){document.getElementById(id).classList.add('vis')}
+  function dots(i){const c=document.getElementById('steps'+i);c.innerHTML='';scenes[i].forEach(()=>{const d=document.createElement('div');d.className='step-dot';c.appendChild(d)})}
+  function upDots(){document.querySelectorAll('#steps'+cur+' .step-dot').forEach((d,i)=>{d.className='step-dot';if(i<step)d.classList.add('done');else if(i===step)d.classList.add('current')})}
+  function reset(i){document.getElementById('scene'+i).querySelectorAll('.vis,.glow').forEach(e=>e.classList.remove('vis','glow'))}
+  function sw(i){clearInterval(timer);cur=i;step=0;document.querySelectorAll('.scene').forEach((s,j)=>s.classList.toggle('active',j===i));document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',j===i));reset(i);dots(i);paused=false;play()}
+  function play(){paused=false;document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');clearInterval(timer);timer=setInterval(()=>{if(paused)return;if(step<scenes[cur].length){scenes[cur][step]();upDots();step++}else clearInterval(timer)},900)}
+  function pause(){paused=true;document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active')}
+  function restart(){clearInterval(timer);step=0;reset(cur);dots(cur);play()}
+  dots(0);play();
+</script>
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cilium & eBPF Dataplane - Cilium과 eBPF 데이터플레인</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:1.8rem;margin-bottom:8px;background:linear-gradient(135deg,#a371f7,#f0883e);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:20px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.controls button{background:#21262d;border:1px solid #30363d;color:#c9d1d9;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:0.9rem;transition:all 0.2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.tabs{display:flex;justify-content:center;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.tabs button{background:#161b22;border:1px solid #30363d;color:#8b949e;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:0.85rem;transition:all 0.2s}
+.tabs button.active{background:#1f6feb;border-color:#58a6ff;color:#fff}
+.scene{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;min-height:480px}
+.tab-content{display:none}
+.tab-content.visible{display:block}
+.box{background:#1c2333;border:1.5px solid #30363d;border-radius:8px;padding:10px 16px;text-align:center;transition:all 0.5s;opacity:0.3}
+.box.active{opacity:1;border-color:var(--c,#a371f7);box-shadow:0 0 12px var(--glow,rgba(163,113,247,0.2))}
+.box .title{font-weight:700;font-size:0.82rem;color:var(--c,#a371f7)}
+.box .sub{font-size:0.7rem;color:#8b949e;margin-top:2px}
+.arrow{color:#30363d;font-size:1.4rem;transition:color 0.5s}
+.arrow.active{color:var(--c,#a371f7)}
+.flow-h{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:12px 0}
+.flow-v{display:flex;flex-direction:column;align-items:center;gap:4px}
+.kernel-box{background:#0d1117;border:2px solid #a371f7;border-radius:12px;padding:18px;margin:15px 0;position:relative}
+.kernel-label{position:absolute;top:-12px;left:20px;background:#161b22;padding:0 8px;color:#a371f7;font-size:0.82rem;font-weight:700}
+.hook-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:8px 0}
+.hook{background:#1c2333;border:1.5px solid #30363d;border-radius:8px;padding:10px 14px;text-align:center;flex:1;min-width:140px;max-width:220px;transition:all 0.5s;opacity:0.3}
+.hook.active{opacity:1;border-color:var(--c,#a371f7);box-shadow:0 0 10px var(--glow,rgba(163,113,247,0.2))}
+.hook .name{font-weight:700;font-size:0.82rem;color:var(--c,#a371f7)}
+.hook .desc{font-size:0.68rem;color:#8b949e;margin-top:3px}
+.hook .layer{display:inline-block;background:#a371f722;color:#a371f7;padding:1px 6px;border-radius:8px;font-size:0.6rem;margin-top:4px}
+.versus{display:grid;grid-template-columns:1fr auto 1fr;gap:15px;align-items:start;margin:15px 0}
+.vs-card{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:15px}
+.vs-card h3{font-size:0.9rem;margin-bottom:10px}
+.vs-divider{display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:#f0883e}
+.vs-step{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:0.78rem;opacity:0.3;transition:opacity 0.5s}
+.vs-step.active{opacity:1}
+.vs-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;flex-shrink:0;color:#fff}
+.hubble-panel{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:15px;margin:15px 0}
+.hubble-panel h3{color:#3fb950;font-size:0.9rem;margin-bottom:10px}
+.flow-entry{display:flex;align-items:center;gap:8px;margin:4px 0;padding:6px 10px;background:#161b22;border-radius:6px;font-size:0.75rem;font-family:monospace;opacity:0.2;transition:all 0.5s}
+.flow-entry.active{opacity:1}
+.flow-entry .time{color:#8b949e;width:70px;flex-shrink:0}
+.flow-entry .src{color:#58a6ff}
+.flow-entry .dir{color:#f0883e;margin:0 4px}
+.flow-entry .dst{color:#3fb950}
+.flow-entry .verdict{padding:1px 6px;border-radius:4px;font-size:0.65rem;font-weight:600;margin-left:auto}
+.verdict-allow{background:#3fb95022;color:#3fb950}
+.verdict-drop{background:#f8514922;color:#f85149}
+.info-panel{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;margin-top:15px;font-size:0.8rem;line-height:1.6}
+.step{display:flex;align-items:flex-start;gap:8px;margin:3px 0;opacity:0.3;transition:opacity 0.5s}
+.step.active{opacity:1}
+.step-num{background:#1f6feb;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.65rem;flex-shrink:0}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+.anim-pulse{animation:pulse 1.5s ease-in-out infinite}
+.paused *{animation-play-state:paused!important}
+@media(max-width:700px){.versus{grid-template-columns:1fr}.vs-divider{transform:rotate(90deg);margin:10px auto}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Cilium & eBPF Dataplane</h1>
+<p class="subtitle">eBPF 기반 고성능 네트워크 데이터플레인과 Hubble 관측성</p>
+
+<div class="tabs">
+<button class="active" onclick="switchTab(0)">eBPF Loading<br><small>커널 훅 로딩</small></button>
+<button onclick="switchTab(1)">Packet Processing<br><small>패킷 처리 경로</small></button>
+<button onclick="switchTab(2)">Replace kube-proxy<br><small>kube-proxy 대체</small></button>
+<button onclick="switchTab(3)">Hubble Flows<br><small>Hubble 관측성</small></button>
+</div>
+
+<div class="controls">
+<button onclick="togglePlay()" id="playBtn">⏸ Pause</button>
+<button onclick="restart()">↻ Restart</button>
+</div>
+
+<div class="scene" id="scene">
+<!-- Tab 0: eBPF Loading -->
+<div class="tab-content visible" id="tab0">
+<div class="flow-h">
+<div class="box" id="t0-user" style="--c:#58a6ff;--glow:rgba(88,166,255,0.2)">
+<div class="title">Cilium Agent</div>
+<div class="sub">User space daemon</div>
+</div>
+<div class="arrow" id="t0-a1" style="--c:#58a6ff">→</div>
+<div class="box" id="t0-compile" style="--c:#f0883e;--glow:rgba(240,136,62,0.2)">
+<div class="title">eBPF Compiler</div>
+<div class="sub">LLVM/Clang → BPF bytecode</div>
+</div>
+<div class="arrow" id="t0-a2" style="--c:#f0883e">→</div>
+<div class="box" id="t0-verify" style="--c:#a371f7;--glow:rgba(163,113,247,0.2)">
+<div class="title">BPF Verifier</div>
+<div class="sub">안전성 검증 (kernel)</div>
+</div>
+<div class="arrow" id="t0-a3" style="--c:#a371f7">→</div>
+<div class="box" id="t0-jit" style="--c:#3fb950;--glow:rgba(63,185,80,0.2)">
+<div class="title">JIT Compiler</div>
+<div class="sub">Native machine code</div>
+</div>
+</div>
+<div class="kernel-box">
+<span class="kernel-label">Linux Kernel Hooks (커널 훅 포인트)</span>
+<div class="hook-row">
+<div class="hook" id="t0-xdp" style="--c:#f85149;--glow:rgba(248,81,73,0.2)">
+<div class="name">XDP</div>
+<div class="desc">NIC 드라이버 레벨<br>최고 속도 패킷 처리</div>
+<div class="layer">L2 - Driver level</div>
+</div>
+<div class="hook" id="t0-tc" style="--c:#f0883e;--glow:rgba(240,136,62,0.2)">
+<div class="name">TC (Traffic Control)</div>
+<div class="desc">Ingress/Egress 훅<br>L3/L4 라우팅, NAT</div>
+<div class="layer">L3/L4 - Network stack</div>
+</div>
+<div class="hook" id="t0-socket" style="--c:#a371f7;--glow:rgba(163,113,247,0.2)">
+<div class="name">Socket Level</div>
+<div class="desc">connect/sendmsg/recvmsg<br>L4/L7 정책 적용</div>
+<div class="layer">L4/L7 - Socket ops</div>
+</div>
+<div class="hook" id="t0-cgroup" style="--c:#3fb950;--glow:rgba(63,185,80,0.2)">
+<div class="name">cgroup/sock</div>
+<div class="desc">Pod 단위 제어<br>네트워크 네임스페이스</div>
+<div class="layer">Pod-level control</div>
+</div>
+</div>
+</div>
+<div class="info-panel" id="t0-info">
+<div class="step"><span class="step-num">1</span><span>Cilium Agent가 eBPF C 코드를 LLVM/Clang으로 BPF 바이트코드 컴파일<br><small>Cilium agent compiles eBPF C code to BPF bytecode</small></span></div>
+<div class="step"><span class="step-num">2</span><span>커널 BPF Verifier가 프로그램 안전성 검증 (무한루프, OOB 없음 확인)<br><small>Kernel BPF verifier ensures safety (no infinite loops, bounds checked)</small></span></div>
+<div class="step"><span class="step-num">3</span><span>JIT 컴파일러가 네이티브 머신코드로 변환 → 커널 훅에 연결<br><small>JIT compiles to native code, attached to kernel hooks</small></span></div>
+<div class="step"><span class="step-num">4</span><span>XDP, TC, Socket, cgroup 등 각 훅 포인트에서 패킷/이벤트 처리<br><small>Processes packets/events at XDP, TC, Socket, cgroup hooks</small></span></div>
+</div>
+</div>
+
+<!-- Tab 1: Packet Processing Path -->
+<div class="tab-content" id="tab1">
+<h3 style="text-align:center;color:#a371f7;font-size:0.9rem;margin-bottom:15px">eBPF Packet Processing Pipeline (패킷 처리 파이프라인)</h3>
+<div class="flow-v">
+<div class="box" id="t1-nic" style="--c:#f85149;--glow:rgba(248,81,73,0.2);width:90%;max-width:400px">
+<div class="title">NIC (Network Interface)</div>
+<div class="sub">패킷 수신 / Packet arrives</div>
+</div>
+<div class="arrow" id="t1-a1" style="--c:#f85149">↓</div>
+<div class="box" id="t1-xdp" style="--c:#f85149;--glow:rgba(248,81,73,0.2);width:90%;max-width:400px">
+<div class="title">XDP Hook (eXpress Data Path)</div>
+<div class="sub">DDoS 방어, 빠른 패킷 드롭/리다이렉트<br><small>DDoS mitigation, fast drop/redirect before network stack</small></div>
+</div>
+<div class="arrow" id="t1-a2" style="--c:#f0883e">↓</div>
+<div class="box" id="t1-tc" style="--c:#f0883e;--glow:rgba(240,136,62,0.2);width:90%;max-width:400px">
+<div class="title">TC Ingress Hook</div>
+<div class="sub">L3 라우팅, L4 로드밸런싱, DNAT/SNAT<br><small>L3 routing, L4 load balancing, NAT translations</small></div>
+</div>
+<div class="arrow" id="t1-a3" style="--c:#a371f7">↓</div>
+<div class="box" id="t1-policy" style="--c:#a371f7;--glow:rgba(163,113,247,0.2);width:90%;max-width:400px">
+<div class="title">Network Policy Enforcement</div>
+<div class="sub">L3/L4/L7 정책 적용, 허용/거부 결정<br><small>L3/L4/L7 policy evaluation, allow/deny decision</small></div>
+</div>
+<div class="arrow" id="t1-a4" style="--c:#3fb950">↓</div>
+<div class="box" id="t1-dest" style="--c:#3fb950;--glow:rgba(63,185,80,0.2);width:90%;max-width:400px">
+<div class="title">Destination Pod / Socket</div>
+<div class="sub">최종 목적지 전달 완료<br><small>Delivered to destination pod/socket</small></div>
+</div>
+</div>
+<div class="info-panel" id="t1-info">
+<div class="step"><span class="step-num">1</span><span>XDP: NIC 드라이버 레벨에서 최초 패킷 필터링 (DDoS 방어)<br><small>XDP: earliest packet filtering at NIC driver level</small></span></div>
+<div class="step"><span class="step-num">2</span><span>TC: 네트워크 스택 진입 시 L3/L4 처리 (라우팅, NAT, LB)<br><small>TC: L3/L4 processing at network stack entry</small></span></div>
+<div class="step"><span class="step-num">3</span><span>Policy: Identity 기반 네트워크 정책 평가 및 적용<br><small>Policy: identity-based network policy evaluation</small></span></div>
+<div class="step"><span class="step-num">4</span><span>Socket: 최종 목적지 소켓으로 전달 (또는 TC egress로 포워딩)<br><small>Socket: delivered to destination (or forwarded via TC egress)</small></span></div>
+</div>
+</div>
+
+<!-- Tab 2: Replace kube-proxy -->
+<div class="tab-content" id="tab2">
+<h3 style="text-align:center;color:#f0883e;font-size:0.9rem;margin-bottom:15px">kube-proxy vs Cilium eBPF (kube-proxy 대체)</h3>
+<div class="versus">
+<div class="vs-card">
+<h3 style="color:#f85149">Traditional kube-proxy</h3>
+<div class="vs-step" id="kp-1"><span class="vs-num" style="background:#f85149">1</span>Pod sends to ClusterIP</div>
+<div class="vs-step" id="kp-2"><span class="vs-num" style="background:#f85149">2</span>Packet enters netfilter</div>
+<div class="vs-step" id="kp-3"><span class="vs-num" style="background:#f85149">3</span>iptables chain traversal</div>
+<div class="vs-step" id="kp-4"><span class="vs-num" style="background:#f85149">4</span>Random probability rules</div>
+<div class="vs-step" id="kp-5"><span class="vs-num" style="background:#f85149">5</span>DNAT to pod IP</div>
+<div class="vs-step" id="kp-6"><span class="vs-num" style="background:#f85149">6</span>Conntrack entry created</div>
+<div class="vs-step" id="kp-7"><span class="vs-num" style="background:#f85149">7</span>Packet forwarded</div>
+<div style="margin-top:10px;font-size:0.72rem;color:#f85149">
+Rules: O(n) per service<br>
+Updates: full iptables rewrite<br>
+10,000 services = ~50,000 rules
+</div>
+</div>
+<div class="vs-divider">VS</div>
+<div class="vs-card">
+<h3 style="color:#3fb950">Cilium eBPF replacement</h3>
+<div class="vs-step" id="ci-1"><span class="vs-num" style="background:#3fb950">1</span>Pod sends to ClusterIP</div>
+<div class="vs-step" id="ci-2"><span class="vs-num" style="background:#3fb950">2</span>eBPF socket hook intercepts</div>
+<div class="vs-step" id="ci-3"><span class="vs-num" style="background:#3fb950">3</span>BPF map lookup (O(1) hash)</div>
+<div class="vs-step" id="ci-4"><span class="vs-num" style="background:#3fb950">4</span>Direct DNAT to pod IP</div>
+<div class="vs-step" id="ci-5"><span class="vs-num" style="background:#3fb950">5</span>Shortcut to destination</div>
+<div style="margin-top:10px;font-size:0.72rem;color:#3fb950">
+Lookup: O(1) hash map<br>
+Updates: single map entry<br>
+10,000 services = same speed
+</div>
+</div>
+</div>
+<div class="info-panel" id="t2-info">
+<div class="step"><span class="step-num">1</span><span>kube-proxy: iptables 규칙 수가 서비스 수에 비례 → O(n) 성능 저하<br><small>kube-proxy: iptables rules scale linearly with services</small></span></div>
+<div class="step"><span class="step-num">2</span><span>Cilium: BPF hash map으로 O(1) 조회 → 서비스 수와 무관한 성능<br><small>Cilium: BPF hash map O(1) lookup, constant performance</small></span></div>
+<div class="step"><span class="step-num">3</span><span>Cilium은 소켓 레벨 훅으로 불필요한 네트워크 스택 순회 회피<br><small>Cilium uses socket-level hooks to bypass unnecessary stack traversal</small></span></div>
+</div>
+</div>
+
+<!-- Tab 3: Hubble -->
+<div class="tab-content" id="tab3">
+<h3 style="text-align:center;color:#3fb950;font-size:0.9rem;margin-bottom:15px">Hubble - Network Observability (네트워크 관측성)</h3>
+<div class="flow-h">
+<div class="box" id="t3-ebpf" style="--c:#a371f7;--glow:rgba(163,113,247,0.2)">
+<div class="title">eBPF Datapath</div>
+<div class="sub">패킷 이벤트 수집</div>
+</div>
+<div class="arrow" id="t3-a1" style="--c:#a371f7">→</div>
+<div class="box" id="t3-hubble" style="--c:#3fb950;--glow:rgba(63,185,80,0.2)">
+<div class="title">Hubble Server</div>
+<div class="sub">Flow processing & export</div>
+</div>
+<div class="arrow" id="t3-a2" style="--c:#3fb950">→</div>
+<div class="box" id="t3-ui" style="--c:#58a6ff;--glow:rgba(88,166,255,0.2)">
+<div class="title">Hubble UI / CLI</div>
+<div class="sub">Service map & flow table</div>
+</div>
+</div>
+<div class="hubble-panel">
+<h3>Live Flow Table (실시간 플로우 테이블)</h3>
+<div class="flow-entry" id="hf-1"><span class="time">12:01:03</span><span class="src">frontend-7b4</span><span class="dir">→</span><span class="dst">api-svc:80</span><span class="verdict verdict-allow">ALLOWED</span></div>
+<div class="flow-entry" id="hf-2"><span class="time">12:01:04</span><span class="src">api-svc</span><span class="dir">→</span><span class="dst">postgres:5432</span><span class="verdict verdict-allow">ALLOWED</span></div>
+<div class="flow-entry" id="hf-3"><span class="time">12:01:05</span><span class="src">unknown-pod</span><span class="dir">→</span><span class="dst">api-svc:80</span><span class="verdict verdict-drop">DROPPED</span></div>
+<div class="flow-entry" id="hf-4"><span class="time">12:01:06</span><span class="src">frontend-7b4</span><span class="dir">→</span><span class="dst">redis:6379</span><span class="verdict verdict-allow">ALLOWED</span></div>
+<div class="flow-entry" id="hf-5"><span class="time">12:01:07</span><span class="src">backend-9c2</span><span class="dir">→</span><span class="dst">external:443</span><span class="verdict verdict-allow">ALLOWED</span></div>
+<div class="flow-entry" id="hf-6"><span class="time">12:01:08</span><span class="src">scanner-pod</span><span class="dir">→</span><span class="dst">api-svc:22</span><span class="verdict verdict-drop">DROPPED</span></div>
+</div>
+<div class="info-panel" id="t3-info">
+<div class="step"><span class="step-num">1</span><span>eBPF 데이터패스에서 모든 네트워크 이벤트를 perf 링버퍼로 수집<br><small>eBPF datapath collects all network events via perf ring buffer</small></span></div>
+<div class="step"><span class="step-num">2</span><span>Hubble Server가 이벤트를 Identity 기반으로 해석 (Pod, Service 이름)<br><small>Hubble server resolves events to identity (pod/service names)</small></span></div>
+<div class="step"><span class="step-num">3</span><span>Hubble UI에서 서비스 맵과 실시간 플로우 시각화<br><small>Hubble UI visualizes service map and real-time flows</small></span></div>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+let currentTab=0,playing=true,timers=[];
+function switchTab(t){currentTab=t;document.querySelectorAll('.tab-content').forEach((el,i)=>{el.classList.toggle('visible',i===t);el.style.display=i===t?'block':'none'});document.querySelectorAll('.tabs button').forEach((b,i)=>b.classList.toggle('active',i===t));restart()}
+function togglePlay(){playing=!playing;document.getElementById('playBtn').textContent=playing?'⏸ Pause':'▶ Play';document.getElementById('scene').classList.toggle('paused',!playing)}
+function restart(){timers.forEach(t=>clearTimeout(t));timers=[];playing=true;document.getElementById('playBtn').textContent='⏸ Pause';document.getElementById('scene').classList.remove('paused');document.querySelectorAll('.box,.hook').forEach(b=>b.classList.remove('active','anim-pulse'));document.querySelectorAll('.arrow').forEach(a=>a.classList.remove('active'));document.querySelectorAll('.step,.vs-step,.flow-entry').forEach(s=>s.classList.remove('active'));runAnim(currentTab)}
+function act(id,d){timers.push(setTimeout(()=>{const el=document.getElementById(id);if(el)el.classList.add('active')},d))}
+function stepAct(panel,i,d){timers.push(setTimeout(()=>{const s=document.querySelectorAll('#'+panel+' .step');if(s[i])s[i].classList.add('active')},d))}
+function runAnim(t){
+  if(t===0){
+    act('t0-user',300);act('t0-a1',600);act('t0-compile',900);stepAct('t0-info',0,600);
+    act('t0-a2',1300);act('t0-verify',1600);stepAct('t0-info',1,1300);
+    act('t0-a3',2000);act('t0-jit',2300);stepAct('t0-info',2,2000);
+    act('t0-xdp',2800);act('t0-tc',3100);act('t0-socket',3400);act('t0-cgroup',3700);stepAct('t0-info',3,2800);
+    timers.push(setTimeout(()=>restart(),6500));
+  }else if(t===1){
+    act('t1-nic',300);act('t1-a1',600);act('t1-xdp',900);stepAct('t1-info',0,600);
+    act('t1-a2',1400);act('t1-tc',1700);stepAct('t1-info',1,1400);
+    act('t1-a3',2200);act('t1-policy',2500);stepAct('t1-info',2,2200);
+    act('t1-a4',3000);act('t1-dest',3300);stepAct('t1-info',3,3000);
+    timers.push(setTimeout(()=>restart(),6000));
+  }else if(t===2){
+    for(let i=1;i<=7;i++)act('kp-'+i,200+i*400);
+    for(let i=1;i<=5;i++)act('ci-'+i,200+i*400);
+    stepAct('t2-info',0,1500);stepAct('t2-info',1,2500);stepAct('t2-info',2,3500);
+    timers.push(setTimeout(()=>restart(),6000));
+  }else if(t===3){
+    act('t3-ebpf',300);act('t3-a1',600);act('t3-hubble',900);act('t3-a2',1200);act('t3-ui',1500);
+    stepAct('t3-info',0,600);stepAct('t3-info',1,1200);stepAct('t3-info',2,1800);
+    for(let i=1;i<=6;i++)act('hf-'+i,1800+i*350);
+    timers.push(setTimeout(()=>restart(),6500));
+  }
+}
+restart();
+</script>
+</body>
+</html>

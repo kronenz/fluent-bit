@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Plane Components Interaction | 컨트롤 플레인 컴포넌트 상호작용</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+  .header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+  .header h1{font-size:1.5rem;color:#58a6ff;margin-bottom:4px}
+  .header p{font-size:.85rem;color:#8b949e}
+  .controls{display:flex;justify-content:center;gap:10px;padding:14px}
+  .controls button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:7px 18px;cursor:pointer;font-size:.85rem;transition:background .2s}
+  .controls button:hover{background:#30363d}
+  .controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+  .step-indicator{text-align:center;padding:4px;font-size:.8rem;color:#8b949e}
+  .step-indicator .current{color:#58a6ff;font-weight:600}
+  .canvas{position:relative;width:100%;max-width:960px;height:580px;margin:0 auto;overflow:hidden}
+
+  /* Nodes */
+  .node{position:absolute;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:box-shadow .4s,transform .4s;opacity:0;transform:scale(.85)}
+  .node.visible{opacity:1;transform:scale(1)}
+  .node.highlight{box-shadow:0 0 24px rgba(88,166,255,.45);transform:scale(1.06)}
+  .node .icon{font-size:1.6rem;margin-bottom:4px}
+  .node .label{font-size:.78rem;font-weight:600}
+  .node .sublabel{font-size:.65rem;color:#8b949e;margin-top:2px}
+
+  .user{left:30px;top:40px;width:100px;height:80px;background:#1c2333;border:2px solid #6e7681}
+  .kubectl{left:180px;top:40px;width:110px;height:80px;background:#1c2333;border:2px solid #8b949e}
+  .apiserver{left:380px;top:40px;width:160px;height:90px;background:#0c2d6b;border:2px solid #1f6feb}
+  .etcd{left:640px;top:30px;width:130px;height:100px;background:#1a0c2e;border:2px solid #a371f7}
+  .scheduler{left:340px;top:220px;width:140px;height:90px;background:#0c2d1e;border:2px solid #3fb950}
+  .controller{left:540px;top:220px;width:160px;height:90px;background:#2d1a0c;border:2px solid #d29922}
+
+  /* Watch badges */
+  .watch-badge{position:absolute;background:#21262d;border:1px solid #30363d;border-radius:12px;padding:2px 8px;font-size:.6rem;color:#58a6ff;opacity:0;transition:opacity .5s}
+  .watch-badge.visible{opacity:1}
+  .wb-sched{left:400px;top:175px}
+  .wb-ctrl{left:590px;top:175px}
+
+  /* Leader election box */
+  .leader-box{position:absolute;left:300px;top:370px;width:440px;height:170px;background:#161b22;border:1px solid #30363d;border-radius:10px;opacity:0;transition:opacity .5s}
+  .leader-box.visible{opacity:1}
+  .leader-box h3{color:#58a6ff;font-size:.8rem;padding:10px 14px 4px}
+  .le-row{display:flex;align-items:center;padding:4px 14px;gap:10px}
+  .le-node{width:90px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:600;border:2px solid #30363d;background:#1c2333;transition:all .4s}
+  .le-node.leader{border-color:#3fb950;background:#0c2d1e;color:#3fb950}
+  .le-node.standby{border-color:#6e7681;color:#8b949e}
+  .le-arrow{color:#3fb950;font-size:.7rem;opacity:0;transition:opacity .4s}
+  .le-arrow.visible{opacity:1}
+  .le-label{font-size:.65rem;color:#8b949e;padding:2px 14px}
+
+  /* Animated arrows (SVG) */
+  .arrows-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+  .arrow-path{fill:none;stroke-width:2;stroke-dasharray:8 4;opacity:0;transition:opacity .4s}
+  .arrow-path.visible{opacity:1}
+  .arrow-path.active{animation:dashFlow .8s linear infinite}
+  @keyframes dashFlow{to{stroke-dashoffset:-12}}
+  .arrow-head{opacity:0;transition:opacity .4s}
+  .arrow-head.visible{opacity:1}
+
+  /* Flow labels */
+  .flow-label{position:absolute;font-size:.6rem;color:#8b949e;opacity:0;transition:opacity .5s;pointer-events:none}
+  .flow-label.visible{opacity:1;color:#c9d1d9}
+
+  .fl-1{left:130px;top:25px}
+  .fl-2{left:270px;top:25px}
+  .fl-3{left:560px;top:55px}
+  .fl-4{left:420px;top:145px}
+  .fl-5{left:610px;top:145px}
+
+  /* Info panel */
+  .info{max-width:960px;margin:10px auto;padding:0 16px}
+  .info-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;font-size:.78rem;line-height:1.6;min-height:60px;transition:opacity .3s}
+  .info-box .step-title{color:#58a6ff;font-weight:700;margin-bottom:4px}
+  .info-box .desc{color:#c9d1d9}
+  .info-box .desc-ko{color:#8b949e;font-size:.72rem}
+
+  @media(max-width:700px){
+    .canvas{height:520px;transform:scale(.75);transform-origin:top center}
+    .header h1{font-size:1.1rem}
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Control Plane Components Interaction</h1>
+  <p>컨트롤 플레인 컴포넌트 상호작용 흐름</p>
+</div>
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="play()">&#9654; Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8635; Restart</button>
+</div>
+<div class="step-indicator">Step <span id="curStep" class="current">0</span> / <span id="totStep">7</span></div>
+
+<div class="canvas" id="canvas">
+  <svg class="arrows-svg" id="svg">
+    <!-- User -> kubectl -->
+    <line id="a1" class="arrow-path" x1="130" y1="80" x2="180" y2="80" stroke="#6e7681"/>
+    <polygon id="ah1" class="arrow-head" points="178,75 188,80 178,85" fill="#6e7681"/>
+    <!-- kubectl -> apiserver -->
+    <line id="a2" class="arrow-path" x1="290" y1="80" x2="380" y2="80" stroke="#1f6feb"/>
+    <polygon id="ah2" class="arrow-head" points="378,75 388,80 378,85" fill="#1f6feb"/>
+    <!-- apiserver -> etcd -->
+    <line id="a3" class="arrow-path" x1="540" y1="75" x2="640" y2="75" stroke="#a371f7"/>
+    <polygon id="ah3" class="arrow-head" points="638,70 648,75 638,80" fill="#a371f7"/>
+    <!-- apiserver -> scheduler (watch) -->
+    <line id="a4" class="arrow-path" x1="430" y1="130" x2="410" y2="220" stroke="#3fb950" stroke-dasharray="5 5"/>
+    <polygon id="ah4" class="arrow-head" points="405,218 410,228 415,218" fill="#3fb950"/>
+    <!-- apiserver -> controller (watch) -->
+    <line id="a5" class="arrow-path" x1="490" y1="130" x2="600" y2="220" stroke="#d29922" stroke-dasharray="5 5"/>
+    <polygon id="ah5" class="arrow-head" points="595,218 600,228 605,218" fill="#d29922"/>
+  </svg>
+
+  <div class="node user" id="nUser"><div class="icon">&#128100;</div><div class="label">User</div><div class="sublabel">사용자</div></div>
+  <div class="node kubectl" id="nKubectl"><div class="icon">&#9000;</div><div class="label">kubectl</div><div class="sublabel">CLI Tool</div></div>
+  <div class="node apiserver" id="nApi"><div class="icon">&#9881;</div><div class="label">kube-apiserver</div><div class="sublabel">API Gateway / 관문</div></div>
+  <div class="node etcd" id="nEtcd"><div class="icon">&#128451;</div><div class="label">etcd</div><div class="sublabel">Key-Value Store</div></div>
+  <div class="node scheduler" id="nSched"><div class="icon">&#128203;</div><div class="label">kube-scheduler</div><div class="sublabel">Pod 배치 결정</div></div>
+  <div class="node controller" id="nCtrl"><div class="icon">&#128260;</div><div class="label">controller-manager</div><div class="sublabel">Desired State 유지</div></div>
+
+  <div class="watch-badge wb-sched" id="wbSched">&#128065; WATCH</div>
+  <div class="watch-badge wb-ctrl" id="wbCtrl">&#128065; WATCH</div>
+
+  <div class="flow-label fl-1" id="fl1">1. 요청</div>
+  <div class="flow-label fl-2" id="fl2">2. REST API</div>
+  <div class="flow-label fl-3" id="fl3">3. Write / Read</div>
+  <div class="flow-label fl-4" id="fl4">4. Watch Events</div>
+  <div class="flow-label fl-5" id="fl5">5. Watch Events</div>
+
+  <div class="leader-box" id="leaderBox">
+    <h3>&#9889; Leader Election (HA Mode)</h3>
+    <div class="le-label">kube-scheduler:</div>
+    <div class="le-row">
+      <div class="le-node" id="ls1">sched-1</div>
+      <div class="le-arrow" id="la1">&#x2192; LEADER</div>
+      <div class="le-node" id="ls2">sched-2</div>
+      <div class="le-arrow" id="la2">Standby</div>
+    </div>
+    <div class="le-label">controller-manager:</div>
+    <div class="le-row">
+      <div class="le-node" id="lc1">cm-1</div>
+      <div class="le-arrow" id="la3">&#x2192; LEADER</div>
+      <div class="le-node" id="lc2">cm-2</div>
+      <div class="le-arrow" id="la4">Standby</div>
+    </div>
+  </div>
+</div>
+
+<div class="info">
+  <div class="info-box" id="infoBox">
+    <div class="step-title">Ready</div>
+    <div class="desc">Press Play to start the animation.</div>
+    <div class="desc-ko">Play 버튼을 눌러 애니메이션을 시작하세요.</div>
+  </div>
+</div>
+
+<script>
+const steps=[
+  {
+    title:"Step 1: User Request",
+    desc:"User sends a command (e.g., kubectl apply) to create or modify a resource.",
+    ko:"사용자가 kubectl 명령어로 리소스 생성/수정 요청을 보냅니다.",
+    action(){show('nUser');show('nKubectl');showArrow('a1','ah1');showLabel('fl1')}
+  },
+  {
+    title:"Step 2: kubectl -> API Server",
+    desc:"kubectl serializes the request to JSON and sends it to kube-apiserver via HTTPS REST API.",
+    ko:"kubectl이 요청을 JSON으로 직렬화하여 kube-apiserver에 HTTPS REST API로 전송합니다.",
+    action(){show('nApi');showArrow('a2','ah2');activate('a2');showLabel('fl2');hl('nApi')}
+  },
+  {
+    title:"Step 3: API Server -> etcd (Write)",
+    desc:"After passing Authentication, Authorization, and Admission Control, kube-apiserver writes the resource to etcd. Only kube-apiserver can access etcd directly.",
+    ko:"인증/인가/Admission Control을 통과한 후, kube-apiserver가 etcd에 리소스를 저장합니다. etcd에 직접 접근하는 것은 kube-apiserver뿐입니다.",
+    action(){show('nEtcd');showArrow('a3','ah3');activate('a3');showLabel('fl3');hl('nEtcd')}
+  },
+  {
+    title:"Step 4: Scheduler Watch",
+    desc:"kube-scheduler watches the API server for newly created Pods with no assigned node (nodeName is empty) and triggers scheduling.",
+    ko:"kube-scheduler는 API 서버를 watch하여 아직 노드에 할당되지 않은(nodeName이 비어있는) 새 Pod를 감지하고 스케줄링을 시작합니다.",
+    action(){show('nSched');showArrow('a4','ah4');activate('a4');showLabel('fl4');showEl('wbSched');hl('nSched')}
+  },
+  {
+    title:"Step 5: Controller-Manager Watch",
+    desc:"kube-controller-manager watches the API server for changes. Controllers run reconciliation loops: Observe -> Diff -> Act to maintain desired state.",
+    ko:"kube-controller-manager가 API 서버를 watch합니다. 각 컨트롤러는 Observe -> Diff -> Act 조정 루프를 실행하여 desired state를 유지합니다.",
+    action(){show('nCtrl');showArrow('a5','ah5');activate('a5');showLabel('fl5');showEl('wbCtrl');hl('nCtrl')}
+  },
+  {
+    title:"Step 6: Watch Mechanism",
+    desc:"All components communicate through the API server only. The Watch mechanism uses HTTP long-polling/streaming to get real-time change events efficiently (not polling).",
+    ko:"모든 컴포넌트는 API 서버를 통해서만 통신합니다. Watch 메커니즘은 HTTP long-polling/streaming으로 실시간 변경 이벤트를 효율적으로 수신합니다 (폴링이 아님).",
+    action(){hl('nApi');['a4','a5'].forEach(a=>{activate(a)})}
+  },
+  {
+    title:"Step 7: Leader Election (HA)",
+    desc:"In HA clusters, apiserver runs Active-Active (multiple instances). Scheduler and controller-manager use leader election (via etcd lease) for Active-Standby: only the leader processes work.",
+    ko:"HA 클러스터에서 apiserver는 Active-Active(다중 인스턴스), scheduler와 controller-manager는 etcd lease 기반 leader election으로 Active-Standby 동작합니다. 리더만 작업을 처리합니다.",
+    action(){
+      showEl('leaderBox');
+      setTimeout(()=>{
+        g('ls1').classList.add('leader');g('la1').classList.add('visible');
+        g('ls2').classList.add('standby');g('la2').classList.add('visible');
+      },300);
+      setTimeout(()=>{
+        g('lc1').classList.add('leader');g('la3').classList.add('visible');
+        g('lc2').classList.add('standby');g('la4').classList.add('visible');
+      },700);
+    }
+  }
+];
+
+let cur=0,timer=null,paused=false;
+const g=id=>document.getElementById(id);
+
+function show(id){g(id).classList.add('visible')}
+function hl(id){document.querySelectorAll('.node').forEach(n=>n.classList.remove('highlight'));g(id).classList.add('highlight')}
+function showArrow(lineId,headId){g(lineId).classList.add('visible');g(headId).classList.add('visible')}
+function activate(lineId){g(lineId).classList.add('active')}
+function showLabel(id){g(id).classList.add('visible')}
+function showEl(id){g(id).classList.add('visible')}
+
+function updateInfo(s){
+  const box=g('infoBox');
+  box.innerHTML=`<div class="step-title">${s.title}</div><div class="desc">${s.desc}</div><div class="desc-ko">${s.ko}</div>`;
+}
+
+function runStep(){
+  if(cur>=steps.length){clearInterval(timer);timer=null;return}
+  const s=steps[cur];
+  s.action();
+  updateInfo(s);
+  g('curStep').textContent=cur+1;
+  cur++;
+}
+
+function play(){
+  if(timer)return;
+  paused=false;
+  g('btnPlay').classList.add('active');g('btnPause').classList.remove('active');
+  runStep();
+  timer=setInterval(()=>{if(!paused)runStep()},2200);
+}
+
+function pause(){
+  paused=true;
+  g('btnPause').classList.add('active');g('btnPlay').classList.remove('active');
+}
+
+function restart(){
+  clearInterval(timer);timer=null;cur=0;paused=false;
+  g('btnPlay').classList.remove('active');g('btnPause').classList.remove('active');
+  document.querySelectorAll('.node').forEach(n=>{n.classList.remove('visible','highlight')});
+  document.querySelectorAll('.arrow-path').forEach(a=>{a.classList.remove('visible','active')});
+  document.querySelectorAll('.arrow-head').forEach(a=>{a.classList.remove('visible')});
+  document.querySelectorAll('.flow-label').forEach(l=>{l.classList.remove('visible')});
+  document.querySelectorAll('.watch-badge').forEach(w=>{w.classList.remove('visible')});
+  g('leaderBox').classList.remove('visible');
+  ['ls1','ls2','lc1','lc2'].forEach(id=>g(id).classList.remove('leader','standby'));
+  ['la1','la2','la3','la4'].forEach(id=>g(id).classList.remove('visible'));
+  g('curStep').textContent='0';
+  g('infoBox').innerHTML='<div class="step-title">Ready</div><div class="desc">Press Play to start the animation.</div><div class="desc-ko">Play 버튼을 눌러 애니메이션을 시작하세요.</div>';
+  setTimeout(()=>play(),300);
+}
+
+document.addEventListener('DOMContentLoaded',()=>{g('totStep').textContent=steps.length;setTimeout(play,600)});
+</script>
+</body>
+</html>

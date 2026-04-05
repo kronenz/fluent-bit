@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>성능 분석 레이어 - Performance Latency Analysis</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;margin-bottom:20px;overflow:hidden}
+.section h2{font-size:1.05rem;margin-bottom:16px;color:#58a6ff;display:flex;align-items:center;gap:8px}
+.section h2 .badge{padding:2px 10px;border-radius:12px;font-size:0.7rem;font-weight:600;background:#1f6feb30;border:1px solid #58a6ff40;color:#58a6ff}
+
+/* Request Flow */
+.flow-track{position:relative;height:80px;background:#0d1117;border-radius:8px;border:1px solid #21262d;display:flex;align-items:center;padding:0 10px;overflow:hidden;margin-bottom:16px}
+.flow-node{flex:1;text-align:center;position:relative;z-index:2}
+.flow-node .icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:1.1rem;border:1px solid #30363d;transition:all .4s}
+.flow-node .label{font-size:0.65rem;color:#8b949e;line-height:1.3}
+.flow-node .label strong{display:block;color:#e6edf3;font-size:0.72rem}
+.flow-arrow{position:absolute;top:50%;height:2px;background:linear-gradient(90deg,#58a6ff,#bc8cff);transform:translateY(-50%);z-index:1;opacity:0;transition:opacity .3s}
+
+.flow-node.lit .icon{box-shadow:0 0 16px rgba(88,166,255,0.5);border-color:#58a6ff}
+.flow-node:nth-child(1).lit .icon{background:#1f6feb40}
+.flow-node:nth-child(2).lit .icon{background:#da363340}
+.flow-node:nth-child(3).lit .icon{background:#2ea04340}
+.flow-node:nth-child(4).lit .icon{background:#bc8cff40}
+.flow-node:nth-child(5).lit .icon{background:#f0883e40}
+.flow-node:nth-child(6).lit .icon{background:#f8514940}
+
+.packet{position:absolute;width:12px;height:12px;border-radius:50%;background:#58a6ff;box-shadow:0 0 12px #58a6ff;top:50%;transform:translateY(-50%);z-index:3;opacity:0}
+.packet.moving{animation:packetMove var(--dur) var(--delay) ease-in-out forwards}
+@keyframes packetMove{0%{opacity:0;left:var(--from)}10%{opacity:1}90%{opacity:1}100%{opacity:0;left:var(--to)}}
+
+/* Stacked Latency Bar */
+.latency-stack{display:flex;flex-direction:column;gap:8px}
+.latency-row{display:flex;align-items:center;gap:10px}
+.latency-label{width:80px;font-size:0.75rem;color:#8b949e;text-align:right}
+.latency-bar-track{flex:1;height:28px;background:#21262d;border-radius:6px;overflow:hidden;display:flex}
+.latency-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:600;color:#fff;transition:width 1.2s ease;width:0;overflow:hidden;white-space:nowrap}
+.latency-val{width:60px;font-size:0.75rem;font-weight:600;text-align:right}
+
+/* Percentile Curve */
+.perc-container{position:relative;height:200px;background:#0d1117;border-radius:8px;border:1px solid #21262d;overflow:hidden}
+.perc-canvas{width:100%;height:100%}
+.perc-markers{position:absolute;bottom:8px;left:0;right:0;display:flex;justify-content:space-around;pointer-events:none}
+.perc-marker{text-align:center;font-size:0.65rem;color:#8b949e}
+.perc-marker strong{display:block;font-size:0.85rem}
+.perc-marker.p50 strong{color:#3fb950}
+.perc-marker.p95 strong{color:#f0883e}
+.perc-marker.p99 strong{color:#f85149}
+
+/* RED Dashboard */
+.red-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.red-card{background:#0d1117;border-radius:8px;border:1px solid #21262d;padding:16px;text-align:center}
+.red-card .red-label{font-size:0.75rem;color:#8b949e;margin-bottom:4px}
+.red-card .red-value{font-size:1.8rem;font-weight:700;margin-bottom:4px}
+.red-card .red-sub{font-size:0.7rem;color:#8b949e}
+.red-card.rate .red-value{color:#58a6ff}
+.red-card.errors .red-value{color:#f85149}
+.red-card.duration .red-value{color:#3fb950}
+.red-card .red-bar{height:4px;background:#21262d;border-radius:2px;margin-top:8px;overflow:hidden}
+.red-card .red-bar-fill{height:100%;border-radius:2px;width:0;transition:width 2s ease}
+.red-card.rate .red-bar-fill{background:#58a6ff}
+.red-card.errors .red-bar-fill{background:#f85149}
+.red-card.duration .red-bar-fill{background:#3fb950}
+
+.red-sparkline{display:flex;align-items:flex-end;gap:2px;height:40px;margin-top:8px}
+.red-sparkline .bar{flex:1;background:#30363d;border-radius:2px 2px 0 0;transition:height 0.5s ease,background 0.5s ease;min-width:4px}
+
+.legend{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:12px}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:0.75rem;color:#8b949e}
+.legend-dot{width:10px;height:10px;border-radius:3px}
+
+.paused .packet.moving{animation-play-state:paused}
+
+@media(max-width:768px){.container{padding:12px}.flow-track{height:100px;flex-wrap:wrap}.red-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>성능 분석 레이어 - Latency Analysis</h1>
+<p class="subtitle">Request Flow Latency Breakdown & RED Method Dashboard</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnimation()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pauseAnimation()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restartAnimation()">&#8635; 다시시작 Restart</button>
+</div>
+
+<!-- Section 1: Request Flow -->
+<div class="section">
+  <h2><span class="badge">FLOW</span> 요청 흐름 레이어 Request Flow Layers</h2>
+  <div class="flow-track" id="flowTrack">
+    <div class="flow-node" id="fn0"><div class="icon">👤</div><div class="label"><strong>Client</strong>클라이언트</div></div>
+    <div class="flow-node" id="fn1"><div class="icon">🌐</div><div class="label"><strong>CDN</strong>캐시</div></div>
+    <div class="flow-node" id="fn2"><div class="icon">⚖️</div><div class="label"><strong>LB</strong>로드밸런서</div></div>
+    <div class="flow-node" id="fn3"><div class="icon">📦</div><div class="label"><strong>App</strong>애플리케이션</div></div>
+    <div class="flow-node" id="fn4"><div class="icon">⚡</div><div class="label"><strong>Cache</strong>캐시</div></div>
+    <div class="flow-node" id="fn5"><div class="icon">🗄️</div><div class="label"><strong>DB</strong>데이터베이스</div></div>
+  </div>
+</div>
+
+<!-- Section 2: Latency Stacked Bar -->
+<div class="section">
+  <h2><span class="badge">LATENCY</span> 레이어별 지연시간 Layer Latency Breakdown</h2>
+  <div class="latency-stack" id="latencyStack">
+    <div class="latency-row">
+      <div class="latency-label">p50</div>
+      <div class="latency-bar-track" id="barP50"></div>
+      <div class="latency-val" id="valP50">0ms</div>
+    </div>
+    <div class="latency-row">
+      <div class="latency-label">p95</div>
+      <div class="latency-bar-track" id="barP95"></div>
+      <div class="latency-val" id="valP95">0ms</div>
+    </div>
+    <div class="latency-row">
+      <div class="latency-label">p99</div>
+      <div class="latency-bar-track" id="barP99"></div>
+      <div class="latency-val" id="valP99">0ms</div>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div>CDN (5ms)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div>LB (2ms)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#bc8cff"></div>App (30ms)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f0883e"></div>Cache (3ms)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f85149"></div>DB (60ms)</div>
+  </div>
+</div>
+
+<!-- Section 3: Percentile Distribution -->
+<div class="section">
+  <h2><span class="badge">PERCENTILE</span> 백분위 분포 곡선 Percentile Distribution</h2>
+  <div class="perc-container">
+    <canvas id="percCanvas" class="perc-canvas"></canvas>
+  </div>
+  <div style="display:flex;justify-content:space-around;margin-top:8px">
+    <div class="perc-marker p50"><strong id="p50val">0ms</strong>p50 중앙값</div>
+    <div class="perc-marker p95"><strong id="p95val">0ms</strong>p95</div>
+    <div class="perc-marker p99"><strong id="p99val">0ms</strong>p99 꼬리 지연</div>
+  </div>
+</div>
+
+<!-- Section 4: RED Dashboard -->
+<div class="section">
+  <h2><span class="badge">RED</span> RED 메서드 대시보드 Rate / Errors / Duration</h2>
+  <div class="red-grid">
+    <div class="red-card rate">
+      <div class="red-label">Rate 처리율</div>
+      <div class="red-value" id="redRate">0</div>
+      <div class="red-sub">req/sec</div>
+      <div class="red-sparkline" id="sparkRate"></div>
+      <div class="red-bar"><div class="red-bar-fill" id="redRateBar"></div></div>
+    </div>
+    <div class="red-card errors">
+      <div class="red-label">Errors 에러율</div>
+      <div class="red-value" id="redErrors">0%</div>
+      <div class="red-sub">5xx error rate</div>
+      <div class="red-sparkline" id="sparkErrors"></div>
+      <div class="red-bar"><div class="red-bar-fill" id="redErrorBar"></div></div>
+    </div>
+    <div class="red-card duration">
+      <div class="red-label">Duration 지연시간</div>
+      <div class="red-value" id="redDuration">0ms</div>
+      <div class="red-sub">p99 latency</div>
+      <div class="red-sparkline" id="sparkDuration"></div>
+      <div class="red-bar"><div class="red-bar-fill" id="redDurBar"></div></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const layers=[
+  {color:'#58a6ff',label:'CDN',p50:5,p95:8,p99:15},
+  {color:'#3fb950',label:'LB',p50:2,p95:4,p99:8},
+  {color:'#bc8cff',label:'App',p50:30,p95:80,p99:200},
+  {color:'#f0883e',label:'Cache',p50:3,p95:5,p99:12},
+  {color:'#f85149',label:'DB',p50:60,p95:150,p99:400}
+];
+let animTimer=null,isPaused=false,step=0;
+const totalSteps=60;
+
+function setActive(id){document.querySelectorAll('.controls button').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active')}
+
+function animateFlow(){
+  const nodes=document.querySelectorAll('.flow-node');
+  nodes.forEach(n=>n.classList.remove('lit'));
+  let i=0;
+  const iv=setInterval(()=>{
+    if(isPaused)return;
+    if(i<nodes.length){nodes[i].classList.add('lit');i++}
+    else clearInterval(iv);
+  },400);
+  return iv;
+}
+
+function animateLatencyBars(progress){
+  const pcts=['P50','P95','P99'];
+  const keys=['p50','p95','p99'];
+  pcts.forEach((p,pi)=>{
+    const bar=document.getElementById('bar'+p);
+    const val=document.getElementById('val'+p);
+    let total=0;
+    layers.forEach(l=>total+=l[keys[pi]]);
+    bar.innerHTML='';
+    let shown=Math.floor(progress*total);
+    val.textContent=shown+'ms';
+    layers.forEach(l=>{
+      const seg=document.createElement('div');
+      seg.className='latency-seg';
+      seg.style.background=l.color;
+      seg.style.width=(l[keys[pi]]/total*100*Math.min(progress*1.5,1))+'%';
+      seg.textContent=l.label;
+      bar.appendChild(seg);
+    });
+  });
+}
+
+function drawPercCurve(progress){
+  const canvas=document.getElementById('percCanvas');
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width=canvas.offsetWidth;
+  const h=canvas.height=canvas.offsetHeight;
+  ctx.clearRect(0,0,w,h);
+
+  // Grid
+  ctx.strokeStyle='#21262d';ctx.lineWidth=1;
+  for(let i=0;i<5;i++){const y=h*i/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+
+  // Distribution curve
+  const points=[];
+  const maxX=w*Math.min(progress*1.3,1);
+  for(let x=0;x<maxX;x+=2){
+    const t=x/w;
+    const latency=100*Math.pow(1+t*3,2.2)*t;
+    const y=h-Math.min(latency/800,1)*h*0.85-h*0.05;
+    points.push({x,y});
+  }
+
+  if(points.length>1){
+    ctx.beginPath();
+    ctx.moveTo(points[0].x,h);
+    points.forEach(p=>ctx.lineTo(p.x,p.y));
+    ctx.lineTo(points[points.length-1].x,h);
+    ctx.closePath();
+    const grad=ctx.createLinearGradient(0,0,w,0);
+    grad.addColorStop(0,'rgba(63,185,80,0.3)');
+    grad.addColorStop(0.5,'rgba(240,136,62,0.3)');
+    grad.addColorStop(1,'rgba(248,81,73,0.3)');
+    ctx.fillStyle=grad;ctx.fill();
+
+    ctx.beginPath();
+    points.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+    const grad2=ctx.createLinearGradient(0,0,w,0);
+    grad2.addColorStop(0,'#3fb950');grad2.addColorStop(0.5,'#f0883e');grad2.addColorStop(1,'#f85149');
+    ctx.strokeStyle=grad2;ctx.lineWidth=2;ctx.stroke();
+  }
+
+  // Percentile markers
+  const markers=[{pct:0.5,val:100,color:'#3fb950',label:'p50'},{pct:0.85,val:247,color:'#f0883e',label:'p95'},{pct:0.97,val:635,color:'#f85149',label:'p99'}];
+  markers.forEach(m=>{
+    if(progress>m.pct*0.8){
+      const x=m.pct*w;
+      ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.strokeStyle=m.color+'80';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=m.color;ctx.font='bold 11px sans-serif';ctx.fillText(m.label,x+4,16);
+    }
+  });
+
+  document.getElementById('p50val').textContent=Math.round(100*Math.min(progress*1.5,1))+'ms';
+  document.getElementById('p95val').textContent=Math.round(247*Math.min(progress*1.5,1))+'ms';
+  document.getElementById('p99val').textContent=Math.round(635*Math.min(progress*1.5,1))+'ms';
+}
+
+function initSparklines(){
+  ['sparkRate','sparkErrors','sparkDuration'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.innerHTML='';
+    for(let i=0;i<20;i++){const b=document.createElement('div');b.className='bar';b.style.height='2px';el.appendChild(b)}
+  });
+}
+
+function animateRED(progress){
+  const rate=Math.round(1250*Math.min(progress*1.4,1));
+  const errors=(2.3*Math.min(progress*1.4,1)).toFixed(1);
+  const dur=Math.round(635*Math.min(progress*1.4,1));
+  document.getElementById('redRate').textContent=rate;
+  document.getElementById('redErrors').textContent=errors+'%';
+  document.getElementById('redDuration').textContent=dur+'ms';
+  document.getElementById('redRateBar').style.width=(rate/1250*100)+'%';
+  document.getElementById('redErrorBar').style.width=(errors/10*100)+'%';
+  document.getElementById('redDurBar').style.width=(dur/1000*100)+'%';
+
+  // sparklines
+  const sparkData={sparkRate:[40,55,60,70,65,80,75,90,85,95,88,92,96,100,95,98,90,88,92,95],sparkErrors:[10,15,12,20,18,25,30,22,18,15,20,25,35,28,22,18,15,20,18,22],sparkDuration:[30,35,40,38,45,50,48,55,60,58,65,70,68,75,72,70,68,65,62,60]};
+  const colors={sparkRate:'#58a6ff',sparkErrors:'#f85149',sparkDuration:'#3fb950'};
+  Object.keys(sparkData).forEach(id=>{
+    const bars=document.getElementById(id).children;
+    const d=sparkData[id];
+    const shown=Math.floor(progress*d.length);
+    for(let i=0;i<bars.length;i++){
+      if(i<shown){bars[i].style.height=d[i]+'%';bars[i].style.background=colors[id]}
+      else{bars[i].style.height='2px';bars[i].style.background='#30363d'}
+    }
+  });
+}
+
+function startAnimation(){
+  if(isPaused){isPaused=false;setActive('btnPlay');document.body.classList.remove('paused');return}
+  step=0;isPaused=false;setActive('btnPlay');initSparklines();
+  animateFlow();
+  if(animTimer)clearInterval(animTimer);
+  animTimer=setInterval(()=>{
+    if(isPaused)return;
+    step++;
+    const p=step/totalSteps;
+    animateLatencyBars(p);
+    drawPercCurve(p);
+    animateRED(p);
+    if(step>=totalSteps)clearInterval(animTimer);
+  },80);
+}
+
+function pauseAnimation(){isPaused=true;setActive('btnPause');document.body.classList.add('paused')}
+function restartAnimation(){if(animTimer)clearInterval(animTimer);isPaused=false;step=0;document.body.classList.remove('paused');startAnimation()}
+
+window.addEventListener('resize',()=>drawPercCurve(step/totalSteps));
+initSparklines();
+startAnimation();
+</script>
+</body>
+</html>

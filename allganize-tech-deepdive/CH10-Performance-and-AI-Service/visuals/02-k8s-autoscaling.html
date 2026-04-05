@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K8s 오토스케일링 - Kubernetes Autoscaling</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;margin-bottom:20px;overflow:hidden}
+.section h2{font-size:1.05rem;margin-bottom:16px;color:#58a6ff;display:flex;align-items:center;gap:8px}
+.badge{padding:2px 10px;border-radius:12px;font-size:0.7rem;font-weight:600;background:#1f6feb30;border:1px solid #58a6ff40;color:#58a6ff}
+.badge.green{background:#2ea04330;border-color:#3fb95040;color:#3fb950}
+.badge.orange{background:#f0883e30;border-color:#f0883e40;color:#f0883e}
+.badge.red{background:#da363330;border-color:#f8514940;color:#f85149}
+
+/* HPA Section */
+.hpa-panel{position:relative;background:#0d1117;border-radius:8px;border:1px solid #21262d;padding:16px;min-height:220px}
+.metrics-gauge{display:flex;align-items:center;gap:20px;margin-bottom:16px;flex-wrap:wrap}
+.gauge-box{text-align:center}
+.gauge-ring{width:80px;height:80px;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center}
+.gauge-ring svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}
+.gauge-ring circle{fill:none;stroke-width:6}
+.gauge-ring .bg{stroke:#21262d}
+.gauge-ring .fg{stroke:#58a6ff;stroke-dasharray:226;stroke-dashoffset:226;transition:stroke-dashoffset 1s ease,stroke .3s;stroke-linecap:round}
+.gauge-ring .fg.warn{stroke:#f0883e}
+.gauge-ring .fg.crit{stroke:#f85149}
+.gauge-val{font-size:1.1rem;font-weight:700;z-index:1}
+.gauge-label{font-size:0.7rem;color:#8b949e;margin-top:4px}
+
+.pod-rack{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.pod{width:48px;height:48px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:600;border:1px solid #30363d;transition:all .5s;opacity:0;transform:scale(0.5)}
+.pod.active{opacity:1;transform:scale(1);background:#1f6feb20;border-color:#58a6ff60;color:#58a6ff}
+.pod.removing{opacity:0.3;transform:scale(0.7);background:#da363320;border-color:#f8514960;color:#f85149}
+.pod.pending{opacity:0.5;transform:scale(0.8);background:#f0883e20;border-color:#f0883e60;color:#f0883e;animation:podPulse 1s ease infinite}
+@keyframes podPulse{0%,100%{opacity:0.5}50%{opacity:1}}
+
+.hpa-status{margin-top:12px;padding:8px 12px;border-radius:6px;font-size:0.8rem;background:#21262d;border:1px solid #30363d;display:flex;align-items:center;gap:8px}
+.hpa-status .dot{width:8px;height:8px;border-radius:50%;background:#3fb950}
+.hpa-status .dot.warn{background:#f0883e}
+.hpa-status .dot.scaling{background:#58a6ff;animation:dotPulse .8s ease infinite}
+@keyframes dotPulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* VPA Section */
+.vpa-table{width:100%;border-collapse:collapse;font-size:0.8rem}
+.vpa-table th{text-align:left;padding:8px 12px;color:#8b949e;border-bottom:1px solid #30363d;font-weight:500}
+.vpa-table td{padding:8px 12px;border-bottom:1px solid #21262d}
+.vpa-table .cur{color:#f85149}
+.vpa-table .rec{color:#3fb950}
+.vpa-bar{height:8px;border-radius:4px;background:#21262d;overflow:hidden;min-width:120px}
+.vpa-bar-fill{height:100%;border-radius:4px;transition:width 1.5s ease;width:0}
+.vpa-arrow{font-size:1.2rem;transition:opacity .5s;opacity:0}
+.vpa-arrow.show{opacity:1}
+
+/* Cluster Autoscaler */
+.ca-flow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px}
+.ca-step{flex:1;min-width:140px;text-align:center;padding:12px;border-radius:8px;background:#0d1117;border:1px solid #21262d;transition:all .5s;opacity:0.3}
+.ca-step.active{opacity:1;border-color:#58a6ff;box-shadow:0 0 12px rgba(88,166,255,0.15)}
+.ca-step .ca-icon{font-size:1.5rem;margin-bottom:6px}
+.ca-step .ca-title{font-size:0.8rem;font-weight:600;margin-bottom:2px}
+.ca-step .ca-desc{font-size:0.65rem;color:#8b949e}
+.ca-arrow-sep{color:#30363d;font-size:1.2rem;transition:color .5s}
+.ca-arrow-sep.active{color:#58a6ff}
+
+/* Node visualization */
+.node-area{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
+.node-box{width:120px;padding:10px;border-radius:8px;border:2px solid #30363d;background:#0d1117;transition:all .6s;opacity:0;transform:scale(0.8)}
+.node-box.show{opacity:1;transform:scale(1)}
+.node-box.new{border-color:#3fb950;box-shadow:0 0 12px rgba(63,185,80,0.2)}
+.node-box .n-name{font-size:0.7rem;font-weight:600;margin-bottom:6px;color:#8b949e}
+.node-box .n-pods{display:flex;gap:3px;flex-wrap:wrap}
+.node-box .n-pod{width:16px;height:16px;border-radius:3px;background:#1f6feb40;border:1px solid #58a6ff60;transition:all .4s}
+.node-box .n-pod.pending{background:#f0883e40;border-color:#f0883e60;animation:podPulse 1s ease infinite}
+.node-box .n-pod.scheduled{background:#3fb95040;border-color:#3fb95060}
+
+/* PDB Section */
+.pdb-visual{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.pdb-pods{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.pdb-pod{width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:600;transition:all .5s}
+.pdb-pod.healthy{background:#2ea04320;border:1px solid #3fb95060;color:#3fb950}
+.pdb-pod.draining{background:#f0883e20;border:1px solid #f0883e60;color:#f0883e;animation:drainPulse 1s ease infinite}
+.pdb-pod.evicted{background:#da363320;border:1px solid #f8514960;color:#f85149;opacity:0.3;transform:scale(0.7)}
+.pdb-pod.protected{background:#1f6feb20;border:2px solid #58a6ff;color:#58a6ff}
+@keyframes drainPulse{0%,100%{opacity:1}50%{opacity:0.5}}
+
+.pdb-info{width:200px;padding:12px;background:#0d1117;border-radius:8px;border:1px solid #21262d;font-size:0.75rem}
+.pdb-info .info-row{display:flex;justify-content:space-between;margin-bottom:6px}
+.pdb-info .info-label{color:#8b949e}
+.pdb-info .info-val{font-weight:600}
+.pdb-info .info-val.ok{color:#3fb950}
+.pdb-info .info-val.warn{color:#f0883e}
+
+.paused *{animation-play-state:paused!important}
+@media(max-width:768px){.container{padding:12px}.ca-flow{flex-direction:column}.ca-arrow-sep{transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>K8s 오토스케일링 흐름 - Autoscaling Flow</h1>
+<p class="subtitle">HPA / VPA / Cluster Autoscaler / PDB 시각화</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnimation()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pauseAnimation()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restartAnimation()">&#8635; 다시시작 Restart</button>
+</div>
+
+<!-- HPA -->
+<div class="section">
+  <h2><span class="badge">HPA</span> Horizontal Pod Autoscaler 수평 스케일링</h2>
+  <div class="hpa-panel">
+    <div class="metrics-gauge">
+      <div class="gauge-box">
+        <div class="gauge-ring"><svg width="80" height="80"><circle class="bg" cx="40" cy="40" r="36"/><circle class="fg" id="cpuGauge" cx="40" cy="40" r="36"/></svg><span class="gauge-val" id="cpuVal">0%</span></div>
+        <div class="gauge-label">CPU 사용률</div>
+      </div>
+      <div class="gauge-box">
+        <div class="gauge-ring"><svg width="80" height="80"><circle class="bg" cx="40" cy="40" r="36"/><circle class="fg" id="memGauge" cx="40" cy="40" r="36"/></svg><span class="gauge-val" id="memVal">0%</span></div>
+        <div class="gauge-label">Memory 메모리</div>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:0.75rem;color:#8b949e;margin-bottom:4px">Target: CPU 70% | minReplicas: 2 | maxReplicas: 10</div>
+        <div class="hpa-status" id="hpaStatus"><div class="dot" id="hpaDot"></div><span id="hpaMsg">대기 중 Idle</span></div>
+      </div>
+    </div>
+    <div style="font-size:0.75rem;color:#8b949e;margin-bottom:6px">Pods (레플리카):</div>
+    <div class="pod-rack" id="podRack"></div>
+  </div>
+</div>
+
+<!-- VPA -->
+<div class="section">
+  <h2><span class="badge green">VPA</span> Vertical Pod Autoscaler 수직 스케일링</h2>
+  <table class="vpa-table">
+    <thead><tr><th>Resource</th><th>Current 현재</th><th></th><th>Recommended 권장</th><th>Utilization</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>CPU Request</td>
+        <td class="cur" id="vpaCpuCur">250m</td>
+        <td><span class="vpa-arrow" id="vpaCpuArrow">➡️</span></td>
+        <td class="rec" id="vpaCpuRec">-</td>
+        <td><div class="vpa-bar"><div class="vpa-bar-fill" id="vpaCpuBar" style="background:#58a6ff"></div></div></td>
+      </tr>
+      <tr>
+        <td>Memory Request</td>
+        <td class="cur" id="vpaMemCur">256Mi</td>
+        <td><span class="vpa-arrow" id="vpaMemArrow">➡️</span></td>
+        <td class="rec" id="vpaMemRec">-</td>
+        <td><div class="vpa-bar"><div class="vpa-bar-fill" id="vpaMemBar" style="background:#bc8cff"></div></div></td>
+      </tr>
+      <tr>
+        <td>CPU Limit</td>
+        <td class="cur" id="vpaCpuLCur">1000m</td>
+        <td><span class="vpa-arrow" id="vpaCpuLArrow">➡️</span></td>
+        <td class="rec" id="vpaCpuLRec">-</td>
+        <td><div class="vpa-bar"><div class="vpa-bar-fill" id="vpaCpuLBar" style="background:#3fb950"></div></div></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Cluster Autoscaler -->
+<div class="section">
+  <h2><span class="badge orange">CA</span> Cluster Autoscaler 클러스터 오토스케일러</h2>
+  <div class="ca-flow">
+    <div class="ca-step" id="ca0"><div class="ca-icon">⏳</div><div class="ca-title">Pending Pods</div><div class="ca-desc">스케줄 불가 파드 감지</div></div>
+    <div class="ca-arrow-sep" id="caA0">→</div>
+    <div class="ca-step" id="ca1"><div class="ca-icon">☁️</div><div class="ca-title">Provision Node</div><div class="ca-desc">클라우드에 노드 요청</div></div>
+    <div class="ca-arrow-sep" id="caA1">→</div>
+    <div class="ca-step" id="ca2"><div class="ca-icon">📋</div><div class="ca-title">Schedule Pods</div><div class="ca-desc">파드를 새 노드에 배치</div></div>
+    <div class="ca-arrow-sep" id="caA2">→</div>
+    <div class="ca-step" id="ca3"><div class="ca-icon">✅</div><div class="ca-title">Running</div><div class="ca-desc">파드 정상 실행 중</div></div>
+  </div>
+  <div class="node-area" id="nodeArea"></div>
+</div>
+
+<!-- PDB -->
+<div class="section">
+  <h2><span class="badge red">PDB</span> PodDisruptionBudget 안전한 중단</h2>
+  <div class="pdb-visual">
+    <div class="pdb-pods" id="pdbPods"></div>
+    <div class="pdb-info">
+      <div style="font-weight:600;margin-bottom:8px;color:#58a6ff">PDB 상태 Status</div>
+      <div class="info-row"><span class="info-label">minAvailable:</span><span class="info-val">3</span></div>
+      <div class="info-row"><span class="info-label">현재 Available:</span><span class="info-val ok" id="pdbAvail">5</span></div>
+      <div class="info-row"><span class="info-label">Disruptions:</span><span class="info-val" id="pdbDisrupt">0</span></div>
+      <div class="info-row"><span class="info-label">상태 Status:</span><span class="info-val ok" id="pdbStatusVal">Healthy</span></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+let animTimer=null,isPaused=false,step=0;
+const totalSteps=100;
+function setActive(id){document.querySelectorAll('.controls button').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active')}
+
+function setGauge(id,pct){
+  const el=document.getElementById(id);
+  const offset=226-(226*pct/100);
+  el.style.strokeDashoffset=offset;
+  el.classList.remove('warn','crit');
+  if(pct>80)el.classList.add('crit');else if(pct>60)el.classList.add('warn');
+}
+
+function updateHPA(progress){
+  // Phase 1: metrics rise (0-0.3), Phase 2: scale out (0.3-0.5), Phase 3: metrics drop (0.5-0.7), Phase 4: scale in (0.7-1)
+  let cpu,mem,podCount,msg,dotClass;
+  if(progress<0.3){
+    const t=progress/0.3;
+    cpu=Math.round(30+55*t);mem=Math.round(40+30*t);podCount=2;
+    msg=cpu>60?'메트릭 임계값 초과 Threshold exceeded':'모니터링 중 Monitoring...';
+    dotClass=cpu>60?'warn':'';
+  } else if(progress<0.5){
+    const t=(progress-0.3)/0.2;
+    cpu=Math.round(85-30*t);mem=Math.round(70-15*t);podCount=2+Math.floor(t*4);
+    msg='스케일 아웃 중 Scaling out → '+podCount+' pods';dotClass='scaling';
+  } else if(progress<0.7){
+    const t=(progress-0.5)/0.2;
+    cpu=Math.round(55-20*t);mem=Math.round(55-15*t);podCount=6;
+    msg='안정화 Stabilized at '+podCount+' pods';dotClass='';
+  } else {
+    const t=(progress-0.7)/0.3;
+    cpu=Math.round(35-10*t);mem=Math.round(40-10*t);podCount=6-Math.floor(t*3);
+    msg=podCount>3?'스케일 인 중 Scaling in → '+podCount+' pods':'최적화 완료 Optimized: '+podCount+' pods';
+    dotClass=podCount>3?'scaling':'';
+  }
+  setGauge('cpuGauge',cpu);setGauge('memGauge',mem);
+  document.getElementById('cpuVal').textContent=cpu+'%';
+  document.getElementById('memVal').textContent=mem+'%';
+  document.getElementById('hpaMsg').textContent=msg;
+  const dot=document.getElementById('hpaDot');dot.className='dot '+dotClass;
+
+  const rack=document.getElementById('podRack');
+  const current=rack.children.length;
+  while(rack.children.length<8){
+    const p=document.createElement('div');p.className='pod';p.textContent='Pod';rack.appendChild(p);
+  }
+  for(let i=0;i<8;i++){
+    const p=rack.children[i];
+    if(i<podCount){
+      if(progress>0.7&&i>=podCount){p.className='pod removing';p.textContent='Pod'}
+      else{p.className='pod active';p.textContent='P'+(i+1)}
+    } else if(i<podCount+1&&(progress>=0.3&&progress<0.5)){
+      p.className='pod pending';p.textContent='...';
+    } else if(progress>0.7&&i>=podCount&&i<podCount+2){
+      p.className='pod removing';p.textContent='P'+(i+1);
+    } else {
+      p.className='pod';p.textContent='Pod';
+    }
+  }
+}
+
+function updateVPA(progress){
+  if(progress>0.2){
+    const t=Math.min((progress-0.2)/0.4,1);
+    document.getElementById('vpaCpuBar').style.width=(85*t)+'%';
+    document.getElementById('vpaMemBar').style.width=(65*t)+'%';
+    document.getElementById('vpaCpuLBar').style.width=(40*t)+'%';
+  }
+  if(progress>0.4){
+    document.getElementById('vpaCpuArrow').classList.add('show');
+    document.getElementById('vpaMemArrow').classList.add('show');
+    document.getElementById('vpaCpuLArrow').classList.add('show');
+    document.getElementById('vpaCpuRec').textContent='500m';
+    document.getElementById('vpaMemRec').textContent='512Mi';
+    document.getElementById('vpaCpuLRec').textContent='800m';
+  }
+}
+
+function updateCA(progress){
+  const steps=[0.15,0.35,0.55,0.75];
+  for(let i=0;i<4;i++){
+    const el=document.getElementById('ca'+i);
+    const arr=document.getElementById('caA'+i);
+    if(progress>=steps[i]){el.classList.add('active');if(arr)arr.classList.add('active')}
+    else{el.classList.remove('active');if(arr)arr.classList.remove('active')}
+  }
+
+  const area=document.getElementById('nodeArea');
+  const nodes=[
+    {name:'node-1',pods:4,show:0},
+    {name:'node-2',pods:3,show:0},
+    {name:'node-3 (new)',pods:0,show:0.4}
+  ];
+  area.innerHTML='';
+  nodes.forEach(n=>{
+    if(progress<n.show)return;
+    const box=document.createElement('div');
+    box.className='node-box show'+(n.show>0?' new':'');
+    const podCount=n.show>0?Math.min(Math.floor((progress-n.show)/0.15*3),3):n.pods;
+    box.innerHTML='<div class="n-name">'+n.name+'</div><div class="n-pods">'+
+      Array.from({length:Math.max(podCount,0)},(_,i)=>'<div class="n-pod'+(n.show>0&&(progress-n.show)<0.1?' pending':' scheduled')+'"></div>').join('')+'</div>';
+    area.appendChild(box);
+  });
+}
+
+function updatePDB(progress){
+  const pods=document.getElementById('pdbPods');
+  const total=5;
+  pods.innerHTML='';
+  for(let i=0;i<total;i++){
+    const p=document.createElement('div');p.className='pdb-pod';
+    if(progress>0.5&&i>=3&&progress<0.8){
+      if(i===3){p.className='pdb-pod draining';p.textContent='Drain'}
+      else if(i===4){p.className='pdb-pod evicted';p.textContent='Evict'}
+    } else if(progress>=0.8&&i>=3){
+      p.className='pdb-pod healthy';p.textContent='P'+(i+1);
+    } else if(i<3&&progress>0.5){
+      p.className='pdb-pod protected';p.textContent='P'+(i+1);
+    } else {
+      p.className='pdb-pod healthy';p.textContent='P'+(i+1);
+    }
+    pods.appendChild(p);
+  }
+
+  const avail=progress>0.5&&progress<0.8?3:5;
+  const disrupt=progress>0.5&&progress<0.8?2:0;
+  document.getElementById('pdbAvail').textContent=avail;
+  document.getElementById('pdbAvail').className='info-val '+(avail<=3?'warn':'ok');
+  document.getElementById('pdbDisrupt').textContent=disrupt;
+  document.getElementById('pdbStatusVal').textContent=disrupt>0?'Draining':'Healthy';
+  document.getElementById('pdbStatusVal').className='info-val '+(disrupt>0?'warn':'ok');
+}
+
+function tick(){
+  if(isPaused)return;
+  step++;
+  const p=step/totalSteps;
+  updateHPA(p);updateVPA(p);updateCA(p);updatePDB(p);
+  if(step>=totalSteps)clearInterval(animTimer);
+}
+
+function startAnimation(){
+  if(isPaused){isPaused=false;setActive('btnPlay');document.body.classList.remove('paused');return}
+  step=0;isPaused=false;setActive('btnPlay');
+  document.getElementById('podRack').innerHTML='';
+  if(animTimer)clearInterval(animTimer);
+  animTimer=setInterval(tick,100);
+}
+function pauseAnimation(){isPaused=true;setActive('btnPause');document.body.classList.add('paused')}
+function restartAnimation(){if(animTimer)clearInterval(animTimer);isPaused=false;step=0;document.body.classList.remove('paused');startAnimation()}
+
+startAnimation();
+</script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>systemd 부팅 &amp; 서비스 관리 - CH02</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:1.8rem;margin-bottom:8px;background:linear-gradient(90deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{background:#21262d;border:1px solid #30363d;color:#e6edf3;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.step-indicator{display:flex;justify-content:center;gap:6px;margin-bottom:24px;flex-wrap:wrap}
+.step-dot{width:28px;height:28px;border-radius:50%;background:#21262d;border:2px solid #30363d;display:flex;align-items:center;justify-content:center;font-size:.65rem;transition:all .3s}
+.step-dot.active{background:#1f6feb;border-color:#58a6ff;transform:scale(1.15)}
+.step-dot.done{background:#238636;border-color:#3fb950}
+.sections{display:grid;gap:24px}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;overflow:hidden}
+.section h2{font-size:1.15rem;margin-bottom:16px;color:#58a6ff}
+.section h2 span{color:#8b949e;font-size:.85rem;font-weight:normal}
+
+/* Boot Sequence */
+.boot-seq{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;min-height:120px}
+.boot-stage{padding:14px 18px;border-radius:10px;text-align:center;min-width:110px;opacity:0;transform:scale(.7)translateY(10px);transition:all .5s cubic-bezier(.34,1.56,.64,1)}
+.boot-stage.visible{opacity:1;transform:scale(1)translateY(0)}
+.boot-stage.active{animation:bootPulse .8s ease infinite}
+@keyframes bootPulse{0%,100%{box-shadow:0 0 8px rgba(88,166,255,.2)}50%{box-shadow:0 0 22px rgba(88,166,255,.5)}}
+.boot-stage .name{font-weight:bold;font-size:.82rem}
+.boot-stage .time{font-size:.65rem;color:#8b949e;margin-top:4px}
+.stage-fw{background:rgba(139,148,158,.12);border:2px solid #8b949e}
+.stage-bl{background:rgba(210,153,34,.12);border:2px solid #d29922}
+.stage-kern{background:rgba(248,81,73,.12);border:2px solid #f85149}
+.stage-sd{background:rgba(188,140,255,.12);border:2px solid #bc8cff}
+.stage-tgt{background:rgba(63,185,80,.12);border:2px solid #3fb950}
+.boot-arrow{font-size:1.2rem;color:#30363d;opacity:0;transition:all .3s}
+.boot-arrow.visible{opacity:1;color:#58a6ff}
+
+/* Boot Timeline */
+.boot-timeline{margin-top:16px;position:relative}
+.boot-tl-bar{height:8px;background:#21262d;border-radius:4px;overflow:hidden;margin-bottom:16px}
+.boot-tl-fill{height:100%;width:0%;background:linear-gradient(90deg,#8b949e,#d29922,#f85149,#bc8cff,#3fb950);border-radius:4px;transition:width 1.5s ease}
+.boot-tl-labels{display:flex;justify-content:space-between;font-size:.7rem;color:#8b949e}
+
+/* Dependency Graph */
+.dep-graph{min-height:300px}
+.dep-target{text-align:center;padding:12px 20px;border-radius:10px;margin-bottom:16px;opacity:0;transform:translateY(-10px);transition:all .5s}
+.dep-target.visible{opacity:1;transform:translateY(0)}
+.dep-target.t-multi{background:rgba(63,185,80,.1);border:2px solid #3fb950}
+.dep-target.t-graph{background:rgba(88,166,255,.1);border:2px solid #58a6ff}
+.dep-target .tname{font-weight:bold;font-size:.9rem}
+.dep-target .tdesc{font-size:.72rem;color:#8b949e;margin-top:2px}
+.dep-services{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px}
+.dep-svc{padding:10px 16px;border-radius:8px;font-size:.78rem;text-align:center;min-width:130px;opacity:0;transform:translateY(15px);transition:all .4s}
+.dep-svc.visible{opacity:1;transform:translateY(0)}
+.dep-svc .sname{font-weight:bold;margin-bottom:2px}
+.dep-svc .stype{font-size:.65rem;color:#8b949e}
+.svc-network{background:rgba(88,166,255,.1);border:1px solid #58a6ff}
+.svc-docker{background:rgba(63,185,80,.1);border:1px solid #3fb950}
+.svc-ssh{background:rgba(188,140,255,.1);border:1px solid #bc8cff}
+.svc-cron{background:rgba(210,153,34,.1);border:1px solid #d29922}
+.svc-log{background:rgba(121,192,255,.1);border:1px solid #79c0ff}
+.svc-firewall{background:rgba(248,81,73,.1);border:1px solid #f85149}
+.dep-lines{text-align:center;color:#30363d;font-size:.8rem;margin:6px 0;opacity:0;transition:all .3s}
+.dep-lines.visible{opacity:1;color:#58a6ff}
+
+/* Service Lifecycle */
+.svc-lifecycle{display:flex;flex-direction:column;align-items:center;gap:10px;min-height:260px}
+.svc-state-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+.svc-state{padding:12px 20px;border-radius:24px;text-align:center;min-width:100px;opacity:.3;transform:scale(.85);transition:all .5s}
+.svc-state.active{opacity:1;transform:scale(1)}
+.svc-state.current{animation:svcPulse .8s ease infinite}
+@keyframes svcPulse{0%,100%{box-shadow:0 0 8px rgba(63,185,80,.2)}50%{box-shadow:0 0 20px rgba(63,185,80,.5)}}
+.svc-inactive{background:rgba(139,148,158,.1);border:2px solid #8b949e}
+.svc-activating{background:rgba(210,153,34,.1);border:2px solid #d29922}
+.svc-active{background:rgba(63,185,80,.1);border:2px solid #3fb950}
+.svc-reloading{background:rgba(88,166,255,.1);border:2px solid #58a6ff}
+.svc-deactivating{background:rgba(188,140,255,.1);border:2px solid #bc8cff}
+.svc-failed{background:rgba(248,81,73,.1);border:2px solid #f85149}
+.svc-arrow{font-size:1rem;color:#30363d;opacity:0;transition:all .3s}
+.svc-arrow.visible{opacity:1;color:#3fb950}
+.svc-cmd{margin-top:12px;padding:10px 20px;border-radius:8px;background:#0d1117;border:1px solid #30363d;font-family:monospace;font-size:.8rem;text-align:center;opacity:0;transition:all .4s}
+.svc-cmd.visible{opacity:1}
+.svc-cmd code{color:#79c0ff}
+
+@media(max-width:768px){
+  h1{font-size:1.4rem}
+  .boot-seq{flex-direction:column;align-items:center}
+  .boot-arrow{transform:rotate(90deg)}
+  .dep-services{flex-direction:column;align-items:center}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>systemd 부팅 &amp; 서비스 관리</h1>
+  <p class="subtitle">부팅 시퀀스, 의존성 그래프, 서비스 생명주기 시각화</p>
+  <div class="controls">
+    <button id="btnPlay" class="active" onclick="play()">&#9654; 재생</button>
+    <button id="btnPause" onclick="pause()">&#10074;&#10074; 일시정지</button>
+    <button id="btnRestart" onclick="restart()">&#8634; 처음부터</button>
+  </div>
+  <div class="step-indicator" id="stepIndicator"></div>
+
+  <div class="sections">
+    <!-- Boot Sequence -->
+    <div class="section">
+      <h2>Step 1. 부팅 시퀀스 <span>(Firmware → systemd)</span></h2>
+      <div class="boot-seq">
+        <div class="boot-stage stage-fw" id="bFw"><div class="name">Firmware</div><div class="time">UEFI/BIOS</div></div>
+        <div class="boot-arrow" id="ba1">&#10132;</div>
+        <div class="boot-stage stage-bl" id="bBl"><div class="name">Bootloader</div><div class="time">GRUB2</div></div>
+        <div class="boot-arrow" id="ba2">&#10132;</div>
+        <div class="boot-stage stage-kern" id="bKern"><div class="name">Kernel</div><div class="time">vmlinuz + initrd</div></div>
+        <div class="boot-arrow" id="ba3">&#10132;</div>
+        <div class="boot-stage stage-sd" id="bSd"><div class="name">systemd</div><div class="time">PID 1</div></div>
+        <div class="boot-arrow" id="ba4">&#10132;</div>
+        <div class="boot-stage stage-tgt" id="bTgt"><div class="name">Targets</div><div class="time">multi-user.target</div></div>
+      </div>
+      <div class="boot-timeline">
+        <div class="boot-tl-bar"><div class="boot-tl-fill" id="btlFill"></div></div>
+        <div class="boot-tl-labels">
+          <span>0s (전원 켜짐)</span>
+          <span>POST</span>
+          <span>커널 로드</span>
+          <span>initrd</span>
+          <span>systemd 시작</span>
+          <span>서비스 준비 완료</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dependency Graph -->
+    <div class="section">
+      <h2>Step 2. 의존성 그래프 <span>(multi-user.target)</span></h2>
+      <div class="dep-graph">
+        <div class="dep-target t-multi" id="depMulti">
+          <div class="tname">multi-user.target</div>
+          <div class="tdesc">다중 사용자 모드 (그래픽 없이 서비스 구동)</div>
+        </div>
+        <div class="dep-lines" id="depLines">&#9475; Requires / Wants / After &#9475;</div>
+        <div class="dep-services" id="depSvcs">
+          <div class="dep-svc svc-network" id="dsNet"><div class="sname">NetworkManager</div><div class="stype">Type=dbus</div></div>
+          <div class="dep-svc svc-docker" id="dsDocker"><div class="sname">docker.service</div><div class="stype">Type=notify</div></div>
+          <div class="dep-svc svc-ssh" id="dsSsh"><div class="sname">sshd.service</div><div class="stype">Type=simple</div></div>
+          <div class="dep-svc svc-cron" id="dsCron"><div class="sname">crond.service</div><div class="stype">Type=simple</div></div>
+          <div class="dep-svc svc-log" id="dsLog"><div class="sname">rsyslog.service</div><div class="stype">Type=notify</div></div>
+          <div class="dep-svc svc-firewall" id="dsFw"><div class="sname">firewalld.service</div><div class="stype">Type=dbus</div></div>
+        </div>
+        <div class="dep-lines" id="depLines2">&#9475; After=network-online.target &#9475;</div>
+        <div style="text-align:center;margin-top:8px">
+          <div class="dep-target t-graph" id="depNet" style="display:inline-block;padding:8px 20px">
+            <div class="tname">network-online.target</div>
+            <div class="tdesc">네트워크 준비 완료</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Service Lifecycle -->
+    <div class="section">
+      <h2>Step 3. 서비스 생명주기 <span>(systemctl 명령어)</span></h2>
+      <div class="svc-lifecycle">
+        <div class="svc-state-row">
+          <div class="svc-state svc-inactive" id="slInactive"><div>inactive</div><div style="font-size:.65rem;color:#8b949e">비활성</div></div>
+          <div class="svc-arrow" id="sla1">&#10132;</div>
+          <div class="svc-state svc-activating" id="slActivating"><div>activating</div><div style="font-size:.65rem;color:#8b949e">시작 중</div></div>
+          <div class="svc-arrow" id="sla2">&#10132;</div>
+          <div class="svc-state svc-active" id="slActive"><div>active (running)</div><div style="font-size:.65rem;color:#8b949e">실행 중</div></div>
+        </div>
+        <div class="svc-state-row">
+          <div class="svc-state svc-reloading" id="slReload"><div>reloading</div><div style="font-size:.65rem;color:#8b949e">설정 재로드</div></div>
+          <div class="svc-arrow" id="sla3">&#10132;</div>
+          <div class="svc-state svc-active" id="slActive2"><div>active (running)</div><div style="font-size:.65rem;color:#8b949e">복귀</div></div>
+        </div>
+        <div class="svc-state-row">
+          <div class="svc-state svc-deactivating" id="slDeact"><div>deactivating</div><div style="font-size:.65rem;color:#8b949e">종료 중</div></div>
+          <div class="svc-arrow" id="sla4">&#10132;</div>
+          <div class="svc-state svc-inactive" id="slInactive2"><div>inactive</div><div style="font-size:.65rem;color:#8b949e">종료됨</div></div>
+          <div class="svc-arrow" id="sla5" style="color:#f85149">&#10132;</div>
+          <div class="svc-state svc-failed" id="slFailed"><div>failed</div><div style="font-size:.65rem;color:#8b949e">실패</div></div>
+        </div>
+        <div class="svc-cmd" id="svcCmd"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const TOTAL=18;let cur=0,playing=true,timer=null;
+const si=document.getElementById('stepIndicator');
+for(let i=1;i<=TOTAL;i++){const d=document.createElement('div');d.className='step-dot';d.textContent=i;d.id='sd_'+i;si.appendChild(d)}
+function setStep(n){for(let i=1;i<=TOTAL;i++){const d=document.getElementById('sd_'+i);d.className='step-dot'+(i<n?' done':'')+(i===n?' active':'')}}
+
+function resetAll(){
+  ['bFw','bBl','bKern','bSd','bTgt'].forEach(id=>{const e=document.getElementById(id);e.classList.remove('visible','active')});
+  ['ba1','ba2','ba3','ba4'].forEach(id=>document.getElementById(id).classList.remove('visible'));
+  document.getElementById('btlFill').style.width='0%';
+  ['depMulti','depNet'].forEach(id=>document.getElementById(id).classList.remove('visible'));
+  ['depLines','depLines2'].forEach(id=>document.getElementById(id).classList.remove('visible'));
+  ['dsNet','dsDocker','dsSsh','dsCron','dsLog','dsFw'].forEach(id=>document.getElementById(id).classList.remove('visible'));
+  ['slInactive','slActivating','slActive','slReload','slActive2','slDeact','slInactive2','slFailed'].forEach(id=>{const e=document.getElementById(id);e.classList.remove('active','current')});
+  ['sla1','sla2','sla3','sla4','sla5'].forEach(id=>document.getElementById(id).classList.remove('visible'));
+  const sc=document.getElementById('svcCmd');sc.className='svc-cmd';sc.innerHTML='';
+}
+
+const steps=[
+  ()=>{document.getElementById('bFw').classList.add('visible','active');document.getElementById('btlFill').style.width='10%'},
+  ()=>{document.getElementById('bFw').classList.remove('active');document.getElementById('ba1').classList.add('visible');document.getElementById('bBl').classList.add('visible','active');document.getElementById('btlFill').style.width='25%'},
+  ()=>{document.getElementById('bBl').classList.remove('active');document.getElementById('ba2').classList.add('visible');document.getElementById('bKern').classList.add('visible','active');document.getElementById('btlFill').style.width='50%'},
+  ()=>{document.getElementById('bKern').classList.remove('active');document.getElementById('ba3').classList.add('visible');document.getElementById('bSd').classList.add('visible','active');document.getElementById('btlFill').style.width='75%'},
+  ()=>{document.getElementById('bSd').classList.remove('active');document.getElementById('ba4').classList.add('visible');document.getElementById('bTgt').classList.add('visible','active');document.getElementById('btlFill').style.width='100%';setTimeout(()=>document.getElementById('bTgt').classList.remove('active'),800)},
+  ()=>{document.getElementById('depMulti').classList.add('visible')},
+  ()=>{document.getElementById('depLines').classList.add('visible');['dsNet','dsDocker','dsSsh'].forEach(id=>document.getElementById(id).classList.add('visible'))},
+  ()=>{['dsCron','dsLog','dsFw'].forEach(id=>document.getElementById(id).classList.add('visible'))},
+  ()=>{document.getElementById('depLines2').classList.add('visible');document.getElementById('depNet').classList.add('visible')},
+  ()=>{const e=document.getElementById('slInactive');e.classList.add('active','current');const sc=document.getElementById('svcCmd');sc.className='svc-cmd visible';sc.innerHTML='<code>$ systemctl start nginx.service</code>'},
+  ()=>{document.getElementById('slInactive').classList.remove('current');document.getElementById('sla1').classList.add('visible');const e=document.getElementById('slActivating');e.classList.add('active','current');document.getElementById('svcCmd').innerHTML='<code>ExecStartPre=/usr/sbin/nginx -t</code> 설정 검증 중...'},
+  ()=>{document.getElementById('slActivating').classList.remove('current');document.getElementById('sla2').classList.add('visible');const e=document.getElementById('slActive');e.classList.add('active','current');document.getElementById('svcCmd').innerHTML='<code>Active: active (running) since ...</code> <span style="color:#3fb950">&#10004; 정상 구동</span>'},
+  ()=>{document.getElementById('slActive').classList.remove('current');const e=document.getElementById('slReload');e.classList.add('active','current');document.getElementById('svcCmd').innerHTML='<code>$ systemctl reload nginx.service</code> → ExecReload 실행'},
+  ()=>{document.getElementById('slReload').classList.remove('current');document.getElementById('sla3').classList.add('visible');const e=document.getElementById('slActive2');e.classList.add('active','current');document.getElementById('svcCmd').innerHTML='<code>Reloaded nginx.service</code> <span style="color:#3fb950">&#10004; 설정 재로드 완료 (PID 유지)</span>'},
+  ()=>{document.getElementById('slActive2').classList.remove('current');const e=document.getElementById('slDeact');e.classList.add('active','current');document.getElementById('svcCmd').innerHTML='<code>$ systemctl stop nginx.service</code> → SIGTERM 전송'},
+  ()=>{document.getElementById('slDeact').classList.remove('current');document.getElementById('sla4').classList.add('visible');const e=document.getElementById('slInactive2');e.classList.add('active','current');document.getElementById('svcCmd').innerHTML='<code>Stopped nginx.service</code> <span style="color:#8b949e">정상 종료됨</span>'},
+  ()=>{document.getElementById('slInactive2').classList.remove('current');document.getElementById('sla5').classList.add('visible');const e=document.getElementById('slFailed');e.classList.add('active','current');document.getElementById('svcCmd').innerHTML='<span style="color:#f85149">&#10060; Start-limit hit → failed</span><br><code>$ systemctl reset-failed nginx.service</code> 로 복구'},
+  ()=>{document.getElementById('slFailed').classList.remove('current');document.getElementById('svcCmd').innerHTML='<code>$ journalctl -u nginx.service --since "5 min ago"</code><br><span style="color:#79c0ff">로그 확인으로 원인 분석</span>'}
+];
+function advance(){if(cur>=TOTAL){pause();return}cur++;setStep(cur);steps[cur-1]()}
+function play(){playing=true;document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');if(timer)clearInterval(timer);timer=setInterval(()=>{if(playing)advance()},1300)}
+function pause(){playing=false;document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active');if(timer){clearInterval(timer);timer=null}}
+function restart(){pause();cur=0;resetAll();setStep(0);setTimeout(()=>play(),300)}
+play();
+</script>
+</body>
+</html>

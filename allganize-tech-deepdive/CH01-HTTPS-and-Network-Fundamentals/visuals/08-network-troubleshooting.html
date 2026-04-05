@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>네트워크 트러블슈팅 결정 트리</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#f85149,#58a6ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.section-title{font-size:1.1rem;color:#f85149;margin:24px 0 16px;padding-left:12px;border-left:3px solid #f85149}
+/* Decision tree */
+.tree-container{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;overflow-x:auto}
+.tree{display:flex;flex-direction:column;align-items:center;gap:0;min-width:700px}
+.tree-row{display:flex;justify-content:center;gap:16px;width:100%;flex-wrap:nowrap}
+.tree-node{padding:12px 16px;border-radius:10px;border:2px solid #30363d;background:#0d1117;font-size:0.8rem;text-align:center;min-width:140px;max-width:200px;cursor:pointer;transition:all 0.3s;position:relative}
+.tree-node:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+.tree-node.question{border-color:#f0883e40;background:#f0883e08}
+.tree-node.question .node-icon{color:#f0883e}
+.tree-node.dns{border-color:#58a6ff40;background:#58a6ff08}
+.tree-node.dns .node-icon{color:#58a6ff}
+.tree-node.conn{border-color:#d2a8ff40;background:#d2a8ff08}
+.tree-node.conn .node-icon{color:#d2a8ff}
+.tree-node.tls{border-color:#3fb95040;background:#3fb95008}
+.tree-node.tls .node-icon{color:#3fb950}
+.tree-node.app{border-color:#f8514940;background:#f8514908}
+.tree-node.app .node-icon{color:#f85149}
+.tree-node.active{box-shadow:0 0 20px var(--glow,#58a6ff30);transform:scale(1.05)}
+.node-icon{font-size:1.3rem;display:block;margin-bottom:4px}
+.node-title{font-weight:600;margin-bottom:2px}
+.node-cmd{font-family:'Courier New',monospace;font-size:0.65rem;color:#8b949e;background:#21262d;padding:2px 6px;border-radius:3px;display:inline-block;margin-top:4px}
+.tree-connector{display:flex;justify-content:center;padding:8px 0}
+.connector-line{width:2px;height:24px;background:#30363d}
+.branch-lines{display:flex;justify-content:center;align-items:flex-start;position:relative;padding:4px 0}
+.branch-h{height:2px;background:#30363d}
+.branch-v{width:2px;height:16px;background:#30363d}
+.yes-label,.no-label{font-size:0.6rem;padding:1px 6px;border-radius:3px;position:absolute;top:-2px}
+.yes-label{color:#3fb950;background:#3fb95015;left:calc(25% - 10px)}
+.no-label{color:#f85149;background:#f8514915;right:calc(25% - 10px)}
+/* Packet flow layers */
+.layers-area{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-top:20px}
+.layer-stack{display:flex;flex-direction:column;gap:0;max-width:800px;margin:0 auto}
+.layer{display:grid;grid-template-columns:80px 1fr 120px;gap:12px;align-items:center;padding:12px 16px;border:1px solid #30363d;background:#0d1117;transition:all 0.4s;cursor:pointer}
+.layer:first-child{border-radius:10px 10px 0 0}
+.layer:last-child{border-radius:0 0 10px 10px}
+.layer:hover,.layer.active{background:#161b22}
+.layer.active{border-color:var(--lc,#58a6ff);box-shadow:inset 3px 0 0 var(--lc,#58a6ff)}
+.layer-num{font-size:1.5rem;font-weight:700;color:#30363d;text-align:center;transition:color 0.3s}
+.layer.active .layer-num{color:var(--lc,#58a6ff)}
+.layer-info h4{font-size:0.85rem;margin-bottom:2px}
+.layer-info p{font-size:0.72rem;color:#8b949e;line-height:1.3}
+.layer-tools{display:flex;flex-direction:column;gap:3px}
+.layer-tool{font-family:'Courier New',monospace;font-size:0.65rem;color:#f0883e;background:#21262d;padding:2px 6px;border-radius:3px;text-align:center}
+.inspect-point{position:absolute;width:10px;height:10px;border-radius:50%;background:#f0883e;opacity:0;transition:all 0.3s}
+.inspect-point.visible{opacity:1;animation:inspPulse 1.5s ease infinite}
+@keyframes inspPulse{0%,100%{box-shadow:0 0 0 0 #f0883e40}50%{box-shadow:0 0 0 6px #f0883e00}}
+/* Command reference */
+.cmd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:20px}
+.cmd-card{padding:14px;background:#161b22;border:1px solid #30363d;border-radius:8px}
+.cmd-card h4{font-size:0.85rem;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.cmd-card .cmd-badge{padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:600}
+.cmd-entry{font-family:'Courier New',monospace;font-size:0.75rem;padding:6px 10px;background:#0d1117;border-radius:4px;border:1px solid #21262d;margin-bottom:6px;color:#e6edf3;line-height:1.4;overflow-x:auto;white-space:pre}
+.cmd-desc{font-size:0.72rem;color:#8b949e;margin-bottom:8px;line-height:1.3}
+/* Detail panel */
+.detail-panel{margin-top:16px;padding:16px;background:#0d1117;border:1px solid #21262d;border-radius:8px;display:none}
+.detail-panel.visible{display:block;animation:fadeIn 0.3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.detail-panel h4{font-size:0.9rem;margin-bottom:8px;color:#58a6ff}
+.detail-panel p{font-size:0.8rem;color:#8b949e;line-height:1.5}
+.detail-panel code{background:#21262d;padding:1px 4px;border-radius:3px;font-size:0.75rem;color:#f0883e}
+@media(max-width:768px){.tree{min-width:500px}.tree-node{min-width:100px;max-width:140px;font-size:0.7rem;padding:8px 10px}.layer{grid-template-columns:50px 1fr 80px}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>네트워크 트러블슈팅 결정 트리</h1>
+<p class="subtitle">Network Troubleshooting Decision Tree - 체계적 문제 진단</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnim()">&#9654; 재생</button>
+  <button id="btnPause" onclick="pauseAnim()">&#10074;&#10074; 일시정지</button>
+  <button id="btnRestart" onclick="restartAnim()">&#8635; 다시시작</button>
+</div>
+
+<div class="section-title">1. 트러블슈팅 흐름 (Interactive Decision Tree)</div>
+<div class="tree-container">
+<div class="tree">
+  <!-- Level 0: Start -->
+  <div class="tree-row">
+    <div class="tree-node question" id="n0" style="--glow:#f0883e30" onclick="showDetail(0)">
+      <span class="node-icon">&#9888;</span>
+      <span class="node-title">서비스 접속 불가</span>
+      <span class="node-cmd">curl -v https://api.example.com</span>
+    </div>
+  </div>
+  <div class="tree-connector"><div class="connector-line"></div></div>
+
+  <!-- Level 1: DNS check -->
+  <div class="tree-row">
+    <div class="tree-node dns" id="n1" style="--glow:#58a6ff30" onclick="showDetail(1)">
+      <span class="node-icon">&#128269;</span>
+      <span class="node-title">DNS 해석 가능?</span>
+      <span class="node-cmd">dig api.example.com</span>
+      <span class="node-cmd">nslookup api.example.com</span>
+    </div>
+  </div>
+
+  <div class="branch-lines" style="width:60%;margin:0 auto">
+    <div style="display:flex;flex-direction:column;align-items:center;width:50%">
+      <div style="font-size:0.6rem;color:#3fb950;margin-bottom:4px">YES &#10003;</div>
+      <div class="branch-v"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;width:50%">
+      <div style="font-size:0.6rem;color:#f85149;margin-bottom:4px">NO &#10007;</div>
+      <div class="branch-v"></div>
+    </div>
+  </div>
+
+  <!-- Level 2 -->
+  <div class="tree-row" style="gap:40px">
+    <div class="tree-node conn" id="n2" style="--glow:#d2a8ff30" onclick="showDetail(2)">
+      <span class="node-icon">&#128268;</span>
+      <span class="node-title">TCP 연결 가능?</span>
+      <span class="node-cmd">nc -zv host 443</span>
+      <span class="node-cmd">telnet host 443</span>
+    </div>
+    <div class="tree-node dns" id="n3" style="--glow:#58a6ff30" onclick="showDetail(3)">
+      <span class="node-icon">&#128295;</span>
+      <span class="node-title">DNS 문제 해결</span>
+      <span class="node-cmd">cat /etc/resolv.conf</span>
+      <span class="node-cmd">systemd-resolve --status</span>
+    </div>
+  </div>
+
+  <div style="display:flex;width:60%;margin:0 auto">
+    <div style="display:flex;flex-direction:column;align-items:center;width:50%">
+      <div class="tree-connector"><div class="connector-line"></div></div>
+      <div style="display:flex;gap:40px">
+        <div style="display:flex;flex-direction:column;align-items:center">
+          <div style="font-size:0.6rem;color:#3fb950;margin-bottom:4px">YES</div>
+          <div class="branch-v"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center">
+          <div style="font-size:0.6rem;color:#f85149;margin-bottom:4px">NO</div>
+          <div class="branch-v"></div>
+        </div>
+      </div>
+    </div>
+    <div style="width:50%"></div>
+  </div>
+
+  <!-- Level 3 -->
+  <div class="tree-row" style="gap:20px">
+    <div class="tree-node tls" id="n4" style="--glow:#3fb95030" onclick="showDetail(4)">
+      <span class="node-icon">&#128274;</span>
+      <span class="node-title">TLS 핸드셰이크 성공?</span>
+      <span class="node-cmd">openssl s_client -connect host:443</span>
+    </div>
+    <div class="tree-node conn" id="n5" style="--glow:#d2a8ff30" onclick="showDetail(5)">
+      <span class="node-icon">&#128295;</span>
+      <span class="node-title">연결 문제 해결</span>
+      <span class="node-cmd">traceroute host</span>
+      <span class="node-cmd">tcpdump -i eth0</span>
+    </div>
+  </div>
+
+  <div style="display:flex;width:40%;margin:4px auto">
+    <div style="display:flex;flex-direction:column;align-items:center;width:50%">
+      <div style="font-size:0.6rem;color:#3fb950;margin:4px 0">YES</div>
+      <div class="branch-v"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;width:50%">
+      <div style="font-size:0.6rem;color:#f85149;margin:4px 0">NO</div>
+      <div class="branch-v"></div>
+    </div>
+  </div>
+
+  <!-- Level 4 -->
+  <div class="tree-row" style="gap:20px">
+    <div class="tree-node app" id="n6" style="--glow:#f8514930" onclick="showDetail(6)">
+      <span class="node-icon">&#128196;</span>
+      <span class="node-title">App 레벨 진단</span>
+      <span class="node-cmd">curl -vvv https://host/health</span>
+      <span class="node-cmd">kubectl logs pod-name</span>
+    </div>
+    <div class="tree-node tls" id="n7" style="--glow:#3fb95030" onclick="showDetail(7)">
+      <span class="node-icon">&#128295;</span>
+      <span class="node-title">TLS 문제 해결</span>
+      <span class="node-cmd">openssl x509 -noout -dates</span>
+      <span class="node-cmd">curl --cacert ca.pem</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="detail-panel" id="detailPanel">
+  <h4 id="detailTitle"></h4>
+  <p id="detailContent"></p>
+</div>
+
+<div class="section-title">2. 네트워크 계층별 점검 (OSI Layer Inspection)</div>
+<div class="layers-area">
+<div class="layer-stack">
+  <div class="layer" id="ly7" style="--lc:#f85149" onclick="activateLayer(7)">
+    <div class="layer-num">L7</div>
+    <div class="layer-info"><h4>Application Layer</h4><p>HTTP 상태코드, 헤더, 응답 본문 확인. API 엔드포인트 점검.</p></div>
+    <div class="layer-tools"><span class="layer-tool">curl -v</span><span class="layer-tool">httpie</span></div>
+  </div>
+  <div class="layer" id="ly6" style="--lc:#f0883e" onclick="activateLayer(6)">
+    <div class="layer-num">L6</div>
+    <div class="layer-info"><h4>Presentation (TLS)</h4><p>TLS 핸드셰이크, 인증서 유효성, 암호화 스위트 확인.</p></div>
+    <div class="layer-tools"><span class="layer-tool">openssl s_client</span><span class="layer-tool">ssllabs</span></div>
+  </div>
+  <div class="layer" id="ly5" style="--lc:#d2a8ff" onclick="activateLayer(5)">
+    <div class="layer-num">L5</div>
+    <div class="layer-info"><h4>Session Layer</h4><p>세션 상태, Keep-Alive, WebSocket 연결 유지 확인.</p></div>
+    <div class="layer-tools"><span class="layer-tool">ss -tnp</span><span class="layer-tool">netstat</span></div>
+  </div>
+  <div class="layer" id="ly4" style="--lc:#58a6ff" onclick="activateLayer(4)">
+    <div class="layer-num">L4</div>
+    <div class="layer-info"><h4>Transport (TCP/UDP)</h4><p>포트 오픈 여부, TCP 상태, 연결 타임아웃 확인.</p></div>
+    <div class="layer-tools"><span class="layer-tool">nc -zv</span><span class="layer-tool">tcpdump</span></div>
+  </div>
+  <div class="layer" id="ly3" style="--lc:#3fb950" onclick="activateLayer(3)">
+    <div class="layer-num">L3</div>
+    <div class="layer-info"><h4>Network (IP)</h4><p>IP 라우팅, 방화벽 규칙, 패킷 경로 확인.</p></div>
+    <div class="layer-tools"><span class="layer-tool">traceroute</span><span class="layer-tool">ping</span></div>
+  </div>
+  <div class="layer" id="ly2" style="--lc:#79c0ff" onclick="activateLayer(2)">
+    <div class="layer-num">L2</div>
+    <div class="layer-info"><h4>Data Link (Ethernet)</h4><p>ARP 테이블, MAC 주소, VLAN 설정 확인.</p></div>
+    <div class="layer-tools"><span class="layer-tool">arp -a</span><span class="layer-tool">ip link</span></div>
+  </div>
+  <div class="layer" id="ly1" style="--lc:#8b949e" onclick="activateLayer(1)">
+    <div class="layer-num">L1</div>
+    <div class="layer-info"><h4>Physical</h4><p>케이블 연결, NIC 상태, 링크 속도 확인.</p></div>
+    <div class="layer-tools"><span class="layer-tool">ethtool</span><span class="layer-tool">ip link</span></div>
+  </div>
+</div>
+</div>
+
+<div class="section-title">3. 주요 트러블슈팅 명령어</div>
+<div class="cmd-grid">
+  <div class="cmd-card">
+    <h4><span class="cmd-badge" style="background:#58a6ff20;color:#58a6ff">DNS</span> dig / nslookup</h4>
+    <div class="cmd-entry">dig +short api.example.com
+dig @8.8.8.8 api.example.com A
+dig api.example.com +trace</div>
+    <p class="cmd-desc">DNS 레코드 조회. +trace로 전체 해석 경로 추적. @으로 특정 DNS 서버 지정.</p>
+  </div>
+  <div class="cmd-card">
+    <h4><span class="cmd-badge" style="background:#d2a8ff20;color:#d2a8ff">Connection</span> curl -v</h4>
+    <div class="cmd-entry">curl -vvv https://api.example.com
+curl -w "%{time_connect}/%{time_total}" url
+curl -k --resolve host:443:1.2.3.4 url</div>
+    <p class="cmd-desc">상세 연결 정보. -w로 타이밍 측정. -k로 인증서 검증 스킵. --resolve로 DNS 우회.</p>
+  </div>
+  <div class="cmd-card">
+    <h4><span class="cmd-badge" style="background:#3fb95020;color:#3fb950">TLS</span> openssl</h4>
+    <div class="cmd-entry">openssl s_client -connect host:443
+openssl x509 -in cert.pem -noout -text
+openssl s_client -showcerts -servername host</div>
+    <p class="cmd-desc">TLS 연결 테스트, 인증서 상세 정보, 인증서 체인 확인. -servername으로 SNI 지정.</p>
+  </div>
+  <div class="cmd-card">
+    <h4><span class="cmd-badge" style="background:#f8514920;color:#f85149">Network</span> tcpdump / traceroute</h4>
+    <div class="cmd-entry">tcpdump -i eth0 port 443 -nn
+traceroute -T -p 443 host
+ss -tnlp | grep :443
+mtr host</div>
+    <p class="cmd-desc">패킷 캡처, 경로 추적, 소켓 상태 확인. mtr은 traceroute+ping 결합.</p>
+  </div>
+</div>
+</div>
+
+<script>
+const details=[
+  {title:'서비스 접속 불가 - 초기 진단',content:'먼저 <code>curl -v</code>로 전체 연결 과정을 확인합니다. DNS 해석, TCP 연결, TLS 핸드셰이크, HTTP 응답 각 단계에서 어디가 실패하는지 파악합니다. 에러 메시지를 잘 읽으면 어느 계층 문제인지 바로 알 수 있습니다.'},
+  {title:'DNS 해석 확인',content:'<code>dig</code> 또는 <code>nslookup</code>으로 도메인이 IP로 해석되는지 확인합니다. NXDOMAIN이면 레코드가 없고, SERVFAIL이면 DNS 서버 문제입니다. K8s에서는 <code>kubectl exec -- nslookup svc-name</code>으로 CoreDNS 동작을 확인합니다.'},
+  {title:'TCP 연결 확인',content:'DNS가 정상이면 <code>nc -zv host 443</code>으로 TCP 포트가 열려있는지 확인합니다. 연결 거부(Connection refused)면 서비스가 미실행, 타임아웃이면 방화벽/네트워크 문제입니다.'},
+  {title:'DNS 문제 해결',content:'<code>/etc/resolv.conf</code>에서 nameserver 확인. K8s에서는 CoreDNS Pod 상태 확인, <code>ndots</code> 설정 검토. 외부 DNS(<code>8.8.8.8</code>)로 테스트하여 내부 DNS 문제인지 판별합니다.'},
+  {title:'TLS 핸드셰이크 확인',content:'<code>openssl s_client -connect host:443</code>으로 TLS 연결을 테스트합니다. 인증서 만료, CN/SAN 불일치, 중간 인증서 누락, 프로토콜 버전 불일치 등을 확인할 수 있습니다.'},
+  {title:'연결 문제 해결',content:'<code>traceroute</code>로 어느 hop에서 패킷이 사라지는지 확인합니다. <code>tcpdump</code>으로 SYN 패킷이 나가는지, RST가 돌아오는지 캡처합니다. 방화벽 규칙(<code>iptables -L</code>)과 Security Group을 점검합니다.'},
+  {title:'Application 레벨 진단',content:'TLS까지 성공이면 HTTP 레벨 문제입니다. <code>curl -vvv</code>으로 상태코드, 응답 헤더 확인. K8s에서는 <code>kubectl logs</code>, <code>kubectl describe pod</code>으로 앱 로그와 이벤트를 확인합니다.'},
+  {title:'TLS 문제 해결',content:'인증서 만료: <code>openssl x509 -noout -dates -in cert.pem</code>. 자체 서명 인증서: <code>curl --cacert ca.pem</code>으로 CA 지정. cert-manager 사용 시 <code>kubectl describe certificate</code>으로 발급 상태 확인.'},
+];
+
+let state='stopped',timers=[];
+function clear(){timers.forEach(t=>clearTimeout(t));timers=[];
+  document.querySelectorAll('.tree-node').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.layer').forEach(l=>l.classList.remove('active'));
+}
+function s(fn,d){timers.push(setTimeout(fn,d))}
+
+function startAnim(){
+  if(state==='running')return;clear();state='running';
+  document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');
+  const nodes=['n0','n1','n2','n4','n6'];
+  let d=300;
+  nodes.forEach((id,i)=>{
+    s(()=>{document.querySelectorAll('.tree-node').forEach(n=>n.classList.remove('active'));document.getElementById(id).classList.add('active')},d);
+    d+=1000;
+  });
+  // Animate layers
+  d+=500;
+  for(let i=7;i>=1;i--){
+    const idx=i;
+    s(()=>{document.querySelectorAll('.layer').forEach(l=>l.classList.remove('active'));document.getElementById('ly'+idx).classList.add('active')},d);
+    d+=600;
+  }
+}
+function pauseAnim(){state='paused';document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active')}
+function restartAnim(){state='stopped';clear();document.getElementById('detailPanel').classList.remove('visible');setTimeout(startAnim,100)}
+
+function showDetail(idx){
+  const panel=document.getElementById('detailPanel');
+  document.getElementById('detailTitle').textContent=details[idx].title;
+  document.getElementById('detailContent').innerHTML=details[idx].content;
+  panel.classList.remove('visible');
+  requestAnimationFrame(()=>panel.classList.add('visible'));
+  document.querySelectorAll('.tree-node').forEach(n=>n.classList.remove('active'));
+  document.getElementById('n'+idx).classList.add('active');
+}
+function activateLayer(n){
+  document.querySelectorAll('.layer').forEach(l=>l.classList.remove('active'));
+  document.getElementById('ly'+n).classList.add('active');
+}
+startAnim();
+</script>
+</body>
+</html>

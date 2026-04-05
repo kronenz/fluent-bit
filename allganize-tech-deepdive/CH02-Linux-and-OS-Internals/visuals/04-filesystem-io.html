@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Filesystem &amp; I/O Stack - CH02</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:1.8rem;margin-bottom:8px;background:linear-gradient(90deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{background:#21262d;border:1px solid #30363d;color:#e6edf3;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.step-indicator{display:flex;justify-content:center;gap:6px;margin-bottom:24px;flex-wrap:wrap}
+.step-dot{width:28px;height:28px;border-radius:50%;background:#21262d;border:2px solid #30363d;display:flex;align-items:center;justify-content:center;font-size:.65rem;transition:all .3s}
+.step-dot.active{background:#1f6feb;border-color:#58a6ff;transform:scale(1.15)}
+.step-dot.done{background:#238636;border-color:#3fb950}
+.sections{display:grid;gap:24px}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;overflow:hidden}
+.section h2{font-size:1.15rem;margin-bottom:16px;color:#58a6ff}
+.section h2 span{color:#8b949e;font-size:.85rem;font-weight:normal}
+
+/* I/O Stack */
+.io-stack{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:320px}
+.io-layer{width:90%;max-width:500px;padding:14px 20px;border-radius:8px;text-align:center;opacity:0;transform:translateY(-20px);transition:all .5s cubic-bezier(.34,1.56,.64,1);position:relative}
+.io-layer.visible{opacity:1;transform:translateY(0)}
+.io-layer .name{font-weight:bold;font-size:.9rem}
+.io-layer .desc{font-size:.72rem;color:#8b949e;margin-top:2px}
+.io-app{background:rgba(88,166,255,.12);border:2px solid #58a6ff}
+.io-vfs{background:rgba(188,140,255,.12);border:2px solid #bc8cff}
+.io-fs{background:rgba(63,185,80,.12);border:2px solid #3fb950}
+.io-block{background:rgba(210,153,34,.12);border:2px solid #d29922}
+.io-device{background:rgba(248,81,73,.12);border:2px solid #f85149}
+.io-arrow{color:#30363d;font-size:1.2rem;opacity:0;transition:all .3s}
+.io-arrow.visible{opacity:1;color:#58a6ff}
+.io-data-packet{display:inline-block;width:12px;height:12px;border-radius:50%;background:#58a6ff;position:absolute;opacity:0;transition:all .3s}
+@keyframes dataFlow{0%{transform:translateY(-30px);opacity:0}50%{opacity:1}100%{transform:translateY(30px);opacity:0}}
+.io-layer.active{box-shadow:0 0 20px rgba(88,166,255,.3);animation:layerPulse .8s ease infinite}
+@keyframes layerPulse{0%,100%{box-shadow:0 0 10px rgba(88,166,255,.2)}50%{box-shadow:0 0 25px rgba(88,166,255,.4)}}
+
+/* OverlayFS */
+.overlay-container{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:280px}
+.overlay-layer{width:90%;max-width:600px;padding:14px 20px;border-radius:8px;opacity:0;transform:translateX(-30px);transition:all .5s;position:relative}
+.overlay-layer.visible{opacity:1;transform:translateX(0)}
+.merged{background:rgba(88,166,255,.1);border:2px solid #58a6ff}
+.upperdir{background:rgba(63,185,80,.1);border:2px solid #3fb950}
+.lowerdir{background:rgba(210,153,34,.1);border:2px solid #d29922}
+.workdir{background:rgba(139,148,158,.1);border:1px dashed #8b949e}
+.overlay-label{font-weight:bold;font-size:.85rem;margin-bottom:4px}
+.overlay-files{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.file-chip{padding:4px 10px;border-radius:4px;font-size:.72rem;font-family:monospace}
+.file-ro{background:rgba(210,153,34,.2);color:#d29922}
+.file-rw{background:rgba(63,185,80,.2);color:#3fb950}
+.file-new{background:rgba(88,166,255,.2);color:#58a6ff}
+.file-del{background:rgba(248,81,73,.2);color:#f85149;text-decoration:line-through}
+
+/* COW animation */
+.cow-scene{display:flex;align-items:center;justify-content:center;gap:20px;min-height:160px;flex-wrap:wrap}
+.cow-box{padding:16px;border-radius:10px;text-align:center;min-width:160px;opacity:0;transform:scale(.8);transition:all .5s}
+.cow-box.visible{opacity:1;transform:scale(1)}
+.cow-lower{background:rgba(210,153,34,.1);border:2px solid #d29922}
+.cow-upper{background:rgba(63,185,80,.1);border:2px solid #3fb950}
+.cow-arrow{font-size:1.5rem;color:#30363d;opacity:0;transition:all .4s}
+.cow-arrow.visible{opacity:1;color:#bc8cff}
+.cow-file{padding:6px 12px;border-radius:4px;margin:4px 0;font-family:monospace;font-size:.8rem}
+.cow-file-orig{background:rgba(210,153,34,.2);color:#d29922}
+.cow-file-copy{background:rgba(63,185,80,.2);color:#3fb950;animation:cowCopy .6s ease}
+@keyframes cowCopy{0%{transform:translateX(-60px);opacity:0}100%{transform:translateX(0);opacity:1}}
+.cow-msg{text-align:center;padding:10px;font-size:.82rem;border-radius:6px;opacity:0;transition:all .4s}
+.cow-msg.visible{opacity:1}
+
+/* I/O Scheduler */
+.sched-container{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;min-height:180px}
+.sched-card{flex:1;min-width:200px;max-width:320px;background:#0d1117;border-radius:10px;padding:16px;opacity:0;transform:translateY(20px);transition:all .5s}
+.sched-card.visible{opacity:1;transform:translateY(0)}
+.sched-card h3{font-size:.9rem;margin-bottom:8px;text-align:center}
+.sched-card .desc{font-size:.75rem;color:#8b949e;line-height:1.6;margin-bottom:8px}
+.sched-card .tag{display:inline-block;padding:3px 8px;border-radius:4px;font-size:.68rem;margin:2px}
+.tag-fast{background:rgba(63,185,80,.2);color:#3fb950}
+.tag-fair{background:rgba(88,166,255,.2);color:#58a6ff}
+.tag-default{background:rgba(210,153,34,.2);color:#d29922}
+.sched-bar{height:8px;border-radius:4px;margin:4px 0;transition:width .8s ease}
+
+@media(max-width:768px){h1{font-size:1.4rem}.io-layer,.overlay-layer{width:100%}.sched-container{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Filesystem &amp; I/O Stack</h1>
+  <p class="subtitle">I/O 스택 계층, OverlayFS, Copy-on-Write, I/O 스케줄러 비교</p>
+  <div class="controls">
+    <button id="btnPlay" class="active" onclick="play()">&#9654; 재생</button>
+    <button id="btnPause" onclick="pause()">&#10074;&#10074; 일시정지</button>
+    <button id="btnRestart" onclick="restart()">&#8634; 처음부터</button>
+  </div>
+  <div class="step-indicator" id="stepIndicator"></div>
+
+  <div class="sections">
+    <!-- I/O Stack -->
+    <div class="section">
+      <h2>Step 1. I/O 스택 계층 <span>(Application → Device)</span></h2>
+      <div class="io-stack">
+        <div class="io-layer io-app" id="ioApp"><div class="name">Application (애플리케이션)</div><div class="desc">write(), read() 시스템 콜 호출</div></div>
+        <div class="io-arrow" id="ioA1">&#11015;</div>
+        <div class="io-layer io-vfs" id="ioVfs"><div class="name">VFS (Virtual File System)</div><div class="desc">파일시스템 추상화 계층 - 통일된 인터페이스 제공</div></div>
+        <div class="io-arrow" id="ioA2">&#11015;</div>
+        <div class="io-layer io-fs" id="ioFs"><div class="name">Filesystem (ext4, XFS, btrfs)</div><div class="desc">실제 파일시스템 드라이버 - inode, block 관리</div></div>
+        <div class="io-arrow" id="ioA3">&#11015;</div>
+        <div class="io-layer io-block" id="ioBlock"><div class="name">Block Layer (블록 계층)</div><div class="desc">I/O 스케줄러, bio 요청 병합/정렬</div></div>
+        <div class="io-arrow" id="ioA4">&#11015;</div>
+        <div class="io-layer io-device" id="ioDevice"><div class="name">Device Driver → Hardware</div><div class="desc">NVMe, SCSI, SATA 드라이버 → SSD/HDD</div></div>
+      </div>
+    </div>
+
+    <!-- OverlayFS -->
+    <div class="section">
+      <h2>Step 2. OverlayFS 계층 구조 <span>(Container Storage)</span></h2>
+      <div class="overlay-container">
+        <div class="overlay-layer merged" id="olMerged">
+          <div class="overlay-label" style="color:#58a6ff">merged/ (통합 뷰 - 컨테이너가 보는 것)</div>
+          <div class="overlay-files">
+            <span class="file-chip file-ro">/etc/nginx.conf</span>
+            <span class="file-chip file-rw">/var/log/access.log</span>
+            <span class="file-chip file-new">/tmp/cache.dat</span>
+            <span class="file-chip file-ro">/usr/bin/nginx</span>
+          </div>
+        </div>
+        <div style="text-align:center;font-size:.8rem;color:#8b949e;margin:4px 0">&#11014; merge &#11014;</div>
+        <div class="overlay-layer upperdir" id="olUpper">
+          <div class="overlay-label" style="color:#3fb950">upperdir/ (쓰기 가능 계층)</div>
+          <div class="overlay-files">
+            <span class="file-chip file-rw">/var/log/access.log</span>
+            <span class="file-chip file-new">/tmp/cache.dat</span>
+            <span class="file-chip file-del">.wh.old-config</span>
+          </div>
+        </div>
+        <div class="overlay-layer lowerdir" id="olLower">
+          <div class="overlay-label" style="color:#d29922">lowerdir/ (읽기 전용 - 이미지 레이어)</div>
+          <div class="overlay-files">
+            <span class="file-chip file-ro">/etc/nginx.conf</span>
+            <span class="file-chip file-ro">/usr/bin/nginx</span>
+            <span class="file-chip file-ro">/lib/libc.so.6</span>
+          </div>
+        </div>
+        <div class="overlay-layer workdir" id="olWork">
+          <div class="overlay-label" style="color:#8b949e">workdir/ (OverlayFS 내부 작업 디렉토리)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Copy-on-Write -->
+    <div class="section">
+      <h2>Step 3. Copy-on-Write 동작 <span>(컨테이너 쓰기 시)</span></h2>
+      <div class="cow-scene">
+        <div class="cow-box cow-lower" id="cowLower">
+          <div style="font-weight:bold;color:#d29922;margin-bottom:8px">lowerdir (읽기 전용)</div>
+          <div class="cow-file cow-file-orig" id="cowOrig">/etc/nginx.conf (원본)</div>
+        </div>
+        <div class="cow-arrow" id="cowArrow">&#10132; COPY &#10132;</div>
+        <div class="cow-box cow-upper" id="cowUpper">
+          <div style="font-weight:bold;color:#3fb950;margin-bottom:8px">upperdir (쓰기 가능)</div>
+          <div class="cow-file cow-file-copy" id="cowCopy" style="opacity:0">/etc/nginx.conf (복사본)</div>
+        </div>
+      </div>
+      <div class="cow-msg" id="cowMsg"></div>
+    </div>
+
+    <!-- I/O Scheduler -->
+    <div class="section">
+      <h2>Step 4. I/O Scheduler 비교 <span>(none vs mq-deadline vs bfq)</span></h2>
+      <div class="sched-container">
+        <div class="sched-card" id="schedNone" style="border:1px solid #3fb950">
+          <h3 style="color:#3fb950">none (noop)</h3>
+          <div class="desc">스케줄링 없이 FIFO 순서로 전달<br>NVMe SSD에 최적 (HW 큐 활용)</div>
+          <div><span class="tag tag-fast">최저 지연</span><span class="tag tag-default">NVMe 기본값</span></div>
+          <div style="margin-top:8px;font-size:.72rem;color:#8b949e">Latency:</div>
+          <div class="sched-bar" id="sbNone" style="width:0%;background:#3fb950;height:6px;border-radius:3px"></div>
+        </div>
+        <div class="sched-card" id="schedMq" style="border:1px solid #58a6ff">
+          <h3 style="color:#58a6ff">mq-deadline</h3>
+          <div class="desc">읽기/쓰기 데드라인 보장<br>SATA/SAS SSD에 적합</div>
+          <div><span class="tag tag-fair">데드라인 보장</span><span class="tag tag-default">범용</span></div>
+          <div style="margin-top:8px;font-size:.72rem;color:#8b949e">Latency:</div>
+          <div class="sched-bar" id="sbMq" style="width:0%;background:#58a6ff;height:6px;border-radius:3px"></div>
+        </div>
+        <div class="sched-card" id="schedBfq" style="border:1px solid #d29922">
+          <h3 style="color:#d29922">BFQ (Budget Fair)</h3>
+          <div class="desc">대역폭 공정 분배<br>HDD / 데스크톱 환경에 적합</div>
+          <div><span class="tag tag-fair">공정성</span><span class="tag tag-default">HDD 최적</span></div>
+          <div style="margin-top:8px;font-size:.72rem;color:#8b949e">Latency:</div>
+          <div class="sched-bar" id="sbBfq" style="width:0%;background:#d29922;height:6px;border-radius:3px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const TOTAL=16;let cur=0,playing=true,timer=null;
+const si=document.getElementById('stepIndicator');
+for(let i=1;i<=TOTAL;i++){const d=document.createElement('div');d.className='step-dot';d.textContent=i;d.id='sd_'+i;si.appendChild(d)}
+function setStep(n){for(let i=1;i<=TOTAL;i++){const d=document.getElementById('sd_'+i);d.className='step-dot'+(i<n?' done':'')+(i===n?' active':'')}}
+
+function resetAll(){
+  ['ioApp','ioVfs','ioFs','ioBlock','ioDevice'].forEach(id=>{const e=document.getElementById(id);e.classList.remove('visible','active')});
+  ['ioA1','ioA2','ioA3','ioA4'].forEach(id=>document.getElementById(id).classList.remove('visible'));
+  ['olMerged','olUpper','olLower','olWork'].forEach(id=>document.getElementById(id).classList.remove('visible'));
+  ['cowLower','cowUpper'].forEach(id=>document.getElementById(id).classList.remove('visible'));
+  document.getElementById('cowArrow').classList.remove('visible');
+  document.getElementById('cowCopy').style.opacity='0';
+  const cm=document.getElementById('cowMsg');cm.className='cow-msg';cm.innerHTML='';
+  ['schedNone','schedMq','schedBfq'].forEach(id=>document.getElementById(id).classList.remove('visible'));
+  ['sbNone','sbMq','sbBfq'].forEach(id=>document.getElementById(id).style.width='0%');
+}
+
+const ioIds=['ioApp','ioVfs','ioFs','ioBlock','ioDevice'];
+const ioArrows=['ioA1','ioA2','ioA3','ioA4'];
+const steps=[
+  ()=>{document.getElementById('ioApp').classList.add('visible','active')},
+  ()=>{document.getElementById('ioApp').classList.remove('active');document.getElementById('ioA1').classList.add('visible');document.getElementById('ioVfs').classList.add('visible','active')},
+  ()=>{document.getElementById('ioVfs').classList.remove('active');document.getElementById('ioA2').classList.add('visible');document.getElementById('ioFs').classList.add('visible','active')},
+  ()=>{document.getElementById('ioFs').classList.remove('active');document.getElementById('ioA3').classList.add('visible');document.getElementById('ioBlock').classList.add('visible','active')},
+  ()=>{document.getElementById('ioBlock').classList.remove('active');document.getElementById('ioA4').classList.add('visible');document.getElementById('ioDevice').classList.add('visible','active');setTimeout(()=>document.getElementById('ioDevice').classList.remove('active'),800)},
+  ()=>{document.getElementById('olLower').classList.add('visible')},
+  ()=>{document.getElementById('olUpper').classList.add('visible')},
+  ()=>{document.getElementById('olWork').classList.add('visible');document.getElementById('olMerged').classList.add('visible')},
+  ()=>{document.getElementById('cowLower').classList.add('visible')},
+  ()=>{document.getElementById('cowArrow').classList.add('visible')},
+  ()=>{document.getElementById('cowUpper').classList.add('visible');document.getElementById('cowCopy').style.opacity='1';const cm=document.getElementById('cowMsg');cm.className='cow-msg visible';cm.innerHTML='<div style="background:rgba(188,140,255,.1);border:1px solid #bc8cff;padding:10px;border-radius:6px;color:#bc8cff">1. 컨테이너가 파일 수정 요청 → 2. lowerdir에서 upperdir로 <strong>복사</strong> → 3. upperdir의 복사본 수정<br>원본(lowerdir)은 변경되지 않음 → 다른 컨테이너에 영향 없음</div>'},
+  ()=>{document.getElementById('schedNone').classList.add('visible')},
+  ()=>{document.getElementById('schedMq').classList.add('visible')},
+  ()=>{document.getElementById('schedBfq').classList.add('visible')},
+  ()=>{document.getElementById('sbNone').style.width='25%';document.getElementById('sbMq').style.width='50%';document.getElementById('sbBfq').style.width='80%'},
+  ()=>{}
+];
+function advance(){if(cur>=TOTAL){pause();return}cur++;setStep(cur);steps[cur-1]()}
+function play(){playing=true;document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');if(timer)clearInterval(timer);timer=setInterval(()=>{if(playing)advance()},1200)}
+function pause(){playing=false;document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active');if(timer){clearInterval(timer);timer=null}}
+function restart(){pause();cur=0;resetAll();setStep(0);setTimeout(()=>play(),300)}
+play();
+</script>
+</body>
+</html>

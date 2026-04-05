@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deployment Strategies - 배포 전략 비교</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1400px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#3fb950,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:24px;overflow:hidden}
+.section h2{font-size:1.1rem;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.badge{padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:600}
+
+/* Strategy Card */
+.strat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.strat-card{background:#0d1117;border:2px solid #30363d;border-radius:10px;padding:20px;transition:border-color .3s}
+.strat-card h3{font-size:.95rem;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.strat-tag{padding:2px 8px;border-radius:10px;font-size:.68rem;font-weight:600}
+.strat-desc{font-size:.76rem;color:#8b949e;margin-bottom:16px;line-height:1.4}
+
+/* Pod visualization */
+.pod-area{min-height:120px;background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px;position:relative;margin-bottom:12px}
+.pod-area-label{font-size:.65rem;color:#6e7681;margin-bottom:8px}
+.pod-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.pod{width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.9rem;border:1px solid;transition:all .4s ease;position:relative}
+.pod-v1{background:#58a6ff15;border-color:#58a6ff50;color:#58a6ff}
+.pod-v2{background:#3fb95015;border-color:#3fb95050;color:#3fb950}
+.pod-removing{opacity:.3;transform:scale(.7)}
+.pod-adding{animation:podAdd .5s ease forwards}
+.pod-new{opacity:0;transform:scale(.5)}
+@keyframes podAdd{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+
+/* Traffic bar */
+.traffic-bar{height:20px;background:#21262d;border-radius:6px;overflow:hidden;display:flex;margin-top:8px}
+.traffic-v1{background:linear-gradient(90deg,#58a6ff80,#58a6ff);height:100%;transition:width .6s ease;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:600;color:#fff}
+.traffic-v2{background:linear-gradient(90deg,#3fb95080,#3fb950);height:100%;transition:width .6s ease;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:600;color:#fff}
+.traffic-label{display:flex;justify-content:space-between;font-size:.65rem;color:#8b949e;margin-top:4px}
+
+/* Pros/Cons */
+.pc-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.pc-item{padding:6px 10px;border-radius:5px;font-size:.68rem;line-height:1.3}
+.pc-pro{background:#3fb95010;border:1px solid #3fb95025;color:#3fb950}
+.pc-con{background:#f8514910;border:1px solid #f8514925;color:#f85149}
+
+/* Argo Rollouts */
+.rollout-section{margin-top:16px}
+.rollout-flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 0}
+.rollout-step{padding:10px 16px;border-radius:8px;font-size:.75rem;border:1px solid #30363d;background:#0d1117;opacity:0;transform:translateY(8px);transition:all .4s ease;text-align:center}
+.rollout-step.visible{opacity:1;transform:translateY(0)}
+.rollout-step.active{border-color:#bc8cff;box-shadow:0 0 12px #bc8cff30}
+.rollout-step.success{border-color:#3fb950;color:#3fb950}
+.rollout-step.fail{border-color:#f85149;color:#f85149}
+.rollout-arrow{font-size:.9rem;color:#30363d;opacity:0;transition:all .3s}
+.rollout-arrow.visible{opacity:1;color:#bc8cff}
+
+.analysis-box{background:#0d1117;border:1px solid #bc8cff40;border-radius:8px;padding:14px;margin-top:12px}
+.analysis-box h4{font-size:.82rem;color:#bc8cff;margin-bottom:8px}
+.metric-row{display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid #21262d}
+.metric-row:last-child{border:none}
+.metric-name{font-size:.72rem;color:#8b949e;width:120px}
+.metric-bar-track{flex:1;height:12px;background:#21262d;border-radius:4px;overflow:hidden}
+.metric-bar-fill{height:100%;border-radius:4px;transition:width 1s ease;width:0}
+.metric-val{font-size:.72rem;width:60px;text-align:right;font-weight:600}
+.metric-ok{color:#3fb950}
+.metric-fail{color:#f85149}
+
+/* Comparison table */
+.compare-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.75rem}
+.compare-table th{background:#0d1117;border:1px solid #21262d;padding:8px 10px;text-align:left;color:#8b949e;font-weight:600}
+.compare-table td{border:1px solid #21262d;padding:8px 10px;color:#e6edf3}
+.compare-table tr:hover td{background:#161b2280}
+.cell-good{color:#3fb950}
+.cell-warn{color:#f0883e}
+.cell-bad{color:#f85149}
+
+.info-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-top:20px}
+.info-box h3{font-size:1rem;margin-bottom:12px;color:#58a6ff}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.info-item{padding:12px;background:#0d1117;border-radius:6px;border:1px solid #21262d}
+.info-item strong{color:#e6edf3;font-size:.85rem}
+.info-item p{color:#8b949e;font-size:.78rem;margin-top:4px;line-height:1.4}
+
+@media(max-width:768px){.strat-grid{grid-template-columns:1fr}.container{padding:12px}.compare-table{font-size:.65rem}}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+<h1>Deployment Strategies - 배포 전략 비교</h1>
+<p class="subtitle">Rolling Update, Blue-Green, Canary 배포 전략과 Argo Rollouts 시각화</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnim()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pauseAnim()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restartAnim()">&#8635; 다시시작 Restart</button>
+</div>
+
+<!-- Rolling / Blue-Green / Canary -->
+<div class="section">
+  <h2><span class="badge" style="background:#58a6ff30;color:#58a6ff;border:1px solid #58a6ff40">STRATEGIES</span> 배포 전략 애니메이션</h2>
+  <div class="strat-grid">
+    <!-- Rolling Update -->
+    <div class="strat-card" id="rollingCard">
+      <h3><span class="strat-tag" style="background:#58a6ff20;color:#58a6ff;border:1px solid #58a6ff40">Rolling Update</span></h3>
+      <div class="strat-desc">파드를 하나씩 순차적으로 교체. 다운타임 없음. Kubernetes 기본 전략.<br>Replace pods one by one. Zero downtime. K8s default strategy.</div>
+      <div class="pod-area">
+        <div class="pod-area-label">Pods (maxSurge:1, maxUnavailable:1)</div>
+        <div class="pod-row" id="rollingPods"></div>
+        <div class="traffic-bar">
+          <div class="traffic-v1" id="rollingV1" style="width:100%">v1</div>
+          <div class="traffic-v2" id="rollingV2" style="width:0%"></div>
+        </div>
+        <div class="traffic-label"><span>v1 (old)</span><span>v2 (new)</span></div>
+      </div>
+      <div class="pc-row">
+        <div class="pc-item pc-pro">&#10003; 다운타임 없음</div>
+        <div class="pc-item pc-con">&#10007; 롤백 느림</div>
+        <div class="pc-item pc-pro">&#10003; 리소스 효율적</div>
+        <div class="pc-item pc-con">&#10007; 두 버전 동시 서비스</div>
+      </div>
+    </div>
+
+    <!-- Blue-Green -->
+    <div class="strat-card" id="bgCard">
+      <h3><span class="strat-tag" style="background:#3fb95020;color:#3fb950;border:1px solid #3fb95040">Blue-Green</span></h3>
+      <div class="strat-desc">새 버전 전체 배포 후 트래픽을 100% 한번에 전환. 즉시 롤백 가능.<br>Deploy entire new version, switch 100% traffic at once. Instant rollback.</div>
+      <div class="pod-area">
+        <div class="pod-area-label">Blue (v1) / Green (v2)</div>
+        <div style="display:flex;gap:16px">
+          <div>
+            <div style="font-size:.65rem;color:#58a6ff;margin-bottom:4px">Blue (v1)</div>
+            <div class="pod-row" id="bluePods"></div>
+          </div>
+          <div>
+            <div style="font-size:.65rem;color:#3fb950;margin-bottom:4px">Green (v2)</div>
+            <div class="pod-row" id="greenPods"></div>
+          </div>
+        </div>
+        <div class="traffic-bar" style="margin-top:12px">
+          <div class="traffic-v1" id="bgV1" style="width:100%">v1 Blue</div>
+          <div class="traffic-v2" id="bgV2" style="width:0%">v2 Green</div>
+        </div>
+        <div class="traffic-label"><span>Blue (old)</span><span>Green (new)</span></div>
+      </div>
+      <div class="pc-row">
+        <div class="pc-item pc-pro">&#10003; 즉시 롤백</div>
+        <div class="pc-item pc-con">&#10007; 2배 리소스 필요</div>
+        <div class="pc-item pc-pro">&#10003; 한 버전만 서비스</div>
+        <div class="pc-item pc-con">&#10007; DB 스키마 주의</div>
+      </div>
+    </div>
+
+    <!-- Canary -->
+    <div class="strat-card" id="canaryCard">
+      <h3><span class="strat-tag" style="background:#f0883e20;color:#f0883e;border:1px solid #f0883e40">Canary</span></h3>
+      <div class="strat-desc">새 버전으로 점진적 트래픽 이동 (5% &#10132; 25% &#10132; 50% &#10132; 100%). 메트릭 기반 판단.<br>Gradual traffic shift with metrics-based promotion.</div>
+      <div class="pod-area">
+        <div class="pod-area-label">Canary Traffic Shift</div>
+        <div class="pod-row" id="canaryPods"></div>
+        <div class="traffic-bar">
+          <div class="traffic-v1" id="canaryV1" style="width:100%">v1 95%</div>
+          <div class="traffic-v2" id="canaryV2" style="width:0%">v2</div>
+        </div>
+        <div class="traffic-label"><span id="canaryV1Label">v1: 100%</span><span id="canaryV2Label">v2: 0%</span></div>
+      </div>
+      <div class="pc-row">
+        <div class="pc-item pc-pro">&#10003; 위험 최소화</div>
+        <div class="pc-item pc-con">&#10007; 구현 복잡</div>
+        <div class="pc-item pc-pro">&#10003; 메트릭 기반 판단</div>
+        <div class="pc-item pc-con">&#10007; 느린 배포 속도</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Argo Rollouts -->
+<div class="section">
+  <h2><span class="badge" style="background:#bc8cff30;color:#bc8cff;border:1px solid #bc8cff40">ROLLOUTS</span> Argo Rollouts + AnalysisTemplate</h2>
+  <div class="rollout-flow" id="rolloutFlow">
+    <div class="rollout-step" data-ro="0">&#128230; Rollout<br><span style="font-size:.65rem;color:#8b949e">새 버전 배포</span></div>
+    <div class="rollout-arrow" data-ro="a0">&#10132;</div>
+    <div class="rollout-step" data-ro="1">&#128202; Canary 5%<br><span style="font-size:.65rem;color:#8b949e">초기 테스트</span></div>
+    <div class="rollout-arrow" data-ro="a1">&#10132;</div>
+    <div class="rollout-step" data-ro="2">&#128200; Analysis Run<br><span style="font-size:.65rem;color:#8b949e">메트릭 검증</span></div>
+    <div class="rollout-arrow" data-ro="a2">&#10132;</div>
+    <div class="rollout-step" data-ro="3">&#128202; Canary 50%<br><span style="font-size:.65rem;color:#8b949e">확대 배포</span></div>
+    <div class="rollout-arrow" data-ro="a3">&#10132;</div>
+    <div class="rollout-step" data-ro="4">&#128200; Analysis Run<br><span style="font-size:.65rem;color:#8b949e">최종 검증</span></div>
+    <div class="rollout-arrow" data-ro="a4">&#10132;</div>
+    <div class="rollout-step" data-ro="5">&#10003; Promote 100%<br><span style="font-size:.65rem;color:#8b949e">승격 완료</span></div>
+  </div>
+
+  <div class="analysis-box">
+    <h4>&#128200; AnalysisTemplate - 메트릭 검증</h4>
+    <div class="metric-row">
+      <div class="metric-name">Success Rate</div>
+      <div class="metric-bar-track"><div class="metric-bar-fill" id="metricSuccess" style="background:#3fb950"></div></div>
+      <div class="metric-val metric-ok" id="metricSuccessVal">-</div>
+    </div>
+    <div class="metric-row">
+      <div class="metric-name">Latency p99</div>
+      <div class="metric-bar-track"><div class="metric-bar-fill" id="metricLatency" style="background:#58a6ff"></div></div>
+      <div class="metric-val metric-ok" id="metricLatencyVal">-</div>
+    </div>
+    <div class="metric-row">
+      <div class="metric-name">Error Rate</div>
+      <div class="metric-bar-track"><div class="metric-bar-fill" id="metricError" style="background:#f85149"></div></div>
+      <div class="metric-val metric-ok" id="metricErrorVal">-</div>
+    </div>
+  </div>
+</div>
+
+<!-- Comparison Table -->
+<div class="section">
+  <h2><span class="badge" style="background:#f0883e30;color:#f0883e;border:1px solid #f0883e40">TABLE</span> 전략 비교표 Strategy Comparison</h2>
+  <table class="compare-table">
+    <thead>
+      <tr><th>항목 Criteria</th><th>Rolling Update</th><th>Blue-Green</th><th>Canary</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>다운타임 Downtime</td><td class="cell-good">없음 Zero</td><td class="cell-good">없음 Zero</td><td class="cell-good">없음 Zero</td></tr>
+      <tr><td>롤백 속도 Rollback Speed</td><td class="cell-warn">느림 Slow</td><td class="cell-good">즉시 Instant</td><td class="cell-good">빠름 Fast</td></tr>
+      <tr><td>리소스 사용 Resource Usage</td><td class="cell-good">낮음 Low</td><td class="cell-bad">2배 Double</td><td class="cell-warn">중간 Medium</td></tr>
+      <tr><td>위험도 Risk Level</td><td class="cell-warn">중간 Medium</td><td class="cell-warn">중간 Medium</td><td class="cell-good">낮음 Low</td></tr>
+      <tr><td>구현 복잡도 Complexity</td><td class="cell-good">낮음 Low</td><td class="cell-warn">중간 Medium</td><td class="cell-bad">높음 High</td></tr>
+      <tr><td>두 버전 공존 Version Coexist</td><td class="cell-warn">일시적 Yes</td><td class="cell-good">아니오 No</td><td class="cell-warn">예 Yes</td></tr>
+      <tr><td>적합 케이스 Best For</td><td>일반 서비스</td><td>미션 크리티컬</td><td>대규모 트래픽</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Info -->
+<div class="info-box">
+  <h3>핵심 개념 Key Concepts</h3>
+  <div class="info-grid">
+    <div class="info-item">
+      <strong>Argo Rollouts</strong>
+      <p>Kubernetes Deployment를 대체하는 CRD. Blue-Green, Canary 전략을 네이티브로 지원하고, AnalysisTemplate으로 자동 메트릭 검증. A CRD replacing Deployment with native progressive delivery.</p>
+    </div>
+    <div class="info-item">
+      <strong>AnalysisTemplate</strong>
+      <p>Prometheus, Datadog 등에서 메트릭을 수집하여 배포 성공/실패를 자동 판단. successCondition/failureCondition으로 임계값 설정. Auto-verify deployments via metrics queries.</p>
+    </div>
+    <div class="info-item">
+      <strong>Progressive Delivery</strong>
+      <p>점진적 배포: 새 버전을 소수 사용자에게 먼저 노출하고, 메트릭이 안정적이면 점차 확대. Expose new versions gradually, expand based on metrics stability.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+let paused=false,timers=[];
+function clearTimers(){timers.forEach(t=>clearTimeout(t));timers=[];}
+function schedule(fn,delay){const t=setTimeout(()=>{if(!paused)fn()},delay);timers.push(t);}
+
+const POD_COUNT=4;
+function createPods(containerId,count,version){
+  const c=document.getElementById(containerId);c.innerHTML='';
+  for(let i=0;i<count;i++){
+    const p=document.createElement('div');p.className='pod pod-'+version;p.textContent=version==='v1'?'&#9679;':'&#9733;';
+    p.id=containerId+'-'+i;c.appendChild(p);
+  }
+}
+
+function reset(){
+  clearTimers();paused=false;
+  createPods('rollingPods',POD_COUNT,'v1');
+  createPods('bluePods',POD_COUNT,'v1');
+  createPods('greenPods',POD_COUNT,'v2');
+  document.querySelectorAll('#greenPods .pod').forEach(p=>p.classList.add('pod-new'));
+  createPods('canaryPods',POD_COUNT,'v1');
+  document.getElementById('rollingV1').style.width='100%';document.getElementById('rollingV2').style.width='0%';
+  document.getElementById('bgV1').style.width='100%';document.getElementById('bgV2').style.width='0%';
+  document.getElementById('canaryV1').style.width='100%';document.getElementById('canaryV1').textContent='v1 100%';
+  document.getElementById('canaryV2').style.width='0%';document.getElementById('canaryV2').textContent='';
+  document.getElementById('canaryV1Label').textContent='v1: 100%';
+  document.getElementById('canaryV2Label').textContent='v2: 0%';
+  document.querySelectorAll('.rollout-step,.rollout-arrow').forEach(el=>{el.classList.remove('visible','active','success','fail')});
+  ['metricSuccess','metricLatency','metricError'].forEach(id=>{document.getElementById(id).style.width='0%'});
+  ['metricSuccessVal','metricLatencyVal','metricErrorVal'].forEach(id=>{document.getElementById(id).textContent='-'});
+}
+
+function animateRolling(){
+  for(let i=0;i<POD_COUNT;i++){
+    schedule(()=>{
+      const pod=document.getElementById('rollingPods-'+i);
+      if(pod)pod.classList.add('pod-removing');
+    },i*800);
+    schedule(()=>{
+      const pod=document.getElementById('rollingPods-'+i);
+      if(pod){pod.className='pod pod-v2 pod-adding';pod.textContent='\u2733';}
+      const pct=Math.round((i+1)/POD_COUNT*100);
+      document.getElementById('rollingV1').style.width=(100-pct)+'%';
+      document.getElementById('rollingV2').style.width=pct+'%';
+      document.getElementById('rollingV2').textContent='v2 '+pct+'%';
+      document.getElementById('rollingV1').textContent='v1 '+(100-pct)+'%';
+    },i*800+400);
+  }
+}
+
+function animateBlueGreen(){
+  const offset=3500;
+  // Show green pods
+  schedule(()=>{
+    document.querySelectorAll('#greenPods .pod').forEach((p,i)=>{
+      setTimeout(()=>p.classList.remove('pod-new'),i*150);
+    });
+  },offset);
+  // Switch traffic
+  schedule(()=>{
+    document.getElementById('bgV1').style.width='0%';document.getElementById('bgV1').textContent='';
+    document.getElementById('bgV2').style.width='100%';document.getElementById('bgV2').textContent='v2 Green 100%';
+  },offset+1500);
+  // Dim blue
+  schedule(()=>{
+    document.querySelectorAll('#bluePods .pod').forEach(p=>p.classList.add('pod-removing'));
+  },offset+2000);
+}
+
+function animateCanary(){
+  const offset=7000;
+  const steps=[{v1:95,v2:5},{v1:75,v2:25},{v1:50,v2:50},{v1:0,v2:100}];
+  steps.forEach((s,i)=>{
+    schedule(()=>{
+      document.getElementById('canaryV1').style.width=s.v1+'%';
+      document.getElementById('canaryV1').textContent=s.v1>0?'v1 '+s.v1+'%':'';
+      document.getElementById('canaryV2').style.width=s.v2+'%';
+      document.getElementById('canaryV2').textContent='v2 '+s.v2+'%';
+      document.getElementById('canaryV1Label').textContent='v1: '+s.v1+'%';
+      document.getElementById('canaryV2Label').textContent='v2: '+s.v2+'%';
+      // Add v2 pods
+      if(i===0){
+        const c=document.getElementById('canaryPods');
+        const p=document.createElement('div');p.className='pod pod-v2 pod-adding';p.textContent='\u2733';c.appendChild(p);
+      }
+      if(i===3){
+        document.querySelectorAll('#canaryPods .pod-v1').forEach(p=>p.classList.add('pod-removing'));
+      }
+    },offset+i*1200);
+  });
+}
+
+function animateRollouts(){
+  const offset=12500;
+  const steps=document.querySelectorAll('[data-ro]');
+  let d=0;
+  steps.forEach((el)=>{
+    const isArrow=el.classList.contains('rollout-arrow');
+    schedule(()=>{
+      el.classList.add('visible');
+      if(!isArrow)el.classList.add('active');
+    },offset+d);
+    if(!isArrow){
+      schedule(()=>el.classList.remove('active'),offset+d+600);
+      schedule(()=>el.classList.add('success'),offset+d+600);
+    }
+    d+=isArrow?200:700;
+  });
+  // Metrics
+  schedule(()=>{
+    document.getElementById('metricSuccess').style.width='98%';document.getElementById('metricSuccessVal').textContent='98.5%';
+    document.getElementById('metricLatency').style.width='35%';document.getElementById('metricLatencyVal').textContent='120ms';
+    document.getElementById('metricError').style.width='5%';document.getElementById('metricErrorVal').textContent='0.2%';
+  },offset+2000);
+}
+
+function startAnim(){
+  if(paused){paused=false;return;}
+  reset();
+  animateRolling();animateBlueGreen();animateCanary();animateRollouts();
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+}
+function pauseAnim(){paused=true;document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active');}
+function restartAnim(){reset();startAnim();}
+reset();startAnim();
+</script>
+</body>
+</html>
