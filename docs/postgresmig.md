@@ -579,3 +579,82 @@ kubectl scale deployment/kube-prometheus-stack-grafana \
 
 # 6. UI 검증
 ```
+
+
+```
+LOAD DATABASE
+  FROM sqlite:///data/grafana.db
+  INTO {{PG_CONN_STRING}}
+
+WITH
+  data only,
+  truncate,
+  reset sequences,
+  workers = 1,
+  concurrency = 1,
+  batch rows = 100,
+  prefetch rows = 100
+
+SET
+  work_mem to '32MB',
+  maintenance_work_mem to '64MB',
+  search_path to 'public'
+
+CAST
+  type datetime  to timestamptz using zero-dates-to-null,
+  type timestamp to timestamptz using zero-dates-to-null,
+  type date      to date        drop default drop not null using zero-dates-to-null,
+  type tinyint   to smallint,
+  type bigint    to bigint,
+  type text      to text,
+  type blob      to bytea
+
+INCLUDING ONLY TABLE NAMES MATCHING
+  'dashboard',
+  'dashboard_acl',
+  'dashboard_provisioning',
+  'dashboard_tag',
+  'dashboard_version',
+  'data_source',
+  'org',
+  'org_user',
+  'user',
+  'user_auth',
+  'user_auth_token',
+  'user_role',
+  'team',
+  'team_member',
+  'team_role',
+  'folder',
+  'alert_rule',
+  'alert_rule_tag',
+  'alert_rule_version',
+  'alert_configuration',
+  'alert_notification',
+  'alert_notification_state',
+  'annotation',
+  'annotation_tag',
+  'api_key',
+  'preferences',
+  'star',
+  'playlist',
+  'playlist_item',
+  'plugin_setting',
+  'quota',
+  'temp_user',
+  'kv_store',
+  'permission',
+  'role',
+  'builtin_role',
+  'ngalert_configuration',
+  'provenance_type',
+  'library_element',
+  'library_element_connection',
+  'secrets',
+  'seed_assignment',
+  'query_history',
+  'query_history_star',
+  'correlation',
+  'tag'
+;
+```
