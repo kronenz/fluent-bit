@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kubernetes Network Model - K8s 네트워크 모델</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:1.8rem;margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:20px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.controls button{background:#21262d;border:1px solid #30363d;color:#c9d1d9;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:0.9rem;transition:all 0.2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff;color:#fff}
+.tabs{display:flex;justify-content:center;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.tabs button{background:#161b22;border:1px solid #30363d;color:#8b949e;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:0.85rem;transition:all 0.2s}
+.tabs button.active{background:#1f6feb;border-color:#58a6ff;color:#fff}
+.scene{position:relative;background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;min-height:500px;overflow:hidden}
+.cluster-box{border:2px solid #30363d;border-radius:10px;padding:15px;position:relative;margin-top:10px}
+.cluster-label{position:absolute;top:-12px;left:20px;background:#161b22;padding:0 8px;color:#58a6ff;font-size:0.85rem;font-weight:600}
+.node-box{border:1.5px dashed #30363d;border-radius:8px;padding:15px;margin:10px 5px;flex:1;min-width:200px;position:relative}
+.node-label{position:absolute;top:-10px;left:15px;background:#161b22;padding:0 6px;color:#3fb950;font-size:0.8rem;font-weight:600}
+.nodes-row{display:flex;gap:15px;flex-wrap:wrap}
+.pod{background:#1c2333;border:1.5px solid #58a6ff;border-radius:8px;padding:10px;margin:5px;text-align:center;position:relative;transition:all 0.3s}
+.pod .name{font-size:0.8rem;font-weight:600;color:#58a6ff}
+.pod .ip{font-size:0.75rem;color:#8b949e;margin-top:2px}
+.pod.highlight{border-color:#f0883e;box-shadow:0 0 15px rgba(240,136,62,0.3)}
+.bridge{background:#0d1117;border:1px solid #3fb950;border-radius:4px;padding:5px 10px;text-align:center;margin:8px auto;font-size:0.75rem;color:#3fb950}
+.overlay-bar{background:linear-gradient(90deg,#1f6feb33,#3fb95033);border:1px solid #30363d;border-radius:4px;padding:8px;text-align:center;margin-top:15px;font-size:0.8rem;color:#8b949e}
+.packet{position:absolute;width:12px;height:12px;border-radius:50%;z-index:10;pointer-events:none;opacity:0}
+.packet.pod-pod{background:#f0883e;box-shadow:0 0 10px rgba(240,136,62,0.6)}
+.packet.pod-svc{background:#a371f7;box-shadow:0 0 10px rgba(163,113,247,0.6)}
+.packet.ext-svc{background:#3fb950;box-shadow:0 0 10px rgba(63,185,80,0.6)}
+.service-vip{background:#1c2333;border:1.5px solid #a371f7;border-radius:8px;padding:10px;text-align:center;margin:10px auto;max-width:200px}
+.service-vip .name{color:#a371f7;font-size:0.8rem;font-weight:600}
+.service-vip .ip{color:#8b949e;font-size:0.75rem}
+.ext-client{background:#1c2333;border:1.5px solid #3fb950;border-radius:8px;padding:10px;text-align:center;position:relative}
+.ext-client .name{color:#3fb950;font-size:0.8rem;font-weight:600}
+.legend{display:flex;gap:15px;justify-content:center;margin-top:15px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:0.75rem;color:#8b949e}
+.legend-dot{width:10px;height:10px;border-radius:50%}
+.flow-line{position:absolute;height:2px;z-index:5;transform-origin:left center;opacity:0}
+.flow-line.pod-pod{background:linear-gradient(90deg,#f0883e,#f0883eaa)}
+.flow-line.pod-svc{background:linear-gradient(90deg,#a371f7,#a371f7aa)}
+.flow-line.ext-svc{background:linear-gradient(90deg,#3fb950,#3fb950aa)}
+.info-panel{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;margin-top:15px;font-size:0.8rem;line-height:1.6}
+.info-panel .step{display:flex;align-items:flex-start;gap:8px;margin:4px 0;opacity:0.4;transition:opacity 0.5s}
+.info-panel .step.active{opacity:1}
+.step-num{background:#1f6feb;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0}
+.flat-network-badge{display:inline-block;background:#3fb95022;border:1px solid #3fb950;color:#3fb950;padding:4px 12px;border-radius:20px;font-size:0.75rem;margin:5px}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+@keyframes movePacket{0%{opacity:1}100%{opacity:1}}
+.anim-pulse{animation:pulse 1.5s ease-in-out infinite}
+.paused .packet,.paused .anim-pulse{animation-play-state:paused!important}
+.cni-flow{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 0;flex-wrap:wrap}
+.cni-step{background:#21262d;border:1px solid #30363d;border-radius:6px;padding:6px 12px;font-size:0.75rem;color:#c9d1d9;opacity:0.3;transition:all 0.5s}
+.cni-step.active{opacity:1;border-color:#58a6ff;box-shadow:0 0 8px rgba(88,166,255,0.2)}
+.cni-arrow{color:#30363d;font-size:1.2rem;transition:color 0.5s}
+.cni-arrow.active{color:#58a6ff}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Kubernetes Network Model</h1>
+<p class="subtitle">K8s 네트워크 모델 - Flat Network, No NAT, Unique Pod IP</p>
+
+<div class="tabs">
+<button class="active" onclick="switchTab(0)">Pod→Pod (Same Node)<br><small>같은 노드 통신</small></button>
+<button onclick="switchTab(1)">Pod→Pod (Cross Node)<br><small>다른 노드 통신</small></button>
+<button onclick="switchTab(2)">Pod→Service<br><small>서비스 통신</small></button>
+<button onclick="switchTab(3)">External→Service<br><small>외부 접근</small></button>
+</div>
+
+<div class="controls">
+<button onclick="togglePlay()" id="playBtn">⏸ Pause</button>
+<button onclick="restart()">↻ Restart</button>
+</div>
+
+<div class="scene" id="scene">
+<!-- Tab 0: Same Node Pod-to-Pod -->
+<div class="tab-content" id="tab0">
+<div style="text-align:center;margin-bottom:10px">
+<span class="flat-network-badge">Flat Network: 모든 Pod은 고유 IP, NAT 없음</span>
+</div>
+<div class="cluster-box">
+<span class="cluster-label">Kubernetes Cluster</span>
+<div class="nodes-row">
+<div class="node-box" style="flex:2">
+<span class="node-label">Node A (Worker)</span>
+<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px">
+<div class="pod" id="t0-podA1">
+<div class="name">Pod A-1</div>
+<div class="ip">10.244.1.10</div>
+</div>
+<div class="pod" id="t0-podA2">
+<div class="name">Pod A-2</div>
+<div class="ip">10.244.1.11</div>
+</div>
+</div>
+<div class="bridge" id="t0-bridge">cbr0 (Linux Bridge) - 10.244.1.0/24</div>
+<div class="cni-flow" id="t0-cni">
+<div class="cni-step">veth pair</div>
+<div class="cni-arrow">→</div>
+<div class="cni-step">cbr0 bridge</div>
+<div class="cni-arrow">→</div>
+<div class="cni-step">veth pair</div>
+</div>
+</div>
+</div>
+</div>
+<div class="info-panel" id="t0-info">
+<div class="step"><span class="step-num">1</span><span>Pod A-1 (10.244.1.10)에서 패킷 전송 시작<br><small>Packet originates from Pod A-1</small></span></div>
+<div class="step"><span class="step-num">2</span><span>veth pair를 통해 Linux Bridge (cbr0)로 전달<br><small>Forwarded via veth pair to cbr0</small></span></div>
+<div class="step"><span class="step-num">3</span><span>cbr0가 MAC 주소 기반 L2 스위칭 수행<br><small>cbr0 performs L2 switching by MAC address</small></span></div>
+<div class="step"><span class="step-num">4</span><span>대상 Pod A-2 (10.244.1.11)의 veth pair로 전달<br><small>Delivered to Pod A-2 via its veth pair</small></span></div>
+</div>
+</div>
+
+<!-- Tab 1: Cross Node Pod-to-Pod -->
+<div class="tab-content" id="tab1" style="display:none">
+<div style="text-align:center;margin-bottom:10px">
+<span class="flat-network-badge">CNI Plugin이 노드 간 라우팅/터널링 담당</span>
+</div>
+<div class="cluster-box">
+<span class="cluster-label">Kubernetes Cluster</span>
+<div class="nodes-row">
+<div class="node-box">
+<span class="node-label">Node A</span>
+<div class="pod" id="t1-podA1">
+<div class="name">Pod A-1</div>
+<div class="ip">10.244.1.10</div>
+</div>
+<div class="bridge">cbr0 - 10.244.1.0/24</div>
+</div>
+<div class="node-box">
+<span class="node-label">Node B</span>
+<div class="pod" id="t1-podB1">
+<div class="name">Pod B-1</div>
+<div class="ip">10.244.2.20</div>
+</div>
+<div class="bridge">cbr0 - 10.244.2.0/24</div>
+</div>
+</div>
+<div class="overlay-bar" id="t1-overlay">Overlay Network / Routing (VXLAN, BGP, eBPF)</div>
+<div class="cni-flow" id="t1-cni">
+<div class="cni-step">veth</div>
+<div class="cni-arrow">→</div>
+<div class="cni-step">cbr0</div>
+<div class="cni-arrow">→</div>
+<div class="cni-step">CNI tunnel/route</div>
+<div class="cni-arrow">→</div>
+<div class="cni-step">cbr0</div>
+<div class="cni-arrow">→</div>
+<div class="cni-step">veth</div>
+</div>
+</div>
+<div class="info-panel" id="t1-info">
+<div class="step"><span class="step-num">1</span><span>Pod A-1 (Node A)에서 패킷 전송<br><small>Packet sent from Pod A-1 on Node A</small></span></div>
+<div class="step"><span class="step-num">2</span><span>veth → cbr0 → Node A의 호스트 네트워크로 전달<br><small>Via veth to cbr0 to host network</small></span></div>
+<div class="step"><span class="step-num">3</span><span>CNI 플러그인이 VXLAN 캡슐화 또는 BGP 라우팅 수행<br><small>CNI plugin encapsulates (VXLAN) or routes (BGP)</small></span></div>
+<div class="step"><span class="step-num">4</span><span>Node B에서 디캡슐화 → cbr0 → veth → Pod B-1 도착<br><small>Decapsulated at Node B, delivered to Pod B-1</small></span></div>
+</div>
+</div>
+
+<!-- Tab 2: Pod-to-Service -->
+<div class="tab-content" id="tab2" style="display:none">
+<div style="text-align:center;margin-bottom:10px">
+<span class="flat-network-badge">kube-proxy가 iptables/IPVS 규칙으로 DNAT 수행</span>
+</div>
+<div class="cluster-box">
+<span class="cluster-label">Kubernetes Cluster</span>
+<div style="display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;margin-top:10px">
+<div class="pod" id="t2-client">
+<div class="name">Client Pod</div>
+<div class="ip">10.244.1.10</div>
+</div>
+<div style="text-align:center">
+<div class="cni-arrow" style="font-size:2rem;color:#a371f7">→</div>
+</div>
+<div class="service-vip" id="t2-svc">
+<div class="name">my-service (ClusterIP)</div>
+<div class="ip">10.96.0.100:80</div>
+</div>
+<div style="text-align:center">
+<div class="cni-arrow" style="font-size:1.5rem;color:#a371f7">→</div>
+<div style="font-size:0.7rem;color:#8b949e">iptables DNAT</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div class="pod" id="t2-ep1">
+<div class="name">Backend Pod 1</div>
+<div class="ip">10.244.1.20:8080</div>
+</div>
+<div class="pod" id="t2-ep2">
+<div class="name">Backend Pod 2</div>
+<div class="ip">10.244.2.30:8080</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cni-flow" id="t2-cni">
+<div class="cni-step">DNS lookup</div>
+<div class="cni-arrow">→</div>
+<div class="cni-step">ClusterIP</div>
+<div class="cni-arrow">→</div>
+<div class="cni-step">iptables/IPVS</div>
+<div class="cni-arrow">→</div>
+<div class="cni-step">DNAT to Pod IP</div>
+<div class="cni-arrow">→</div>
+<div class="cni-step">Backend Pod</div>
+</div>
+<div class="info-panel" id="t2-info">
+<div class="step"><span class="step-num">1</span><span>Client Pod가 Service DNS로 요청 (my-service.default.svc.cluster.local)<br><small>Client pod resolves service DNS name</small></span></div>
+<div class="step"><span class="step-num">2</span><span>CoreDNS가 ClusterIP (10.96.0.100) 반환<br><small>CoreDNS returns ClusterIP virtual address</small></span></div>
+<div class="step"><span class="step-num">3</span><span>kube-proxy의 iptables 규칙이 DNAT 수행 → 실제 Pod IP로 변환<br><small>kube-proxy iptables rules DNAT to real pod IP</small></span></div>
+<div class="step"><span class="step-num">4</span><span>패킷이 선택된 Backend Pod로 직접 전달<br><small>Packet delivered directly to selected backend pod</small></span></div>
+</div>
+</div>
+
+<!-- Tab 3: External to Service -->
+<div class="tab-content" id="tab3" style="display:none">
+<div style="text-align:center;margin-bottom:10px">
+<span class="flat-network-badge">NodePort / LoadBalancer로 외부 트래픽 수신</span>
+</div>
+<div style="display:flex;align-items:center;justify-content:center;gap:15px;flex-wrap:wrap;margin:20px 0">
+<div class="ext-client" id="t3-ext">
+<div class="name">External Client</div>
+<div class="ip" style="color:#8b949e">203.0.113.50</div>
+</div>
+<div style="text-align:center">
+<div class="cni-arrow" style="font-size:2rem;color:#3fb950">→</div>
+</div>
+<div style="background:#1c2333;border:1.5px solid #f0883e;border-radius:8px;padding:10px;text-align:center" id="t3-lb">
+<div style="color:#f0883e;font-size:0.8rem;font-weight:600">Cloud LB</div>
+<div style="color:#8b949e;font-size:0.75rem">198.51.100.1</div>
+</div>
+<div style="text-align:center">
+<div class="cni-arrow" style="font-size:2rem;color:#f0883e">→</div>
+</div>
+<div class="cluster-box" style="flex:1;min-width:250px">
+<span class="cluster-label">Cluster</span>
+<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:8px">
+<div class="node-box" style="min-width:120px">
+<span class="node-label">Node A</span>
+<div class="pod" id="t3-podA">
+<div class="name">Pod A</div>
+<div class="ip">:30080</div>
+</div>
+</div>
+<div class="node-box" style="min-width:120px">
+<span class="node-label">Node B</span>
+<div class="pod" id="t3-podB">
+<div class="name">Pod B</div>
+<div class="ip">:30080</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cni-flow" id="t3-cni">
+<div class="cni-step">External request</div>
+<div class="cni-arrow">→</div>
+<div class="cni-step">Cloud LB</div>
+<div class="cni-arrow">→</div>
+<div class="cni-step">NodePort (30080)</div>
+<div class="cni-arrow">→</div>
+<div class="cni-step">iptables DNAT</div>
+<div class="cni-arrow">→</div>
+<div class="cni-step">Backend Pod</div>
+</div>
+<div class="info-panel" id="t3-info">
+<div class="step"><span class="step-num">1</span><span>외부 클라이언트가 Cloud LoadBalancer IP로 요청<br><small>External client sends request to LB public IP</small></span></div>
+<div class="step"><span class="step-num">2</span><span>LB가 트래픽을 NodePort로 분산 (any node:30080)<br><small>LB distributes traffic to NodePort on any node</small></span></div>
+<div class="step"><span class="step-num">3</span><span>Node의 iptables가 DNAT 수행, 실제 Pod IP로 전달<br><small>Node iptables DNATs to actual pod IP</small></span></div>
+<div class="step"><span class="step-num">4</span><span>externalTrafficPolicy: Local이면 같은 노드 Pod만, Cluster면 모든 Pod<br><small>Traffic policy determines if request stays local or can hop</small></span></div>
+</div>
+</div>
+</div>
+
+<div class="legend">
+<div class="legend-item"><div class="legend-dot" style="background:#f0883e"></div>Pod-to-Pod 패킷</div>
+<div class="legend-item"><div class="legend-dot" style="background:#a371f7"></div>Pod-to-Service 패킷</div>
+<div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div>External 패킷</div>
+<div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div>CNI/Network 컴포넌트</div>
+</div>
+</div>
+
+<script>
+let currentTab=0,playing=true,animTimers=[];
+function switchTab(t){
+  currentTab=t;
+  document.querySelectorAll('.tab-content').forEach((el,i)=>el.style.display=i===t?'block':'none');
+  document.querySelectorAll('.tabs button').forEach((b,i)=>{b.classList.toggle('active',i===t)});
+  restart();
+}
+function togglePlay(){
+  playing=!playing;
+  document.getElementById('playBtn').textContent=playing?'⏸ Pause':'▶ Play';
+  document.getElementById('scene').classList.toggle('paused',!playing);
+}
+function restart(){
+  animTimers.forEach(t=>clearTimeout(t));
+  animTimers=[];
+  playing=true;
+  document.getElementById('playBtn').textContent='⏸ Pause';
+  document.getElementById('scene').classList.remove('paused');
+  // Reset all highlights and steps
+  document.querySelectorAll('.pod,.service-vip,.ext-client,.bridge').forEach(el=>{el.classList.remove('highlight','anim-pulse')});
+  document.querySelectorAll('.cni-step,.cni-arrow').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.info-panel .step').forEach(s=>s.classList.remove('active'));
+  runAnimation(currentTab);
+}
+function activateStep(panel,idx,delay){
+  animTimers.push(setTimeout(()=>{
+    const steps=document.querySelectorAll('#'+panel+' .step');
+    if(steps[idx])steps[idx].classList.add('active');
+  },delay));
+}
+function highlightEl(id,delay,dur){
+  animTimers.push(setTimeout(()=>{
+    const el=document.getElementById(id);
+    if(el){el.classList.add('highlight','anim-pulse')}
+  },delay));
+  if(dur){
+    animTimers.push(setTimeout(()=>{
+      const el=document.getElementById(id);
+      if(el){el.classList.remove('highlight','anim-pulse')}
+    },delay+dur));
+  }
+}
+function activateCNI(prefix,delay,interval){
+  const steps=document.querySelectorAll('#'+prefix+' .cni-step');
+  const arrows=document.querySelectorAll('#'+prefix+' .cni-arrow');
+  steps.forEach((s,i)=>{
+    animTimers.push(setTimeout(()=>s.classList.add('active'),delay+i*interval));
+  });
+  arrows.forEach((a,i)=>{
+    animTimers.push(setTimeout(()=>a.classList.add('active'),delay+i*interval+interval/2));
+  });
+}
+function runAnimation(tab){
+  if(tab===0){
+    highlightEl('t0-podA1',300,2000);activateStep('t0-info',0,300);
+    activateCNI('t0-cni',800,600);
+    activateStep('t0-info',1,1000);
+    activateStep('t0-info',2,1800);
+    highlightEl('t0-podA2',2500,2000);activateStep('t0-info',3,2500);
+    animTimers.push(setTimeout(()=>restart(),6000));
+  }else if(tab===1){
+    highlightEl('t1-podA1',300,2500);activateStep('t1-info',0,300);
+    activateStep('t1-info',1,1000);
+    activateCNI('t1-cni',800,500);
+    activateStep('t1-info',2,2000);
+    highlightEl('t1-podB1',3000,2000);activateStep('t1-info',3,3000);
+    animTimers.push(setTimeout(()=>restart(),7000));
+  }else if(tab===2){
+    highlightEl('t2-client',300,2000);activateStep('t2-info',0,300);
+    activateStep('t2-info',1,1200);
+    activateCNI('t2-cni',800,500);
+    activateStep('t2-info',2,2000);
+    highlightEl('t2-ep1',2800,2000);activateStep('t2-info',3,2800);
+    animTimers.push(setTimeout(()=>restart(),6500));
+  }else if(tab===3){
+    highlightEl('t3-ext',300,1500);activateStep('t3-info',0,300);
+    activateStep('t3-info',1,1200);
+    activateCNI('t3-cni',800,500);
+    activateStep('t3-info',2,2200);
+    highlightEl('t3-podA',3000,2000);activateStep('t3-info',3,3200);
+    animTimers.push(setTimeout(()=>restart(),7000));
+  }
+}
+restart();
+</script>
+</body>
+</html>

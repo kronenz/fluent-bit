@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetworkPolicy Visualization - 네트워크 정책 시각화</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:1.8rem;margin-bottom:8px;background:linear-gradient(135deg,#f85149,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:20px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.controls button{background:#21262d;border:1px solid #30363d;color:#c9d1d9;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:0.9rem;transition:all 0.2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.tabs{display:flex;justify-content:center;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.tabs button{background:#161b22;border:1px solid #30363d;color:#8b949e;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:0.85rem;transition:all 0.2s}
+.tabs button.active{background:#1f6feb;border-color:#58a6ff;color:#fff}
+.scene{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;min-height:480px}
+.tab-content{display:none}
+.tab-content.visible{display:block}
+.ns-box{border:2px solid #30363d;border-radius:10px;padding:15px;margin:8px;flex:1;min-width:200px;position:relative;transition:border-color 0.5s}
+.ns-box.deny{border-color:#f85149}
+.ns-box.allow{border-color:#3fb950}
+.ns-label{position:absolute;top:-10px;left:15px;background:#161b22;padding:0 6px;font-size:0.78rem;font-weight:700;transition:color 0.5s}
+.pod{background:#1c2333;border:1.5px solid #30363d;border-radius:8px;padding:8px 12px;margin:5px;text-align:center;transition:all 0.5s}
+.pod .name{font-weight:600;font-size:0.78rem}
+.pod .labels{font-size:0.65rem;color:#8b949e;margin-top:2px;font-family:monospace}
+.pod.blocked{border-color:#f85149;box-shadow:0 0 10px rgba(248,81,73,0.2)}
+.pod.allowed{border-color:#3fb950;box-shadow:0 0 10px rgba(63,185,80,0.2)}
+.traffic-line{display:flex;align-items:center;gap:8px;margin:6px 0;padding:6px 10px;background:#0d1117;border-radius:6px;font-size:0.78rem;opacity:0.3;transition:all 0.5s}
+.traffic-line.active{opacity:1}
+.traffic-line .src{color:#58a6ff;font-weight:600}
+.traffic-line .dst{color:#a371f7;font-weight:600}
+.traffic-line .arr{margin:0 4px}
+.traffic-line .verdict{padding:2px 8px;border-radius:4px;font-size:0.68rem;font-weight:700;margin-left:auto}
+.v-allow{background:#3fb95022;color:#3fb950;border:1px solid #3fb95044}
+.v-deny{background:#f8514922;color:#f85149;border:1px solid #f8514944}
+.policy-yaml{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;font-family:monospace;font-size:0.72rem;line-height:1.5;overflow-x:auto;margin:10px 0;white-space:pre}
+.policy-yaml .key{color:#58a6ff}
+.policy-yaml .val{color:#3fb950}
+.policy-yaml .comment{color:#8b949e}
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:15px 0}
+.compare-card{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:15px;position:relative}
+.compare-card h3{font-size:0.9rem;margin-bottom:10px}
+.compare-card .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.65rem;font-weight:700;margin-bottom:8px}
+.pods-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:8px 0}
+.info-panel{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;margin-top:15px;font-size:0.8rem;line-height:1.6}
+.step{display:flex;align-items:flex-start;gap:8px;margin:3px 0;opacity:0.3;transition:opacity 0.5s}
+.step.active{opacity:1}
+.step-num{background:#1f6feb;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.65rem;flex-shrink:0}
+.shield{font-size:1.5rem;display:inline-block;margin-right:5px}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.anim-shake{animation:shake 0.3s ease-in-out}
+@keyframes glow-green{0%,100%{box-shadow:0 0 5px rgba(63,185,80,0.2)}50%{box-shadow:0 0 15px rgba(63,185,80,0.4)}}
+.anim-glow-green{animation:glow-green 1.5s ease-in-out infinite}
+@keyframes glow-red{0%,100%{box-shadow:0 0 5px rgba(248,81,73,0.2)}50%{box-shadow:0 0 15px rgba(248,81,73,0.4)}}
+.anim-glow-red{animation:glow-red 1.5s ease-in-out infinite}
+.paused *{animation-play-state:paused!important}
+@media(max-width:700px){.compare-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>NetworkPolicy Visualization</h1>
+<p class="subtitle">네트워크 정책 - Default Deny, Ingress/Egress 규칙, Before/After 비교</p>
+
+<div class="tabs">
+<button class="active" onclick="switchTab(0)">Default Deny<br><small>기본 거부</small></button>
+<button onclick="switchTab(1)">Ingress Rules<br><small>인그레스 규칙</small></button>
+<button onclick="switchTab(2)">Egress Rules<br><small>이그레스 규칙</small></button>
+<button onclick="switchTab(3)">Before / After<br><small>적용 전후 비교</small></button>
+</div>
+
+<div class="controls">
+<button onclick="togglePlay()" id="playBtn">⏸ Pause</button>
+<button onclick="restart()">↻ Restart</button>
+</div>
+
+<div class="scene" id="scene">
+<!-- Tab 0: Default Deny -->
+<div class="tab-content visible" id="tab0">
+<h3 style="text-align:center;color:#f85149;font-size:0.9rem;margin-bottom:15px"><span class="shield">🛡</span>Default Deny All (모든 트래픽 차단)</h3>
+<div class="policy-yaml"><span class="comment"># default-deny-all.yaml</span>
+<span class="key">apiVersion:</span> <span class="val">networking.k8s.io/v1</span>
+<span class="key">kind:</span> <span class="val">NetworkPolicy</span>
+<span class="key">metadata:</span>
+  <span class="key">name:</span> <span class="val">default-deny-all</span>
+<span class="key">spec:</span>
+  <span class="key">podSelector:</span> <span class="val">{}</span>  <span class="comment"># 모든 Pod 선택</span>
+  <span class="key">policyTypes:</span>
+  - <span class="val">Ingress</span>
+  - <span class="val">Egress</span></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:15px 0">
+<div class="ns-box deny" id="t0-ns">
+<span class="ns-label" style="color:#f85149">namespace: production</span>
+<div class="pods-row">
+<div class="pod blocked" id="t0-p1"><div class="name" style="color:#58a6ff">frontend</div><div class="labels">app: frontend</div></div>
+<div class="pod blocked" id="t0-p2"><div class="name" style="color:#a371f7">api</div><div class="labels">app: api</div></div>
+<div class="pod blocked" id="t0-p3"><div class="name" style="color:#3fb950">db</div><div class="labels">app: db</div></div>
+</div>
+</div>
+</div>
+<div id="t0-traffic">
+<div class="traffic-line" id="t0-t1"><span class="src">external</span><span class="arr">→</span><span class="dst">frontend:80</span><span class="verdict v-deny">DENIED</span></div>
+<div class="traffic-line" id="t0-t2"><span class="src">frontend</span><span class="arr">→</span><span class="dst">api:8080</span><span class="verdict v-deny">DENIED</span></div>
+<div class="traffic-line" id="t0-t3"><span class="src">api</span><span class="arr">→</span><span class="dst">db:5432</span><span class="verdict v-deny">DENIED</span></div>
+<div class="traffic-line" id="t0-t4"><span class="src">api</span><span class="arr">→</span><span class="dst">external:443</span><span class="verdict v-deny">DENIED</span></div>
+</div>
+<div class="info-panel" id="t0-info">
+<div class="step"><span class="step-num">1</span><span>podSelector: {} → 네임스페이스의 모든 Pod에 정책 적용<br><small>Empty selector targets ALL pods in namespace</small></span></div>
+<div class="step"><span class="step-num">2</span><span>Ingress + Egress 모두 비어있음 → 모든 인/아웃바운드 차단<br><small>Empty ingress + egress = all traffic blocked both directions</small></span></div>
+<div class="step"><span class="step-num">3</span><span>Zero Trust 모델의 기반: 명시적으로 허용한 트래픽만 통과<br><small>Foundation for Zero Trust: only explicitly allowed traffic passes</small></span></div>
+</div>
+</div>
+
+<!-- Tab 1: Ingress Rules -->
+<div class="tab-content" id="tab1">
+<h3 style="text-align:center;color:#3fb950;font-size:0.9rem;margin-bottom:15px">Ingress Allow Rules (인그레스 허용 규칙)</h3>
+<div class="policy-yaml"><span class="comment"># allow-frontend-to-api.yaml</span>
+<span class="key">spec:</span>
+  <span class="key">podSelector:</span>
+    <span class="key">matchLabels:</span>
+      <span class="key">app:</span> <span class="val">api</span>  <span class="comment"># 대상: api Pod</span>
+  <span class="key">policyTypes:</span> [<span class="val">Ingress</span>]
+  <span class="key">ingress:</span>
+  - <span class="key">from:</span>
+    - <span class="key">podSelector:</span>
+        <span class="key">matchLabels:</span>
+          <span class="key">app:</span> <span class="val">frontend</span>  <span class="comment"># 출발지: frontend Pod만</span>
+    - <span class="key">namespaceSelector:</span>
+        <span class="key">matchLabels:</span>
+          <span class="key">env:</span> <span class="val">production</span>  <span class="comment"># 네임스페이스: production만</span>
+    <span class="key">ports:</span>
+    - <span class="key">port:</span> <span class="val">8080</span>
+      <span class="key">protocol:</span> <span class="val">TCP</span></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:15px 0">
+<div class="ns-box" id="t1-ns1">
+<span class="ns-label" style="color:#58a6ff">ns: production</span>
+<div class="pods-row">
+<div class="pod" id="t1-fe"><div class="name" style="color:#58a6ff">frontend</div><div class="labels">app: frontend</div></div>
+<div class="pod" id="t1-api"><div class="name" style="color:#a371f7">api</div><div class="labels">app: api</div></div>
+</div>
+</div>
+<div class="ns-box" id="t1-ns2">
+<span class="ns-label" style="color:#f0883e">ns: monitoring</span>
+<div class="pods-row">
+<div class="pod" id="t1-prom"><div class="name" style="color:#f0883e">prometheus</div><div class="labels">app: prometheus</div></div>
+</div>
+</div>
+</div>
+<div id="t1-traffic">
+<div class="traffic-line" id="t1-t1"><span class="src">frontend (prod)</span><span class="arr">→</span><span class="dst">api:8080</span><span class="verdict v-allow">ALLOWED</span></div>
+<div class="traffic-line" id="t1-t2"><span class="src">prometheus (mon)</span><span class="arr">→</span><span class="dst">api:8080</span><span class="verdict v-deny">DENIED</span></div>
+<div class="traffic-line" id="t1-t3"><span class="src">frontend (prod)</span><span class="arr">→</span><span class="dst">api:22</span><span class="verdict v-deny">DENIED (wrong port)</span></div>
+</div>
+<div class="info-panel" id="t1-info">
+<div class="step"><span class="step-num">1</span><span>podSelector로 정책 대상(api Pod) 지정<br><small>podSelector targets the api pods</small></span></div>
+<div class="step"><span class="step-num">2</span><span>ingress.from에서 출발지 Pod 라벨 + 네임스페이스 라벨로 필터링<br><small>ingress.from filters by pod labels + namespace labels</small></span></div>
+<div class="step"><span class="step-num">3</span><span>ports로 허용할 포트와 프로토콜 명시 (8080/TCP만 허용)<br><small>ports specifies allowed port + protocol (only 8080/TCP)</small></span></div>
+</div>
+</div>
+
+<!-- Tab 2: Egress Rules -->
+<div class="tab-content" id="tab2">
+<h3 style="text-align:center;color:#a371f7;font-size:0.9rem;margin-bottom:15px">Egress Allow Rules (이그레스 허용 규칙)</h3>
+<div class="policy-yaml"><span class="comment"># allow-api-egress.yaml</span>
+<span class="key">spec:</span>
+  <span class="key">podSelector:</span>
+    <span class="key">matchLabels:</span>
+      <span class="key">app:</span> <span class="val">api</span>
+  <span class="key">policyTypes:</span> [<span class="val">Egress</span>]
+  <span class="key">egress:</span>
+  - <span class="key">to:</span>
+    - <span class="key">podSelector:</span>
+        <span class="key">matchLabels:</span>
+          <span class="key">app:</span> <span class="val">db</span>
+    <span class="key">ports:</span>
+    - <span class="key">port:</span> <span class="val">5432</span>
+  - <span class="key">to:</span>
+    - <span class="key">ipBlock:</span>
+        <span class="key">cidr:</span> <span class="val">0.0.0.0/0</span>
+        <span class="key">except:</span>
+        - <span class="val">10.0.0.0/8</span>  <span class="comment"># 내부 네트워크 제외</span>
+    <span class="key">ports:</span>
+    - <span class="key">port:</span> <span class="val">443</span>
+      <span class="key">protocol:</span> <span class="val">TCP</span></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:15px 0">
+<div class="ns-box" id="t2-ns">
+<span class="ns-label" style="color:#a371f7">ns: production</span>
+<div class="pods-row">
+<div class="pod" id="t2-api"><div class="name" style="color:#a371f7">api</div><div class="labels">app: api</div></div>
+<div class="pod" id="t2-db"><div class="name" style="color:#3fb950">db</div><div class="labels">app: db</div></div>
+</div>
+</div>
+</div>
+<div id="t2-traffic">
+<div class="traffic-line" id="t2-t1"><span class="src">api</span><span class="arr">→</span><span class="dst">db:5432</span><span class="verdict v-allow">ALLOWED</span></div>
+<div class="traffic-line" id="t2-t2"><span class="src">api</span><span class="arr">→</span><span class="dst">external:443 (HTTPS)</span><span class="verdict v-allow">ALLOWED</span></div>
+<div class="traffic-line" id="t2-t3"><span class="src">api</span><span class="arr">→</span><span class="dst">10.0.5.10:443</span><span class="verdict v-deny">DENIED (internal)</span></div>
+<div class="traffic-line" id="t2-t4"><span class="src">api</span><span class="arr">→</span><span class="dst">external:80 (HTTP)</span><span class="verdict v-deny">DENIED (port)</span></div>
+</div>
+<div class="info-panel" id="t2-info">
+<div class="step"><span class="step-num">1</span><span>Egress 규칙 1: api → db Pod의 5432 포트만 허용<br><small>Egress rule 1: api to db pods on port 5432 only</small></span></div>
+<div class="step"><span class="step-num">2</span><span>Egress 규칙 2: ipBlock으로 외부 CIDR의 443 포트 허용 (10.0.0.0/8 제외)<br><small>Egress rule 2: allow external CIDR on port 443, except 10.0.0.0/8</small></span></div>
+<div class="step"><span class="step-num">3</span><span>내부 IP 대역(10.x)이나 허용되지 않은 포트(80)로의 요청은 차단<br><small>Internal IPs or non-allowed ports are blocked</small></span></div>
+</div>
+</div>
+
+<!-- Tab 3: Before/After -->
+<div class="tab-content" id="tab3">
+<h3 style="text-align:center;color:#58a6ff;font-size:0.9rem;margin-bottom:15px">Before / After Policy Application (정책 적용 전후 비교)</h3>
+<div class="compare-grid">
+<div class="compare-card" id="t3-before">
+<span class="badge" style="background:#f8514922;color:#f85149;border:1px solid #f8514944">BEFORE (정책 적용 전)</span>
+<h3 style="color:#f85149">No NetworkPolicy</h3>
+<p style="font-size:0.78rem;color:#8b949e;margin-bottom:10px">모든 Pod 간 통신 허용 (default allow all)</p>
+<div class="traffic-line" id="t3-b1"><span class="src">any pod</span><span class="arr">→</span><span class="dst">any pod</span><span class="verdict v-allow">OPEN</span></div>
+<div class="traffic-line" id="t3-b2"><span class="src">external</span><span class="arr">→</span><span class="dst">any pod</span><span class="verdict v-allow">OPEN</span></div>
+<div class="traffic-line" id="t3-b3"><span class="src">attacker</span><span class="arr">→</span><span class="dst">db:5432</span><span class="verdict v-allow">OPEN</span></div>
+<div class="traffic-line" id="t3-b4"><span class="src">compromised</span><span class="arr">→</span><span class="dst">lateral move</span><span class="verdict v-allow">OPEN</span></div>
+<div style="margin-top:10px;font-size:0.72rem;color:#f85149">
+Risk: 침해된 Pod에서 클러스터 전체로 lateral movement 가능<br>
+<small>Compromised pod can reach any service in the cluster</small>
+</div>
+</div>
+<div class="compare-card" id="t3-after">
+<span class="badge" style="background:#3fb95022;color:#3fb950;border:1px solid #3fb95044">AFTER (정책 적용 후)</span>
+<h3 style="color:#3fb950">With NetworkPolicy</h3>
+<p style="font-size:0.78rem;color:#8b949e;margin-bottom:10px">최소 권한 원칙 적용 (Zero Trust)</p>
+<div class="traffic-line" id="t3-a1"><span class="src">frontend</span><span class="arr">→</span><span class="dst">api:8080</span><span class="verdict v-allow">ALLOWED</span></div>
+<div class="traffic-line" id="t3-a2"><span class="src">api</span><span class="arr">→</span><span class="dst">db:5432</span><span class="verdict v-allow">ALLOWED</span></div>
+<div class="traffic-line" id="t3-a3"><span class="src">attacker</span><span class="arr">→</span><span class="dst">db:5432</span><span class="verdict v-deny">BLOCKED</span></div>
+<div class="traffic-line" id="t3-a4"><span class="src">compromised</span><span class="arr">→</span><span class="dst">lateral move</span><span class="verdict v-deny">BLOCKED</span></div>
+<div style="margin-top:10px;font-size:0.72rem;color:#3fb950">
+Benefit: 침해 범위가 정책으로 격리, blast radius 최소화<br>
+<small>Blast radius minimized by policy isolation</small>
+</div>
+</div>
+</div>
+<div class="info-panel" id="t3-info">
+<div class="step"><span class="step-num">1</span><span>정책 없음: K8s는 기본적으로 모든 Pod 간 통신을 허용 (flat network)<br><small>No policy: K8s default allows all pod-to-pod communication</small></span></div>
+<div class="step"><span class="step-num">2</span><span>Default Deny 적용 후 필요한 통신만 명시적으로 허용<br><small>Apply default-deny first, then explicitly allow needed flows</small></span></div>
+<div class="step"><span class="step-num">3</span><span>Lateral movement 차단: 침해된 Pod가 다른 서비스에 접근 불가<br><small>Lateral movement blocked: compromised pod cannot reach other services</small></span></div>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+let currentTab=0,playing=true,timers=[];
+function switchTab(t){currentTab=t;document.querySelectorAll('.tab-content').forEach((el,i)=>{el.classList.toggle('visible',i===t);el.style.display=i===t?'block':'none'});document.querySelectorAll('.tabs button').forEach((b,i)=>b.classList.toggle('active',i===t));restart()}
+function togglePlay(){playing=!playing;document.getElementById('playBtn').textContent=playing?'⏸ Pause':'▶ Play';document.getElementById('scene').classList.toggle('paused',!playing)}
+function restart(){timers.forEach(t=>clearTimeout(t));timers=[];playing=true;document.getElementById('playBtn').textContent='⏸ Pause';document.getElementById('scene').classList.remove('paused');
+document.querySelectorAll('.pod').forEach(p=>{p.classList.remove('blocked','allowed','anim-glow-red','anim-glow-green','anim-shake')});
+document.querySelectorAll('.traffic-line,.step').forEach(s=>s.classList.remove('active'));
+document.querySelectorAll('.ns-box').forEach(n=>{n.classList.remove('deny','allow')});
+runAnim(currentTab)}
+function act(id,d,cls){timers.push(setTimeout(()=>{const el=document.getElementById(id);if(el)el.classList.add(cls||'active')},d))}
+function stepAct(panel,i,d){timers.push(setTimeout(()=>{const s=document.querySelectorAll('#'+panel+' .step');if(s[i])s[i].classList.add('active')},d))}
+function runAnim(t){
+  if(t===0){
+    act('t0-ns',300,'deny');
+    act('t0-p1',500,'blocked');act('t0-p1',500,'anim-glow-red');
+    act('t0-p2',700,'blocked');act('t0-p2',700,'anim-glow-red');
+    act('t0-p3',900,'blocked');act('t0-p3',900,'anim-glow-red');
+    act('t0-t1',1200);act('t0-t2',1600);act('t0-t3',2000);act('t0-t4',2400);
+    stepAct('t0-info',0,1200);stepAct('t0-info',1,2000);stepAct('t0-info',2,2800);
+    timers.push(setTimeout(()=>restart(),6000));
+  }else if(t===1){
+    act('t1-fe',400,'allowed');act('t1-api',600,'allowed');act('t1-prom',800,'blocked');
+    act('t1-t1',1200);act('t1-t2',1800);act('t1-t3',2400);
+    stepAct('t1-info',0,1200);stepAct('t1-info',1,1800);stepAct('t1-info',2,2400);
+    timers.push(setTimeout(()=>restart(),5500));
+  }else if(t===2){
+    act('t2-api',400,'allowed');act('t2-db',600,'allowed');
+    act('t2-t1',1000);act('t2-t2',1500);act('t2-t3',2000);act('t2-t4',2500);
+    stepAct('t2-info',0,1000);stepAct('t2-info',1,1500);stepAct('t2-info',2,2500);
+    timers.push(setTimeout(()=>restart(),5500));
+  }else if(t===3){
+    act('t3-b1',400);act('t3-b2',700);act('t3-b3',1000);act('t3-b4',1300);
+    stepAct('t3-info',0,400);
+    act('t3-a1',1800);act('t3-a2',2100);act('t3-a3',2400);act('t3-a4',2700);
+    stepAct('t3-info',1,2100);stepAct('t3-info',2,2700);
+    timers.push(setTimeout(()=>restart(),6000));
+  }
+}
+restart();
+</script>
+</body>
+</html>

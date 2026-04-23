@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>연봉 협상 계산기</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#f0883e,#ffb86c);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:28px;font-size:0.95rem}
+.section-title{font-size:1.1rem;margin-bottom:16px;color:#e6edf3;display:flex;align-items:center;gap:8px}
+.section-title .icon{font-size:1.2rem}
+
+/* Comparison Bars */
+.comp-section{margin-bottom:32px}
+.comp-container{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px}
+.comp-row{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.comp-row:last-child{margin-bottom:0}
+.comp-label{width:120px;font-size:0.82rem;color:#8b949e;flex-shrink:0;text-align:right}
+.comp-bar-track{flex:1;height:36px;background:#21262d;border-radius:6px;overflow:hidden;position:relative}
+.comp-bar-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding:0 12px;font-size:0.8rem;font-weight:600;color:#fff;width:0;transition:width 1.5s ease;position:relative;white-space:nowrap}
+.comp-val{width:100px;font-size:0.9rem;font-weight:700;text-align:right;flex-shrink:0}
+.comp-arrow{text-align:center;padding:8px 0;font-size:1.4rem;color:#f0883e;animation:bounceDown 1s ease infinite}
+@keyframes bounceDown{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+.comp-note{font-size:0.78rem;color:#8b949e;text-align:center;margin-top:8px;line-height:1.4}
+
+/* 3.3% Calculator */
+.calc-section{margin-bottom:32px}
+.calc-container{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px}
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.calc-card{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px}
+.calc-card h3{font-size:0.9rem;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.calc-card.card-33 h3{color:#d29922}
+.calc-card.card-regular h3{color:#58a6ff}
+.calc-line{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #21262d;font-size:0.82rem}
+.calc-line:last-child{border-bottom:none}
+.calc-line .cl-label{color:#8b949e}
+.calc-line .cl-val{font-weight:600}
+.calc-line .cl-val.positive{color:#3fb950}
+.calc-line .cl-val.negative{color:#f85149}
+.calc-line .cl-val.neutral{color:#d29922}
+.calc-total{margin-top:8px;padding-top:8px;border-top:2px solid #30363d;display:flex;justify-content:space-between;align-items:center;font-size:0.95rem;font-weight:700}
+.calc-total .ct-val{color:#f0883e;font-size:1.1rem}
+.calc-diff{text-align:center;padding:16px;background:#f8514915;border:1px solid #f8514940;border-radius:8px;margin-top:16px}
+.calc-diff .cd-title{font-size:0.85rem;color:#f85149;margin-bottom:4px}
+.calc-diff .cd-val{font-size:1.3rem;font-weight:700;color:#f85149}
+.calc-diff .cd-note{font-size:0.75rem;color:#8b949e;margin-top:4px}
+
+/* Salary Input */
+.salary-input{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:20px;flex-wrap:wrap}
+.salary-input label{font-size:0.85rem;color:#8b949e}
+.salary-input input{width:140px;padding:8px 12px;border:1px solid #30363d;border-radius:6px;background:#0d1117;color:#e6edf3;font-size:1rem;text-align:right}
+.salary-input input:focus{outline:none;border-color:#f0883e}
+.salary-input .unit{font-size:0.85rem;color:#8b949e}
+
+/* Total Comp View */
+.total-section{margin-bottom:32px}
+.total-container{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px}
+.total-stack{display:flex;height:48px;border-radius:8px;overflow:hidden;margin-bottom:16px}
+.total-seg{display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:600;color:#fff;transition:flex .8s ease;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.total-legend{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.total-legend-item{display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#8b949e}
+.total-legend-dot{width:12px;height:12px;border-radius:3px}
+
+/* Decision Matrix */
+.matrix-section{margin-bottom:32px}
+.matrix-container{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px}
+.matrix-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #21262d;transition:background .2s}
+.matrix-row:last-child{border-bottom:none}
+.matrix-row:hover{background:#21262d20}
+.mr-range{width:160px;font-size:0.85rem;font-weight:600;flex-shrink:0}
+.mr-bar{flex:1;height:8px;background:#21262d;border-radius:4px;overflow:hidden}
+.mr-fill{height:100%;border-radius:4px;transition:width 1s ease;width:0}
+.mr-action{width:140px;font-size:0.8rem;text-align:right;flex-shrink:0;padding:4px 8px;border-radius:4px}
+
+/* Negotiation Tips */
+.tips-section{margin-bottom:20px}
+.tips-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.tip-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;font-size:0.82rem;line-height:1.5}
+.tip-card.do{border-left:3px solid #3fb950}
+.tip-card.dont{border-left:3px solid #f85149}
+.tip-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:600}
+.tip-card.do .tip-label{color:#3fb950}
+.tip-card.dont .tip-label{color:#f85149}
+
+@media(max-width:768px){
+  .calc-grid{grid-template-columns:1fr}
+  .comp-row{flex-wrap:wrap}
+  .comp-label{width:100%;text-align:left}
+  .comp-val{width:auto}
+  .container{padding:12px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>연봉 협상 전략</h1>
+<p class="subtitle">Salary Negotiation &mdash; 현재 vs 목표 비교 + 3.3% 전환 계산기</p>
+
+<!-- Salary Input -->
+<div class="salary-input">
+  <label>현재 연봉 (세전):</label>
+  <input type="number" id="currentSalary" value="7300" step="100" onchange="recalculate()">
+  <span class="unit">만 원</span>
+  <label style="margin-left:16px">목표 연봉:</label>
+  <input type="number" id="targetSalary" value="8500" step="100" onchange="recalculate()">
+  <span class="unit">만 원</span>
+</div>
+
+<!-- Comparison -->
+<div class="comp-section">
+  <div class="section-title"><span class="icon">&#128200;</span> 현재 vs 목표 비교</div>
+  <div class="comp-container" id="compContainer">
+    <div class="comp-row">
+      <div class="comp-label">현재 (3.3%)</div>
+      <div class="comp-bar-track"><div class="comp-bar-fill" id="barCurrent" style="background:linear-gradient(90deg,#d29922,#f0883e)">7,300만</div></div>
+      <div class="comp-val" id="valCurrent" style="color:#d29922">7,300만</div>
+    </div>
+    <div class="comp-row">
+      <div class="comp-label">최소 수용선</div>
+      <div class="comp-bar-track"><div class="comp-bar-fill" id="barMin" style="background:linear-gradient(90deg,#8b949e,#b1bac4)">8,000만</div></div>
+      <div class="comp-val" id="valMin" style="color:#8b949e">8,000만</div>
+    </div>
+    <div class="comp-row">
+      <div class="comp-label">목표 범위</div>
+      <div class="comp-bar-track"><div class="comp-bar-fill" id="barTarget" style="background:linear-gradient(90deg,#3fb950,#56d364)">8,500만</div></div>
+      <div class="comp-val" id="valTarget" style="color:#3fb950">8,500만</div>
+    </div>
+    <div class="comp-row">
+      <div class="comp-label">시장 상위</div>
+      <div class="comp-bar-track"><div class="comp-bar-fill" id="barHigh" style="background:linear-gradient(90deg,#58a6ff,#79c0ff)">10,000만</div></div>
+      <div class="comp-val" style="color:#58a6ff">10,000만</div>
+    </div>
+    <div class="comp-note">5-8년 시니어 DevOps 시장가: 7,500 ~ 10,000만 / AI 인프라 특화 +10~20% 프리미엄</div>
+  </div>
+</div>
+
+<!-- 3.3% Calculator -->
+<div class="calc-section">
+  <div class="section-title"><span class="icon">&#129518;</span> 3.3% 사업소득 &rarr; 정규직 전환 비교</div>
+  <div class="calc-container">
+    <div class="calc-grid">
+      <div class="calc-card card-33">
+        <h3>&#128310; 현재: 3.3% 사업소득</h3>
+        <div class="calc-line"><span class="cl-label">세전 연봉</span><span class="cl-val" id="c33Gross">7,300만</span></div>
+        <div class="calc-line"><span class="cl-label">3.3% 원천징수</span><span class="cl-val negative" id="c33Tax">-241만</span></div>
+        <div class="calc-line"><span class="cl-label">4대보험 본인부담</span><span class="cl-val positive">0원</span></div>
+        <div class="calc-line"><span class="cl-label">퇴직금</span><span class="cl-val negative">없음</span></div>
+        <div class="calc-line"><span class="cl-label">유급휴가</span><span class="cl-val negative">보장 없음</span></div>
+        <div class="calc-total"><span>실수령 (연간)</span><span class="ct-val" id="c33Net">~7,059만</span></div>
+      </div>
+      <div class="calc-card card-regular">
+        <h3>&#128309; 정규직 전환 (동일 금액)</h3>
+        <div class="calc-line"><span class="cl-label">세전 연봉</span><span class="cl-val" id="cRegGross">7,300만</span></div>
+        <div class="calc-line"><span class="cl-label">소득세 + 지방세</span><span class="cl-val negative" id="cRegIncomeTax">-약 680만</span></div>
+        <div class="calc-line"><span class="cl-label">4대보험 본인부담</span><span class="cl-val negative" id="cRegInsurance">-약 670만</span></div>
+        <div class="calc-line"><span class="cl-label">퇴직금 (8.3%)</span><span class="cl-val positive" id="cRegRetire">+606만/년</span></div>
+        <div class="calc-line"><span class="cl-label">유급휴가</span><span class="cl-val positive">보장</span></div>
+        <div class="calc-total"><span>실수령 (연간)</span><span class="ct-val" id="cRegNet">~5,950만</span></div>
+      </div>
+    </div>
+    <div class="calc-diff">
+      <div class="cd-title">동일 금액 이직 시 실수령 차이</div>
+      <div class="cd-val" id="calcDiff">-약 1,109만 원</div>
+      <div class="cd-note">퇴직금 + 4대보험 혜택으로 일부 상쇄되지만, 실질 동등을 위해 <strong id="equalSalary">약 8,500만</strong> 필요</div>
+    </div>
+  </div>
+</div>
+
+<!-- Total Compensation -->
+<div class="total-section">
+  <div class="section-title"><span class="icon">&#128176;</span> 종합 보상 패키지 뷰</div>
+  <div class="total-container">
+    <div class="total-stack" id="totalStack">
+      <div class="total-seg" style="background:#3fb950;flex:6" id="tsBase">기본 연봉</div>
+      <div class="total-seg" style="background:#58a6ff;flex:1" id="tsBonus">성과</div>
+      <div class="total-seg" style="background:#a371f7;flex:1.5" id="tsStock">스톡옵션</div>
+      <div class="total-seg" style="background:#d29922;flex:1" id="tsBenefit">복리후생</div>
+    </div>
+    <div class="total-legend">
+      <div class="total-legend-item"><div class="total-legend-dot" style="background:#3fb950"></div>기본 연봉 (60-65%)</div>
+      <div class="total-legend-item"><div class="total-legend-dot" style="background:#58a6ff"></div>성과 보너스 5-15%</div>
+      <div class="total-legend-item"><div class="total-legend-dot" style="background:#a371f7"></div>스톡옵션/RSU 10-30%</div>
+      <div class="total-legend-item"><div class="total-legend-dot" style="background:#d29922"></div>복리후생 (식대/장비/교육)</div>
+    </div>
+  </div>
+</div>
+
+<!-- Decision Matrix -->
+<div class="matrix-section">
+  <div class="section-title"><span class="icon">&#127919;</span> 의사결정 매트릭스</div>
+  <div class="matrix-container" id="matrixContainer">
+    <div class="matrix-row" data-range="9000+" data-w="100" data-color="#3fb950" data-action="즉시 수락 고려" data-abg="#3fb95020" data-ac="#3fb950">
+      <div class="mr-range">9,000만+</div>
+      <div class="mr-bar"><div class="mr-fill"></div></div>
+      <div class="mr-action"></div>
+    </div>
+    <div class="matrix-row" data-range="8,500~9,000만" data-w="85" data-color="#58a6ff" data-action="수락 (목표 범위)" data-abg="#58a6ff20" data-ac="#58a6ff">
+      <div class="mr-range">8,500~9,000만</div>
+      <div class="mr-bar"><div class="mr-fill"></div></div>
+      <div class="mr-action"></div>
+    </div>
+    <div class="matrix-row" data-range="8,000~8,500만" data-w="65" data-color="#d29922" data-action="조건부 수락" data-abg="#d2992220" data-ac="#d29922">
+      <div class="mr-range">8,000~8,500만</div>
+      <div class="mr-bar"><div class="mr-fill"></div></div>
+      <div class="mr-action"></div>
+    </div>
+    <div class="matrix-row" data-range="7,500~8,000만" data-w="40" data-color="#f0883e" data-action="재협상 시도" data-abg="#f0883e20" data-ac="#f0883e">
+      <div class="mr-range">7,500~8,000만</div>
+      <div class="mr-bar"><div class="mr-fill"></div></div>
+      <div class="mr-action"></div>
+    </div>
+    <div class="matrix-row" data-range="7,500만 미만" data-w="20" data-color="#f85149" data-action="재고 필요" data-abg="#f8514920" data-ac="#f85149">
+      <div class="mr-range">7,500만 미만</div>
+      <div class="mr-bar"><div class="mr-fill"></div></div>
+      <div class="mr-action"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Negotiation Tips -->
+<div class="tips-section">
+  <div class="section-title"><span class="icon">&#128173;</span> 협상 핵심 원칙</div>
+  <div class="tips-grid">
+    <div class="tip-card do"><div class="tip-label">DO</div>현재 연봉을 솔직하게 밝히되, 바로 희망 금액으로 연결한다</div>
+    <div class="tip-card do"><div class="tip-label">DO</div>높은 쪽 먼저 &mdash; &ldquo;8,500~9,000만&rdquo; (앵커링 효과)</div>
+    <div class="tip-card do"><div class="tip-label">DO</div>연봉만이 아닌 종합 패키지(스톡옵션, 복리후생)로 협상</div>
+    <div class="tip-card dont"><div class="tip-label">DON'T</div>&ldquo;얼마든 상관없습니다&rdquo; &mdash; 자기 가치를 낮추는 발언</div>
+    <div class="tip-card dont"><div class="tip-label">DON'T</div>거짓 카운터 오퍼 &mdash; 들통나면 치명적</div>
+    <div class="tip-card dont"><div class="tip-label">DON'T</div>첫 면접에서 연봉 먼저 꺼내기 &mdash; 돈만 보는 인상</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+function formatNum(n){return n.toLocaleString('ko-KR')}
+
+function recalculate(){
+  const current=parseInt(document.getElementById('currentSalary').value)||7300;
+  const target=parseInt(document.getElementById('targetSalary').value)||8500;
+  const maxVal=10000;
+
+  // Comparison bars
+  const bars=[
+    {id:'barCurrent',val:current,label:formatNum(current)+'만',valId:'valCurrent'},
+    {id:'barMin',val:8000,label:'8,000만',valId:'valMin'},
+    {id:'barTarget',val:target,label:formatNum(target)+'만',valId:'valTarget'}
+  ];
+  bars.forEach(b=>{
+    const el=document.getElementById(b.id);
+    el.style.width=(b.val/maxVal*100)+'%';
+    el.textContent=b.label;
+    if(b.valId)document.getElementById(b.valId).textContent=b.label;
+  });
+  document.getElementById('barHigh').style.width='100%';
+
+  // 3.3% calculator
+  const tax33=Math.round(current*0.033);
+  const net33=current-tax33;
+  document.getElementById('c33Gross').textContent=formatNum(current)+'만';
+  document.getElementById('c33Tax').textContent='-'+formatNum(tax33)+'만';
+  document.getElementById('c33Net').textContent='~'+formatNum(net33)+'만';
+
+  // Regular employee
+  const incomeTax=Math.round(current*0.093);
+  const insurance=Math.round(current*0.092);
+  const netReg=current-incomeTax-insurance;
+  const retire=Math.round(current*0.083);
+  document.getElementById('cRegGross').textContent=formatNum(current)+'만';
+  document.getElementById('cRegIncomeTax').textContent='-약 '+formatNum(incomeTax)+'만';
+  document.getElementById('cRegInsurance').textContent='-약 '+formatNum(insurance)+'만';
+  document.getElementById('cRegRetire').textContent='+'+formatNum(retire)+'만/년';
+  document.getElementById('cRegNet').textContent='~'+formatNum(netReg)+'만';
+
+  const diff=netReg-net33;
+  document.getElementById('calcDiff').textContent=(diff>0?'+':'')+formatNum(diff)+'만 원';
+
+  // Equal salary estimation
+  const equalEst=Math.round(net33/(1-0.093-0.092)/100)*100;
+  document.getElementById('equalSalary').textContent='약 '+formatNum(equalEst)+'만';
+}
+
+// Animate matrix
+function animateMatrix(){
+  document.querySelectorAll('.matrix-row').forEach((row,i)=>{
+    const fill=row.querySelector('.mr-fill');
+    const action=row.querySelector('.mr-action');
+    const w=row.dataset.w;
+    const color=row.dataset.color;
+    fill.style.background=color;
+    action.textContent=row.dataset.action;
+    action.style.background=row.dataset.abg;
+    action.style.color=row.dataset.ac;
+    setTimeout(()=>{fill.style.width=w+'%'},i*150);
+  });
+}
+
+// Init
+recalculate();
+const obs=new IntersectionObserver((entries,o)=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      if(e.target.id==='matrixContainer')animateMatrix();
+      if(e.target.id==='compContainer')recalculate();
+      o.unobserve(e.target);
+    }
+  });
+},{threshold:0.2});
+obs.observe(document.getElementById('matrixContainer'));
+obs.observe(document.getElementById('compContainer'));
+</script>
+</body>
+</html>

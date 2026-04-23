@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Incident Response Process | 인시던트 대응 프로세스</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.header .key-badge{display:inline-block;padding:2px 10px;background:#f0883e22;color:#f0883e;border:1px solid #f0883e55;border-radius:10px;font-size:.7rem;margin-bottom:4px}
+.header h1{font-size:1.6rem;color:#58a6ff;margin-bottom:4px}
+.header p{font-size:.9rem;color:#8b949e}
+.controls{display:flex;justify-content:center;gap:10px;padding:14px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#c9d1d9;cursor:pointer;font-size:.85rem;transition:all .2s}
+.controls button:hover{border-color:#58a6ff;color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.section{padding:20px 16px;max-width:1100px;margin:0 auto}
+.section-title{font-size:1.1rem;color:#58a6ff;margin-bottom:16px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.section-title span{color:#8b949e;font-size:.8rem;font-weight:400;margin-left:8px}
+
+/* 5 Phases */
+.phases{display:flex;gap:0;padding:20px 0;flex-wrap:wrap;justify-content:center;align-items:stretch}
+.phase{min-width:140px;max-width:180px;flex:1;padding:16px 12px;border:2px solid #30363d;border-radius:10px;background:#161b22;text-align:center;opacity:0;transform:translateY(20px);transition:all .5s ease;display:flex;flex-direction:column;gap:6px}
+.phase.show{opacity:1;transform:translateY(0)}
+.phase .num{font-size:1.4rem;font-weight:700}
+.phase .en{font-size:.8rem;font-weight:600}
+.phase .ko{font-size:.68rem;color:#8b949e}
+.phase .actions{font-size:.65rem;color:#8b949e;line-height:1.6;margin-top:6px;text-align:left;padding:6px;background:#0d1117;border-radius:4px}
+.phase-arrow{width:30px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .4s;flex-shrink:0}
+.phase-arrow.show{opacity:1}
+.phase-arrow svg{width:24px;height:16px}
+.phase-arrow svg path{stroke:#58a6ff;stroke-width:2;fill:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(63,185,80,.4)}50%{box-shadow:0 0 20px 4px rgba(63,185,80,.2)}}
+.phase.active{animation:pulse 1.5s infinite}
+
+.phase.detect{border-color:#f8514944}.phase.detect .num{color:#f85149}
+.phase.classify{border-color:#f0883e44}.phase.classify .num{color:#f0883e}
+.phase.mitigate{border-color:#58a6ff44}.phase.mitigate .num{color:#58a6ff}
+.phase.recover{border-color:#3fb95044}.phase.recover .num{color:#3fb950}
+.phase.review{border-color:#a371f744}.phase.review .num{color:#a371f7}
+
+/* Timeline with MTTx */
+.timeline-container{border:1px solid #21262d;border-radius:8px;padding:20px 16px;background:#161b22;margin-top:12px;opacity:0;transition:opacity .5s}
+.timeline-container.show{opacity:1}
+.timeline-container h4{font-size:.85rem;color:#bd93f9;margin-bottom:16px}
+.timeline{position:relative;height:80px;margin:20px 10px}
+.tl-track{position:absolute;top:38px;left:0;right:0;height:4px;background:#21262d;border-radius:2px}
+.tl-progress{position:absolute;top:38px;left:0;height:4px;background:linear-gradient(90deg,#f85149,#f0883e,#58a6ff,#3fb950);border-radius:2px;width:0;transition:width 3s ease}
+.timeline-container.show .tl-progress{width:100%}
+.tl-marker{position:absolute;top:20px;display:flex;flex-direction:column;align-items:center;opacity:0;transition:all .5s ease}
+.tl-marker.show{opacity:1}
+.tl-marker .dot{width:12px;height:12px;border-radius:50%;border:2px solid;margin-bottom:2px}
+.tl-marker .label{font-size:.65rem;font-weight:600;white-space:nowrap}
+.tl-marker .time{font-size:.6rem;color:#8b949e;margin-top:36px}
+.tl-marker.detect .dot{border-color:#f85149;background:#f8514944}
+.tl-marker.detect .label{color:#f85149}
+.tl-marker.ack .dot{border-color:#f0883e;background:#f0883e44}
+.tl-marker.ack .label{color:#f0883e}
+.tl-marker.resolve .dot{border-color:#3fb950;background:#3fb95044}
+.tl-marker.resolve .label{color:#3fb950}
+
+/* MTTx labels */
+.mtt-labels{display:flex;justify-content:space-around;margin-top:8px;flex-wrap:wrap;gap:8px}
+.mtt-label{padding:8px 14px;border-radius:6px;font-size:.72rem;opacity:0;transform:translateY(10px);transition:all .4s ease;text-align:center}
+.mtt-label.show{opacity:1;transform:translateY(0)}
+.mtt-label.mttd{background:#f8514916;border:1px solid #f8514944;color:#f85149}
+.mtt-label.mtta{background:#f0883e16;border:1px solid #f0883e44;color:#f0883e}
+.mtt-label.mttr{background:#3fb95016;border:1px solid #3fb95044;color:#3fb950}
+.mtt-label strong{display:block;font-size:.9rem}
+
+/* Roles */
+.role-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:12px}
+@media(max-width:700px){.role-grid{grid-template-columns:1fr}}
+.role-card{border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;opacity:0;transform:scale(.95);transition:all .5s ease}
+.role-card.show{opacity:1;transform:scale(1)}
+.role-card h4{font-size:.85rem;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.role-card.ic h4{color:#f85149}
+.role-card.comms h4{color:#58a6ff}
+.role-card.ops h4{color:#3fb950}
+.role-card .duties{font-size:.73rem;color:#8b949e;line-height:1.8}
+.role-card .duty{padding:4px 8px;background:#0d1117;border-radius:4px;margin:3px 0}
+.role-card.ic .duty{border-left:3px solid #f85149}
+.role-card.comms .duty{border-left:3px solid #58a6ff}
+.role-card.ops .duty{border-left:3px solid #3fb950}
+
+/* Status page */
+.status-flow{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.status-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid #30363d;border-radius:8px;background:#161b22;opacity:0;transform:translateX(-20px);transition:all .4s ease;font-size:.75rem}
+.status-item.show{opacity:1;transform:translateX(0)}
+.status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.status-dot.red{background:#f85149}
+.status-dot.orange{background:#f0883e}
+.status-dot.yellow{background:#e3b341}
+.status-dot.green{background:#3fb950}
+.status-time{color:#8b949e;min-width:60px;font-size:.68rem}
+.status-msg{flex:1}
+</style>
+</head>
+<body>
+
+<div class="header">
+<div class="key-badge">KEY VISUAL</div>
+<h1>Incident Response Process</h1>
+<p>인시던트 대응 프로세스 | 감지부터 복구까지 5단계 체계적 대응</p>
+</div>
+
+<div class="controls">
+<button id="btnPlay" class="active" onclick="play()">&#9654; Play / 재생</button>
+<button id="btnPause" onclick="pause()">&#10074;&#10074; Pause / 일시정지</button>
+<button id="btnRestart" onclick="restart()">&#8634; Restart / 처음부터</button>
+</div>
+
+<!-- Section 1: 5 Phases -->
+<div class="section">
+<div class="section-title">1. Incident Response 5 Phases <span>인시던트 대응 5단계</span></div>
+<div class="phases" id="phases">
+<div class="phase detect" id="ph0">
+<div class="num">1</div>
+<div class="en">Detect</div>
+<div class="ko">감지</div>
+<div class="actions">- 모니터링 알림 수신<br>- 고객 신고 접수<br>- 자동화 감지 시스템</div>
+</div>
+<div class="phase-arrow" id="pa0"><svg viewBox="0 0 24 16"><path d="M2 8 L18 8 M14 3 L20 8 L14 13"/></svg></div>
+<div class="phase classify" id="ph1">
+<div class="num">2</div>
+<div class="en">Classify</div>
+<div class="ko">분류 (Severity)</div>
+<div class="actions">- SEV1: 전체 서비스 장애<br>- SEV2: 주요 기능 장애<br>- SEV3: 부분 기능 장애<br>- SEV4: 경미한 이슈</div>
+</div>
+<div class="phase-arrow" id="pa1"><svg viewBox="0 0 24 16"><path d="M2 8 L18 8 M14 3 L20 8 L14 13"/></svg></div>
+<div class="phase mitigate" id="ph2">
+<div class="num">3</div>
+<div class="en">Mitigate</div>
+<div class="ko">완화</div>
+<div class="actions">- 즉각적 영향 최소화<br>- Rollback / Feature Flag<br>- Traffic shift / Scale up</div>
+</div>
+<div class="phase-arrow" id="pa2"><svg viewBox="0 0 24 16"><path d="M2 8 L18 8 M14 3 L20 8 L14 13"/></svg></div>
+<div class="phase recover" id="ph3">
+<div class="num">4</div>
+<div class="en">Recover</div>
+<div class="ko">복구</div>
+<div class="actions">- 근본 원인 해결<br>- 서비스 정상화 확인<br>- 모니터링 강화 감시</div>
+</div>
+<div class="phase-arrow" id="pa3"><svg viewBox="0 0 24 16"><path d="M2 8 L18 8 M14 3 L20 8 L14 13"/></svg></div>
+<div class="phase review" id="ph4">
+<div class="num">5</div>
+<div class="en">Review</div>
+<div class="ko">사후 검토</div>
+<div class="actions">- 포스트모템 작성<br>- 재발 방지 대책<br>- 프로세스 개선</div>
+</div>
+</div>
+</div>
+
+<!-- Section 2: Timeline with MTTx -->
+<div class="section">
+<div class="section-title">2. Incident Timeline & MTTx <span>인시던트 타임라인 및 MTTx 지표</span></div>
+<div class="timeline-container" id="tlContainer">
+<h4>Incident Timeline Example</h4>
+<div class="timeline">
+<div class="tl-track"></div>
+<div class="tl-progress"></div>
+<div class="tl-marker detect" id="tm0" style="left:0%"><div class="dot"></div><div class="label">Incident Start</div><div class="time">10:00 AM</div></div>
+<div class="tl-marker detect" id="tm1" style="left:15%"><div class="dot"></div><div class="label">Detection</div><div class="time">10:05 AM</div></div>
+<div class="tl-marker ack" id="tm2" style="left:30%"><div class="dot"></div><div class="label">Acknowledge</div><div class="time">10:08 AM</div></div>
+<div class="tl-marker resolve" id="tm3" style="left:100%;transform:translateX(-50%)"><div class="dot"></div><div class="label">Resolved</div><div class="time">10:45 AM</div></div>
+</div>
+<div class="mtt-labels">
+<div class="mtt-label mttd" id="mt0"><strong>MTTD</strong>Mean Time to Detect<br>감지 시간: 5분</div>
+<div class="mtt-label mtta" id="mt1"><strong>MTTA</strong>Mean Time to Acknowledge<br>인지 시간: 8분</div>
+<div class="mtt-label mttr" id="mt2"><strong>MTTR</strong>Mean Time to Recover<br>복구 시간: 45분</div>
+</div>
+</div>
+</div>
+
+<!-- Section 3: Roles -->
+<div class="section">
+<div class="section-title">3. Role Assignment <span>역할 할당</span></div>
+<div class="role-grid" id="roleGrid">
+<div class="role-card ic" id="rl0">
+<h4>Incident Commander (IC)</h4>
+<div class="duties">
+<div class="duty">전체 대응 조율 및 의사결정</div>
+<div class="duty">타임라인 관리 및 기록</div>
+<div class="duty">에스컬레이션 결정</div>
+<div class="duty">외부 커뮤니케이션 승인</div>
+</div>
+</div>
+<div class="role-card comms" id="rl1">
+<h4>Communications Lead</h4>
+<div class="duties">
+<div class="duty">내부 팀 상황 공유 (Slack)</div>
+<div class="duty">Status Page 업데이트</div>
+<div class="duty">고객 알림 발송</div>
+<div class="duty">경영진 보고</div>
+</div>
+</div>
+<div class="role-card ops" id="rl2">
+<h4>Operations Lead</h4>
+<div class="duties">
+<div class="duty">기술적 원인 분석</div>
+<div class="duty">완화/복구 조치 실행</div>
+<div class="duty">관련 엔지니어 소집</div>
+<div class="duty">모니터링 및 검증</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 4: Status Page Flow -->
+<div class="section">
+<div class="section-title">4. Status Page Update Flow <span>상태 페이지 업데이트 흐름</span></div>
+<div class="status-flow" id="statusFlow">
+<div class="status-item" id="si0"><div class="status-dot red"></div><div class="status-time">10:08 AM</div><div class="status-msg"><strong style="color:#f85149">Investigating</strong> - API 서비스 응답 지연이 감지되었습니다. 원인을 조사 중입니다.</div></div>
+<div class="status-item" id="si1"><div class="status-dot orange"></div><div class="status-time">10:15 AM</div><div class="status-msg"><strong style="color:#f0883e">Identified</strong> - 데이터베이스 연결 풀 고갈이 원인으로 확인되었습니다. 긴급 조치를 진행합니다.</div></div>
+<div class="status-item" id="si2"><div class="status-dot yellow"></div><div class="status-time">10:30 AM</div><div class="status-msg"><strong style="color:#e3b341">Monitoring</strong> - DB 연결 풀 확장 및 재시작 완료. 서비스 복구를 모니터링 중입니다.</div></div>
+<div class="status-item" id="si3"><div class="status-dot green"></div><div class="status-time">10:45 AM</div><div class="status-msg"><strong style="color:#3fb950">Resolved</strong> - 모든 서비스가 정상 복구되었습니다. 포스트모템을 진행할 예정입니다.</div></div>
+</div>
+</div>
+
+<script>
+let timer=null,step=0,playing=false;
+const totalSteps=32;
+
+function animateStep(s){
+  // Phases
+  if(s>=0&&s<=8){
+    const i=Math.floor(s/2);
+    if(s%2===0){const p=document.getElementById('ph'+i);if(p)p.classList.add('show','active');}
+    else{const a=document.getElementById('pa'+Math.floor(s/2));if(a)a.classList.add('show');const prev=document.getElementById('ph'+Math.floor(s/2));if(prev)prev.classList.remove('active');}
+  }
+  if(s===9){document.getElementById('ph4').classList.remove('active');}
+  // Timeline
+  if(s===11){document.getElementById('tlContainer').classList.add('show');}
+  if(s>=12&&s<=15){document.getElementById('tm'+(s-12)).classList.add('show');}
+  if(s>=17&&s<=19){document.getElementById('mt'+(s-17)).classList.add('show');}
+  // Roles
+  if(s>=21&&s<=23){document.getElementById('rl'+(s-21)).classList.add('show');}
+  // Status flow
+  if(s>=25&&s<=28){document.getElementById('si'+(s-25)).classList.add('show');}
+}
+
+function play(){
+  if(playing)return;playing=true;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  timer=setInterval(()=>{if(step>=totalSteps){pause();return;}animateStep(step);step++;},550);
+}
+function pause(){
+  playing=false;clearInterval(timer);
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function restart(){
+  pause();step=0;
+  document.querySelectorAll('.phase,.phase-arrow,.tl-marker,.mtt-label,.role-card,.status-item,.timeline-container').forEach(e=>e.classList.remove('show','active'));
+  document.querySelector('.tl-progress').style.width='0';
+  setTimeout(()=>{document.querySelector('.tl-progress').style.transition='none';requestAnimationFrame(()=>{document.querySelector('.tl-progress').style.transition='width 3s ease';play();});},100);
+}
+window.addEventListener('load',()=>setTimeout(play,500));
+</script>
+</body>
+</html>

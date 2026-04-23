@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>가상 메모리 &amp; OOM - CH02</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:1.8rem;margin-bottom:8px;background:linear-gradient(90deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{background:#21262d;border:1px solid #30363d;color:#e6edf3;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.step-indicator{display:flex;justify-content:center;gap:6px;margin-bottom:24px;flex-wrap:wrap}
+.step-dot{width:28px;height:28px;border-radius:50%;background:#21262d;border:2px solid #30363d;display:flex;align-items:center;justify-content:center;font-size:.65rem;transition:all .3s}
+.step-dot.active{background:#1f6feb;border-color:#58a6ff;transform:scale(1.15)}
+.step-dot.done{background:#238636;border-color:#3fb950}
+.sections{display:grid;gap:24px}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;overflow:hidden}
+.section h2{font-size:1.15rem;margin-bottom:16px;color:#58a6ff}
+.section h2 span{color:#8b949e;font-size:.85rem;font-weight:normal}
+
+/* Address Translation */
+.addr-flow{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;min-height:200px}
+.addr-box{padding:14px 18px;border-radius:10px;text-align:center;opacity:0;transform:scale(.7);transition:all .5s cubic-bezier(.34,1.56,.64,1);min-width:120px}
+.addr-box.visible{opacity:1;transform:scale(1)}
+.addr-box .label{font-size:.7rem;color:#8b949e;margin-bottom:4px}
+.addr-box .value{font-weight:bold;font-size:.9rem;font-family:monospace}
+.vaddr{background:rgba(88,166,255,.12);border:2px solid #58a6ff}
+.ptable{background:rgba(188,140,255,.12);border:2px solid #bc8cff}
+.paddr{background:rgba(63,185,80,.12);border:2px solid #3fb950}
+.ram-box{background:rgba(210,153,34,.12);border:2px solid #d29922}
+.arr{color:#30363d;font-size:1.5rem;opacity:0;transition:all .4s}
+.arr.visible{opacity:1;color:#58a6ff}
+
+/* Page Fault */
+.pf-container{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;min-height:180px}
+.pf-card{flex:1;min-width:240px;max-width:400px;background:#0d1117;border-radius:10px;padding:16px;opacity:0;transform:translateY(20px);transition:all .5s}
+.pf-card.visible{opacity:1;transform:translateY(0)}
+.pf-card h3{font-size:.95rem;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.pf-card .icon{font-size:1.3rem}
+.pf-steps{font-size:.8rem;line-height:2}
+.pf-steps .step{padding:4px 10px;border-radius:4px;margin:2px 0;display:block;opacity:.3;transition:all .4s}
+.pf-steps .step.active{opacity:1}
+.minor-step{background:rgba(63,185,80,.1);border-left:3px solid #3fb950}
+.major-step{background:rgba(248,81,73,.1);border-left:3px solid #f85149}
+
+/* OOM Killer */
+.oom-table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px}
+.oom-table th{background:#21262d;padding:8px 12px;text-align:left;border-bottom:2px solid #30363d}
+.oom-table td{padding:8px 12px;border-bottom:1px solid #21262d;transition:all .4s}
+.oom-table tr.highlight{background:rgba(248,81,73,.15)}
+.oom-table tr.killed td{color:#f85149;font-weight:bold}
+.oom-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:bold}
+.badge-low{background:rgba(63,185,80,.2);color:#3fb950}
+.badge-med{background:rgba(210,153,34,.2);color:#d29922}
+.badge-high{background:rgba(248,81,73,.2);color:#f85149}
+.oom-result{text-align:center;padding:12px;border-radius:8px;margin-top:12px;opacity:0;transition:all .5s}
+.oom-result.visible{opacity:1}
+
+/* Memory Pressure */
+.pressure-bar{display:flex;height:40px;border-radius:8px;overflow:hidden;margin-bottom:8px;background:#21262d}
+.pressure-bar div{height:100%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:bold;transition:width 1s ease;overflow:hidden;white-space:nowrap}
+.p-free{background:#238636;width:0%}
+.p-cached{background:#1f6feb;width:0%}
+.p-used{background:#d29922;width:0%}
+.p-swap{background:#f85149;width:0%}
+.pressure-legend{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;font-size:.75rem;margin-bottom:12px}
+.pressure-legend .item{display:flex;align-items:center;gap:4px}
+.pressure-legend .dot{width:10px;height:10px;border-radius:2px}
+.pressure-status{text-align:center;font-size:.85rem;padding:8px;border-radius:6px;opacity:0;transition:all .4s}
+.pressure-status.visible{opacity:1}
+
+@media(max-width:768px){
+  .addr-flow{flex-direction:column}
+  h1{font-size:1.4rem}
+  .oom-table{font-size:.72rem}
+  .oom-table th,.oom-table td{padding:6px 8px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>가상 메모리 &amp; OOM Killer</h1>
+  <p class="subtitle">Virtual Memory 주소 변환, Page Fault, OOM Killer, 메모리 압박 시각화</p>
+  <div class="controls">
+    <button id="btnPlay" class="active" onclick="play()">&#9654; 재생</button>
+    <button id="btnPause" onclick="pause()">&#10074;&#10074; 일시정지</button>
+    <button id="btnRestart" onclick="restart()">&#8634; 처음부터</button>
+  </div>
+  <div class="step-indicator" id="stepIndicator"></div>
+
+  <div class="sections">
+    <!-- Address Translation -->
+    <div class="section">
+      <h2>Step 1. 가상 → 물리 주소 변환 <span>(Page Table Walk)</span></h2>
+      <div class="addr-flow">
+        <div class="addr-box vaddr" id="vaddr"><div class="label">Virtual Address</div><div class="value">0x7fff3a20</div></div>
+        <div class="arr" id="a1">&#10132;</div>
+        <div class="addr-box ptable" id="ptable"><div class="label">Page Table (MMU)</div><div class="value">PGD→PUD→PMD→PTE</div></div>
+        <div class="arr" id="a2">&#10132;</div>
+        <div class="addr-box" id="tlb" style="background:rgba(121,192,255,.12);border:2px solid #79c0ff"><div class="label">TLB Cache</div><div class="value">Hit / Miss</div></div>
+        <div class="arr" id="a3">&#10132;</div>
+        <div class="addr-box paddr" id="paddr"><div class="label">Physical Address</div><div class="value">0x1a3f5020</div></div>
+        <div class="arr" id="a4">&#10132;</div>
+        <div class="addr-box ram-box" id="ram"><div class="label">Physical RAM</div><div class="value">Page Frame</div></div>
+      </div>
+    </div>
+
+    <!-- Page Fault -->
+    <div class="section">
+      <h2>Step 2. Page Fault 처리 <span>(Minor vs Major)</span></h2>
+      <div class="pf-container">
+        <div class="pf-card" id="pfMinor" style="border:1px solid #3fb950">
+          <h3><span class="icon">&#9889;</span> <span style="color:#3fb950">Minor Page Fault</span></h3>
+          <div class="pf-steps">
+            <span class="step minor-step" id="mn1">1. 페이지 접근 시도</span>
+            <span class="step minor-step" id="mn2">2. 페이지 테이블에 매핑 없음</span>
+            <span class="step minor-step" id="mn3">3. 페이지가 이미 메모리에 존재 (캐시)</span>
+            <span class="step minor-step" id="mn4">4. 페이지 테이블 업데이트 → 완료</span>
+            <span class="step minor-step" id="mn5" style="color:#3fb950">&#10004; 디스크 I/O 없이 빠르게 해결</span>
+          </div>
+        </div>
+        <div class="pf-card" id="pfMajor" style="border:1px solid #f85149">
+          <h3><span class="icon">&#128190;</span> <span style="color:#f85149">Major Page Fault</span></h3>
+          <div class="pf-steps">
+            <span class="step major-step" id="mj1">1. 페이지 접근 시도</span>
+            <span class="step major-step" id="mj2">2. 페이지 테이블에 매핑 없음</span>
+            <span class="step major-step" id="mj3">3. 메모리에도 없음 → 디스크 읽기 필요</span>
+            <span class="step major-step" id="mj4">4. 디스크에서 페이지 로드 (느림!)</span>
+            <span class="step major-step" id="mj5" style="color:#f85149">&#9888; 디스크 I/O 발생 → 성능 영향 큼</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OOM Killer -->
+    <div class="section">
+      <h2>Step 3. OOM Killer <span>(oom_score 기반 프로세스 선택)</span></h2>
+      <div style="overflow-x:auto">
+        <table class="oom-table" id="oomTable">
+          <thead><tr><th>PID</th><th>프로세스</th><th>RSS (MB)</th><th>oom_score_adj</th><th>oom_score</th><th>상태</th></tr></thead>
+          <tbody>
+            <tr id="oom1"><td>1</td><td>systemd</td><td>12</td><td>-1000</td><td><span class="oom-badge badge-low">0</span></td><td>보호됨</td></tr>
+            <tr id="oom2"><td>305</td><td>sshd</td><td>8</td><td>-500</td><td><span class="oom-badge badge-low">15</span></td><td>-</td></tr>
+            <tr id="oom3"><td>1024</td><td>nginx</td><td>256</td><td>0</td><td><span class="oom-badge badge-med">420</span></td><td>-</td></tr>
+            <tr id="oom4"><td>2048</td><td>java-app</td><td>1800</td><td>0</td><td><span class="oom-badge badge-high">880</span></td><td>-</td></tr>
+            <tr id="oom5"><td>3000</td><td>memory-leak</td><td>3200</td><td>300</td><td><span class="oom-badge badge-high">990</span></td><td>-</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="oom-result" id="oomResult"></div>
+    </div>
+
+    <!-- Memory Pressure -->
+    <div class="section">
+      <h2>Step 4. 메모리 압박 시각화 <span>(free → used → cached → swap)</span></h2>
+      <div class="pressure-legend">
+        <div class="item"><div class="dot" style="background:#238636"></div> Free</div>
+        <div class="item"><div class="dot" style="background:#d29922"></div> Used</div>
+        <div class="item"><div class="dot" style="background:#1f6feb"></div> Cached</div>
+        <div class="item"><div class="dot" style="background:#f85149"></div> Swap</div>
+      </div>
+      <div class="pressure-bar" id="pressureBar">
+        <div class="p-free" id="pFree">Free</div>
+        <div class="p-used" id="pUsed">Used</div>
+        <div class="p-cached" id="pCached">Cached</div>
+        <div class="p-swap" id="pSwap">Swap</div>
+      </div>
+      <div class="pressure-status" id="pressureStatus"></div>
+    </div>
+  </div>
+</div>
+<script>
+const TOTAL=16;let cur=0,playing=true,timer=null;
+const si=document.getElementById('stepIndicator');
+for(let i=1;i<=TOTAL;i++){const d=document.createElement('div');d.className='step-dot';d.textContent=i;d.id='sd_'+i;si.appendChild(d)}
+function setStep(n){for(let i=1;i<=TOTAL;i++){const d=document.getElementById('sd_'+i);d.className='step-dot'+(i<n?' done':'')+(i===n?' active':'')}}
+
+function resetAll(){
+  ['vaddr','ptable','tlb','paddr','ram'].forEach(id=>document.getElementById(id).classList.remove('visible'));
+  ['a1','a2','a3','a4'].forEach(id=>document.getElementById(id).classList.remove('visible'));
+  ['pfMinor','pfMajor'].forEach(id=>document.getElementById(id).classList.remove('visible'));
+  for(let i=1;i<=5;i++){document.getElementById('mn'+i).classList.remove('active');document.getElementById('mj'+i).classList.remove('active')}
+  ['oom1','oom2','oom3','oom4','oom5'].forEach(id=>{const r=document.getElementById(id);r.classList.remove('highlight','killed')});
+  const or=document.getElementById('oomResult');or.className='oom-result';or.innerHTML='';
+  document.getElementById('pFree').style.width='0%';
+  document.getElementById('pUsed').style.width='0%';
+  document.getElementById('pCached').style.width='0%';
+  document.getElementById('pSwap').style.width='0%';
+  const ps=document.getElementById('pressureStatus');ps.className='pressure-status';ps.innerHTML='';
+}
+
+const steps=[
+  ()=>{document.getElementById('vaddr').classList.add('visible');document.getElementById('a1').classList.add('visible')},
+  ()=>{document.getElementById('ptable').classList.add('visible');document.getElementById('a2').classList.add('visible')},
+  ()=>{document.getElementById('tlb').classList.add('visible');document.getElementById('a3').classList.add('visible')},
+  ()=>{document.getElementById('paddr').classList.add('visible');document.getElementById('a4').classList.add('visible');document.getElementById('ram').classList.add('visible')},
+  ()=>{document.getElementById('pfMinor').classList.add('visible');document.getElementById('mn1').classList.add('active')},
+  ()=>{document.getElementById('mn2').classList.add('active');document.getElementById('mn3').classList.add('active');document.getElementById('mn4').classList.add('active');document.getElementById('mn5').classList.add('active')},
+  ()=>{document.getElementById('pfMajor').classList.add('visible');document.getElementById('mj1').classList.add('active')},
+  ()=>{document.getElementById('mj2').classList.add('active');document.getElementById('mj3').classList.add('active');document.getElementById('mj4').classList.add('active');document.getElementById('mj5').classList.add('active')},
+  ()=>{document.getElementById('oom5').classList.add('highlight')},
+  ()=>{document.getElementById('oom4').classList.add('highlight')},
+  ()=>{document.getElementById('oom5').classList.add('killed');document.getElementById('oom5').querySelector('td:last-child').textContent='KILLED';const or=document.getElementById('oomResult');or.className='oom-result visible';or.innerHTML='<div style="background:rgba(248,81,73,.15);border:1px solid #f85149;padding:10px;border-radius:8px;color:#f85149"><strong>OOM Killer:</strong> PID 3000 (memory-leak) 선택 → oom_score 990 (최고점)<br>계산: RSS 크기 + oom_score_adj 반영</div>'},
+  ()=>{document.getElementById('pFree').style.width='70%';document.getElementById('pUsed').style.width='15%';document.getElementById('pCached').style.width='15%';document.getElementById('pSwap').style.width='0%';const ps=document.getElementById('pressureStatus');ps.className='pressure-status visible';ps.innerHTML='<span style="color:#3fb950">&#10004; 정상: 충분한 여유 메모리 (Free 70%)</span>';ps.style.background='rgba(63,185,80,.1)';ps.style.border='1px solid #3fb950'},
+  ()=>{document.getElementById('pFree').style.width='20%';document.getElementById('pUsed').style.width='45%';document.getElementById('pCached').style.width='30%';document.getElementById('pSwap').style.width='5%';const ps=document.getElementById('pressureStatus');ps.innerHTML='<span style="color:#d29922">&#9888; 주의: 메모리 사용량 증가, 캐시 회수 시작</span>';ps.style.background='rgba(210,153,34,.1)';ps.style.border='1px solid #d29922'},
+  ()=>{document.getElementById('pFree').style.width='5%';document.getElementById('pUsed').style.width='55%';document.getElementById('pCached').style.width='20%';document.getElementById('pSwap').style.width='20%';const ps=document.getElementById('pressureStatus');ps.innerHTML='<span style="color:#d29922">&#9888; 경고: Swap 사용 증가 → 성능 저하 시작</span>';ps.style.background='rgba(210,153,34,.15)';ps.style.border='1px solid #d29922'},
+  ()=>{document.getElementById('pFree').style.width='1%';document.getElementById('pUsed').style.width='60%';document.getElementById('pCached').style.width='4%';document.getElementById('pSwap').style.width='35%';const ps=document.getElementById('pressureStatus');ps.innerHTML='<span style="color:#f85149">&#10060; 위험: Swap 과다 사용, 시스템 thrashing 발생!</span>';ps.style.background='rgba(248,81,73,.1)';ps.style.border='1px solid #f85149'},
+  ()=>{document.getElementById('pFree').style.width='0%';document.getElementById('pUsed').style.width='65%';document.getElementById('pCached').style.width='0%';document.getElementById('pSwap').style.width='35%';const ps=document.getElementById('pressureStatus');ps.innerHTML='<span style="color:#f85149">&#128680; OOM! 메모리 완전 소진 → OOM Killer 호출</span>';ps.style.background='rgba(248,81,73,.2)';ps.style.border='2px solid #f85149'}
+];
+function advance(){if(cur>=TOTAL){pause();return}cur++;setStep(cur);steps[cur-1]()}
+function play(){playing=true;document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');if(timer)clearInterval(timer);timer=setInterval(()=>{if(playing)advance()},1400)}
+function pause(){playing=false;document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active');if(timer){clearInterval(timer);timer=null}}
+function restart(){pause();cur=0;resetAll();setStep(0);setTimeout(()=>play(),300)}
+play();
+</script>
+</body>
+</html>

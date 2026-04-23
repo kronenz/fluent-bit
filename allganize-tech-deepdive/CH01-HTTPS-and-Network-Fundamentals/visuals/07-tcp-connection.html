@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TCP 3-way Handshake와 연결 생명주기</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh}
+.container{max-width:1100px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#3fb950,#58a6ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.section-title{font-size:1.1rem;color:#3fb950;margin:24px 0 16px;padding-left:12px;border-left:3px solid #3fb950}
+.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:20px;overflow:hidden}
+.hs-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:768px){.hs-grid{grid-template-columns:1fr}}
+/* Timeline */
+.timeline{position:relative;padding:0 70px;min-height:400px}
+.tl-col{position:absolute;top:0;bottom:0;width:3px;border-radius:2px}
+.tl-client{left:68px;background:linear-gradient(180deg,#58a6ff,#58a6ff60)}
+.tl-server{right:68px;background:linear-gradient(180deg,#3fb950,#3fb95060)}
+.tl-label{position:absolute;top:-12px;font-size:0.75rem;font-weight:700;padding:3px 10px;border-radius:4px}
+.tl-label.cl{left:38px;background:#1f6feb20;color:#58a6ff;border:1px solid #58a6ff30}
+.tl-label.sr{right:38px;background:#2ea04320;color:#3fb950;border:1px solid #3fb95030}
+.state-badge{position:absolute;font-size:0.6rem;padding:2px 8px;border-radius:4px;white-space:nowrap;opacity:0;transition:all 0.4s}
+.state-badge.visible{opacity:1}
+.state-badge.client-state{left:0px;background:#1f6feb15;color:#58a6ff;border:1px solid #58a6ff20}
+.state-badge.server-state{right:0px;background:#2ea04315;color:#3fb950;border:1px solid #3fb95020}
+/* Messages */
+.msg{position:absolute;left:78px;right:78px;display:flex;align-items:center;opacity:0;transition:all 0.5s}
+.msg.visible{opacity:1;transform:translateY(0)!important}
+.msg.fwd{flex-direction:row;transform:translateY(10px)}
+.msg.bwd{flex-direction:row-reverse;transform:translateY(10px)}
+.msg-line{flex:1;height:2px;position:relative;border-radius:1px}
+.fwd .msg-line{background:linear-gradient(90deg,#58a6ff,#58a6ff80)}
+.bwd .msg-line{background:linear-gradient(270deg,#3fb950,#3fb95080)}
+.fwd .msg-line::after{content:'';position:absolute;right:-2px;top:-4px;border:5px solid transparent;border-left:5px solid #58a6ff;border-right:none}
+.bwd .msg-line::after{content:'';position:absolute;left:-2px;top:-4px;border:5px solid transparent;border-right:5px solid #3fb950;border-left:none}
+.msg-box{padding:4px 10px;border-radius:6px;font-size:0.7rem;text-align:center;line-height:1.3;min-width:90px}
+.fwd .msg-box{background:#1f6feb15;color:#58a6ff;border:1px solid #58a6ff30}
+.bwd .msg-box{background:#2ea04315;color:#3fb950;border:1px solid #3fb95030}
+.msg-box strong{display:block;font-size:0.8rem}
+.msg-box small{color:#8b949e}
+/* Sequence numbers */
+.seq-num{font-family:'Courier New',monospace;font-weight:700;font-size:0.72rem}
+/* TIME_WAIT countdown */
+.tw-box{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);padding:8px 16px;border-radius:8px;background:#f0883e10;border:1px solid #f0883e30;font-size:0.75rem;color:#f0883e;text-align:center;opacity:0;transition:all 0.5s;white-space:nowrap}
+.tw-box.visible{opacity:1}
+.tw-countdown{font-size:1.1rem;font-weight:700;font-family:'Courier New',monospace}
+/* Connection pool */
+.pool-area{position:relative;min-height:200px;padding:20px}
+.pool-slot{display:inline-flex;flex-direction:column;align-items:center;width:90px;padding:10px;margin:6px;border-radius:8px;border:1px solid #30363d;background:#0d1117;font-size:0.7rem;text-align:center;opacity:0;transition:all 0.5s;vertical-align:top}
+.pool-slot.visible{opacity:1}
+.pool-slot.idle{border-color:#3fb95060;background:#3fb95008}
+.pool-slot.active{border-color:#58a6ff60;background:#58a6ff08;animation:connPulse 1.5s ease infinite}
+.pool-slot.new{border-color:#f0883e60;background:#f0883e08}
+@keyframes connPulse{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 10px #58a6ff20}}
+.pool-slot .ps-icon{font-size:1.2rem;margin-bottom:4px}
+.pool-slot .ps-label{font-weight:600;margin-bottom:2px}
+.pool-slot .ps-status{font-size:0.6rem;color:#8b949e}
+.pool-legend{display:flex;gap:16px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.pool-legend span{font-size:0.75rem;color:#8b949e;display:flex;align-items:center;gap:4px}
+.pool-legend .pl-dot{width:10px;height:10px;border-radius:3px}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px}
+.info-card{padding:12px;background:#0d1117;border:1px solid #21262d;border-radius:6px}
+.info-card strong{font-size:0.85rem;color:#e6edf3}
+.info-card p{font-size:0.78rem;color:#8b949e;margin-top:4px;line-height:1.4}
+.info-card code{background:#21262d;padding:1px 4px;border-radius:3px;font-size:0.72rem;color:#f0883e}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>TCP 연결 생명주기</h1>
+<p class="subtitle">3-Way Handshake, 4-Way Teardown, TIME_WAIT, Connection Pooling</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnim()">&#9654; 재생</button>
+  <button id="btnPause" onclick="pauseAnim()">&#10074;&#10074; 일시정지</button>
+  <button id="btnRestart" onclick="restartAnim()">&#8635; 다시시작</button>
+</div>
+
+<div class="hs-grid">
+<!-- 3-way handshake -->
+<div>
+<div class="section-title" style="margin-top:0">TCP 3-Way Handshake (연결 수립)</div>
+<div class="card">
+<div class="timeline" id="tl3way" style="min-height:320px">
+  <div class="tl-col tl-client"></div>
+  <div class="tl-col tl-server"></div>
+  <div class="tl-label cl">Client</div>
+  <div class="tl-label sr">Server</div>
+
+  <div class="state-badge client-state" id="cs1" style="top:30px">CLOSED</div>
+  <div class="state-badge server-state" id="ss1" style="top:30px">LISTEN</div>
+
+  <div class="msg fwd" id="h1" style="top:60px">
+    <div class="msg-box"><strong>SYN</strong><span class="seq-num">seq=100</span></div>
+    <div class="msg-line"></div>
+  </div>
+  <div class="state-badge client-state" id="cs2" style="top:90px">SYN_SENT</div>
+
+  <div class="msg bwd" id="h2" style="top:130px">
+    <div class="msg-box"><strong>SYN-ACK</strong><span class="seq-num">seq=300, ack=101</span></div>
+    <div class="msg-line"></div>
+  </div>
+  <div class="state-badge server-state" id="ss2" style="top:160px">SYN_RCVD</div>
+
+  <div class="msg fwd" id="h3" style="top:200px">
+    <div class="msg-box"><strong>ACK</strong><span class="seq-num">ack=301</span></div>
+    <div class="msg-line"></div>
+  </div>
+  <div class="state-badge client-state" id="cs3" style="top:235px">ESTABLISHED</div>
+  <div class="state-badge server-state" id="ss3" style="top:235px">ESTABLISHED</div>
+
+  <div class="msg fwd" id="h4" style="top:270px">
+    <div class="msg-box" style="background:#3fb95010;color:#3fb950;border-color:#3fb95030"><strong>&#128274; Data Transfer</strong><small>양방향 통신 시작</small></div>
+    <div class="msg-line" style="background:linear-gradient(90deg,#3fb950,#3fb95080)"></div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- 4-way teardown -->
+<div>
+<div class="section-title" style="margin-top:0">TCP 4-Way Teardown (연결 종료)</div>
+<div class="card">
+<div class="timeline" id="tl4way" style="min-height:320px">
+  <div class="tl-col tl-client"></div>
+  <div class="tl-col tl-server"></div>
+  <div class="tl-label cl">Client</div>
+  <div class="tl-label sr">Server</div>
+
+  <div class="state-badge client-state" id="ts1" style="top:20px">ESTABLISHED</div>
+  <div class="state-badge server-state" id="ts1s" style="top:20px">ESTABLISHED</div>
+
+  <div class="msg fwd" id="t1" style="top:50px">
+    <div class="msg-box" style="background:#f8514910;color:#f85149;border-color:#f8514930"><strong>FIN</strong><small>연결 종료 요청</small></div>
+    <div class="msg-line" style="background:linear-gradient(90deg,#f85149,#f8514980)"></div>
+  </div>
+  <div class="state-badge client-state" id="ts2" style="top:80px">FIN_WAIT_1</div>
+
+  <div class="msg bwd" id="t2" style="top:110px">
+    <div class="msg-box"><strong>ACK</strong><small>수신 확인</small></div>
+    <div class="msg-line"></div>
+  </div>
+  <div class="state-badge client-state" id="ts3" style="top:140px">FIN_WAIT_2</div>
+  <div class="state-badge server-state" id="ts3s" style="top:140px">CLOSE_WAIT</div>
+
+  <div class="msg bwd" id="t3" style="top:170px">
+    <div class="msg-box" style="background:#f8514910;color:#f85149;border-color:#f8514930"><strong>FIN</strong><small>서버도 종료</small></div>
+    <div class="msg-line" style="background:linear-gradient(270deg,#f85149,#f8514980)"></div>
+  </div>
+  <div class="state-badge server-state" id="ts4s" style="top:200px">LAST_ACK</div>
+
+  <div class="msg fwd" id="t4" style="top:230px">
+    <div class="msg-box"><strong>ACK</strong><small>최종 확인</small></div>
+    <div class="msg-line"></div>
+  </div>
+
+  <div class="tw-box" id="twBox">
+    TIME_WAIT (2 * MSL)<br>
+    <span class="tw-countdown" id="twCount">60s</span>
+    <br><small style="color:#8b949e">지연 패킷 대기 후 CLOSED</small>
+  </div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="section-title">Connection Pooling (연결 풀링)</div>
+<div class="card">
+<div class="pool-area" id="poolArea">
+  <div class="pool-slot" id="p1"><span class="ps-icon">&#128279;</span><span class="ps-label">Conn #1</span><span class="ps-status">idle 2s</span></div>
+  <div class="pool-slot" id="p2"><span class="ps-icon">&#128279;</span><span class="ps-label">Conn #2</span><span class="ps-status">active</span></div>
+  <div class="pool-slot" id="p3"><span class="ps-icon">&#128279;</span><span class="ps-label">Conn #3</span><span class="ps-status">idle 5s</span></div>
+  <div class="pool-slot" id="p4"><span class="ps-icon">&#128279;</span><span class="ps-label">Conn #4</span><span class="ps-status">active</span></div>
+  <div class="pool-slot" id="p5"><span class="ps-icon">&#10133;</span><span class="ps-label">New Conn</span><span class="ps-status">creating...</span></div>
+</div>
+<div class="pool-legend">
+  <span><span class="pl-dot" style="background:#3fb950"></span> Idle (재사용 가능)</span>
+  <span><span class="pl-dot" style="background:#58a6ff"></span> Active (사용중)</span>
+  <span><span class="pl-dot" style="background:#f0883e"></span> New (생성중)</span>
+</div>
+</div>
+
+<div class="info-grid">
+  <div class="info-card">
+    <strong>TIME_WAIT 필요성</strong>
+    <p>마지막 ACK 손실 시 재전송 대기. 이전 연결의 지연 패킷이 새 연결에 영향주는 것을 방지. 기본 <code>2*MSL = 60s</code></p>
+  </div>
+  <div class="info-card">
+    <strong>Connection Pooling 장점</strong>
+    <p>3-way handshake 오버헤드 제거. TIME_WAIT 상태 감소. TLS 핸드셰이크 재사용으로 지연 시간 대폭 절감.</p>
+  </div>
+  <div class="info-card">
+    <strong>tcp_tw_reuse</strong>
+    <p><code>net.ipv4.tcp_tw_reuse=1</code> 설정으로 TIME_WAIT 소켓을 새 연결에 재사용 가능. 서버 측에서 유용.</p>
+  </div>
+  <div class="info-card">
+    <strong>Keep-Alive</strong>
+    <p>HTTP Keep-Alive로 TCP 연결 유지. <code>Connection: keep-alive</code> 헤더. HTTP/2는 기본 활성화.</p>
+  </div>
+</div>
+</div>
+
+<script>
+let state='stopped',timers=[],twInterval=null;
+function clear(){timers.forEach(t=>clearTimeout(t));timers=[];if(twInterval)clearInterval(twInterval);
+  ['cs1','cs2','cs3','ss1','ss2','ss3','h1','h2','h3','h4'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('visible')});
+  ['ts1','ts1s','ts2','ts3','ts3s','ts4s','t1','t2','t3','t4'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('visible')});
+  document.getElementById('twBox').classList.remove('visible');
+  ['p1','p2','p3','p4','p5'].forEach(id=>{const e=document.getElementById(id);e.classList.remove('visible','idle','active','new')});
+}
+function s(fn,d){timers.push(setTimeout(fn,d))}
+function show(id){document.getElementById(id).classList.add('visible')}
+function startAnim(){
+  if(state==='running')return;clear();state='running';
+  document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');
+  let d=200;
+  // 3-way handshake
+  s(()=>{show('cs1');show('ss1')},d);d+=500;
+  s(()=>{show('h1');show('cs2')},d);d+=700;
+  s(()=>{show('h2');show('ss2')},d);d+=700;
+  s(()=>{show('h3');show('cs3');show('ss3')},d);d+=700;
+  s(()=>{show('h4')},d);d+=800;
+
+  // 4-way teardown
+  s(()=>{show('ts1');show('ts1s')},d);d+=500;
+  s(()=>{show('t1');show('ts2')},d);d+=700;
+  s(()=>{show('t2');show('ts3');show('ts3s')},d);d+=700;
+  s(()=>{show('t3');show('ts4s')},d);d+=700;
+  s(()=>{show('t4')},d);d+=500;
+
+  // TIME_WAIT countdown
+  s(()=>{
+    document.getElementById('twBox').classList.add('visible');
+    let sec=60;
+    const el=document.getElementById('twCount');
+    twInterval=setInterval(()=>{sec-=5;if(sec<=0){sec=0;clearInterval(twInterval);el.style.color='#3fb950';el.textContent='CLOSED'}el.textContent=sec+'s'},200);
+  },d);d+=3000;
+
+  // Connection pool
+  s(()=>{const p1=document.getElementById('p1');p1.classList.add('visible','idle')},d);d+=300;
+  s(()=>{const p2=document.getElementById('p2');p2.classList.add('visible','active')},d);d+=300;
+  s(()=>{const p3=document.getElementById('p3');p3.classList.add('visible','idle')},d);d+=300;
+  s(()=>{const p4=document.getElementById('p4');p4.classList.add('visible','active')},d);d+=300;
+  s(()=>{const p5=document.getElementById('p5');p5.classList.add('visible','new')},d);d+=500;
+  // Reuse idle connection
+  s(()=>{const p1=document.getElementById('p1');p1.classList.remove('idle');p1.classList.add('active');p1.querySelector('.ps-status').textContent='reused!';p1.querySelector('.ps-status').style.color='#3fb950'},d);
+}
+function pauseAnim(){state='paused';document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active')}
+function restartAnim(){state='stopped';clear();document.getElementById('twCount').textContent='60s';document.getElementById('twCount').style.color='';const p1=document.getElementById('p1');if(p1){p1.querySelector('.ps-status').textContent='idle 2s';p1.querySelector('.ps-status').style.color=''}setTimeout(startAnim,100)}
+startAnim();
+</script>
+</body>
+</html>

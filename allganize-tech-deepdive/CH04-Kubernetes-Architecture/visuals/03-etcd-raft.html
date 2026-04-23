@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>etcd Raft Consensus | etcd Raft 합의 알고리즘</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+.hdr{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.hdr h1{font-size:1.5rem;color:#a371f7;margin-bottom:4px}
+.hdr p{font-size:.85rem;color:#8b949e}
+.ctrls{display:flex;justify-content:center;gap:10px;padding:14px}
+.ctrls button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:7px 18px;cursor:pointer;font-size:.85rem;transition:background .2s}
+.ctrls button:hover{background:#30363d}
+.ctrls button.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.si{text-align:center;font-size:.8rem;color:#8b949e;padding:2px}
+.si .c{color:#a371f7;font-weight:600}
+
+/* Scene tabs */
+.tabs{display:flex;justify-content:center;gap:8px;padding:8px}
+.tab{background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:5px 14px;font-size:.75rem;cursor:pointer;transition:all .2s}
+.tab:hover{background:#30363d}
+.tab.on{background:#8b5cf6;color:#fff;border-color:#8b5cf6}
+
+.canvas{position:relative;width:100%;max-width:960px;height:480px;margin:0 auto}
+.scene{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;pointer-events:none;transition:opacity .4s}
+.scene.active{opacity:1;pointer-events:auto}
+
+/* Nodes */
+.nd{position:absolute;width:120px;height:110px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:all .5s;opacity:0}
+.nd.v{opacity:1}
+.nd .ic{font-size:1.4rem;margin-bottom:2px}
+.nd .nm{font-size:.78rem;font-weight:600}
+.nd .role{font-size:.62rem;padding:2px 8px;border-radius:10px;margin-top:4px;transition:all .4s}
+.nd .term{font-size:.58rem;color:#8b949e;margin-top:2px}
+
+.nd.follower{background:#1c2333;border:2px solid #6e7681}
+.nd.follower .role{background:#21262d;color:#8b949e}
+.nd.candidate{background:#2d2a0c;border:2px solid #d29922;box-shadow:0 0 16px rgba(210,153,34,.3)}
+.nd.candidate .role{background:#2d1a0c;color:#d29922}
+.nd.leader{background:#0c2d1e;border:2px solid #3fb950;box-shadow:0 0 20px rgba(63,185,80,.3)}
+.nd.leader .role{background:#0c2d1e;color:#3fb950}
+
+/* Positions */
+.n1{left:80px;top:60px}.n2{left:400px;top:60px}.n3{left:720px;top:60px}
+
+/* Messages */
+.msg{position:absolute;padding:3px 10px;border-radius:12px;font-size:.6rem;font-weight:600;opacity:0;transition:all .6s;pointer-events:none}
+.msg.v{opacity:1}
+.msg.vote{background:#2d1a0c;color:#d29922;border:1px solid #d29922}
+.msg.ack{background:#0c2d1e;color:#3fb950;border:1px solid #3fb950}
+.msg.append{background:#0c2d6b;color:#58a6ff;border:1px solid #1f6feb}
+.msg.hb{background:#1a0c2e;color:#a371f7;border:1px solid #a371f7}
+
+/* Log entries */
+.log-area{position:absolute;bottom:20px;left:40px;right:40px;display:flex;gap:16px}
+.log-col{flex:1;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px;min-height:140px;opacity:0;transition:opacity .4s}
+.log-col.v{opacity:1}
+.log-col h4{font-size:.7rem;color:#58a6ff;margin-bottom:6px}
+.log-entry{display:flex;align-items:center;gap:4px;padding:2px 6px;margin:2px 0;border-radius:4px;font-size:.6rem;transition:all .3s;opacity:0}
+.log-entry.v{opacity:1}
+.log-entry.committed{background:#0c2d1e;color:#3fb950}
+.log-entry.pending{background:#2d1a0c;color:#d29922}
+.log-entry .idx{color:#8b949e;min-width:18px}
+
+/* Split brain */
+.partition{position:absolute;top:40px;left:46%;width:4px;height:400px;background:repeating-linear-gradient(180deg,#f85149 0,#f85149 8px,transparent 8px,transparent 16px);opacity:0;transition:opacity .5s}
+.partition.v{opacity:.7}
+.split-label{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:#f8514922;border:1px solid #f85149;border-radius:6px;padding:4px 12px;font-size:.7rem;color:#f85149;opacity:0;transition:opacity .4s}
+.split-label.v{opacity:1}
+
+/* Backup/restore */
+.bk-flow{position:absolute;top:40px;left:60px;right:60px;display:flex;flex-direction:column;gap:12px}
+.bk-step{display:flex;align-items:center;gap:12px;opacity:0;transform:translateX(-20px);transition:all .5s}
+.bk-step.v{opacity:1;transform:translateX(0)}
+.bk-num{width:28px;height:28px;border-radius:50%;background:#1f6feb;color:#fff;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0}
+.bk-content{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px;flex:1}
+.bk-content .bk-title{font-size:.78rem;font-weight:600;color:#58a6ff}
+.bk-content .bk-cmd{font-size:.65rem;color:#3fb950;font-family:monospace;margin-top:4px;background:#0d1117;padding:4px 8px;border-radius:4px}
+.bk-content .bk-desc{font-size:.65rem;color:#8b949e;margin-top:4px}
+
+.info{max-width:960px;margin:10px auto;padding:0 16px}
+.info-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;font-size:.78rem;line-height:1.6;min-height:60px}
+.info-box .st{color:#a371f7;font-weight:700;margin-bottom:4px}
+.info-box .d{color:#c9d1d9}
+.info-box .dk{color:#8b949e;font-size:.72rem}
+
+@media(max-width:700px){.canvas{transform:scale(.6);transform-origin:top center;height:340px}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>etcd Raft Consensus</h1>
+  <p>etcd Raft 합의 알고리즘 - Leader Election, Log Replication, Split Brain</p>
+</div>
+<div class="ctrls">
+  <button id="bp" class="on" onclick="play()">&#9654; Play</button>
+  <button id="bpa" onclick="pause()">&#10074;&#10074; Pause</button>
+  <button id="br" onclick="restart()">&#8635; Restart</button>
+</div>
+<div class="si">Step <span id="cs" class="c">0</span> / <span id="ts">0</span></div>
+<div class="tabs">
+  <button class="tab on" id="t1" onclick="switchScene(0)">Leader Election</button>
+  <button class="tab" id="t2" onclick="switchScene(1)">Log Replication</button>
+  <button class="tab" id="t3" onclick="switchScene(2)">Split Brain</button>
+  <button class="tab" id="t4" onclick="switchScene(3)">Backup / Restore</button>
+</div>
+
+<div class="canvas">
+  <!-- Scene 0: Leader Election -->
+  <div class="scene active" id="s0">
+    <div class="nd follower n1" id="e0a"><div class="ic">&#128451;</div><div class="nm">etcd-1</div><div class="role" id="r0a">Follower</div><div class="term" id="t0a">Term 1</div></div>
+    <div class="nd follower n2" id="e0b"><div class="ic">&#128451;</div><div class="nm">etcd-2</div><div class="role" id="r0b">Follower</div><div class="term" id="t0b">Term 1</div></div>
+    <div class="nd follower n3" id="e0c"><div class="ic">&#128451;</div><div class="nm">etcd-3</div><div class="role" id="r0c">Follower</div><div class="term" id="t0c">Term 1</div></div>
+    <div class="msg vote" id="m0v1" style="left:220px;top:90px">RequestVote</div>
+    <div class="msg vote" id="m0v2" style="left:560px;top:90px">RequestVote</div>
+    <div class="msg ack" id="m0a1" style="left:260px;top:120px">VoteGranted</div>
+    <div class="msg ack" id="m0a2" style="left:600px;top:120px">VoteGranted</div>
+    <div class="msg hb" id="m0h1" style="left:260px;top:150px">Heartbeat</div>
+    <div class="msg hb" id="m0h2" style="left:560px;top:150px">Heartbeat</div>
+  </div>
+
+  <!-- Scene 1: Log Replication -->
+  <div class="scene" id="s1">
+    <div class="nd leader n1" id="e1a"><div class="ic">&#128451;</div><div class="nm">etcd-1</div><div class="role">Leader</div><div class="term">Term 2</div></div>
+    <div class="nd follower n2" id="e1b"><div class="ic">&#128451;</div><div class="nm">etcd-2</div><div class="role">Follower</div><div class="term">Term 2</div></div>
+    <div class="nd follower n3" id="e1c"><div class="ic">&#128451;</div><div class="nm">etcd-3</div><div class="role">Follower</div><div class="term">Term 2</div></div>
+    <div class="msg append" id="m1a1" style="left:240px;top:80px">AppendEntries</div>
+    <div class="msg append" id="m1a2" style="left:540px;top:80px">AppendEntries</div>
+    <div class="msg ack" id="m1k1" style="left:280px;top:110px">ACK</div>
+    <div class="msg ack" id="m1k2" style="left:580px;top:110px">ACK</div>
+    <div class="log-area">
+      <div class="log-col" id="lg1"><h4>etcd-1 (Leader) WAL</h4></div>
+      <div class="log-col" id="lg2"><h4>etcd-2 WAL</h4></div>
+      <div class="log-col" id="lg3"><h4>etcd-3 WAL</h4></div>
+    </div>
+  </div>
+
+  <!-- Scene 2: Split Brain -->
+  <div class="scene" id="s2">
+    <div class="nd leader n1" id="e2a"><div class="ic">&#128451;</div><div class="nm">etcd-1</div><div class="role" id="r2a">Leader</div><div class="term" id="t2a">Term 2</div></div>
+    <div class="nd follower n2" id="e2b"><div class="ic">&#128451;</div><div class="nm">etcd-2</div><div class="role" id="r2b">Follower</div><div class="term" id="t2b">Term 2</div></div>
+    <div class="nd follower n3" id="e2c"><div class="ic">&#128451;</div><div class="nm">etcd-3</div><div class="role" id="r2c">Follower</div><div class="term" id="t2c">Term 2</div></div>
+    <div class="partition" id="part"></div>
+    <div class="split-label" id="splitLbl">&#9888; Network Partition / 네트워크 분할</div>
+  </div>
+
+  <!-- Scene 3: Backup/Restore -->
+  <div class="scene" id="s3">
+    <div class="bk-flow">
+      <div class="bk-step" id="bk1">
+        <div class="bk-num">1</div>
+        <div class="bk-content">
+          <div class="bk-title">Snapshot Backup / 스냅샷 백업</div>
+          <div class="bk-cmd">etcdctl snapshot save /backup/etcd-$(date +%Y%m%d).db</div>
+          <div class="bk-desc">현재 etcd 상태를 파일로 저장합니다. 정기적으로 수행 권장.</div>
+        </div>
+      </div>
+      <div class="bk-step" id="bk2">
+        <div class="bk-num">2</div>
+        <div class="bk-content">
+          <div class="bk-title">Verify Snapshot / 스냅샷 검증</div>
+          <div class="bk-cmd">etcdctl snapshot status /backup/etcd-20260405.db --write-out=table</div>
+          <div class="bk-desc">해시, 리비전, 키 수, 크기를 확인하여 무결성을 검증합니다.</div>
+        </div>
+      </div>
+      <div class="bk-step" id="bk3">
+        <div class="bk-num">3</div>
+        <div class="bk-content">
+          <div class="bk-title">Stop etcd / etcd 중지</div>
+          <div class="bk-cmd">systemctl stop etcd</div>
+          <div class="bk-desc">복구 전 etcd 프로세스를 중지합니다.</div>
+        </div>
+      </div>
+      <div class="bk-step" id="bk4">
+        <div class="bk-num">4</div>
+        <div class="bk-content">
+          <div class="bk-title">Restore Snapshot / 스냅샷 복구</div>
+          <div class="bk-cmd">etcdctl snapshot restore /backup/etcd-20260405.db --data-dir=/var/lib/etcd-restored</div>
+          <div class="bk-desc">스냅샷에서 새 데이터 디렉토리로 복구합니다. 각 노드에서 개별 수행.</div>
+        </div>
+      </div>
+      <div class="bk-step" id="bk5">
+        <div class="bk-num">5</div>
+        <div class="bk-content">
+          <div class="bk-title">Start etcd / etcd 재시작</div>
+          <div class="bk-cmd">systemctl start etcd</div>
+          <div class="bk-desc">새 데이터 디렉토리로 etcd를 시작합니다. 클러스터가 재형성됩니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="info"><div class="info-box" id="ib">
+  <div class="st">Ready</div><div class="d">Press Play to start the Raft consensus animation.</div><div class="dk">Play 버튼을 눌러 Raft 합의 알고리즘 애니메이션을 시작하세요.</div>
+</div></div>
+
+<script>
+const g=id=>document.getElementById(id);
+let curScene=0,cur=0,timer=null,paused=false;
+
+const scenes=[
+  // Scene 0: Leader Election
+  [
+    {t:"Step 1: All nodes start as Followers",d:"All etcd nodes begin in Follower state with Term 1. Each has a random election timeout (150-300ms).",k:"모든 etcd 노드가 Follower 상태로 시작합니다. 각 노드는 랜덤한 election timeout(150-300ms)을 가집니다.",
+     fn(){['e0a','e0b','e0c'].forEach(id=>{g(id).classList.add('v')})}},
+    {t:"Step 2: Election timeout on etcd-1",d:"etcd-1's election timeout fires first. It transitions to Candidate, increments term to 2, votes for itself, and sends RequestVote RPCs.",k:"etcd-1의 election timeout이 먼저 만료됩니다. Candidate로 전환, term을 2로 증가시키고, 자신에게 투표한 후 RequestVote RPC를 전송합니다.",
+     fn(){g('e0a').className='nd n1 candidate v';g('r0a').textContent='Candidate';g('t0a').textContent='Term 2';g('m0v1').classList.add('v');g('m0v2').classList.add('v')}},
+    {t:"Step 3: Followers grant votes",d:"etcd-2 and etcd-3 haven't voted in Term 2 yet, so they grant their votes to etcd-1. Quorum reached (2/3 including self-vote).",k:"etcd-2와 etcd-3는 Term 2에서 아직 투표하지 않았으므로 etcd-1에게 투표합니다. 과반수(자신 포함 2/3) 달성.",
+     fn(){g('m0v1').classList.remove('v');g('m0v2').classList.remove('v');g('m0a1').classList.add('v');g('m0a2').classList.add('v');g('t0b').textContent='Term 2';g('t0c').textContent='Term 2'}},
+    {t:"Step 4: etcd-1 becomes Leader",d:"With majority votes, etcd-1 transitions to Leader. It immediately sends heartbeats to all followers to establish authority and prevent new elections.",k:"과반수 투표를 받아 etcd-1이 Leader로 전환됩니다. 즉시 모든 Follower에게 heartbeat를 전송하여 리더십을 확립하고 새 선거를 방지합니다.",
+     fn(){g('e0a').className='nd n1 leader v';g('r0a').textContent='Leader';g('m0a1').classList.remove('v');g('m0a2').classList.remove('v');g('m0h1').classList.add('v');g('m0h2').classList.add('v')}}
+  ],
+  // Scene 1: Log Replication
+  [
+    {t:"Step 1: Leader receives write request",d:"Client (kube-apiserver) sends a write request to the Leader. Leader appends the entry to its local WAL (Write-Ahead Log).",k:"클라이언트(kube-apiserver)가 Leader에게 쓰기 요청을 보냅니다. Leader는 로컬 WAL(Write-Ahead Log)에 엔트리를 추가합니다.",
+     fn(){['e1a','e1b','e1c'].forEach(id=>g(id).classList.add('v'));['lg1','lg2','lg3'].forEach(id=>g(id).classList.add('v'));addLog('lg1','idx:1 SET /pods/nginx','pending')}},
+    {t:"Step 2: AppendEntries to Followers",d:"Leader sends AppendEntries RPC to all Followers with the new log entry. Followers write to their own WAL.",k:"Leader가 모든 Follower에게 AppendEntries RPC로 새 로그 엔트리를 전송합니다. Follower들은 자신의 WAL에 기록합니다.",
+     fn(){g('m1a1').classList.add('v');g('m1a2').classList.add('v');addLog('lg2','idx:1 SET /pods/nginx','pending');addLog('lg3','idx:1 SET /pods/nginx','pending')}},
+    {t:"Step 3: Followers ACK",d:"Followers acknowledge successful write. Leader now has quorum confirmation (2/3 including itself).",k:"Follower들이 쓰기 성공을 응답합니다. Leader는 과반수 확인(자신 포함 2/3)을 받았습니다.",
+     fn(){g('m1a1').classList.remove('v');g('m1a2').classList.remove('v');g('m1k1').classList.add('v');g('m1k2').classList.add('v')}},
+    {t:"Step 4: Commit and Apply",d:"With quorum, the entry is committed. Leader applies it to boltdb state machine and responds to client. Followers apply on next heartbeat.",k:"과반수 확인 후 엔트리가 커밋됩니다. Leader는 boltdb 상태 머신에 적용하고 클라이언트에 응답합니다. Follower는 다음 heartbeat에서 적용합니다.",
+     fn(){g('m1k1').classList.remove('v');g('m1k2').classList.remove('v');commitLogs()}},
+    {t:"Step 5: Additional writes replicated",d:"Subsequent writes follow the same pattern. The log grows identically on all nodes, ensuring strong consistency across the cluster.",k:"이후 쓰기도 동일한 패턴으로 복제됩니다. 모든 노드에서 로그가 동일하게 성장하여 강한 일관성을 보장합니다.",
+     fn(){addLog('lg1','idx:2 SET /deploy/app','committed');addLog('lg2','idx:2 SET /deploy/app','committed');addLog('lg3','idx:2 SET /deploy/app','committed')}}
+  ],
+  // Scene 2: Split Brain
+  [
+    {t:"Step 1: Normal cluster operation",d:"3-node cluster operating normally. etcd-1 is Leader, etcd-2 and etcd-3 are Followers.",k:"3노드 클러스터가 정상 동작 중입니다. etcd-1이 Leader, etcd-2와 etcd-3이 Follower입니다.",
+     fn(){['e2a','e2b','e2c'].forEach(id=>g(id).classList.add('v'))}},
+    {t:"Step 2: Network partition occurs",d:"Network partition splits etcd-1 (Leader) from etcd-2 and etcd-3. Leader can no longer reach majority.",k:"네트워크 파티션으로 etcd-1(Leader)이 etcd-2, etcd-3과 분리됩니다. Leader가 더 이상 과반수에 도달할 수 없습니다.",
+     fn(){g('part').classList.add('v');g('splitLbl').classList.add('v')}},
+    {t:"Step 3: New leader election on majority side",d:"etcd-2 and etcd-3 detect missing heartbeats. One becomes Candidate and wins election (2/3 quorum on their side). Old leader etcd-1 cannot commit writes (no quorum).",k:"etcd-2와 etcd-3이 heartbeat 누락을 감지합니다. 하나가 Candidate가 되어 선거에서 승리합니다 (자기편에서 2/3 정족수). 기존 Leader etcd-1은 쓰기를 커밋할 수 없습니다 (정족수 부족).",
+     fn(){g('e2b').className='nd n2 leader v';g('r2b').textContent='Leader';g('t2b').textContent='Term 3';g('t2c').textContent='Term 3';g('e2a').style.opacity='.5';g('r2a').textContent='Stale Leader';g('r2a').style.color='#f85149'}},
+    {t:"Step 4: Partition heals - Recovery",d:"When network recovers, etcd-1 discovers higher Term 3, steps down to Follower. It discards uncommitted entries and syncs with new Leader. Cluster is consistent again.",k:"네트워크가 복구되면 etcd-1이 더 높은 Term 3을 발견하고 Follower로 전환됩니다. 미커밋 엔트리를 폐기하고 새 Leader와 동기화합니다. 클러스터가 다시 일관성을 유지합니다.",
+     fn(){g('part').classList.remove('v');g('splitLbl').classList.remove('v');g('e2a').style.opacity='1';g('e2a').className='nd n1 follower v';g('r2a').textContent='Follower';g('r2a').style.color='';g('t2a').textContent='Term 3'}}
+  ],
+  // Scene 3: Backup/Restore
+  [
+    {t:"Step 1: Create Snapshot",d:"Use etcdctl snapshot save to create a point-in-time backup of the entire etcd database.",k:"etcdctl snapshot save를 사용하여 etcd 데이터베이스의 특정 시점 백업을 생성합니다.",fn(){g('bk1').classList.add('v')}},
+    {t:"Step 2: Verify Snapshot",d:"Always verify the snapshot integrity before relying on it. Check hash, revision, total keys, and size.",k:"백업에 의존하기 전에 항상 스냅샷 무결성을 검증하세요. 해시, 리비전, 전체 키 수, 크기를 확인합니다.",fn(){g('bk2').classList.add('v')}},
+    {t:"Step 3: Stop etcd",d:"Before restoration, stop the etcd process on all nodes to prevent data corruption.",k:"복구 전에 모든 노드에서 etcd 프로세스를 중지하여 데이터 손상을 방지합니다.",fn(){g('bk3').classList.add('v')}},
+    {t:"Step 4: Restore Snapshot",d:"Restore the snapshot to a new data directory. This must be done on each cluster member individually with unique member configuration.",k:"스냅샷을 새 데이터 디렉토리로 복구합니다. 각 클러스터 멤버에서 고유한 멤버 구성으로 개별 수행해야 합니다.",fn(){g('bk4').classList.add('v')}},
+    {t:"Step 5: Restart etcd",d:"Start etcd with the new data directory. The cluster reforms and resumes normal operation from the restored state.",k:"새 데이터 디렉토리로 etcd를 시작합니다. 클러스터가 재형성되고 복구된 상태에서 정상 운영이 재개됩니다.",fn(){g('bk5').classList.add('v')}}
+  ]
+];
+
+function addLog(colId,text,cls){
+  const e=document.createElement('div');
+  e.className='log-entry '+cls;
+  e.innerHTML=`<span class="idx">#</span>${text}`;
+  g(colId).appendChild(e);
+  setTimeout(()=>e.classList.add('v'),50);
+}
+function commitLogs(){
+  document.querySelectorAll('#s1 .log-entry.pending').forEach(e=>{e.classList.remove('pending');e.classList.add('committed')});
+}
+
+function switchScene(idx){
+  if(timer){clearInterval(timer);timer=null}
+  curScene=idx;cur=0;paused=false;
+  document.querySelectorAll('.scene').forEach((s,i)=>{s.classList.toggle('active',i===idx)});
+  document.querySelectorAll('.tab').forEach((t,i)=>{t.classList.toggle('on',i===idx)});
+  resetScene(idx);
+  g('ts').textContent=scenes[idx].length;
+  g('cs').textContent='0';
+  g('ib').innerHTML='<div class="st">Ready</div><div class="d">Press Play to start.</div><div class="dk">Play 버튼을 눌러 시작하세요.</div>';
+  g('bp').classList.add('on');g('bpa').classList.remove('on');
+  setTimeout(play,300);
+}
+
+function resetScene(idx){
+  const sc=g('s'+idx);
+  sc.querySelectorAll('.nd').forEach(n=>{n.classList.remove('v');n.style.opacity='1'});
+  sc.querySelectorAll('.msg').forEach(m=>m.classList.remove('v'));
+  if(idx===1){['lg1','lg2','lg3'].forEach(id=>{const el=g(id);el.classList.remove('v');el.querySelectorAll('.log-entry').forEach(e=>e.remove())})}
+  if(idx===2){g('part').classList.remove('v');g('splitLbl').classList.remove('v');
+    g('e2a').className='nd n1 leader';g('r2a').textContent='Leader';g('r2a').style.color='';g('t2a').textContent='Term 2';
+    g('e2b').className='nd n2 follower';g('r2b').textContent='Follower';g('t2b').textContent='Term 2';
+    g('e2c').className='nd n3 follower';g('r2c').textContent='Follower';g('t2c').textContent='Term 2'}
+  if(idx===3){for(let i=1;i<=5;i++)g('bk'+i).classList.remove('v')}
+}
+
+function info(s){g('ib').innerHTML=`<div class="st">${s.t}</div><div class="d">${s.d}</div><div class="dk">${s.k}</div>`}
+function runStep(){
+  const ss=scenes[curScene];
+  if(cur>=ss.length){clearInterval(timer);timer=null;return}
+  const s=ss[cur];s.fn();info(s);g('cs').textContent=cur+1;cur++;
+}
+function play(){if(timer)return;paused=false;g('bp').classList.add('on');g('bpa').classList.remove('on');runStep();timer=setInterval(()=>{if(!paused)runStep()},2400)}
+function pause(){paused=true;g('bpa').classList.add('on');g('bp').classList.remove('on')}
+function restart(){clearInterval(timer);timer=null;resetScene(curScene);cur=0;g('cs').textContent='0';g('ib').innerHTML='<div class="st">Ready</div><div class="d">Press Play.</div><div class="dk">Play를 누르세요.</div>';g('bp').classList.remove('on');setTimeout(play,300)}
+
+document.addEventListener('DOMContentLoaded',()=>{g('ts').textContent=scenes[0].length;setTimeout(play,600)});
+</script>
+</body>
+</html>

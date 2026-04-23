@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grafana Dashboard Design | 그라파나 대시보드 설계</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.header h1{font-size:1.6rem;color:#58a6ff;margin-bottom:4px}
+.header p{font-size:.9rem;color:#8b949e}
+.controls{display:flex;justify-content:center;gap:10px;padding:14px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#c9d1d9;cursor:pointer;font-size:.85rem;transition:all .2s}
+.controls button:hover{border-color:#58a6ff;color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.section{padding:20px 16px;max-width:1100px;margin:0 auto}
+.section-title{font-size:1.1rem;color:#58a6ff;margin-bottom:16px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.section-title span{color:#8b949e;font-size:.8rem;font-weight:400;margin-left:8px}
+
+/* Dashboard Layout */
+.dash-levels{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.dash-level{flex:1;min-width:220px;max-width:320px;border:2px solid #30363d;border-radius:10px;padding:16px;background:#161b22;opacity:0;transform:translateY(20px);transition:all .6s ease}
+.dash-level.show{opacity:1;transform:translateY(0)}
+.dash-level h3{font-size:.9rem;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.dash-level.overview h3{color:#3fb950}
+.dash-level.drilldown h3{color:#f0883e}
+.dash-level.detail h3{color:#f85149}
+.dash-level .panels{display:flex;flex-direction:column;gap:6px}
+.panel-item{font-size:.75rem;padding:8px;background:#0d1117;border-radius:4px;border-left:3px solid #30363d;display:flex;align-items:center;gap:8px;opacity:0;transform:translateX(-10px);transition:all .4s ease}
+.panel-item.show{opacity:1;transform:translateX(0)}
+.dash-level.overview .panel-item{border-left-color:#3fb950}
+.dash-level.drilldown .panel-item{border-left-color:#f0883e}
+.dash-level.detail .panel-item{border-left-color:#f85149}
+.panel-icon{font-size:1rem}
+.dash-arrow{display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .4s}
+.dash-arrow.show{opacity:1}
+.dash-arrow svg{width:30px;height:30px}
+.dash-arrow svg path{stroke:#58a6ff;stroke-width:2;fill:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(63,185,80,.4)}50%{box-shadow:0 0 20px 4px rgba(63,185,80,.2)}}
+.dash-level.active{animation:pulse 1.5s infinite;border-color:#58a6ff}
+
+/* Panel Types */
+.panel-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+@media(max-width:800px){.panel-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.panel-grid{grid-template-columns:1fr}}
+.panel-type{border:1px solid #30363d;border-radius:8px;padding:14px;background:#161b22;opacity:0;transform:scale(.95);transition:all .5s ease;text-align:center}
+.panel-type.show{opacity:1;transform:scale(1)}
+.panel-type h4{font-size:.8rem;color:#bd93f9;margin-bottom:8px}
+.panel-type .mini-viz{height:50px;background:#0d1117;border-radius:4px;position:relative;overflow:hidden;margin-bottom:6px}
+.panel-type .label{font-size:.68rem;color:#8b949e}
+
+/* Mini visualizations */
+.mini-line{position:absolute;bottom:0;left:0;width:100%;height:100%}
+.mini-line svg{width:100%;height:100%}
+.mini-line-path{stroke:#3fb950;stroke-width:2;fill:none;stroke-dasharray:200;stroke-dashoffset:200;transition:stroke-dashoffset 2s ease}
+.panel-type.show .mini-line-path{stroke-dashoffset:0}
+
+.mini-bars{display:flex;align-items:flex-end;justify-content:center;gap:4px;height:100%;padding:6px}
+.mini-bar{width:18%;border-radius:2px 2px 0 0;transition:height 1s ease;height:0}
+.panel-type.show .mini-bar:nth-child(1){height:60%;background:#58a6ff}
+.panel-type.show .mini-bar:nth-child(2){height:80%;background:#3fb950}
+.panel-type.show .mini-bar:nth-child(3){height:45%;background:#f0883e}
+.panel-type.show .mini-bar:nth-child(4){height:70%;background:#a371f7}
+
+.mini-gauge-wrap{display:flex;justify-content:center;align-items:center;height:100%}
+.mini-gauge{width:40px;height:40px;border-radius:50%;border:4px solid #30363d;position:relative}
+.mini-gauge-fill{position:absolute;inset:0;border-radius:50%;border:4px solid transparent;border-top-color:#f0883e;border-right-color:#f0883e;transform:rotate(-45deg);transition:transform 1.5s ease}
+.panel-type.show .mini-gauge-fill{transform:rotate(135deg)}
+
+.mini-stat{display:flex;justify-content:center;align-items:center;height:100%;font-size:1.4rem;font-weight:700;color:#3fb950;opacity:0;transition:opacity 1s}
+.panel-type.show .mini-stat{opacity:1}
+
+/* Variable Cascading */
+.var-cascade{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap;justify-content:center}
+.var-box{padding:10px 16px;border:2px solid #30363d;border-radius:8px;background:#161b22;opacity:0;transform:translateY(15px);transition:all .5s ease;text-align:center}
+.var-box.show{opacity:1;transform:translateY(0)}
+.var-box .var-label{font-size:.7rem;color:#8b949e;margin-bottom:4px}
+.var-box .var-value{font-size:.85rem;color:#bd93f9;font-weight:600;padding:4px 10px;background:#0d1117;border-radius:4px}
+.var-arrow{opacity:0;transition:opacity .4s;color:#58a6ff;font-size:1.2rem}
+.var-arrow.show{opacity:1}
+.var-box.active{border-color:#bd93f9;box-shadow:0 0 12px rgba(163,113,247,.3)}
+
+/* Alert Rule */
+.alert-flow{display:flex;align-items:stretch;justify-content:center;gap:16px;margin-top:12px;flex-wrap:wrap}
+.alert-step{flex:1;min-width:200px;max-width:260px;border:1px solid #30363d;border-radius:8px;padding:14px;background:#161b22;opacity:0;transform:translateX(-20px);transition:all .6s ease}
+.alert-step.show{opacity:1;transform:translateX(0)}
+.alert-step h4{font-size:.82rem;margin-bottom:8px}
+.alert-step h4.rule{color:#f0883e}
+.alert-step h4.eval{color:#f85149}
+.alert-step h4.notify{color:#3fb950}
+.alert-step pre{font-size:.68rem;background:#0d1117;padding:8px;border-radius:4px;color:#3fb950;line-height:1.5;overflow-x:auto}
+.alert-step .desc{font-size:.72rem;color:#8b949e;margin-top:6px}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>Grafana Dashboard Design</h1>
+<p>그라파나 대시보드 설계 패턴 | Overview → Drill-down → Detail 계층 구조</p>
+</div>
+
+<div class="controls">
+<button id="btnPlay" class="active" onclick="play()">&#9654; Play / 재생</button>
+<button id="btnPause" onclick="pause()">&#10074;&#10074; Pause / 일시정지</button>
+<button id="btnRestart" onclick="restart()">&#8634; Restart / 처음부터</button>
+</div>
+
+<!-- Section 1: Dashboard Layout Pattern -->
+<div class="section">
+<div class="section-title">1. Dashboard Hierarchy <span>대시보드 계층 구조 (USE/RED Method)</span></div>
+<div class="dash-levels" id="dashLevels">
+<div class="dash-level overview" id="dl0">
+<h3>Overview (개요)</h3>
+<div class="panels">
+<div class="panel-item" id="p0">Cluster Health Status (클러스터 상태)</div>
+<div class="panel-item" id="p1">Total Request Rate (전체 요청률)</div>
+<div class="panel-item" id="p2">Error Rate % (에러율)</div>
+<div class="panel-item" id="p3">Resource Utilization (리소스 사용률)</div>
+</div>
+</div>
+<div class="dash-arrow" id="darr0"><svg viewBox="0 0 30 30"><path d="M5 15 L20 15 M16 10 L22 15 L16 20"/></svg></div>
+<div class="dash-level drilldown" id="dl1">
+<h3>Drill-down (상세 탐색)</h3>
+<div class="panels">
+<div class="panel-item" id="p4">Namespace별 Request Rate</div>
+<div class="panel-item" id="p5">Pod CPU/Memory 사용량</div>
+<div class="panel-item" id="p6">Service Latency P50/P99</div>
+<div class="panel-item" id="p7">Network I/O by Pod</div>
+</div>
+</div>
+<div class="dash-arrow" id="darr1"><svg viewBox="0 0 30 30"><path d="M5 15 L20 15 M16 10 L22 15 L16 20"/></svg></div>
+<div class="dash-level detail" id="dl2">
+<h3>Detail (상세)</h3>
+<div class="panels">
+<div class="panel-item" id="p8">Container Logs 실시간</div>
+<div class="panel-item" id="p9">개별 Pod 메트릭</div>
+<div class="panel-item" id="p10">Trace 링크 연결</div>
+<div class="panel-item" id="p11">Event Timeline</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 2: Panel Types -->
+<div class="section">
+<div class="section-title">2. Panel Types <span>패널 유형별 시각화</span></div>
+<div class="panel-grid" id="panelGrid">
+<div class="panel-type" id="pt0">
+<h4>Time Series</h4>
+<div class="mini-viz">
+<div class="mini-line"><svg viewBox="0 0 200 50" preserveAspectRatio="none"><path class="mini-line-path" d="M0 40 L30 35 L60 20 L90 30 L120 15 L150 25 L180 10 L200 18"/></svg></div>
+</div>
+<div class="label">시계열 그래프 | CPU, 메모리 추이</div>
+</div>
+<div class="panel-type" id="pt1">
+<h4>Bar Chart</h4>
+<div class="mini-viz">
+<div class="mini-bars"><div class="mini-bar"></div><div class="mini-bar"></div><div class="mini-bar"></div><div class="mini-bar"></div></div>
+</div>
+<div class="label">막대 차트 | 리소스 비교</div>
+</div>
+<div class="panel-type" id="pt2">
+<h4>Gauge</h4>
+<div class="mini-viz">
+<div class="mini-gauge-wrap"><div class="mini-gauge"><div class="mini-gauge-fill"></div></div></div>
+</div>
+<div class="label">게이지 | 현재 사용률</div>
+</div>
+<div class="panel-type" id="pt3">
+<h4>Stat</h4>
+<div class="mini-viz">
+<div class="mini-stat">99.9%</div>
+</div>
+<div class="label">단일 값 | SLO 달성률</div>
+</div>
+</div>
+</div>
+
+<!-- Section 3: Variable Cascading -->
+<div class="section">
+<div class="section-title">3. Variable Cascading <span>변수 연동 (Cascading Variables)</span></div>
+<div class="var-cascade" id="varCascade">
+<div class="var-box" id="v0">
+<div class="var-label">$cluster</div>
+<div class="var-value">prod-kr-1</div>
+</div>
+<div class="var-arrow" id="va0">&#10140;</div>
+<div class="var-box" id="v1">
+<div class="var-label">$namespace</div>
+<div class="var-value">api-server</div>
+</div>
+<div class="var-arrow" id="va1">&#10140;</div>
+<div class="var-box" id="v2">
+<div class="var-label">$pod</div>
+<div class="var-value">api-server-7f8d</div>
+</div>
+<div class="var-arrow" id="va2">&#10140;</div>
+<div class="var-box" id="v3">
+<div class="var-label">$container</div>
+<div class="var-value">api</div>
+</div>
+</div>
+</div>
+
+<!-- Section 4: Alert Rule Evaluation -->
+<div class="section">
+<div class="section-title">4. Alert Rule Evaluation <span>알림 규칙 평가 흐름</span></div>
+<div class="alert-flow" id="alertFlow">
+<div class="alert-step" id="al0">
+<h4 class="rule">Alert Rule 정의</h4>
+<pre>- alert: HighErrorRate
+  expr: |
+    rate(http_errors[5m])
+    / rate(http_total[5m])
+    > 0.05
+  for: 5m
+  labels:
+    severity: critical</pre>
+</div>
+<div class="alert-step" id="al1">
+<h4 class="eval">Evaluation (평가)</h4>
+<pre>evaluation_interval: 15s
+
+pending → firing (5m 지속)
+  → for 조건 충족 시 알림 발생
+
+firing → resolved
+  → 조건 미충족 시 해제</pre>
+<div class="desc">pending 상태에서 for 기간 동안 지속되면 firing</div>
+</div>
+<div class="alert-step" id="al2">
+<h4 class="notify">Notification (알림)</h4>
+<pre>Contact Points:
+  → Slack #alerts-critical
+  → PagerDuty (on-call)
+  → Email (team-leads)
+
+Notification Policy:
+  group_by: [alertname, cluster]
+  group_wait: 30s
+  repeat_interval: 4h</pre>
+</div>
+</div>
+</div>
+
+<script>
+let timer=null,step=0,playing=false;
+const totalSteps=30;
+
+function animateStep(s){
+  // Dashboard levels
+  if(s===0){const d=document.getElementById('dl0');d.classList.add('show','active');}
+  if(s>=1&&s<=4){document.getElementById('p'+(s-1)).classList.add('show');}
+  if(s===5){document.getElementById('dl0').classList.remove('active');document.getElementById('darr0').classList.add('show');}
+  if(s===6){const d=document.getElementById('dl1');d.classList.add('show','active');}
+  if(s>=7&&s<=10){document.getElementById('p'+(s-3)).classList.add('show');}
+  if(s===11){document.getElementById('dl1').classList.remove('active');document.getElementById('darr1').classList.add('show');}
+  if(s===12){const d=document.getElementById('dl2');d.classList.add('show','active');}
+  if(s>=13&&s<=16){document.getElementById('p'+(s-5)).classList.add('show');}
+  if(s===17){document.getElementById('dl2').classList.remove('active');}
+  // Panel types
+  if(s>=18&&s<=21){document.getElementById('pt'+(s-18)).classList.add('show');}
+  // Variables
+  if(s>=22&&s<=25){
+    const vi=s-22;
+    document.getElementById('v'+vi).classList.add('show','active');
+    if(vi>0){document.getElementById('va'+(vi-1)).classList.add('show');document.getElementById('v'+(vi-1)).classList.remove('active');}
+  }
+  if(s===26){document.getElementById('v3').classList.remove('active');}
+  // Alert flow
+  if(s>=27&&s<=29){document.getElementById('al'+(s-27)).classList.add('show');}
+}
+
+function play(){
+  if(playing)return;playing=true;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  timer=setInterval(()=>{if(step>=totalSteps){pause();return;}animateStep(step);step++;},500);
+}
+function pause(){
+  playing=false;clearInterval(timer);
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function restart(){
+  pause();step=0;
+  document.querySelectorAll('.dash-level,.panel-item,.dash-arrow,.panel-type,.var-box,.var-arrow,.alert-step').forEach(e=>e.classList.remove('show','active'));
+  setTimeout(play,300);
+}
+window.addEventListener('load',()=>setTimeout(play,500));
+</script>
+</body>
+</html>

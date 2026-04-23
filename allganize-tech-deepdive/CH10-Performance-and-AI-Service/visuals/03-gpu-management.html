@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPU 리소스 관리 - GPU Resource Management</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:0.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:0.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;margin-bottom:20px;overflow:hidden}
+.section h2{font-size:1.05rem;margin-bottom:16px;color:#58a6ff;display:flex;align-items:center;gap:8px}
+.badge{padding:2px 10px;border-radius:12px;font-size:0.7rem;font-weight:600;background:#1f6feb30;border:1px solid #58a6ff40;color:#58a6ff}
+.badge.green{background:#2ea04330;border-color:#3fb95040;color:#3fb950}
+.badge.purple{background:#bc8cff30;border-color:#bc8cff40;color:#bc8cff}
+.badge.orange{background:#f0883e30;border-color:#f0883e40;color:#f0883e}
+
+/* GPU Operator Stack */
+.stack-col{display:flex;flex-direction:column;gap:0;position:relative}
+.stack-layer{padding:14px 20px;border:1px solid #30363d;text-align:center;transition:all .6s;opacity:0.2;transform:translateY(10px);position:relative}
+.stack-layer:first-child{border-radius:8px 8px 0 0}
+.stack-layer:last-child{border-radius:0 0 8px 8px}
+.stack-layer.active{opacity:1;transform:translateY(0)}
+.stack-layer .s-name{font-size:0.85rem;font-weight:600}
+.stack-layer .s-desc{font-size:0.7rem;color:#8b949e;margin-top:2px}
+.stack-layer .s-icon{font-size:1.2rem;margin-right:6px}
+.stack-layer:nth-child(1){background:#76e4f720;border-color:#76e4f740}
+.stack-layer:nth-child(1).active{border-color:#76e4f7;box-shadow:0 0 12px rgba(118,228,247,0.15)}
+.stack-layer:nth-child(2){background:#bc8cff20;border-color:#bc8cff40}
+.stack-layer:nth-child(2).active{border-color:#bc8cff;box-shadow:0 0 12px rgba(188,140,255,0.15)}
+.stack-layer:nth-child(3){background:#58a6ff20;border-color:#58a6ff40}
+.stack-layer:nth-child(3).active{border-color:#58a6ff;box-shadow:0 0 12px rgba(88,166,255,0.15)}
+.stack-layer:nth-child(4){background:#3fb95020;border-color:#3fb95040}
+.stack-layer:nth-child(4).active{border-color:#3fb950;box-shadow:0 0 12px rgba(63,185,80,0.15)}
+.stack-connector{width:2px;height:16px;background:#30363d;margin:0 auto;transition:background .5s}
+.stack-connector.active{background:#58a6ff}
+
+/* MIG Partitioning */
+.mig-gpu{background:#0d1117;border:2px solid #3fb950;border-radius:12px;padding:16px;position:relative}
+.mig-title{font-size:0.8rem;font-weight:600;color:#3fb950;margin-bottom:12px;text-align:center}
+.mig-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px}
+.mig-instance{border-radius:6px;padding:10px;text-align:center;transition:all .6s;opacity:0;transform:scale(0.8)}
+.mig-instance.show{opacity:1;transform:scale(1)}
+.mig-instance .mi-name{font-size:0.7rem;font-weight:600;margin-bottom:4px}
+.mig-instance .mi-spec{font-size:0.6rem;color:#8b949e}
+.mig-instance:nth-child(1){background:#58a6ff20;border:1px solid #58a6ff60}
+.mig-instance:nth-child(1) .mi-name{color:#58a6ff}
+.mig-instance:nth-child(2){background:#bc8cff20;border:1px solid #bc8cff60}
+.mig-instance:nth-child(2) .mi-name{color:#bc8cff}
+.mig-instance:nth-child(3){background:#3fb95020;border:1px solid #3fb95060}
+.mig-instance:nth-child(3) .mi-name{color:#3fb950}
+.mig-instance:nth-child(4){background:#f0883e20;border:1px solid #f0883e60}
+.mig-instance:nth-child(4) .mi-name{color:#f0883e}
+.mig-instance:nth-child(5){background:#f8514920;border:1px solid #f8514960}
+.mig-instance:nth-child(5) .mi-name{color:#f85149}
+.mig-instance:nth-child(6){background:#76e4f720;border:1px solid #76e4f760}
+.mig-instance:nth-child(6) .mi-name{color:#76e4f7}
+.mig-instance:nth-child(7){background:#da363320;border:1px solid #da363360}
+.mig-instance:nth-child(7) .mi-name{color:#da3633}
+
+.mig-full-bar{height:12px;background:#21262d;border-radius:6px;margin-top:12px;overflow:hidden;display:flex}
+.mig-seg{height:100%;transition:width 1s ease;width:0}
+
+/* Time-slicing */
+.ts-timeline{position:relative;background:#0d1117;border-radius:8px;border:1px solid #21262d;padding:16px;overflow:hidden}
+.ts-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ts-label{width:80px;font-size:0.7rem;color:#8b949e;text-align:right}
+.ts-track{flex:1;height:24px;background:#21262d;border-radius:4px;overflow:hidden;display:flex;position:relative}
+.ts-slot{height:100%;display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:600;color:#fff;transition:width .5s ease,opacity .5s;width:0;opacity:0}
+.ts-slot.show{opacity:1}
+.ts-indicator{position:absolute;top:0;bottom:0;width:3px;background:#fff;border-radius:2px;box-shadow:0 0 8px #fff;transition:left .3s linear;left:0;z-index:2}
+.ts-legend{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:10px;font-size:0.7rem;color:#8b949e}
+.ts-legend span{display:flex;align-items:center;gap:4px}
+.ts-legend .dot{width:10px;height:10px;border-radius:3px}
+
+/* GPU Metrics Dashboard */
+.gpu-dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.gpu-metric{background:#0d1117;border-radius:8px;border:1px solid #21262d;padding:16px}
+.gpu-metric .gm-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.gpu-metric .gm-label{font-size:0.75rem;color:#8b949e}
+.gpu-metric .gm-value{font-size:1.5rem;font-weight:700}
+.gpu-metric .gm-bar{height:8px;background:#21262d;border-radius:4px;overflow:hidden;margin-top:8px}
+.gpu-metric .gm-bar-fill{height:100%;border-radius:4px;transition:width 1s ease;width:0}
+.gpu-metric .gm-sparkline{display:flex;align-items:flex-end;gap:2px;height:40px;margin-top:8px}
+.gpu-metric .gm-sparkline .bar{flex:1;border-radius:2px 2px 0 0;transition:height .4s ease;min-width:3px;background:#30363d}
+.gpu-metric.util .gm-value{color:#3fb950}
+.gpu-metric.util .gm-bar-fill{background:#3fb950}
+.gpu-metric.mem .gm-value{color:#58a6ff}
+.gpu-metric.mem .gm-bar-fill{background:#58a6ff}
+.gpu-metric.temp .gm-value{color:#f0883e}
+.gpu-metric.temp .gm-bar-fill{background:#f0883e}
+.gpu-metric.power .gm-value{color:#bc8cff}
+.gpu-metric.power .gm-bar-fill{background:#bc8cff}
+
+.paused *{animation-play-state:paused!important}
+@media(max-width:768px){.container{padding:12px}.mig-grid{grid-template-columns:repeat(2,1fr)}.gpu-dash{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>GPU 리소스 관리 - GPU Resource Management</h1>
+<p class="subtitle">GPU Operator / MIG Partitioning / Time-Slicing / Metrics</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnimation()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pauseAnimation()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restartAnimation()">&#8635; 다시시작 Restart</button>
+</div>
+
+<!-- GPU Operator Stack -->
+<div class="section">
+  <h2><span class="badge">OPERATOR</span> GPU Operator 스택 Stack</h2>
+  <div class="stack-col" id="gpuStack">
+    <div class="stack-layer" id="sl0"><span class="s-icon">🔧</span><span class="s-name">NVIDIA Driver</span><div class="s-desc">GPU 커널 드라이버 자동 설치</div></div>
+    <div class="stack-connector" id="sc0"></div>
+    <div class="stack-layer" id="sl1"><span class="s-icon">📦</span><span class="s-name">Container Toolkit</span><div class="s-desc">컨테이너 런타임 GPU 연동</div></div>
+    <div class="stack-connector" id="sc1"></div>
+    <div class="stack-layer" id="sl2"><span class="s-icon">🔌</span><span class="s-name">Device Plugin</span><div class="s-desc">K8s에 GPU 리소스 등록</div></div>
+    <div class="stack-connector" id="sc2"></div>
+    <div class="stack-layer" id="sl3"><span class="s-icon">📊</span><span class="s-name">DCGM Exporter</span><div class="s-desc">GPU 메트릭 수집 및 모니터링</div></div>
+  </div>
+</div>
+
+<!-- MIG Partitioning -->
+<div class="section">
+  <h2><span class="badge green">MIG</span> Multi-Instance GPU 파티셔닝</h2>
+  <div class="mig-gpu">
+    <div class="mig-title">NVIDIA A100 80GB</div>
+    <div class="mig-grid" id="migGrid">
+      <div class="mig-instance" id="mi0"><div class="mi-name">3g.40gb</div><div class="mi-spec">LLM Inference<br>추론 서버</div></div>
+      <div class="mig-instance" id="mi1"><div class="mi-name">2g.20gb</div><div class="mi-spec">Fine-tuning<br>파인튜닝</div></div>
+      <div class="mig-instance" id="mi2"><div class="mi-name">1g.10gb</div><div class="mi-spec">Embedding<br>임베딩</div></div>
+      <div class="mig-instance" id="mi3"><div class="mi-name">1g.10gb</div><div class="mi-spec">Preprocessing<br>전처리</div></div>
+    </div>
+    <div class="mig-full-bar" id="migBar">
+      <div class="mig-seg" id="ms0" style="background:#58a6ff"></div>
+      <div class="mig-seg" id="ms1" style="background:#bc8cff"></div>
+      <div class="mig-seg" id="ms2" style="background:#3fb950"></div>
+      <div class="mig-seg" id="ms3" style="background:#f0883e"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Time-Slicing -->
+<div class="section">
+  <h2><span class="badge purple">TIME-SLICE</span> GPU 시분할 Time-Slicing</h2>
+  <div class="ts-timeline">
+    <div class="ts-row"><div class="ts-label">Pod A 추론</div><div class="ts-track" id="tsA"></div></div>
+    <div class="ts-row"><div class="ts-label">Pod B 학습</div><div class="ts-track" id="tsB"></div></div>
+    <div class="ts-row"><div class="ts-label">Pod C 임베딩</div><div class="ts-track" id="tsC"></div></div>
+    <div class="ts-row"><div class="ts-label">GPU 활성</div><div class="ts-track" id="tsGPU"></div></div>
+    <div class="ts-legend">
+      <span><div class="dot" style="background:#58a6ff"></div>Pod A (Inference)</span>
+      <span><div class="dot" style="background:#bc8cff"></div>Pod B (Training)</span>
+      <span><div class="dot" style="background:#3fb950"></div>Pod C (Embedding)</span>
+    </div>
+  </div>
+</div>
+
+<!-- GPU Metrics Dashboard -->
+<div class="section">
+  <h2><span class="badge orange">METRICS</span> GPU 메트릭 대시보드 Dashboard</h2>
+  <div class="gpu-dash" id="gpuDash">
+    <div class="gpu-metric util">
+      <div class="gm-header"><span class="gm-label">GPU Utilization 사용률</span></div>
+      <div class="gm-value" id="gmUtil">0%</div>
+      <div class="gm-bar"><div class="gm-bar-fill" id="gmUtilBar"></div></div>
+      <div class="gm-sparkline" id="spkUtil"></div>
+    </div>
+    <div class="gpu-metric mem">
+      <div class="gm-header"><span class="gm-label">GPU Memory 메모리</span></div>
+      <div class="gm-value" id="gmMem">0 / 80 GB</div>
+      <div class="gm-bar"><div class="gm-bar-fill" id="gmMemBar"></div></div>
+      <div class="gm-sparkline" id="spkMem"></div>
+    </div>
+    <div class="gpu-metric temp">
+      <div class="gm-header"><span class="gm-label">Temperature 온도</span></div>
+      <div class="gm-value" id="gmTemp">0°C</div>
+      <div class="gm-bar"><div class="gm-bar-fill" id="gmTempBar"></div></div>
+      <div class="gm-sparkline" id="spkTemp"></div>
+    </div>
+    <div class="gpu-metric power">
+      <div class="gm-header"><span class="gm-label">Power 전력</span></div>
+      <div class="gm-value" id="gmPower">0W</div>
+      <div class="gm-bar"><div class="gm-bar-fill" id="gmPowerBar"></div></div>
+      <div class="gm-sparkline" id="spkPower"></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+let animTimer=null,isPaused=false,step=0;
+const totalSteps=80;
+function setActive(id){document.querySelectorAll('.controls button').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active')}
+
+function updateStack(progress){
+  const times=[0.1,0.3,0.5,0.7];
+  for(let i=0;i<4;i++){
+    const layer=document.getElementById('sl'+i);
+    const conn=document.getElementById('sc'+i);
+    if(progress>=times[i]){layer.classList.add('active');if(conn)conn.classList.add('active')}
+    else{layer.classList.remove('active');if(conn)conn.classList.remove('active')}
+  }
+}
+
+function updateMIG(progress){
+  const times=[0.2,0.35,0.5,0.6];
+  const widths=[50,25,12.5,12.5];
+  for(let i=0;i<4;i++){
+    const inst=document.getElementById('mi'+i);
+    const seg=document.getElementById('ms'+i);
+    if(progress>=times[i]){
+      inst.classList.add('show');
+      seg.style.width=widths[i]+'%';
+    }else{
+      inst.classList.remove('show');
+      seg.style.width='0';
+    }
+  }
+}
+
+function updateTimeSlice(progress){
+  const colors=['#58a6ff','#bc8cff','#3fb950'];
+  const tracks=['tsA','tsB','tsC','tsGPU'];
+  const slotCount=12;
+  const pattern=[[0,1,2,0,1,2,0,1,2,0,1,2]]; // rotation
+
+  tracks.forEach((tid,ti)=>{
+    const track=document.getElementById(tid);
+    const shown=Math.floor(progress*slotCount*1.3);
+    track.innerHTML='';
+    for(let s=0;s<slotCount;s++){
+      const slot=document.createElement('div');slot.className='ts-slot';
+      const owner=s%3;
+      if(ti<3){
+        // individual pod rows: only show when it's this pod's turn
+        if(owner===ti&&s<shown){
+          slot.classList.add('show');
+          slot.style.width=(100/slotCount)+'%';
+          slot.style.background=colors[ti];
+          slot.textContent=(s*10)+'ms';
+        }else{
+          slot.style.width=(100/slotCount)+'%';
+          slot.style.background='transparent';slot.classList.add('show');
+        }
+      }else{
+        // GPU row shows all
+        if(s<shown){
+          slot.classList.add('show');
+          slot.style.width=(100/slotCount)+'%';
+          slot.style.background=colors[owner];
+          slot.textContent='P'+(owner+1);
+        }else{
+          slot.style.width=(100/slotCount)+'%';
+          slot.style.background='#21262d';slot.classList.add('show');
+        }
+      }
+      track.appendChild(slot);
+    }
+  });
+}
+
+const sparkHistory={util:[],mem:[],temp:[],power:[]};
+function initSparklines(){
+  ['spkUtil','spkMem','spkTemp','spkPower'].forEach(id=>{
+    const el=document.getElementById(id);el.innerHTML='';
+    for(let i=0;i<20;i++){const b=document.createElement('div');b.className='bar';b.style.height='2px';el.appendChild(b)}
+  });
+  sparkHistory.util=[];sparkHistory.mem=[];sparkHistory.temp=[];sparkHistory.power=[];
+}
+
+function updateMetrics(progress){
+  const t=Math.min(progress*1.3,1);
+  const util=Math.round(75*t+Math.sin(progress*20)*8);
+  const mem=Math.round(62*t);
+  const temp=Math.round(35+30*t+Math.sin(progress*15)*3);
+  const power=Math.round(120+180*t);
+
+  document.getElementById('gmUtil').textContent=util+'%';
+  document.getElementById('gmUtilBar').style.width=util+'%';
+  document.getElementById('gmMem').textContent=mem+' / 80 GB';
+  document.getElementById('gmMemBar').style.width=(mem/80*100)+'%';
+  document.getElementById('gmTemp').textContent=temp+'°C';
+  document.getElementById('gmTempBar').style.width=(temp/90*100)+'%';
+  document.getElementById('gmPower').textContent=power+'W';
+  document.getElementById('gmPowerBar').style.width=(power/400*100)+'%';
+
+  // sparklines
+  sparkHistory.util.push(util);sparkHistory.mem.push(mem/80*100);
+  sparkHistory.temp.push(temp/90*100);sparkHistory.power.push(power/400*100);
+  const colors={util:'#3fb950',mem:'#58a6ff',temp:'#f0883e',power:'#bc8cff'};
+  const ids={util:'spkUtil',mem:'spkMem',temp:'spkTemp',power:'spkPower'};
+  Object.keys(ids).forEach(k=>{
+    const bars=document.getElementById(ids[k]).children;
+    const data=sparkHistory[k].slice(-20);
+    for(let i=0;i<20;i++){
+      if(i<data.length){bars[i].style.height=Math.max(data[i],2)+'%';bars[i].style.background=colors[k]}
+      else{bars[i].style.height='2px';bars[i].style.background='#30363d'}
+    }
+  });
+}
+
+function tick(){
+  if(isPaused)return;
+  step++;
+  const p=step/totalSteps;
+  updateStack(p);updateMIG(p);updateTimeSlice(p);updateMetrics(p);
+  if(step>=totalSteps)clearInterval(animTimer);
+}
+
+function startAnimation(){
+  if(isPaused){isPaused=false;setActive('btnPlay');document.body.classList.remove('paused');return}
+  step=0;isPaused=false;setActive('btnPlay');initSparklines();
+  if(animTimer)clearInterval(animTimer);
+  animTimer=setInterval(tick,100);
+}
+function pauseAnimation(){isPaused=true;setActive('btnPause');document.body.classList.add('paused')}
+function restartAnimation(){if(animTimer)clearInterval(animTimer);isPaused=false;step=0;document.body.classList.remove('paused');startAnimation()}
+
+initSparklines();
+startAnimation();
+</script>
+</body>
+</html>

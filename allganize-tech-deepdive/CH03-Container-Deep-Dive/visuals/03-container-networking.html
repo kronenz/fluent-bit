@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Container Networking Model | 컨테이너 네트워킹 모델</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;overflow-x:hidden}
+.header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+.header h1{font-size:1.6rem;color:#58a6ff;margin-bottom:4px}
+.header p{font-size:.9rem;color:#8b949e}
+.controls{display:flex;justify-content:center;gap:10px;padding:14px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#c9d1d9;cursor:pointer;font-size:.85rem;transition:all .2s}
+.controls button:hover{border-color:#58a6ff;color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.section{padding:20px 16px;max-width:1100px;margin:0 auto}
+.section-title{font-size:1.1rem;color:#58a6ff;margin-bottom:16px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.section-title span{color:#8b949e;font-size:.8rem;font-weight:400;margin-left:8px}
+
+/* Network Diagram */
+.net-diagram{position:relative;width:100%;min-height:420px;border:1px solid #21262d;border-radius:8px;background:#0d1117;padding:20px;overflow:hidden}
+.net-box{position:absolute;border-radius:8px;padding:12px;text-align:center;opacity:0;transform:scale(.8);transition:all .6s ease;font-size:.75rem}
+.net-box.show{opacity:1;transform:scale(1)}
+.net-box .label{font-weight:600;margin-bottom:4px}
+.net-box .sublabel{font-size:.65rem;color:#8b949e}
+.net-box .ip{font-family:monospace;font-size:.68rem;color:#d29922;margin-top:4px}
+
+/* Containers */
+.container-ns{border:2px solid #58a6ff;background:rgba(88,166,255,.08);width:180px;min-height:80px}
+.bridge-box{border:2px solid #3fb950;background:rgba(63,185,80,.08);width:200px;min-height:60px}
+.eth-box{border:2px solid #d29922;background:rgba(210,153,34,.08);width:160px;min-height:50px}
+.external-box{border:2px solid #f85149;background:rgba(248,81,73,.08);width:140px;min-height:50px}
+.veth-box{border:2px dashed #bd93f9;background:rgba(189,147,249,.08);width:90px;min-height:40px}
+
+/* Connection Lines via SVG */
+.net-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.net-svg line,.net-svg path{stroke-width:2;fill:none;opacity:0;transition:opacity .5s}
+.net-svg line.show,.net-svg path.show{opacity:1}
+@keyframes flowDash{0%{stroke-dashoffset:20}100%{stroke-dashoffset:0}}
+.net-svg .animated{stroke-dasharray:8 4;animation:flowDash 1s linear infinite}
+
+/* NAT/iptables flow */
+.flow-container{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.flow-step{display:flex;align-items:center;gap:12px;padding:10px 16px;border:1px solid #30363d;border-radius:6px;background:#161b22;opacity:0;transform:translateX(-20px);transition:all .5s ease;font-size:.78rem}
+.flow-step.show{opacity:1;transform:translateX(0)}
+.flow-step .num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.75rem;flex-shrink:0}
+.flow-step.out .num{background:rgba(63,185,80,.2);color:#3fb950}
+.flow-step.in .num{background:rgba(88,166,255,.2);color:#58a6ff}
+.flow-step code{background:#0d1117;padding:2px 6px;border-radius:3px;font-size:.7rem;color:#d29922}
+
+/* Port mapping */
+.port-diagram{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;margin-top:12px}
+.port-box{border:1px solid #30363d;border-radius:8px;padding:16px;background:#161b22;text-align:center;opacity:0;transform:translateY(20px);transition:all .5s ease;width:200px}
+.port-box.show{opacity:1;transform:translateY(0)}
+.port-box h4{font-size:.82rem;margin-bottom:8px}
+.port-box.external h4{color:#f85149}
+.port-box.host h4{color:#d29922}
+.port-box.container h4{color:#3fb950}
+.port-box .port{font-family:monospace;font-size:1.2rem;font-weight:700;margin:6px 0}
+.port-box.external .port{color:#f85149}
+.port-box.host .port{color:#d29922}
+.port-box.container .port{color:#3fb950}
+.port-arrow{font-size:1.5rem;color:#58a6ff;opacity:0;transition:opacity .5s}
+.port-arrow.show{opacity:1}
+.port-rule{font-size:.72rem;color:#8b949e;margin-top:12px;padding:10px;background:#0d1117;border-radius:4px;font-family:monospace;text-align:left;max-width:700px;margin-left:auto;margin-right:auto;opacity:0;transition:opacity .5s;line-height:1.6}
+.port-rule.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>Container Networking Model</h1>
+<p>컨테이너 네트워킹 모델 | veth pair, bridge, NAT, 포트 매핑</p>
+</div>
+
+<div class="controls">
+<button id="btnPlay" class="active" onclick="play()">&#9654; Play / 재생</button>
+<button id="btnPause" onclick="pause()">&#10074;&#10074; Pause / 일시정지</button>
+<button id="btnRestart" onclick="restart()">&#8634; Restart / 처음부터</button>
+</div>
+
+<!-- Section 1: Veth Pair & Bridge -->
+<div class="section">
+<div class="section-title">1. Bridge Networking & veth Pair <span>브릿지 네트워킹과 veth 페어</span></div>
+<div class="net-diagram" id="netDiag">
+<svg class="net-svg" id="netSvg">
+<!-- veth connections drawn dynamically -->
+<line id="line0" x1="170" y1="100" x2="280" y2="100" stroke="#bd93f9"/>
+<line id="line1" x1="170" y1="280" x2="280" y2="280" stroke="#bd93f9"/>
+<line id="line2" x1="380" y1="100" x2="480" y2="190" stroke="#3fb950"/>
+<line id="line3" x1="380" y1="280" x2="480" y2="210" stroke="#3fb950"/>
+<line id="line4" x1="580" y1="200" x2="700" y2="200" stroke="#d29922"/>
+<line id="line5" x1="800" y1="200" x2="900" y2="200" stroke="#f85149"/>
+</svg>
+
+<!-- Container 1 -->
+<div class="net-box container-ns" id="nb0" style="left:10px;top:60px">
+<div class="label">Container 1</div>
+<div class="sublabel">네트워크 네임스페이스</div>
+<div class="ip">eth0: 172.17.0.2</div>
+</div>
+<!-- veth1 -->
+<div class="net-box veth-box" id="nb1" style="left:220px;top:82px">
+<div class="label">veth pair</div>
+<div class="sublabel">가상 이더넷</div>
+</div>
+<!-- Container 2 -->
+<div class="net-box container-ns" id="nb2" style="left:10px;top:240px">
+<div class="label">Container 2</div>
+<div class="sublabel">네트워크 네임스페이스</div>
+<div class="ip">eth0: 172.17.0.3</div>
+</div>
+<!-- veth2 -->
+<div class="net-box veth-box" id="nb3" style="left:220px;top:262px">
+<div class="label">veth pair</div>
+<div class="sublabel">가상 이더넷</div>
+</div>
+<!-- Bridge -->
+<div class="net-box bridge-box" id="nb4" style="left:370px;top:150px">
+<div class="label">docker0 / cni0</div>
+<div class="sublabel">Linux Bridge (L2 스위치)</div>
+<div class="ip">172.17.0.1</div>
+</div>
+<!-- eth0 -->
+<div class="net-box eth-box" id="nb5" style="left:630px;top:160px">
+<div class="label">eth0 (Host)</div>
+<div class="sublabel">호스트 네트워크</div>
+<div class="ip">192.168.1.100</div>
+</div>
+<!-- External -->
+<div class="net-box external-box" id="nb6" style="left:850px;top:160px">
+<div class="label">External</div>
+<div class="sublabel">외부 네트워크</div>
+<div class="ip">Internet</div>
+</div>
+</div>
+</div>
+
+<!-- Section 2: NAT/iptables outbound -->
+<div class="section">
+<div class="section-title">2. Outbound NAT Flow <span>아웃바운드 NAT 흐름 (컨테이너 → 외부)</span></div>
+<div class="flow-container" id="outFlow">
+<div class="flow-step out" id="of0">
+<div class="num">1</div>
+<div>컨테이너 프로세스가 외부 패킷 전송 <code>172.17.0.2:random → 8.8.8.8:443</code></div>
+</div>
+<div class="flow-step out" id="of1">
+<div class="num">2</div>
+<div>패킷이 veth pair를 통해 호스트 bridge(docker0)로 전달</div>
+</div>
+<div class="flow-step out" id="of2">
+<div class="num">3</div>
+<div>iptables MASQUERADE 규칙 적용 (SNAT) <code>iptables -t nat -A POSTROUTING -s 172.17.0.0/16 -j MASQUERADE</code></div>
+</div>
+<div class="flow-step out" id="of3">
+<div class="num">4</div>
+<div>소스 IP가 호스트 IP로 변환 <code>192.168.1.100:random → 8.8.8.8:443</code></div>
+</div>
+<div class="flow-step out" id="of4">
+<div class="num">5</div>
+<div>호스트 eth0을 통해 외부로 전송, conntrack 테이블에 연결 상태 기록</div>
+</div>
+</div>
+</div>
+
+<!-- Section 3: Port Mapping Inbound -->
+<div class="section">
+<div class="section-title">3. Port Mapping (Inbound) <span>포트 매핑 (인바운드 트래픽)</span></div>
+<div style="text-align:center;font-size:.78rem;color:#8b949e;margin-bottom:8px"><code>docker run -p 8080:80 nginx</code></div>
+<div class="port-diagram">
+<div class="port-box external" id="pb0">
+<h4>Client (외부 클라이언트)</h4>
+<div class="port">:8080</div>
+<div class="sublabel">192.168.1.100:8080 접속</div>
+</div>
+<div class="port-arrow" id="pa0">&#10132;</div>
+<div class="port-box host" id="pb1">
+<h4>Host iptables (DNAT)</h4>
+<div class="port">8080 &#10132; 80</div>
+<div class="sublabel">PREROUTING 체인에서<br>목적지 포트 변환</div>
+</div>
+<div class="port-arrow" id="pa1">&#10132;</div>
+<div class="port-box container" id="pb2">
+<h4>Container (nginx)</h4>
+<div class="port">:80</div>
+<div class="sublabel">172.17.0.2:80 수신</div>
+</div>
+</div>
+<div class="port-rule" id="portRule">
+<span style="color:#58a6ff"># iptables 규칙 (자동 생성됨)</span>
+iptables -t nat -A PREROUTING -p tcp --dport 8080 -j DNAT --to-destination 172.17.0.2:80
+iptables -t nat -A POSTROUTING -d 172.17.0.2 -p tcp --dport 80 -j MASQUERADE
+iptables -A FORWARD -d 172.17.0.2 -p tcp --dport 80 -j ACCEPT
+
+<span style="color:#58a6ff"># 확인 명령어</span>
+iptables -t nat -L -n -v
+conntrack -L
+</div>
+</div>
+
+<script>
+let timer=null,step=0,playing=false;
+const totalSteps=22;
+
+function animateStep(s){
+  // Network diagram boxes: 0-6
+  if(s>=0&&s<=6){
+    const nb=document.getElementById('nb'+s);
+    if(nb)nb.classList.add('show');
+  }
+  // Connection lines: 7-12
+  if(s>=7&&s<=12){
+    const line=document.getElementById('line'+(s-7));
+    if(line){line.classList.add('show');line.classList.add('animated');}
+  }
+  // Outbound flow: 13-17
+  if(s>=13&&s<=17){
+    const of=document.getElementById('of'+(s-13));
+    if(of)of.classList.add('show');
+  }
+  // Port mapping: 18-22
+  if(s===18){document.getElementById('pb0').classList.add('show')}
+  if(s===19){document.getElementById('pa0').classList.add('show');document.getElementById('pb1').classList.add('show');}
+  if(s===20){document.getElementById('pa1').classList.add('show');document.getElementById('pb2').classList.add('show');}
+  if(s===21){document.getElementById('portRule').classList.add('show')}
+}
+
+function play(){
+  if(playing)return;playing=true;
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  timer=setInterval(()=>{if(step>=totalSteps){pause();return;}animateStep(step);step++;},600);
+}
+function pause(){
+  playing=false;clearInterval(timer);
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function restart(){
+  pause();step=0;
+  document.querySelectorAll('.net-box,.flow-step,.port-box,.port-arrow').forEach(e=>e.classList.remove('show'));
+  document.querySelectorAll('.net-svg line,.net-svg path').forEach(e=>{e.classList.remove('show','animated')});
+  document.getElementById('portRule').classList.remove('show');
+  setTimeout(play,300);
+}
+window.addEventListener('load',()=>setTimeout(play,500));
+</script>
+</body>
+</html>

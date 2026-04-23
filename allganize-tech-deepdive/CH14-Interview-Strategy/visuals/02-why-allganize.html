@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>왜 Allganize인가 — 지원동기 시각화</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#f0883e,#ffb86c);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:28px;font-size:0.95rem}
+.section-title{font-size:1.1rem;margin-bottom:16px;color:#e6edf3;display:flex;align-items:center;gap:8px}
+.section-title .icon{font-size:1.2rem}
+
+/* Company Info Grid */
+.company-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:32px}
+.company-card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px;text-align:center;opacity:0;transform:translateY(16px);transition:all .5s ease}
+.company-card.visible{opacity:1;transform:translateY(0)}
+.company-card .cc-icon{font-size:1.8rem;margin-bottom:8px;display:block}
+.company-card .cc-label{font-size:0.72rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.company-card .cc-value{font-size:0.9rem;font-weight:600;color:#e6edf3;line-height:1.4}
+.company-card .cc-value strong{color:#f0883e}
+
+/* Motivation Cards */
+.motive-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:32px}
+.motive-card{background:#161b22;border:2px solid #30363d;border-radius:12px;padding:20px;cursor:pointer;transition:all .4s ease;position:relative;overflow:hidden}
+.motive-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent);transform:scaleX(0);transition:transform .4s ease;transform-origin:left}
+.motive-card.active::before,.motive-card:hover::before{transform:scaleX(1)}
+.motive-card.active{border-color:var(--accent);box-shadow:0 0 24px var(--glow)}
+.motive-card .mc-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600;margin-bottom:10px;background:var(--badge-bg);color:var(--accent);border:1px solid var(--accent)}
+.motive-card .mc-target{font-size:0.75rem;color:#8b949e;margin-bottom:8px}
+.motive-card .mc-title{font-size:1rem;font-weight:700;margin-bottom:10px}
+.motive-card .mc-body{font-size:0.82rem;color:#8b949e;line-height:1.6;max-height:0;overflow:hidden;transition:max-height .5s ease}
+.motive-card.active .mc-body{max-height:400px}
+.motive-card .mc-keywords{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}
+.motive-card .mc-keywords span{padding:2px 8px;border-radius:4px;font-size:0.7rem;background:#21262d;color:#8b949e}
+.motive-card.active .mc-keywords span{color:var(--accent)}
+
+.card-tech{--accent:#58a6ff;--glow:rgba(88,166,255,.15);--badge-bg:rgba(88,166,255,.1)}
+.card-global{--accent:#a371f7;--glow:rgba(163,113,247,.15);--badge-bg:rgba(163,113,247,.1)}
+.card-impact{--accent:#3fb950;--glow:rgba(63,185,80,.15);--badge-bg:rgba(63,185,80,.1)}
+
+/* Connection Map */
+.conn-section{margin-bottom:32px}
+.conn-container{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;position:relative;overflow:hidden}
+.conn-grid{display:grid;grid-template-columns:1fr 80px 1fr;gap:0;align-items:start}
+.conn-col{display:flex;flex-direction:column;gap:10px}
+.conn-item{padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;font-size:0.82rem;position:relative;opacity:0;transform:translateX(-20px);transition:all .5s ease}
+.conn-item.right{transform:translateX(20px);text-align:right}
+.conn-item.visible{opacity:1;transform:translateX(0)}
+.conn-item .ci-label{font-size:0.68rem;color:#8b949e;margin-bottom:2px}
+.conn-item.left .ci-label{color:#58a6ff}
+.conn-item.right .ci-label{color:#f0883e}
+.conn-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding-top:8px}
+.conn-line{width:2px;height:100%;min-height:40px;position:relative}
+.conn-dot{width:10px;height:10px;border-radius:50%;background:#f0883e;opacity:0;transition:opacity .5s;box-shadow:0 0 8px rgba(240,136,62,.5)}
+.conn-dot.visible{opacity:1;animation:dotPulse 2s ease infinite}
+@keyframes dotPulse{0%,100%{box-shadow:0 0 8px rgba(240,136,62,.3)}50%{box-shadow:0 0 16px rgba(240,136,62,.7)}}
+
+/* SVG Lines */
+.conn-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.conn-svg line{stroke:#f0883e;stroke-width:1.5;stroke-dasharray:6 4;opacity:0;transition:opacity .6s ease}
+.conn-svg line.visible{opacity:.5;animation:dashMove 2s linear infinite}
+@keyframes dashMove{to{stroke-dashoffset:-20}}
+
+/* Version Selector Guide */
+.guide-section{margin-bottom:20px}
+.guide-flow{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px}
+.guide-step{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.guide-step:last-child{margin-bottom:0}
+.guide-node{flex:0 0 auto;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;border:2px solid #30363d;background:#21262d}
+.guide-arrow{flex:0 0 20px;color:#8b949e;text-align:center}
+.guide-label{font-size:0.85rem;color:#8b949e}
+.guide-label strong{color:#e6edf3}
+.guide-branches{display:flex;gap:12px;margin-left:48px;margin-top:4px;flex-wrap:wrap}
+.guide-branch{padding:8px 14px;border-radius:6px;font-size:0.8rem;border:1px solid #30363d;background:#0d1117;cursor:pointer;transition:all .3s}
+.guide-branch:hover{transform:translateY(-2px)}
+.guide-branch.b-tech{border-color:#58a6ff40;color:#58a6ff}
+.guide-branch.b-tech:hover{background:#58a6ff10}
+.guide-branch.b-global{border-color:#a371f740;color:#a371f7}
+.guide-branch.b-global:hover{background:#a371f710}
+.guide-branch.b-impact{border-color:#3fb95040;color:#3fb950}
+.guide-branch.b-impact:hover{background:#3fb95010}
+
+@media(max-width:768px){
+  .conn-grid{grid-template-columns:1fr;gap:12px}
+  .conn-mid{flex-direction:row;padding:0}
+  .motive-cards{grid-template-columns:1fr}
+  .company-grid{grid-template-columns:repeat(2,1fr)}
+  .container{padding:12px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>왜 Allganize인가</h1>
+<p class="subtitle">Why Allganize &mdash; 지원동기 3가지 버전 + 기업 분석 + 스킬 매칭</p>
+
+<!-- Company Info -->
+<div class="section-title"><span class="icon">&#127970;</span> Allganize 기업 분석</div>
+<div class="company-grid" id="companyGrid">
+  <div class="company-card"><span class="cc-icon">&#129302;</span><div class="cc-label">핵심 제품</div><div class="cc-value"><strong>Alli</strong> &mdash; 기업용 AI/LLM</div></div>
+  <div class="company-card"><span class="cc-icon">&#9881;</span><div class="cc-label">기술 스택</div><div class="cc-value">LLM + <strong>Kubernetes</strong> + Cloud Native</div></div>
+  <div class="company-card"><span class="cc-icon">&#127758;</span><div class="cc-label">시장</div><div class="cc-value">한국 + 일본 + <strong>글로벌 B2B SaaS</strong></div></div>
+  <div class="company-card"><span class="cc-icon">&#128200;</span><div class="cc-label">특이점</div><div class="cc-value"><strong>도쿄 증시 상장</strong> 추진</div></div>
+  <div class="company-card"><span class="cc-icon">&#128101;</span><div class="cc-label">팀 문화</div><div class="cc-value">스타트업 속도 + <strong>엔터프라이즈</strong> 대응</div></div>
+  <div class="company-card"><span class="cc-icon">&#128736;</span><div class="cc-label">DevOps 역할</div><div class="cc-value">인프라 안정성 + <strong>글로벌 확장</strong></div></div>
+</div>
+
+<!-- Motivation Cards -->
+<div class="section-title"><span class="icon">&#128161;</span> 지원동기 3가지 버전 (카드를 클릭하세요)</div>
+<div class="motive-cards" id="motiveCards">
+  <div class="motive-card card-tech active" onclick="selectMotive(this,0)">
+    <span class="mc-badge">버전 1</span>
+    <div class="mc-target">적합 대상: 기술 리드 / CTO</div>
+    <div class="mc-title">&#128640; 기술 성장 중심</div>
+    <div class="mc-body">
+      인프라의 &ldquo;하드웨어 쪽&rdquo;에서 일해왔지만, AI 데이터센터 프로젝트를 통해 쿠버네티스와 클라우드 네이티브가 미래임을 확신했습니다.<br><br>
+      Allganize는 LLM 서비스를 실제 프로덕션으로 운영하는 곳 &mdash; GPU 스케줄링, 모델 서빙, 트래픽 관리 같은 AI 특화 인프라 챌린지가 매일 발생하는 환경에서 성장하고 싶습니다.
+      <div class="mc-keywords">
+        <span>AI 인프라 챌린지</span><span>클라우드 네이티브</span><span>깊이 있는 진단</span>
+      </div>
+    </div>
+  </div>
+  <div class="motive-card card-global" onclick="selectMotive(this,1)">
+    <span class="mc-badge">버전 2</span>
+    <div class="mc-target">적합 대상: 경영진 / HR</div>
+    <div class="mc-title">&#127758; 글로벌 비전 중심</div>
+    <div class="mc-body">
+      도쿄 증시 상장 소식이 계기였습니다. 한국 AI 스타트업이 일본 시장을 교두보로 글로벌 확장 &mdash; 기술력에 대한 자신감의 증거.<br><br>
+      &ldquo;한국에서만 통하는 엔지니어&rdquo;가 아니라 &ldquo;글로벌 서비스를 운영할 수 있는 엔지니어&rdquo;가 되고 싶습니다. 멀티 리전 배포, 글로벌 트래픽 관리를 실전으로 경험하고 싶습니다.
+      <div class="mc-keywords">
+        <span>글로벌 확장</span><span>도쿄 상장</span><span>멀티 리전</span><span>적응력</span>
+      </div>
+    </div>
+  </div>
+  <div class="motive-card card-impact" onclick="selectMotive(this,2)">
+    <span class="mc-badge">버전 3</span>
+    <div class="mc-target">적합 대상: 실무 팀 리드 / 캐주얼</div>
+    <div class="mc-title">&#128165; 임팩트 중심</div>
+    <div class="mc-body">
+      지금까지 &ldquo;인프라를 만들어주는 쪽&rdquo;에서 일했습니다. 이제는 직접 만들고, 직접 운영하고, 직접 고치는 환경을 원합니다.<br><br>
+      제가 구축한 파이프라인이 서비스 안정성에 직접 영향을 미치고, 배포 프로세스 개선이 개발팀 속도를 높이는 &mdash; 체감 가능한 임팩트를 원합니다.
+      <div class="mc-keywords">
+        <span>직접 운영</span><span>체감 임팩트</span><span>서비스 안정성</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Connection Map -->
+<div class="conn-section">
+  <div class="section-title"><span class="icon">&#128279;</span> 스킬 매칭: 나의 역량 &harr; Allganize 니즈</div>
+  <div class="conn-container" id="connContainer">
+    <svg class="conn-svg" id="connSvg"></svg>
+    <div class="conn-grid">
+      <div class="conn-col" id="leftCol">
+        <div class="conn-item left" data-idx="0"><div class="ci-label">MY SKILL</div>10년 인프라 운영 경험</div>
+        <div class="conn-item left" data-idx="1"><div class="ci-label">MY SKILL</div>폐쇄망 보안 환경 설계</div>
+        <div class="conn-item left" data-idx="2"><div class="ci-label">MY SKILL</div>AI 데이터센터 컨설팅</div>
+        <div class="conn-item left" data-idx="3"><div class="ci-label">MY SKILL</div>서버 &rarr; 서비스 풀스택</div>
+        <div class="conn-item left" data-idx="4"><div class="ci-label">MY SKILL</div>장애 분석 / 트러블슈팅</div>
+      </div>
+      <div class="conn-mid" id="connMid">
+        <div class="conn-dot" data-idx="0"></div>
+        <div class="conn-dot" data-idx="1"></div>
+        <div class="conn-dot" data-idx="2"></div>
+        <div class="conn-dot" data-idx="3"></div>
+        <div class="conn-dot" data-idx="4"></div>
+      </div>
+      <div class="conn-col" id="rightCol">
+        <div class="conn-item right" data-idx="0"><div class="ci-label">ALLGANIZE NEEDS</div>서비스 인프라 안정성</div>
+        <div class="conn-item right" data-idx="1"><div class="ci-label">ALLGANIZE NEEDS</div>엔터프라이즈 보안 요구</div>
+        <div class="conn-item right" data-idx="2"><div class="ci-label">ALLGANIZE NEEDS</div>LLM/GPU 인프라 운영</div>
+        <div class="conn-item right" data-idx="3"><div class="ci-label">ALLGANIZE NEEDS</div>배포 자동화 + CI/CD</div>
+        <div class="conn-item right" data-idx="4"><div class="ci-label">ALLGANIZE NEEDS</div>글로벌 확장 대응</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Version Selection Guide -->
+<div class="guide-section">
+  <div class="section-title"><span class="icon">&#127915;</span> 버전 선택 가이드</div>
+  <div class="guide-flow">
+    <div class="guide-step">
+      <div class="guide-node" style="border-color:#f0883e;color:#f0883e">1</div>
+      <div class="guide-label"><strong>면접 시작</strong> &rarr; 분위기 파악</div>
+    </div>
+    <div class="guide-step">
+      <div class="guide-node">2</div>
+      <div class="guide-label">질문 유형 판별</div>
+    </div>
+    <div class="guide-branches">
+      <div class="guide-branch b-tech" onclick="selectMotive(document.querySelectorAll('.motive-card')[0],0)">&#128640; 기술 질문 위주 &rarr; 버전 1</div>
+      <div class="guide-branch b-global" onclick="selectMotive(document.querySelectorAll('.motive-card')[1],1)">&#127758; 회사/문화 위주 &rarr; 버전 2</div>
+      <div class="guide-branch b-impact" onclick="selectMotive(document.querySelectorAll('.motive-card')[2],2)">&#128165; 캐주얼 대화형 &rarr; 버전 3</div>
+    </div>
+    <div class="guide-step" style="margin-top:12px">
+      <div class="guide-node" style="border-color:#3fb950;color:#3fb950">&#10003;</div>
+      <div class="guide-label">세 축 키워드를 머릿속에 두고 <strong>상황에 맞게 조합</strong></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+function selectMotive(el, idx) {
+  document.querySelectorAll('.motive-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// Intersection Observer
+function onIntersect(entries, obs) {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const el = e.target;
+      if (el.classList.contains('company-card')) {
+        const idx = [...el.parentElement.children].indexOf(el);
+        setTimeout(() => el.classList.add('visible'), idx * 100);
+      }
+      if (el.classList.contains('conn-item') || el.classList.contains('conn-dot')) {
+        const idx = parseInt(el.dataset.idx);
+        setTimeout(() => el.classList.add('visible'), idx * 200);
+      }
+      obs.unobserve(el);
+    }
+  });
+}
+
+const obs = new IntersectionObserver(onIntersect, {threshold: 0.15});
+document.querySelectorAll('.company-card, .conn-item, .conn-dot').forEach(el => obs.observe(el));
+</script>
+</body>
+</html>

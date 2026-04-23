@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python Data Structures - 파이썬 자료구조 시각화</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1300px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:24px;position:relative;overflow:hidden}
+.section h2{font-size:1.1rem;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.badge{padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:600}
+.progress-bar{height:4px;background:#21262d;border-radius:2px;margin-top:16px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#58a6ff,#bc8cff);width:0%;transition:width .3s;border-radius:2px}
+
+/* List visualization */
+.list-viz{display:flex;align-items:center;gap:0;justify-content:center;flex-wrap:wrap;padding:16px 0;min-height:80px}
+.list-cell{width:56px;height:56px;border:2px solid #58a6ff60;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1rem;font-weight:700;background:#58a6ff10;position:relative;transition:all .4s ease;margin:4px 2px}
+.list-cell .idx{position:absolute;top:-16px;font-size:.6rem;color:#8b949e;font-weight:400}
+.list-cell.highlight{border-color:#f0883e;background:#f0883e20;transform:scale(1.15);box-shadow:0 0 16px #f0883e40}
+.list-cell.removing{opacity:0;transform:scale(.3) translateY(20px);border-color:#f85149}
+.list-cell.inserting{animation:insertPop .5s ease}
+@keyframes insertPop{0%{opacity:0;transform:scale(0) translateY(-20px)}60%{transform:scale(1.2)}100%{opacity:1;transform:scale(1)}}
+.op-label{text-align:center;color:#8b949e;font-size:.82rem;margin-top:8px;min-height:24px;transition:all .3s}
+.op-label code{background:#30363d;padding:2px 8px;border-radius:4px;font-family:'Fira Code',monospace;color:#f0883e;font-size:.78rem}
+
+/* Dict / Hash Table */
+.hash-flow{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;padding:20px 0}
+.hash-step{display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;transform:translateY(16px);transition:all .5s ease}
+.hash-step.visible{opacity:1;transform:translateY(0)}
+.hash-box{padding:12px 18px;border-radius:8px;font-size:.85rem;font-weight:600;border:2px solid transparent;min-width:80px;text-align:center}
+.hash-key{background:#bc8cff15;border-color:#bc8cff60;color:#d2a8ff}
+.hash-fn{background:#f0883e15;border-color:#f0883e60;color:#f0883e}
+.hash-bucket{background:#3fb95015;border-color:#3fb95060;color:#3fb950}
+.hash-value{background:#58a6ff15;border-color:#58a6ff60;color:#58a6ff}
+.hash-arrow{color:#30363d;font-size:1.3rem;opacity:0;transition:all .3s}
+.hash-arrow.visible{opacity:1;color:#58a6ff}
+.bucket-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:12px}
+.bucket-slot{background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:10px;font-size:.75rem;color:#8b949e;transition:all .4s;min-height:44px}
+.bucket-slot.filled{border-color:#3fb950;color:#3fb950}
+.bucket-slot .bk{color:#d2a8ff;font-weight:600}.bucket-slot .bv{color:#58a6ff}
+
+/* Set / Venn */
+.venn-container{position:relative;height:260px;display:flex;align-items:center;justify-content:center;margin:16px 0}
+.venn-circle{position:absolute;width:180px;height:180px;border-radius:50%;border:2px solid;opacity:.7;display:flex;align-items:center;justify-content:center;font-size:.7rem;transition:all .6s ease}
+.venn-a{border-color:#58a6ff;background:#58a6ff10;left:calc(50% - 140px)}
+.venn-b{border-color:#bc8cff;background:#bc8cff10;left:calc(50% - 40px)}
+.venn-label{position:absolute;top:8px;font-weight:600;font-size:.75rem}
+.venn-a .venn-label{color:#58a6ff}
+.venn-b .venn-label{color:#bc8cff}
+.venn-items{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:24px 12px;max-width:100px}
+.venn-item{padding:2px 6px;border-radius:4px;font-size:.68rem;font-weight:600}
+.venn-result{text-align:center;padding:12px;background:#0d1117;border:1px solid #21262d;border-radius:8px;margin-top:8px}
+.venn-result .op-name{color:#f0883e;font-weight:700;font-size:.85rem}
+.venn-result .op-result{margin-top:4px;font-size:.82rem;color:#e6edf3}
+.venn-op-btns{display:flex;justify-content:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.venn-op-btns button{padding:6px 14px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:.78rem;transition:all .2s}
+.venn-op-btns button:hover{border-color:#bc8cff}
+.venn-op-btns button.active{background:#6e40c9;border-color:#bc8cff}
+.venn-overlap{position:absolute;left:calc(50% - 55px);display:flex;flex-wrap:wrap;gap:3px;justify-content:center;align-items:center;max-width:75px;z-index:2}
+.venn-overlap .venn-item{background:#8b5cf620;color:#d2a8ff;border:1px solid #8b5cf640}
+.venn-a .venn-items .venn-item{background:#58a6ff20;color:#58a6ff;border:1px solid #58a6ff40}
+.venn-b .venn-items .venn-item{background:#bc8cff20;color:#bc8cff;border:1px solid #bc8cff40}
+.highlight-set{animation:setGlow 1s ease}
+@keyframes setGlow{0%,100%{box-shadow:none}50%{box-shadow:0 0 20px var(--glow)}}
+
+/* Complexity Table */
+.complex-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.78rem}
+.complex-table th,.complex-table td{padding:8px 12px;text-align:center;border:1px solid #21262d}
+.complex-table th{background:#21262d;color:#e6edf3;font-weight:600;font-size:.75rem}
+.complex-table td{color:#8b949e;background:#0d1117}
+.complex-table td.fast{color:#3fb950;font-weight:600}
+.complex-table td.mid{color:#f0883e;font-weight:600}
+.complex-table td.slow{color:#f85149;font-weight:600}
+.complex-table td.ds-name{color:#d2a8ff;font-weight:600;text-align:left}
+.complex-table tr:hover td{background:#161b22}
+
+.paused .list-cell,.paused .hash-step,.paused .hash-arrow{transition:none!important}
+@media(max-width:768px){.container{padding:12px}.hash-flow{gap:6px}.venn-circle{width:140px;height:140px}.venn-a{left:calc(50% - 110px)}.venn-b{left:calc(50% - 30px)}.venn-overlap{left:calc(50% - 40px);max-width:55px}.bucket-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+<h1>Python Data Structures - 파이썬 자료구조 시각화</h1>
+<p class="subtitle">List, Dict, Set 의 내부 동작과 시간 복잡도 비교</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnim()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pauseAnim()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restartAnim()">&#8635; 다시시작 Restart</button>
+</div>
+
+<!-- LIST SECTION -->
+<div class="section">
+  <h2><span class="badge" style="background:#58a6ff30;color:#58a6ff;border:1px solid #58a6ff40">LIST</span> 리스트 연산 시각화 List Operations</h2>
+  <div class="list-viz" id="listViz"></div>
+  <div class="op-label" id="listOpLabel">애니메이션 시작 대기 중...</div>
+  <div class="progress-bar"><div class="progress-fill" id="listProgress"></div></div>
+</div>
+
+<!-- DICT SECTION -->
+<div class="section">
+  <h2><span class="badge" style="background:#bc8cff30;color:#bc8cff;border:1px solid #bc8cff40">DICT</span> 해시 테이블 시각화 Hash Table Visualization</h2>
+  <div class="hash-flow" id="hashFlow">
+    <div class="hash-step" id="hKey"><div class="hash-box hash-key">Key: "name"</div><div style="font-size:.68rem;color:#8b949e">키 Key</div></div>
+    <div class="hash-arrow" id="hArrow1">&#10132;</div>
+    <div class="hash-step" id="hFn"><div class="hash-box hash-fn">hash() = 3</div><div style="font-size:.68rem;color:#8b949e">해시함수 Hash</div></div>
+    <div class="hash-arrow" id="hArrow2">&#10132;</div>
+    <div class="hash-step" id="hBucket"><div class="hash-box hash-bucket">Bucket[3]</div><div style="font-size:.68rem;color:#8b949e">버킷 Bucket</div></div>
+    <div class="hash-arrow" id="hArrow3">&#10132;</div>
+    <div class="hash-step" id="hValue"><div class="hash-box hash-value">"Alice"</div><div style="font-size:.68rem;color:#8b949e">값 Value</div></div>
+  </div>
+  <p style="font-size:.78rem;color:#8b949e;margin-bottom:8px">해시 테이블 버킷 상태 Bucket State</p>
+  <div class="bucket-grid" id="bucketGrid">
+    <div class="bucket-slot">[0] 비어있음 empty</div>
+    <div class="bucket-slot">[1] 비어있음 empty</div>
+    <div class="bucket-slot">[2] 비어있음 empty</div>
+    <div class="bucket-slot">[3] 비어있음 empty</div>
+    <div class="bucket-slot">[4] 비어있음 empty</div>
+    <div class="bucket-slot">[5] 비어있음 empty</div>
+    <div class="bucket-slot">[6] 비어있음 empty</div>
+    <div class="bucket-slot">[7] 비어있음 empty</div>
+  </div>
+</div>
+
+<!-- SET SECTION -->
+<div class="section">
+  <h2><span class="badge" style="background:#3fb95030;color:#3fb950;border:1px solid #3fb95040">SET</span> 집합 연산 시각화 Set Operations</h2>
+  <div class="venn-op-btns">
+    <button class="active" onclick="setVennOp('union')">합집합 Union</button>
+    <button onclick="setVennOp('intersect')">교집합 Intersection</button>
+    <button onclick="setVennOp('diff')">차집합 Difference</button>
+    <button onclick="setVennOp('symdiff')">대칭차 Symmetric Diff</button>
+  </div>
+  <div class="venn-container" id="vennContainer">
+    <div class="venn-circle venn-a" id="vennA" style="--glow:#58a6ff40">
+      <div class="venn-label">A = {1,2,3,4}</div>
+      <div class="venn-items"><span class="venn-item">1</span><span class="venn-item">2</span></div>
+    </div>
+    <div class="venn-overlap" id="vennOverlap">
+      <span class="venn-item">3</span><span class="venn-item">4</span>
+    </div>
+    <div class="venn-circle venn-b" id="vennB" style="--glow:#bc8cff40">
+      <div class="venn-label">B = {3,4,5,6}</div>
+      <div class="venn-items"><span class="venn-item">5</span><span class="venn-item">6</span></div>
+    </div>
+  </div>
+  <div class="venn-result" id="vennResult">
+    <div class="op-name">A | B (합집합 Union)</div>
+    <div class="op-result">{1, 2, 3, 4, 5, 6}</div>
+  </div>
+</div>
+
+<!-- COMPLEXITY TABLE -->
+<div class="section">
+  <h2><span class="badge" style="background:#f0883e30;color:#f0883e;border:1px solid #f0883e40">O(n)</span> 시간 복잡도 비교 Time Complexity</h2>
+  <table class="complex-table">
+    <thead>
+      <tr><th>연산 Operation</th><th>List</th><th>Dict</th><th>Set</th><th>Deque</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="ds-name">접근 Access [i]</td><td class="fast">O(1)</td><td class="fast">O(1) avg</td><td>-</td><td class="fast">O(1)</td></tr>
+      <tr><td class="ds-name">검색 Search (in)</td><td class="slow">O(n)</td><td class="fast">O(1) avg</td><td class="fast">O(1) avg</td><td class="slow">O(n)</td></tr>
+      <tr><td class="ds-name">끝 추가 Append</td><td class="fast">O(1)*</td><td class="fast">O(1) avg</td><td class="fast">O(1) avg</td><td class="fast">O(1)</td></tr>
+      <tr><td class="ds-name">앞 추가 Prepend</td><td class="slow">O(n)</td><td>-</td><td>-</td><td class="fast">O(1)</td></tr>
+      <tr><td class="ds-name">중간 삽입 Insert</td><td class="mid">O(n)</td><td class="fast">O(1) avg</td><td class="fast">O(1) avg</td><td class="slow">O(n)</td></tr>
+      <tr><td class="ds-name">삭제 Delete</td><td class="slow">O(n)</td><td class="fast">O(1) avg</td><td class="fast">O(1) avg</td><td class="slow">O(n)</td></tr>
+      <tr><td class="ds-name">정렬 Sort</td><td class="mid">O(n log n)</td><td>-</td><td>-</td><td>-</td></tr>
+      <tr><td class="ds-name">슬라이스 Slice</td><td class="mid">O(k)</td><td>-</td><td>-</td><td>-</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:.7rem;color:#6e7681;margin-top:8px">* amortized, avg = average case (해시 충돌 시 O(n) 가능)</p>
+</div>
+</div>
+
+<script>
+let animTimer=null,paused=false,currentStep=0;
+const totalSteps=12;
+
+/* --- LIST ANIMATION --- */
+let listData=[10,20,30,40,50];
+function renderList(highlight,label){
+  const viz=document.getElementById('listViz');
+  viz.innerHTML='';
+  listData.forEach((v,i)=>{
+    const c=document.createElement('div');
+    c.className='list-cell'+(highlight===i?' highlight':'');
+    c.innerHTML='<span class="idx">['+i+']</span>'+v;
+    if(highlight===i)c.style.animationName='insertPop';
+    viz.appendChild(c);
+  });
+  document.getElementById('listOpLabel').innerHTML=label||'';
+}
+
+const listOps=[
+  ()=>{renderList(-1,'초기 리스트 Initial: <code>[10, 20, 30, 40, 50]</code>');},
+  ()=>{listData.push(60);renderList(5,'<code>append(60)</code> - 끝에 추가 O(1)');},
+  ()=>{listData.splice(2,0,25);renderList(2,'<code>insert(2, 25)</code> - 인덱스 2에 삽입 O(n)');},
+  ()=>{const v=listData.pop();renderList(-1,'<code>pop()</code> - 마지막 제거: '+v+' O(1)');},
+  ()=>{const v=listData.splice(0,1)[0];renderList(-1,'<code>pop(0)</code> - 첫 번째 제거: '+v+' O(n)');},
+  ()=>{const sl=listData.slice(1,4);renderList(-1,'<code>[1:4]</code> 슬라이스 Slice = ['+sl.join(', ')+'] O(k)');
+    const viz=document.getElementById('listViz');
+    for(let i=1;i<4&&i<viz.children.length;i++)viz.children[i].classList.add('highlight');},
+];
+
+/* --- DICT ANIMATION --- */
+const dictEntries=[
+  {key:'"name"',hash:3,val:'"Alice"'},
+  {key:'"age"',hash:7,val:'30'},
+  {key:'"city"',hash:1,val:'"Seoul"'},
+  {key:'"role"',hash:5,val:'"DevOps"'},
+];
+let dictStep=0;
+function animDict(){
+  if(dictStep>=dictEntries.length)return;
+  const e=dictEntries[dictStep];
+  const steps=['hKey','hFn','hBucket','hValue'];
+  const arrows=['hArrow1','hArrow2','hArrow3'];
+  // reset
+  steps.forEach(s=>document.getElementById(s).classList.remove('visible'));
+  arrows.forEach(a=>{document.getElementById(a).classList.remove('visible');});
+  // update content
+  document.querySelector('#hKey .hash-box').textContent='Key: '+e.key;
+  document.querySelector('#hFn .hash-box').textContent='hash() = '+e.hash;
+  document.querySelector('#hBucket .hash-box').textContent='Bucket['+e.hash+']';
+  document.querySelector('#hValue .hash-box').textContent=e.val;
+  // animate in sequence
+  setTimeout(()=>document.getElementById('hKey').classList.add('visible'),0);
+  setTimeout(()=>{document.getElementById('hArrow1').classList.add('visible');},300);
+  setTimeout(()=>document.getElementById('hFn').classList.add('visible'),500);
+  setTimeout(()=>{document.getElementById('hArrow2').classList.add('visible');},700);
+  setTimeout(()=>document.getElementById('hBucket').classList.add('visible'),900);
+  setTimeout(()=>{document.getElementById('hArrow3').classList.add('visible');},1100);
+  setTimeout(()=>{
+    document.getElementById('hValue').classList.add('visible');
+    // fill bucket
+    const slots=document.querySelectorAll('#bucketGrid .bucket-slot');
+    const slot=slots[e.hash];
+    slot.classList.add('filled');
+    slot.innerHTML='['+e.hash+'] <span class="bk">'+e.key+'</span>: <span class="bv">'+e.val+'</span>';
+  },1300);
+  dictStep++;
+}
+
+/* --- SET / VENN --- */
+function setVennOp(op){
+  const btns=document.querySelectorAll('.venn-op-btns button');
+  btns.forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  const res=document.getElementById('vennResult');
+  const vA=document.getElementById('vennA');
+  const vB=document.getElementById('vennB');
+  const ol=document.getElementById('vennOverlap');
+  // reset highlights
+  vA.style.opacity='.7';vB.style.opacity='.7';ol.style.opacity='1';
+  const A=[1,2,3,4],B=[3,4,5,6];
+  let name,code,result;
+  switch(op){
+    case 'union':
+      name='A | B (합집합 Union)';code='A.union(B)';result='{1, 2, 3, 4, 5, 6}';
+      vA.style.opacity='1';vB.style.opacity='1';break;
+    case 'intersect':
+      name='A & B (교집합 Intersection)';code='A.intersection(B)';result='{3, 4}';
+      vA.style.opacity='.4';vB.style.opacity='.4';ol.style.opacity='1';break;
+    case 'diff':
+      name='A - B (차집합 Difference)';code='A.difference(B)';result='{1, 2}';
+      vA.style.opacity='1';vB.style.opacity='.3';ol.style.opacity='.3';break;
+    case 'symdiff':
+      name='A ^ B (대칭차 Symmetric Diff)';code='A.symmetric_difference(B)';result='{1, 2, 5, 6}';
+      vA.style.opacity='1';vB.style.opacity='1';ol.style.opacity='.2';break;
+  }
+  res.innerHTML='<div class="op-name">'+name+'</div><div style="font-size:.72rem;color:#8b949e;margin:4px 0"><code>'+code+'</code></div><div class="op-result">'+result+'</div>';
+}
+
+/* --- MAIN ANIMATION CONTROLLER --- */
+function runStep(){
+  if(paused)return;
+  const pct=Math.min(100,((currentStep+1)/totalSteps)*100);
+  document.getElementById('listProgress').style.width=pct+'%';
+
+  if(currentStep<listOps.length){
+    listOps[currentStep]();
+  } else if(currentStep<listOps.length+dictEntries.length){
+    animDict();
+  }
+  currentStep++;
+  if(currentStep<totalSteps){
+    animTimer=setTimeout(runStep,1800);
+  }
+}
+
+function startAnim(){
+  paused=false;
+  document.getElementById('app').classList.remove('paused');
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  if(!animTimer)runStep();
+}
+function pauseAnim(){
+  paused=true;
+  clearTimeout(animTimer);animTimer=null;
+  document.getElementById('app').classList.add('paused');
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function restartAnim(){
+  clearTimeout(animTimer);animTimer=null;
+  currentStep=0;dictStep=0;paused=false;
+  listData=[10,20,30,40,50];
+  document.getElementById('listProgress').style.width='0%';
+  // reset dict
+  document.querySelectorAll('.hash-step').forEach(s=>s.classList.remove('visible'));
+  document.querySelectorAll('.hash-arrow').forEach(a=>a.classList.remove('visible'));
+  document.querySelectorAll('#bucketGrid .bucket-slot').forEach((s,i)=>{s.classList.remove('filled');s.innerHTML='['+i+'] 비어있음 empty';});
+  document.getElementById('app').classList.remove('paused');
+  document.getElementById('btnPlay').classList.add('active');
+  document.getElementById('btnPause').classList.remove('active');
+  renderList(-1,'애니메이션 시작 대기 중...');
+  setTimeout(()=>runStep(),400);
+}
+
+// init
+renderList(-1,'애니메이션 시작 대기 중...');
+setTimeout(()=>startAnim(),800);
+</script>
+</body>
+</html>

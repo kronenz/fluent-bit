@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Open-Ended Answer Framework - 오픈엔디드 답변 프레임워크</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+.container{max-width:1300px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:8px;background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#8b949e;margin-bottom:24px;font-size:.95rem}
+.controls{display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:.9rem;transition:all .2s}
+.controls button:hover{background:#30363d;border-color:#58a6ff}
+.controls button.active{background:#1f6feb;border-color:#58a6ff}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:24px;overflow:hidden}
+.section h2{font-size:1.1rem;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.badge{padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:600}
+.progress-bar{height:4px;background:#21262d;border-radius:2px;margin-top:16px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#58a6ff,#bc8cff);width:0%;transition:width .3s;border-radius:2px}
+.op-label{text-align:center;color:#8b949e;font-size:.82rem;margin-top:8px;min-height:24px}
+
+/* STAR-T Flow */
+.start-flow{display:flex;align-items:stretch;gap:0;justify-content:center;flex-wrap:wrap;padding:20px 0}
+.start-step{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;min-width:120px;max-width:200px;opacity:0;transform:translateY(24px);transition:all .6s ease}
+.start-step.visible{opacity:1;transform:translateY(0)}
+.start-letter{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;border:3px solid;transition:all .4s}
+.start-letter.active{transform:scale(1.15);box-shadow:0 0 24px var(--glow)}
+.start-info{text-align:center;padding:12px;background:#0d1117;border:1px solid #21262d;border-radius:8px;flex:1;width:100%;transition:all .3s}
+.start-info h3{font-size:.85rem;margin-bottom:4px}
+.start-info p{font-size:.72rem;color:#8b949e;line-height:1.4}
+.start-arrow{display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:#30363d;min-width:30px;opacity:0;transition:opacity .3s}
+.start-arrow.visible{opacity:1;color:#58a6ff}
+.step-s .start-letter{background:#58a6ff15;border-color:#58a6ff;color:#58a6ff;--glow:#58a6ff40}
+.step-t .start-letter{background:#f0883e15;border-color:#f0883e;color:#f0883e;--glow:#f0883e40}
+.step-a .start-letter{background:#bc8cff15;border-color:#bc8cff;color:#bc8cff;--glow:#bc8cff40}
+.step-r .start-letter{background:#3fb95015;border-color:#3fb950;color:#3fb950;--glow:#3fb95040}
+.step-tb .start-letter{background:#d2a8ff15;border-color:#d2a8ff;color:#d2a8ff;--glow:#d2a8ff40}
+
+/* Topic Cards */
+.topic-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.topic-card{background:#0d1117;border:1px solid #21262d;border-radius:10px;overflow:hidden;cursor:pointer;transition:all .3s}
+.topic-card:hover{border-color:#58a6ff40;transform:translateY(-2px)}
+.topic-card.expanded{border-color:#58a6ff}
+.topic-header{padding:16px;display:flex;align-items:center;gap:10px}
+.topic-icon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.topic-title{font-size:.85rem;font-weight:600}
+.topic-subtitle{font-size:.68rem;color:#8b949e;margin-top:2px}
+.topic-expand{font-size:.7rem;color:#6e7681;margin-left:auto;transition:transform .3s}
+.topic-card.expanded .topic-expand{transform:rotate(180deg)}
+.topic-body{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .3s}
+.topic-card.expanded .topic-body{max-height:500px;padding:0 16px 16px}
+.template-item{padding:8px 12px;background:#161b22;border-radius:6px;margin-bottom:6px;font-size:.75rem;color:#8b949e;border-left:3px solid #30363d;line-height:1.5}
+.template-item strong{color:#e6edf3;font-size:.78rem}
+.template-item .hint{color:#58a6ff;font-style:italic}
+
+/* Answer Builder */
+.builder-flow{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.builder-step{display:flex;gap:12px;align-items:flex-start;opacity:0;transform:translateX(-20px);transition:all .5s ease}
+.builder-step.visible{opacity:1;transform:translateX(0)}
+.builder-num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0;border:2px solid}
+.builder-content{flex:1;background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:14px;transition:border-color .3s}
+.builder-step.active .builder-content{border-color:#58a6ff}
+.builder-content h3{font-size:.85rem;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.builder-content p{font-size:.75rem;color:#8b949e;line-height:1.5}
+.builder-content .example{margin-top:8px;padding:8px 12px;background:#161b22;border-radius:6px;font-size:.72rem;color:#8b949e;border-left:3px solid #58a6ff}
+.builder-content .example strong{color:#58a6ff}
+.b-problem .builder-num{background:#f8514915;border-color:#f85149;color:#f85149}
+.b-approach .builder-num{background:#58a6ff15;border-color:#58a6ff;color:#58a6ff}
+.b-implement .builder-num{background:#bc8cff15;border-color:#bc8cff;color:#bc8cff}
+.b-outcome .builder-num{background:#3fb95015;border-color:#3fb950;color:#3fb950}
+
+.paused .start-step,.paused .builder-step{transition:none!important}
+@media(max-width:768px){.container{padding:12px}.start-flow{flex-direction:column;align-items:center}.start-arrow{transform:rotate(90deg)}.topic-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+<h1>Open-Ended Answer Framework - 오픈엔디드 답변 프레임워크</h1>
+<p class="subtitle">STAR-T 프레임워크, 토픽 카드, 답변 구조 빌더</p>
+
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="startAnim()">&#9654; 재생 Play</button>
+  <button id="btnPause" onclick="pauseAnim()">&#10074;&#10074; 일시정지 Pause</button>
+  <button id="btnRestart" onclick="restartAnim()">&#8635; 다시시작 Restart</button>
+</div>
+
+<!-- STAR-T FRAMEWORK -->
+<div class="section">
+  <h2><span class="badge" style="background:#58a6ff30;color:#58a6ff;border:1px solid #58a6ff40">STAR-T</span> 답변 프레임워크 STAR-T Framework</h2>
+  <div class="start-flow" id="startFlow">
+    <div class="start-step step-s" data-idx="0">
+      <div class="start-letter">S</div>
+      <div class="start-info"><h3>Situation <span style="color:#58a6ff">상황</span></h3><p>프로젝트 배경과 맥락을 설명합니다. 어떤 환경에서, 어떤 팀에서 일했는지 구체적으로 기술합니다.<br><em>Describe the project context and environment.</em></p></div>
+    </div>
+    <div class="start-arrow">&#10132;</div>
+    <div class="start-step step-t" data-idx="1">
+      <div class="start-letter">T</div>
+      <div class="start-info"><h3>Task <span style="color:#f0883e">과제</span></h3><p>해결해야 할 구체적인 문제나 목표를 설명합니다. 기술적 제약사항도 포함합니다.<br><em>Define the specific problem or goal you needed to achieve.</em></p></div>
+    </div>
+    <div class="start-arrow">&#10132;</div>
+    <div class="start-step step-a" data-idx="2">
+      <div class="start-letter">A</div>
+      <div class="start-info"><h3>Action <span style="color:#bc8cff">행동</span></h3><p>본인이 취한 구체적 기술적 행동을 설명합니다. 도구, 기술, 의사결정 과정을 포함합니다.<br><em>Explain your specific technical actions and decisions.</em></p></div>
+    </div>
+    <div class="start-arrow">&#10132;</div>
+    <div class="start-step step-r" data-idx="3">
+      <div class="start-letter">R</div>
+      <div class="start-info"><h3>Result <span style="color:#3fb950">결과</span></h3><p>정량적 성과와 영향을 제시합니다. 수치로 표현할 수 있으면 더 좋습니다.<br><em>Present quantifiable outcomes and impact metrics.</em></p></div>
+    </div>
+    <div class="start-arrow">&#10132;</div>
+    <div class="start-step step-tb" data-idx="4">
+      <div class="start-letter">T</div>
+      <div class="start-info"><h3>Tie-back <span style="color:#d2a8ff">연결</span></h3><p>경험을 지원하는 포지션과 연결합니다. 이 경험이 왜 해당 역할에 적합한지 설명합니다.<br><em>Connect your experience to the role you are applying for.</em></p></div>
+    </div>
+  </div>
+  <div class="op-label" id="startLabel">STAR-T 프레임워크 애니메이션 시작 대기 중...</div>
+  <div class="progress-bar"><div class="progress-fill" id="startProgress"></div></div>
+</div>
+
+<!-- TOPIC CARDS -->
+<div class="section">
+  <h2><span class="badge" style="background:#bc8cff30;color:#bc8cff;border:1px solid #bc8cff40">TOPICS</span> 5대 토픽 영역 Five Topic Areas (클릭하여 확장 Click to expand)</h2>
+  <div class="topic-grid" id="topicGrid">
+
+    <div class="topic-card" onclick="toggleCard(this)">
+      <div class="topic-header">
+        <div class="topic-icon" style="background:#58a6ff15;border:1px solid #58a6ff40">&#9881;</div>
+        <div><div class="topic-title">CI/CD 파이프라인</div><div class="topic-subtitle">Pipeline Design & Optimization</div></div>
+        <div class="topic-expand">&#9660;</div>
+      </div>
+      <div class="topic-body">
+        <div class="template-item"><strong>S:</strong> "마이크로서비스 20개를 운영하는 팀에서..."<br><span class="hint">Context: team size, service count, tools</span></div>
+        <div class="template-item"><strong>T:</strong> "배포 주기가 주 1회로 느려서 개선이 필요했습니다"<br><span class="hint">Problem: slow deployment, manual steps</span></div>
+        <div class="template-item"><strong>A:</strong> "GitHub Actions + ArgoCD 기반 GitOps 워크플로우 구축"<br><span class="hint">Actions: tool selection, implementation details</span></div>
+        <div class="template-item"><strong>R:</strong> "배포 주기 주 1회 -> 일 5회, 롤백 시간 30분 -> 2분"<br><span class="hint">Metrics: frequency, time, error rate</span></div>
+        <div class="template-item"><strong>T:</strong> "이 경험으로 Allganize의 ML 파이프라인 자동화에 기여 가능"<br><span class="hint">Tie-back: connect to target role</span></div>
+      </div>
+    </div>
+
+    <div class="topic-card" onclick="toggleCard(this)">
+      <div class="topic-header">
+        <div class="topic-icon" style="background:#3fb95015;border:1px solid #3fb95040">&#128202;</div>
+        <div><div class="topic-title">모니터링 & 장애대응</div><div class="topic-subtitle">Monitoring & Incident Response</div></div>
+        <div class="topic-expand">&#9660;</div>
+      </div>
+      <div class="topic-body">
+        <div class="template-item"><strong>S:</strong> "프로덕션 서비스 SLA 99.9%를 유지하는 환경에서..."<br><span class="hint">Context: SLA requirements, scale</span></div>
+        <div class="template-item"><strong>T:</strong> "장애 감지부터 복구까지 평균 45분이 걸리는 문제"<br><span class="hint">Problem: MTTR too high</span></div>
+        <div class="template-item"><strong>A:</strong> "Prometheus + Grafana 기반 알림 체계 구축, 런북 자동화"<br><span class="hint">Actions: tooling, runbook automation</span></div>
+        <div class="template-item"><strong>R:</strong> "MTTR 45분 -> 8분, 거짓 알림 70% 감소"<br><span class="hint">Metrics: MTTR, false positive rate</span></div>
+        <div class="template-item"><strong>T:</strong> "AI 서비스의 안정적 운영을 위한 관측성 역량 제공 가능"<br><span class="hint">Tie-back: observability for AI services</span></div>
+      </div>
+    </div>
+
+    <div class="topic-card" onclick="toggleCard(this)">
+      <div class="topic-header">
+        <div class="topic-icon" style="background:#f0883e15;border:1px solid #f0883e40">&#128230;</div>
+        <div><div class="topic-title">컨테이너 & 쿠버네티스</div><div class="topic-subtitle">Container Orchestration</div></div>
+        <div class="topic-expand">&#9660;</div>
+      </div>
+      <div class="topic-body">
+        <div class="template-item"><strong>S:</strong> "VM 기반에서 K8s로 마이그레이션 프로젝트를 진행..."<br><span class="hint">Context: migration project</span></div>
+        <div class="template-item"><strong>T:</strong> "무중단 마이그레이션과 리소스 최적화가 핵심 과제"<br><span class="hint">Problem: zero-downtime, resource optimization</span></div>
+        <div class="template-item"><strong>A:</strong> "카나리 배포, HPA, VPA 설정, Helm 차트 표준화"<br><span class="hint">Actions: deployment strategy, autoscaling</span></div>
+        <div class="template-item"><strong>R:</strong> "인프라 비용 35% 절감, 가용성 99.95% 달성"<br><span class="hint">Metrics: cost savings, availability</span></div>
+        <div class="template-item"><strong>T:</strong> "Allganize의 멀티테넌트 K8s 환경 운영에 직접 적용 가능"<br><span class="hint">Tie-back: multi-tenant K8s expertise</span></div>
+      </div>
+    </div>
+
+    <div class="topic-card" onclick="toggleCard(this)">
+      <div class="topic-header">
+        <div class="topic-icon" style="background:#bc8cff15;border:1px solid #bc8cff40">&#128274;</div>
+        <div><div class="topic-title">보안 & 네트워크</div><div class="topic-subtitle">Security & Networking</div></div>
+        <div class="topic-expand">&#9660;</div>
+      </div>
+      <div class="topic-body">
+        <div class="template-item"><strong>S:</strong> "금융/헬스케어 고객을 위한 규제 준수 환경 구축..."<br><span class="hint">Context: compliance requirements</span></div>
+        <div class="template-item"><strong>T:</strong> "SOC2 인증 획득을 위한 인프라 보안 강화"<br><span class="hint">Problem: security certification</span></div>
+        <div class="template-item"><strong>A:</strong> "네트워크 폴리시, mTLS, 시크릿 관리, 취약점 스캔 파이프라인"<br><span class="hint">Actions: network policy, secrets, scanning</span></div>
+        <div class="template-item"><strong>R:</strong> "SOC2 Type II 인증 획득, 취약점 탐지율 95%+"<br><span class="hint">Metrics: certification, detection rate</span></div>
+        <div class="template-item"><strong>T:</strong> "엔터프라이즈 AI 제품의 보안 요구사항 충족에 기여 가능"<br><span class="hint">Tie-back: enterprise security</span></div>
+      </div>
+    </div>
+
+    <div class="topic-card" onclick="toggleCard(this)">
+      <div class="topic-header">
+        <div class="topic-icon" style="background:#d2a8ff15;border:1px solid #d2a8ff40">&#128640;</div>
+        <div><div class="topic-title">자동화 & IaC</div><div class="topic-subtitle">Automation & Infrastructure as Code</div></div>
+        <div class="topic-expand">&#9660;</div>
+      </div>
+      <div class="topic-body">
+        <div class="template-item"><strong>S:</strong> "수동 인프라 관리로 인적 오류가 빈번한 환경에서..."<br><span class="hint">Context: manual operations, human errors</span></div>
+        <div class="template-item"><strong>T:</strong> "인프라 프로비저닝 자동화와 재현 가능한 환경 구축"<br><span class="hint">Problem: reproducibility, automation</span></div>
+        <div class="template-item"><strong>A:</strong> "Terraform 모듈화, Ansible 플레이북, 셀프서비스 포털 구축"<br><span class="hint">Actions: IaC tools, self-service</span></div>
+        <div class="template-item"><strong>R:</strong> "프로비저닝 시간 2일 -> 30분, 인적 오류 90% 감소"<br><span class="hint">Metrics: time, error reduction</span></div>
+        <div class="template-item"><strong>T:</strong> "Allganize의 클라우드 인프라 자동화 역량 강화에 기여"<br><span class="hint">Tie-back: cloud automation</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ANSWER BUILDER -->
+<div class="section">
+  <h2><span class="badge" style="background:#3fb95030;color:#3fb950;border:1px solid #3fb95040">BUILD</span> 답변 구조 빌더 Answer Structure Builder</h2>
+  <div class="builder-flow" id="builderFlow">
+    <div class="builder-step b-problem" data-b="0">
+      <div class="builder-num">1</div>
+      <div class="builder-content">
+        <h3>&#127919; 문제 정의 Problem Statement</h3>
+        <p>해결하려는 문제를 명확하게 정의합니다. 기술적 맥락과 비즈니스 영향을 포함합니다.</p>
+        <p><em>Clearly define the problem with technical context and business impact.</em></p>
+        <div class="example"><strong>예시:</strong> "API 응답시간이 P99 기준 3초를 초과하여 사용자 이탈률이 15% 증가했습니다"<br><strong>Example:</strong> "P99 API latency exceeded 3s, causing 15% user drop-off increase"</div>
+      </div>
+    </div>
+    <div class="builder-step b-approach" data-b="1">
+      <div class="builder-num">2</div>
+      <div class="builder-content">
+        <h3>&#128161; 접근 방법 Approach</h3>
+        <p>문제 분석 과정과 선택한 솔루션의 근거를 설명합니다. 대안도 함께 언급합니다.</p>
+        <p><em>Explain your analysis process and justification. Mention alternatives considered.</em></p>
+        <div class="example"><strong>예시:</strong> "프로파일링으로 DB 쿼리 N+1 문제 식별 -> Redis 캐싱 vs 쿼리 최적화 비교 후 캐싱 선택"<br><strong>Example:</strong> "Profiled DB queries, found N+1 issue -> compared Redis caching vs query optimization"</div>
+      </div>
+    </div>
+    <div class="builder-step b-implement" data-b="2">
+      <div class="builder-num">3</div>
+      <div class="builder-content">
+        <h3>&#128295; 구현 Implementation</h3>
+        <p>구체적인 기술 스택, 코드 구조, 배포 전략을 설명합니다. 핵심 코드 예시를 포함하면 좋습니다.</p>
+        <p><em>Describe technical stack, code structure, deployment strategy with code examples.</em></p>
+        <div class="example"><strong>예시:</strong> "Redis Cluster 3노드 구성, @cache_result 데코레이터 구현, TTL 전략 수립, 카나리 배포로 점진적 적용"<br><strong>Example:</strong> "3-node Redis Cluster, @cache_result decorator, TTL strategy, canary rollout"</div>
+      </div>
+    </div>
+    <div class="builder-step b-outcome" data-b="3">
+      <div class="builder-num">4</div>
+      <div class="builder-content">
+        <h3>&#127942; 성과 Outcome</h3>
+        <p>정량적 결과와 배운 점을 제시합니다. Before/After 비교로 임팩트를 명확히 합니다.</p>
+        <p><em>Present quantifiable results with before/after comparison and lessons learned.</em></p>
+        <div class="example"><strong>예시:</strong> "P99 레이턴시 3.2s -> 180ms (94% 개선), 사용자 이탈률 15% -> 3%, DB 부하 60% 감소"<br><strong>Example:</strong> "P99 latency 3.2s -> 180ms (94% improvement), drop-off 15% -> 3%, DB load -60%"</div>
+      </div>
+    </div>
+  </div>
+  <div class="op-label" id="builderLabel">답변 구조 빌더 애니메이션 시작 대기 중...</div>
+</div>
+
+</div>
+
+<script>
+let animTimer=null,paused=false,phase=0,stepInPhase=0;
+
+/* ===== STAR-T Animation ===== */
+let startIdx=0;
+function animSTART(){
+  if(startIdx>4)return true;
+  const steps=document.querySelectorAll('#startFlow .start-step');
+  const arrows=document.querySelectorAll('#startFlow .start-arrow');
+  for(let i=0;i<=startIdx;i++){
+    steps[i].classList.add('visible');
+    steps[i].querySelector('.start-letter').classList.remove('active');
+    if(i>0)arrows[i-1].classList.add('visible');
+  }
+  steps[startIdx].querySelector('.start-letter').classList.add('active');
+  const labels=['S - 상황 설명: 프로젝트 배경과 맥락','T - 과제 정의: 해결할 구체적 문제','A - 행동 기술: 본인이 취한 기술적 행동','R - 결과 제시: 정량적 성과와 영향','T - 연결: 지원 포지션과의 관련성'];
+  document.getElementById('startLabel').textContent=labels[startIdx];
+  document.getElementById('startProgress').style.width=((startIdx+1)/5*100)+'%';
+  startIdx++;
+  return startIdx>4;
+}
+
+/* ===== Topic Cards ===== */
+function toggleCard(card){
+  const wasExpanded=card.classList.contains('expanded');
+  document.querySelectorAll('.topic-card').forEach(c=>c.classList.remove('expanded'));
+  if(!wasExpanded)card.classList.add('expanded');
+}
+
+/* ===== Builder Animation ===== */
+let builderIdx=0;
+function animBuilder(){
+  if(builderIdx>3)return true;
+  const steps=document.querySelectorAll('#builderFlow .builder-step');
+  for(let i=0;i<=builderIdx;i++){
+    steps[i].classList.add('visible');
+    steps[i].classList.remove('active');
+  }
+  steps[builderIdx].classList.add('active');
+  const labels=['1단계: 문제를 명확하게 정의합니다 Define the problem','2단계: 분석 과정과 접근 방법 설명 Explain your approach','3단계: 구체적인 구현 내용 기술 Describe implementation details','4단계: 정량적 성과와 교훈 제시 Present outcomes and lessons'];
+  document.getElementById('builderLabel').textContent=labels[builderIdx];
+  builderIdx++;
+  return builderIdx>3;
+}
+
+/* ===== MAIN CONTROLLER ===== */
+const phases=[
+  {name:'start',steps:6,fn:animSTART},
+  {name:'builder',steps:5,fn:animBuilder},
+];
+
+function initAll(){
+  startIdx=0;builderIdx=0;
+  document.querySelectorAll('#startFlow .start-step').forEach(s=>{s.classList.remove('visible');s.querySelector('.start-letter').classList.remove('active');});
+  document.querySelectorAll('#startFlow .start-arrow').forEach(a=>a.classList.remove('visible'));
+  document.getElementById('startProgress').style.width='0%';
+  document.querySelectorAll('#builderFlow .builder-step').forEach(s=>{s.classList.remove('visible','active');});
+  document.querySelectorAll('.topic-card').forEach(c=>c.classList.remove('expanded'));
+}
+
+function runStep(){
+  if(paused)return;
+  if(phase>=phases.length)return;
+  const p=phases[phase];
+  const done=p.fn();
+  stepInPhase++;
+  if(done||stepInPhase>=p.steps){phase++;stepInPhase=0;}
+  if(phase<phases.length){animTimer=setTimeout(runStep,1200);}
+}
+
+function startAnim(){
+  paused=false;document.getElementById('app').classList.remove('paused');
+  document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');
+  if(!animTimer)runStep();
+}
+function pauseAnim(){
+  paused=true;clearTimeout(animTimer);animTimer=null;
+  document.getElementById('app').classList.add('paused');
+  document.getElementById('btnPause').classList.add('active');document.getElementById('btnPlay').classList.remove('active');
+}
+function restartAnim(){
+  clearTimeout(animTimer);animTimer=null;phase=0;stepInPhase=0;paused=false;
+  document.getElementById('app').classList.remove('paused');
+  document.getElementById('btnPlay').classList.add('active');document.getElementById('btnPause').classList.remove('active');
+  initAll();setTimeout(()=>runStep(),400);
+}
+
+initAll();
+setTimeout(()=>startAnim(),800);
+</script>
+</body>
+</html>

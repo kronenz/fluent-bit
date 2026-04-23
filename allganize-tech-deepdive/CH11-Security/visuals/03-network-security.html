@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network Security Model | 네트워크 보안 모델</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0d1117;color:#c9d1d9;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+  .header{text-align:center;padding:24px 16px 8px;border-bottom:1px solid #21262d}
+  .header h1{font-size:1.5rem;color:#58a6ff;margin-bottom:4px}
+  .header p{font-size:.85rem;color:#8b949e}
+  .controls{display:flex;justify-content:center;gap:10px;padding:14px}
+  .controls button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:7px 18px;cursor:pointer;font-size:.85rem;transition:background .2s}
+  .controls button:hover{background:#30363d}
+  .controls button.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+  .step-indicator{text-align:center;padding:4px;font-size:.8rem;color:#8b949e}
+  .step-indicator .current{color:#58a6ff;font-weight:600}
+  .tabs{display:flex;justify-content:center;gap:6px;padding:8px 16px;flex-wrap:wrap}
+  .tabs button{background:#161b22;color:#8b949e;border:1px solid #30363d;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:.78rem;transition:all .2s}
+  .tabs button:hover{color:#c9d1d9;border-color:#58a6ff}
+  .tabs button.tab-active{background:#1f6feb22;color:#58a6ff;border-color:#1f6feb}
+  .scene{display:none;position:relative;width:100%;max-width:960px;height:540px;margin:0 auto;overflow:hidden}
+  .scene.active-scene{display:block}
+  .node{position:absolute;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:all .4s;opacity:0;transform:scale(.85)}
+  .node.visible{opacity:1;transform:scale(1)}
+  .node.highlight{box-shadow:0 0 24px rgba(88,166,255,.45);transform:scale(1.06)}
+  .node.glow-green{box-shadow:0 0 24px rgba(63,185,80,.5);border-color:#3fb950!important}
+  .node.glow-red{box-shadow:0 0 24px rgba(248,81,73,.5);border-color:#f85149!important}
+  .node .icon{font-size:1.5rem;margin-bottom:4px}
+  .node .label{font-size:.78rem;font-weight:600}
+  .node .sublabel{font-size:.65rem;color:#8b949e;margin-top:2px}
+  .arrows-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+  .arrow-path{fill:none;stroke-width:2;stroke-dasharray:8 4;opacity:0;transition:opacity .4s}
+  .arrow-path.visible{opacity:1}
+  .arrow-path.active{animation:dashFlow .8s linear infinite}
+  @keyframes dashFlow{to{stroke-dashoffset:-12}}
+  .arrow-head{opacity:0;transition:opacity .4s}
+  .arrow-head.visible{opacity:1}
+  .flow-label{position:absolute;font-size:.6rem;color:#8b949e;opacity:0;transition:opacity .5s;pointer-events:none;white-space:nowrap}
+  .flow-label.visible{opacity:1;color:#c9d1d9}
+  .scope-box{position:absolute;border-radius:10px;border:2px dashed;padding:10px;opacity:0;transition:opacity .5s}
+  .scope-box.visible{opacity:1}
+  .scope-box .scope-title{font-size:.7rem;font-weight:600;margin-bottom:4px}
+  .lock-icon{position:absolute;font-size:1.2rem;opacity:0;transition:all .5s}
+  .lock-icon.visible{opacity:1}
+
+  .info{max-width:960px;margin:10px auto;padding:0 16px}
+  .info-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;font-size:.78rem;line-height:1.6;min-height:60px}
+  .info-box .step-title{color:#58a6ff;font-weight:700;margin-bottom:4px}
+  .info-box .desc{color:#c9d1d9}
+  .info-box .desc-ko{color:#8b949e;font-size:.72rem;margin-top:2px}
+  @media(max-width:700px){.scene{height:500px;transform:scale(.7);transform-origin:top center}.header h1{font-size:1.1rem}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Network Security Model</h1>
+  <p>네트워크 보안 모델 및 Zero Trust</p>
+</div>
+<div class="controls">
+  <button id="btnPlay" class="active" onclick="play()">&#9654; Play</button>
+  <button id="btnPause" onclick="pause()">&#10074;&#10074; Pause</button>
+  <button id="btnRestart" onclick="restart()">&#8635; Restart</button>
+</div>
+<div class="step-indicator">Step <span id="curStep" class="current">0</span> / <span id="totStep">0</span></div>
+<div class="tabs">
+  <button class="tab-active" onclick="switchTab(0,this)">Zero Trust</button>
+  <button onclick="switchTab(1,this)">Perimeter vs Zero Trust</button>
+  <button onclick="switchTab(2,this)">Service Mesh mTLS</button>
+  <button onclick="switchTab(3,this)">WAF</button>
+</div>
+
+<!-- Scene 0: Zero Trust -->
+<div class="scene active-scene" id="scene0">
+  <svg class="arrows-svg">
+    <line id="s0a1" class="arrow-path" x1="130" y1="90" x2="280" y2="90" stroke="#58a6ff"/>
+    <polygon id="s0h1" class="arrow-head" points="278,85 288,90 278,95" fill="#58a6ff"/>
+    <line id="s0a2" class="arrow-path" x1="430" y1="90" x2="560" y2="90" stroke="#d2a8ff"/>
+    <polygon id="s0h2" class="arrow-head" points="558,85 568,90 558,95" fill="#d2a8ff"/>
+    <line id="s0a3" class="arrow-path" x1="700" y1="90" x2="830" y2="90" stroke="#3fb950"/>
+    <polygon id="s0h3" class="arrow-head" points="828,85 838,90 828,95" fill="#3fb950"/>
+    <line id="s0a4" class="arrow-path" x1="480" y1="280" x2="480" y2="350" stroke="#1f6feb"/>
+    <polygon id="s0h4" class="arrow-head" points="475,348 480,358 485,348" fill="#1f6feb"/>
+    <line id="s0a5" class="arrow-path" x1="480" y1="430" x2="480" y2="480" stroke="#3fb950"/>
+    <polygon id="s0h5" class="arrow-head" points="475,478 480,488 485,478" fill="#3fb950"/>
+  </svg>
+
+  <div class="node" id="s0n1" style="left:30px;top:55px;width:100px;height:72px;background:#1c2333;border:2px solid #6e7681">
+    <div class="icon">&#128100;</div><div class="label">Request</div><div class="sublabel">모든 요청</div>
+  </div>
+  <div class="node" id="s0n2" style="left:280px;top:50px;width:150px;height:80px;background:#1a0c2e;border:2px solid #a371f7">
+    <div class="icon">&#128272;</div><div class="label">Verify Identity</div><div class="sublabel">신원 확인 (매 요청)</div>
+  </div>
+  <div class="node" id="s0n3" style="left:560px;top:50px;width:140px;height:80px;background:#0c2d6b;border:2px solid #1f6feb">
+    <div class="icon">&#128274;</div><div class="label">Check Policy</div><div class="sublabel">정책 확인</div>
+  </div>
+  <div class="node" id="s0n4" style="left:830px;top:55px;width:110px;height:72px;background:#0c2d1e;border:2px solid #3fb950">
+    <div class="icon">&#9989;</div><div class="label">Access</div><div class="sublabel">접근 허용</div>
+  </div>
+
+  <div class="node" id="s0n5" style="left:80px;top:200px;width:180px;height:80px;background:#161b22;border:2px solid #58a6ff">
+    <div class="icon">&#128272;</div><div class="label">Never Trust</div><div class="sublabel">절대 신뢰하지 않음<br/>Always Verify</div>
+  </div>
+  <div class="node" id="s0n6" style="left:310px;top:200px;width:180px;height:80px;background:#161b22;border:2px solid #58a6ff">
+    <div class="icon">&#128269;</div><div class="label">Least Privilege</div><div class="sublabel">최소 권한 원칙<br/>필요한 만큼만 허용</div>
+  </div>
+  <div class="node" id="s0n7" style="left:540px;top:200px;width:180px;height:80px;background:#161b22;border:2px solid #58a6ff">
+    <div class="icon">&#128065;</div><div class="label">Assume Breach</div><div class="sublabel">침해 가정<br/>모든 트래픽 검사</div>
+  </div>
+  <div class="node" id="s0n8" style="left:340px;top:360px;width:280px;height:70px;background:#161b22;border:2px solid #1f6feb">
+    <div class="icon">&#128274;</div><div class="label">Micro-Segmentation</div><div class="sublabel">서비스 간 개별 정책 적용 (NetworkPolicy)</div>
+  </div>
+  <div class="node" id="s0n9" style="left:340px;top:490px;width:280px;height:50px;background:#0c2d1e;border:2px solid #3fb950">
+    <div class="label" style="color:#3fb950">Every request verified, no implicit trust</div>
+  </div>
+
+  <div class="flow-label" id="s0f1" style="left:180px;top:72px">1. Request</div>
+  <div class="flow-label" id="s0f2" style="left:470px;top:72px">2. Verify</div>
+  <div class="flow-label" id="s0f3" style="left:740px;top:72px">3. Allow</div>
+</div>
+
+<!-- Scene 1: Perimeter vs Zero Trust -->
+<div class="scene" id="scene1">
+  <div class="scope-box" id="s1b1" style="left:20px;top:20px;width:440px;height:490px;border-color:#f85149">
+    <div class="scope-title" style="color:#f85149">&#127960; Traditional Perimeter Model (전통적 경계 모델)</div>
+  </div>
+  <div class="scope-box" id="s1b2" style="left:500px;top:20px;width:440px;height:490px;border-color:#3fb950">
+    <div class="scope-title" style="color:#3fb950">&#128274; Zero Trust Model (제로 트러스트 모델)</div>
+  </div>
+
+  <div class="node" id="s1n1" style="left:60px;top:60px;width:360px;height:60px;background:#2d0c0c;border:2px solid #f85149">
+    <div class="label" style="color:#f85149">Firewall = Trust Boundary</div>
+    <div class="sublabel">방화벽 내부 = 신뢰 영역</div>
+  </div>
+  <div class="node" id="s1n2" style="left:60px;top:140px;width:360px;height:80px;background:#161b22;border:1px solid #30363d">
+    <div class="sublabel">Internal traffic freely flows<br/>내부 트래픽 자유 이동<br/>Lateral movement easy (측면 이동 용이)</div>
+  </div>
+  <div class="node" id="s1n3" style="left:60px;top:240px;width:170px;height:60px;background:#1c2333;border:2px solid #6e7681">
+    <div class="icon">&#128230;</div><div class="label">Service A</div>
+  </div>
+  <div class="node" id="s1n4" style="left:250px;top:240px;width:170px;height:60px;background:#1c2333;border:2px solid #6e7681">
+    <div class="icon">&#128230;</div><div class="label">Service B</div>
+  </div>
+  <div class="node" id="s1n5" style="left:60px;top:330px;width:360px;height:60px;background:#2d0c0c;border:1px solid #f85149">
+    <div class="sublabel" style="color:#f85149">One breach = full access to internal network<br/>한 번 침입 = 내부 전체 접근 가능</div>
+  </div>
+  <div class="node" id="s1n6" style="left:60px;top:410px;width:360px;height:60px;background:#2d0c0c;border:1px solid #f85149">
+    <div class="sublabel" style="color:#f85149">VPN = trusted (once in, full access)<br/>Castle-and-Moat approach</div>
+  </div>
+
+  <div class="node" id="s1n7" style="left:540px;top:60px;width:360px;height:60px;background:#0c2d1e;border:2px solid #3fb950">
+    <div class="label" style="color:#3fb950">No Trust Boundary</div>
+    <div class="sublabel">신뢰 경계 없음 - 모든 것을 검증</div>
+  </div>
+  <div class="node" id="s1n8" style="left:540px;top:140px;width:360px;height:80px;background:#161b22;border:1px solid #30363d">
+    <div class="sublabel">Every request authenticated + authorized<br/>모든 요청 인증 + 인가<br/>Encrypted (mTLS) between all services</div>
+  </div>
+  <div class="node" id="s1n9" style="left:540px;top:240px;width:170px;height:60px;background:#0c2d1e;border:2px solid #3fb950">
+    <div class="icon">&#128274;</div><div class="label">Service A</div>
+  </div>
+  <div class="node" id="s1n10" style="left:730px;top:240px;width:170px;height:60px;background:#0c2d1e;border:2px solid #3fb950">
+    <div class="icon">&#128274;</div><div class="label">Service B</div>
+  </div>
+  <div class="node" id="s1n11" style="left:540px;top:330px;width:360px;height:60px;background:#0c2d1e;border:1px solid #3fb950">
+    <div class="sublabel" style="color:#3fb950">Breach contained by micro-segmentation<br/>마이크로세그먼테이션으로 침해 격리</div>
+  </div>
+  <div class="node" id="s1n12" style="left:540px;top:410px;width:360px;height:60px;background:#0c2d1e;border:1px solid #3fb950">
+    <div class="sublabel" style="color:#3fb950">Identity-based access (BeyondCorp)<br/>Continuous verification (지속적 검증)</div>
+  </div>
+
+  <div class="lock-icon" id="s1lock1" style="left:195px;top:255px;color:#f85149">&#10060;</div>
+  <div class="lock-icon" id="s1lock2" style="left:695px;top:255px;color:#3fb950">&#128274;</div>
+</div>
+
+<!-- Scene 2: Service Mesh mTLS -->
+<div class="scene" id="scene2">
+  <svg class="arrows-svg">
+    <line id="s2a1" class="arrow-path" x1="200" y1="120" x2="200" y2="200" stroke="#58a6ff"/>
+    <polygon id="s2h1" class="arrow-head" points="195,198 200,208 205,198" fill="#58a6ff"/>
+    <line id="s2a2" class="arrow-path" x1="260" y1="240" x2="440" y2="240" stroke="#3fb950"/>
+    <polygon id="s2h2" class="arrow-head" points="438,235 448,240 438,245" fill="#3fb950"/>
+    <line id="s2a3" class="arrow-path" x1="600" y1="240" x2="700" y2="240" stroke="#3fb950"/>
+    <polygon id="s2h3" class="arrow-head" points="698,235 708,240 698,245" fill="#3fb950"/>
+    <line id="s2a4" class="arrow-path" x1="760" y1="200" x2="760" y2="120" stroke="#58a6ff"/>
+    <polygon id="s2h4" class="arrow-head" points="755,122 760,112 765,122" fill="#58a6ff"/>
+    <line id="s2a5" class="arrow-path" x1="480" y1="310" x2="480" y2="380" stroke="#a371f7"/>
+    <polygon id="s2h5" class="arrow-head" points="475,378 480,388 485,378" fill="#a371f7"/>
+  </svg>
+
+  <div class="node" id="s2n1" style="left:120px;top:50px;width:160px;height:70px;background:#0c2d6b;border:2px solid #1f6feb">
+    <div class="icon">&#128230;</div><div class="label">Service A</div><div class="sublabel">Application Code</div>
+  </div>
+  <div class="node" id="s2n2" style="left:120px;top:200px;width:140px;height:80px;background:#0c2d1e;border:2px solid #3fb950">
+    <div class="icon">&#128274;</div><div class="label">Envoy Proxy</div><div class="sublabel">Sidecar (mTLS)<br/>자동 암호화</div>
+  </div>
+  <div class="node" id="s2n3" style="left:440px;top:200px;width:160px;height:80px;background:#161b22;border:2px solid #3fb950">
+    <div class="icon">&#128274;&#8596;&#128274;</div><div class="label">mTLS Tunnel</div><div class="sublabel">양방향 인증 + 암호화<br/>Mutual TLS</div>
+  </div>
+  <div class="node" id="s2n4" style="left:700px;top:200px;width:140px;height:80px;background:#0c2d1e;border:2px solid #3fb950">
+    <div class="icon">&#128274;</div><div class="label">Envoy Proxy</div><div class="sublabel">Sidecar (mTLS)<br/>자동 복호화</div>
+  </div>
+  <div class="node" id="s2n5" style="left:680px;top:50px;width:160px;height:70px;background:#0c2d6b;border:2px solid #1f6feb">
+    <div class="icon">&#128230;</div><div class="label">Service B</div><div class="sublabel">Application Code</div>
+  </div>
+  <div class="node" id="s2n6" style="left:350px;top:390px;width:260px;height:80px;background:#1a0c2e;border:2px solid #a371f7">
+    <div class="icon">&#127919;</div><div class="label">Control Plane (Istiod)</div><div class="sublabel">Certificate Authority<br/>인증서 발급 및 교체 자동화</div>
+  </div>
+  <div class="node" id="s2n7" style="left:100px;top:400px;width:200px;height:60px;background:#161b22;border:1px solid #30363d">
+    <div class="sublabel" style="color:#3fb950">App code unchanged<br/>앱 코드 변경 불필요</div>
+  </div>
+
+  <div class="flow-label" id="s2f1" style="left:208px;top:155px">Plaintext</div>
+  <div class="flow-label" id="s2f2" style="left:330px;top:222px">Encrypted</div>
+  <div class="flow-label" id="s2f3" style="left:640px;top:222px">Decrypt</div>
+  <div class="flow-label" id="s2f4" style="left:768px;top:155px">Plaintext</div>
+  <div class="flow-label" id="s2f5" style="left:488px;top:340px">Cert Rotation</div>
+</div>
+
+<!-- Scene 3: WAF -->
+<div class="scene" id="scene3">
+  <svg class="arrows-svg">
+    <line id="s3a1" class="arrow-path" x1="130" y1="90" x2="260" y2="90" stroke="#6e7681"/>
+    <polygon id="s3h1" class="arrow-head" points="258,85 268,90 258,95" fill="#6e7681"/>
+    <line id="s3a2" class="arrow-path" x1="470" y1="90" x2="600" y2="90" stroke="#1f6feb"/>
+    <polygon id="s3h2" class="arrow-head" points="598,85 608,90 598,95" fill="#1f6feb"/>
+    <line id="s3a3" class="arrow-path" x1="370" y1="130" x2="370" y2="220" stroke="#d29922"/>
+    <polygon id="s3h3" class="arrow-head" points="365,218 370,228 375,218" fill="#d29922"/>
+    <line id="s3a4" class="arrow-path" x1="740" y1="90" x2="840" y2="90" stroke="#3fb950"/>
+    <polygon id="s3h4" class="arrow-head" points="838,85 848,90 838,95" fill="#3fb950"/>
+    <line id="s3a5" class="arrow-path" x1="370" y1="310" x2="370" y2="390" stroke="#f85149"/>
+    <polygon id="s3h5" class="arrow-head" points="365,388 370,398 375,388" fill="#f85149"/>
+  </svg>
+
+  <div class="node" id="s3n1" style="left:30px;top:55px;width:100px;height:72px;background:#1c2333;border:2px solid #6e7681">
+    <div class="icon">&#127760;</div><div class="label">Client</div><div class="sublabel">클라이언트</div>
+  </div>
+  <div class="node" id="s3n2" style="left:260px;top:45px;width:210px;height:85px;background:#2d1a0c;border:2px solid #d29922">
+    <div class="icon">&#128737;</div><div class="label">WAF</div><div class="sublabel">Web Application Firewall<br/>요청 검사 + 규칙 매칭</div>
+  </div>
+  <div class="node" id="s3n3" style="left:600px;top:50px;width:140px;height:80px;background:#0c2d6b;border:2px solid #1f6feb">
+    <div class="icon">&#128230;</div><div class="label">Application</div><div class="sublabel">애플리케이션</div>
+  </div>
+  <div class="node" id="s3n4" style="left:840px;top:55px;width:100px;height:72px;background:#0c2d1e;border:2px solid #3fb950">
+    <div class="icon">&#9989;</div><div class="label">Response</div><div class="sublabel">정상 응답</div>
+  </div>
+
+  <div class="node" id="s3n5" style="left:220px;top:230px;width:300px;height:80px;background:#161b22;border:2px solid #d29922">
+    <div class="icon">&#128269;</div><div class="label">Rule Matching Engine</div>
+    <div class="sublabel">SQL Injection | XSS | Path Traversal<br/>OWASP Top 10 | Rate Limiting | Bot Detection</div>
+  </div>
+  <div class="node" id="s3n6" style="left:260px;top:400px;width:220px;height:70px;background:#2d0c0c;border:2px solid #f85149">
+    <div class="icon">&#128721;</div><div class="label">BLOCKED (403)</div>
+    <div class="sublabel">악성 요청 차단</div>
+  </div>
+
+  <div class="node" id="s3n7" style="left:600px;top:200px;width:320px;height:180px;background:#161b22;border:1px solid #30363d">
+    <div class="label" style="color:#d29922;margin-bottom:8px">WAF Rules Examples</div>
+    <div class="sublabel" style="text-align:left;line-height:1.6">
+      &#128308; <span style="color:#f85149">SQLi:</span> SELECT * FROM; DROP TABLE<br/>
+      &#128308; <span style="color:#f85149">XSS:</span> &lt;script&gt;alert()&lt;/script&gt;<br/>
+      &#128308; <span style="color:#f85149">Path:</span> ../../etc/passwd<br/>
+      &#128993; <span style="color:#d29922">Rate:</span> > 100 req/s from single IP<br/>
+      &#128994; <span style="color:#3fb950">GeoIP:</span> Block specific regions
+    </div>
+  </div>
+
+  <div class="flow-label" id="s3f1" style="left:155px;top:72px">HTTP Request</div>
+  <div class="flow-label" id="s3f2" style="left:510px;top:72px">Clean traffic</div>
+  <div class="flow-label" id="s3f3" style="left:380px;top:170px">Inspect</div>
+  <div class="flow-label" id="s3f4" style="left:770px;top:72px">OK</div>
+  <div class="flow-label" id="s3f5" style="left:380px;top:350px">Malicious!</div>
+</div>
+
+<div class="info">
+  <div class="info-box" id="infoBox">
+    <div class="step-title">Ready</div>
+    <div class="desc">Press Play to start the animation.</div>
+    <div class="desc-ko">Play 버튼을 눌러 애니메이션을 시작하세요.</div>
+  </div>
+</div>
+
+<script>
+const scenes=[
+  [ // Scene 0: Zero Trust
+    {title:"Zero Trust: Never Trust, Always Verify",desc:"Every request must be authenticated, authorized, and encrypted - regardless of network location. No implicit trust.",ko:"모든 요청은 네트워크 위치와 관계없이 인증, 인가, 암호화되어야 합니다. 암묵적 신뢰 없음.",action(){show('s0n1');show('s0n2');showA('s0a1','s0h1');act('s0a1');showL('s0f1')}},
+    {title:"Step 2: Verify + Check Policy",desc:"Every single request is verified for identity and checked against security policies. Even internal service-to-service traffic.",ko:"모든 요청에 대해 신원을 확인하고 보안 정책을 검사합니다. 내부 서비스 간 트래픽도 예외 없음.",action(){show('s0n3');showA('s0a2','s0h2');act('s0a2');showL('s0f2');hl('s0n3')}},
+    {title:"Step 3: Allow Access",desc:"Only after identity verification AND policy check passes, access is granted with minimum required permissions.",ko:"신원 확인과 정책 검사를 모두 통과한 후에만 최소 필요 권한으로 접근이 허용됩니다.",action(){show('s0n4');showA('s0a3','s0h3');act('s0a3');showL('s0f3');g('s0n4').classList.add('glow-green')}},
+    {title:"Three Pillars of Zero Trust",desc:"Never Trust (always verify identity), Least Privilege (minimum access), Assume Breach (inspect all traffic, contain damage).",ko:"Never Trust(항상 신원 확인), Least Privilege(최소 접근), Assume Breach(모든 트래픽 검사, 피해 억제).",action(){show('s0n5');show('s0n6');show('s0n7')}},
+    {title:"Micro-Segmentation",desc:"NetworkPolicy implements micro-segmentation: each service has individual ingress/egress rules. Flat network → segmented network.",ko:"NetworkPolicy가 마이크로세그먼테이션을 구현합니다: 각 서비스에 개별 인그레스/이그레스 규칙. 플랫 네트워크 → 분할 네트워크.",action(){show('s0n8');show('s0n9');showA('s0a4','s0h4');showA('s0a5','s0h5');act('s0a4');hl('s0n8')}}
+  ],
+  [ // Scene 1: Perimeter vs Zero Trust
+    {title:"Traditional Perimeter Model",desc:"Castle-and-Moat: strong outer firewall, but once inside, traffic flows freely. VPN grants full internal access.",ko:"Castle-and-Moat: 강력한 외부 방화벽이지만 내부에 들어오면 트래픽이 자유롭게 이동합니다. VPN은 전체 내부 접근 권한을 부여합니다.",action(){showEl('s1b1');show('s1n1');show('s1n2');show('s1n3');show('s1n4');g('s1n1').classList.add('glow-red')}},
+    {title:"Perimeter Problem",desc:"One breach = full lateral movement. Attacker inside the network can reach any service. Cloud/remote work makes perimeter meaningless.",ko:"한 번 침입 = 전체 측면 이동. 네트워크 내부의 공격자가 모든 서비스에 접근 가능. 클라우드/원격 근무로 경계가 무의미해짐.",action(){show('s1n5');show('s1n6');showEl('s1lock1');g('s1n3').classList.add('glow-red');g('s1n4').classList.add('glow-red')}},
+    {title:"Zero Trust Model",desc:"No trust boundary. Every request is authenticated and authorized. All traffic encrypted with mTLS between services.",ko:"신뢰 경계 없음. 모든 요청이 인증 및 인가됩니다. 서비스 간 모든 트래픽이 mTLS로 암호화.",action(){showEl('s1b2');show('s1n7');show('s1n8');show('s1n9');show('s1n10');g('s1n7').classList.add('glow-green')}},
+    {title:"Zero Trust Benefits",desc:"Breach is contained by micro-segmentation. Identity-based access (BeyondCorp model). Continuous verification, not one-time check.",ko:"마이크로세그먼테이션으로 침해가 격리됩니다. 신원 기반 접근(BeyondCorp 모델). 일회성 확인이 아닌 지속적 검증.",action(){show('s1n11');show('s1n12');showEl('s1lock2');g('s1n9').classList.add('glow-green');g('s1n10').classList.add('glow-green')}}
+  ],
+  [ // Scene 2: mTLS
+    {title:"Service Mesh: Automatic mTLS",desc:"Service mesh (Istio/Linkerd) injects sidecar proxies that handle mTLS automatically. Application code doesn't need changes.",ko:"Service mesh(Istio/Linkerd)가 사이드카 프록시를 주입하여 자동으로 mTLS를 처리합니다. 애플리케이션 코드 변경 불필요.",action(){show('s2n1');show('s2n5')}},
+    {title:"Sidecar Proxy Injection",desc:"Envoy sidecar proxies intercept all traffic. Outgoing: encrypts plaintext to mTLS. Incoming: decrypts mTLS to plaintext.",ko:"Envoy 사이드카 프록시가 모든 트래픽을 가로챕니다. 아웃바운드: 평문→mTLS 암호화. 인바운드: mTLS→평문 복호화.",action(){show('s2n2');show('s2n4');showA('s2a1','s2h1');showA('s2a4','s2h4');showL('s2f1');showL('s2f4');hl('s2n2')}},
+    {title:"mTLS Tunnel",desc:"Mutual TLS: both sides authenticate with certificates. Traffic encrypted in transit. Man-in-the-middle attacks prevented.",ko:"Mutual TLS: 양쪽 모두 인증서로 인증합니다. 전송 중 트래픽 암호화. 중간자 공격 방지.",action(){show('s2n3');showA('s2a2','s2h2');showA('s2a3','s2h3');act('s2a2');act('s2a3');showL('s2f2');showL('s2f3');g('s2n3').classList.add('glow-green');hl('s2n3')}},
+    {title:"Control Plane & Certificate Rotation",desc:"Istiod (control plane) acts as Certificate Authority. Automatically issues and rotates short-lived certificates for all services.",ko:"Istiod(컨트롤 플레인)가 인증 기관 역할을 합니다. 모든 서비스에 대해 단기 인증서를 자동 발급 및 교체합니다.",action(){show('s2n6');show('s2n7');showA('s2a5','s2h5');act('s2a5');showL('s2f5');hl('s2n6')}}
+  ],
+  [ // Scene 3: WAF
+    {title:"WAF: Web Application Firewall",desc:"WAF inspects HTTP/HTTPS traffic and blocks malicious requests before they reach the application. Layer 7 protection.",ko:"WAF는 HTTP/HTTPS 트래픽을 검사하고 악성 요청이 애플리케이션에 도달하기 전에 차단합니다. L7 보호.",action(){show('s3n1');show('s3n2');showA('s3a1','s3h1');act('s3a1');showL('s3f1')}},
+    {title:"Request Inspection",desc:"WAF analyzes request headers, body, URL, query parameters against rule sets (OWASP CRS, custom rules, ML-based detection).",ko:"WAF가 요청 헤더, 본문, URL, 쿼리 파라미터를 규칙 세트(OWASP CRS, 커스텀 규칙, ML 기반 탐지)와 비교 분석합니다.",action(){show('s3n5');showA('s3a3','s3h3');act('s3a3');showL('s3f3');hl('s3n5')}},
+    {title:"Clean Traffic Passes",desc:"Legitimate requests pass through WAF to the application. WAF adds security headers and logs the request for audit.",ko:"정상 요청은 WAF를 통과하여 애플리케이션에 도달합니다. WAF가 보안 헤더를 추가하고 감사를 위해 요청을 로깅합니다.",action(){show('s3n3');show('s3n4');showA('s3a2','s3h2');showA('s3a4','s3h4');act('s3a2');showL('s3f2');showL('s3f4');g('s3n4').classList.add('glow-green')}},
+    {title:"Malicious Traffic Blocked",desc:"SQLi, XSS, path traversal, and other attacks are detected and blocked with 403. Rate limiting prevents DDoS. All blocks are logged.",ko:"SQLi, XSS, 경로 탐색 등의 공격이 탐지되어 403으로 차단됩니다. Rate limiting으로 DDoS 방지. 모든 차단이 로깅됩니다.",action(){show('s3n6');show('s3n7');showA('s3a5','s3h5');act('s3a5');showL('s3f5');g('s3n6').classList.add('glow-red');hl('s3n6')}}
+  ]
+];
+
+let curScene=0,cur=0,timer=null,paused=false;
+const g=id=>document.getElementById(id);
+function show(id){g(id).classList.add('visible')}
+function hl(id){document.querySelectorAll('.scene.active-scene .node').forEach(n=>n.classList.remove('highlight'));g(id).classList.add('highlight')}
+function showA(l,h){g(l).classList.add('visible');g(h).classList.add('visible')}
+function act(l){g(l).classList.add('active')}
+function showL(id){g(id).classList.add('visible')}
+function showEl(id){g(id).classList.add('visible')}
+function updateInfo(s){g('infoBox').innerHTML=`<div class="step-title">${s.title}</div><div class="desc">${s.desc}</div><div class="desc-ko">${s.ko}</div>`}
+
+function resetScene(){
+  const sc=g('scene'+curScene);
+  sc.querySelectorAll('.node').forEach(n=>n.classList.remove('visible','highlight','glow-green','glow-red'));
+  sc.querySelectorAll('.arrow-path').forEach(a=>a.classList.remove('visible','active'));
+  sc.querySelectorAll('.arrow-head').forEach(a=>a.classList.remove('visible'));
+  sc.querySelectorAll('.flow-label').forEach(l=>l.classList.remove('visible'));
+  sc.querySelectorAll('.scope-box').forEach(b=>b.classList.remove('visible'));
+  sc.querySelectorAll('.lock-icon').forEach(l=>l.classList.remove('visible'));
+}
+
+function switchTab(idx,btn){
+  clearInterval(timer);timer=null;
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('tab-active'));
+  btn.classList.add('tab-active');
+  document.querySelectorAll('.scene').forEach(s=>s.classList.remove('active-scene'));
+  resetScene();curScene=idx;cur=0;paused=false;
+  g('scene'+idx).classList.add('active-scene');
+  g('totStep').textContent=scenes[idx].length;g('curStep').textContent='0';
+  g('btnPlay').classList.remove('active');g('btnPause').classList.remove('active');
+  g('infoBox').innerHTML='<div class="step-title">Ready</div><div class="desc">Press Play to start the animation.</div><div class="desc-ko">Play 버튼을 눌러 애니메이션을 시작하세요.</div>';
+  setTimeout(()=>play(),300);
+}
+
+function runStep(){const st=scenes[curScene];if(cur>=st.length){clearInterval(timer);timer=null;return}const s=st[cur];s.action();updateInfo(s);g('curStep').textContent=cur+1;cur++}
+function play(){if(timer)return;paused=false;g('btnPlay').classList.add('active');g('btnPause').classList.remove('active');runStep();timer=setInterval(()=>{if(!paused)runStep()},2400)}
+function pause(){paused=true;g('btnPause').classList.add('active');g('btnPlay').classList.remove('active')}
+function restart(){clearInterval(timer);timer=null;cur=0;paused=false;g('btnPlay').classList.remove('active');g('btnPause').classList.remove('active');resetScene();g('curStep').textContent='0';g('infoBox').innerHTML='<div class="step-title">Ready</div><div class="desc">Press Play to start the animation.</div><div class="desc-ko">Play 버튼을 눌러 애니메이션을 시작하세요.</div>';setTimeout(()=>play(),300)}
+document.addEventListener('DOMContentLoaded',()=>{g('totStep').textContent=scenes[0].length;setTimeout(play,600)});
+</script>
+</body>
+</html>
