@@ -1,0 +1,27 @@
+# Synthetic JSON log generator.
+# Maps to scenarios FB-01/02/04/05 in docs/load-testing/02-fluent-bit-load-test.md
+# `replicas` and `-d` (delay) tune the per-pod log rate.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flog-loader
+  namespace: load-test
+  labels: { app: flog-loader, role: load-generator }
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: flog-loader }
+  template:
+    metadata:
+      labels: { app: flog-loader }
+    spec:
+      containers:
+        - name: flog
+          image: mingrammer/flog:0.4.3
+          # -f json   : output format
+          # -d 100us  : delay between lines (smaller = higher rate)
+          # -l        : loop forever
+          args: ["-f", "json", "-d", "100us", "-l"]
+          resources:
+            requests: { cpu: "100m", memory: "64Mi" }
+            limits:   { cpu: "500m", memory: "128Mi" }

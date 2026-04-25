@@ -1,0 +1,68 @@
+# Maps to scenario OS-02 (Mixed Read/Write) in docs/load-testing/01-opensearch-load-test.md
+# k6 hits OpenSearch _search with simple match queries.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k6-opensearch-search-script
+  namespace: load-test
+data:
+  script.js: |
+    import http from 'k6/http';
+    import { check } from 'k6';
+
+    export const options = {
+      stages: [
+        { duration: '1m', target: 20 },
+        { duration: '5m', target: 50 },
+        { duration: '1m', target: 0 },
+      ],
+      thresholds: {
+        http_req_duration: ['p(95)<500', 'p(99)<1500'],
+        http_req_failed:   ['rate<0.005'],
+      },
+    };
+
+    const OS = __ENV.OS_URL || 'http://opensearch-lt.monitoring.svc:9200';
+    const INDEX = __ENV.OS_INDEX || 'logs-fb-*';
+
+    const body = JSON.stringify({
+      query: { match: { log: 'error' } },
+      size: 20,
+    });
+
+    export default function () {
+      const r = http.post(`${OS}/${INDEX}/_search`, body, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      check(r, { '2xx': (res) => res.status >= 200 && res.status < 300 });
+    }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-opensearch-search
+  namespace: load-test
+  labels: { app: k6-opensearch-search, role: test-runner }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: k6-opensearch-search }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: k6
+          image: grafana/k6:0.55.2
+          command: ["k6", "run", "/scripts/script.js"]
+          env:
+            - { name: OS_URL,   value: "http://opensearch-lt.monitoring.svc:9200" }
+            - { name: OS_INDEX, value: "logs-fb-*" }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "1000m", memory: "512Mi" }
+      volumes:
+        - name: scripts
+          configMap: { name: k6-opensearch-search-script }

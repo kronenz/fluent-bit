@@ -1,0 +1,111 @@
+# kube-prometheus-stack values for tool validation on a single-node minikube.
+# Tight resource profile; no HA. Production-grade tuning lives in the air-gap repo.
+
+fullnameOverride: kps
+
+defaultRules:
+  create: true
+  rules:
+    etcd: false
+    kubeApiserverAvailability: false
+    kubeApiserverBurnrate: false
+    kubeApiserverHistogram: false
+    kubeApiserverSlos: false
+
+alertmanager:
+  alertmanagerSpec:
+    replicas: 1
+    retention: 24h
+    resources:
+      requests: { cpu: "20m", memory: "64Mi" }
+      limits:   { cpu: "200m", memory: "128Mi" }
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 1Gi
+  ingress:
+    enabled: false
+
+grafana:
+  adminPassword: admin
+  defaultDashboardsTimezone: Asia/Seoul
+  resources:
+    requests: { cpu: "50m", memory: "128Mi" }
+    limits:   { cpu: "300m", memory: "256Mi" }
+  persistence:
+    enabled: true
+    size: 1Gi
+  service:
+    type: NodePort
+    nodePort: 30030
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts: ["grafana.local"]
+
+kubeApiServer:
+  enabled: true
+kubeControllerManager:
+  enabled: false   # minikube exposes on 127.0.0.1 inside kic; scrape unreliable
+kubeScheduler:
+  enabled: false   # same as above
+kubeProxy:
+  enabled: true
+kubeEtcd:
+  enabled: false   # single-node minikube doesn't expose etcd metrics by default
+coreDns:
+  enabled: true
+kubelet:
+  enabled: true
+
+prometheus:
+  prometheusSpec:
+    replicas: 1
+    retention: 6h
+    retentionSize: 4GiB
+    enableAdminAPI: true
+    scrapeInterval: 30s
+    evaluationInterval: 30s
+    resources:
+      requests: { cpu: "200m", memory: "512Mi" }
+      limits:   { cpu: "1500m", memory: "1500Mi" }
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+    # Pick up ServiceMonitors from any namespace (load-test included)
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+  service:
+    type: NodePort
+    nodePort: 30090
+  ingress:
+    enabled: false
+
+prometheus-node-exporter:
+  resources:
+    requests: { cpu: "20m", memory: "32Mi" }
+    limits:   { cpu: "200m", memory: "64Mi" }
+
+kube-state-metrics:
+  resources:
+    requests: { cpu: "20m", memory: "64Mi" }
+    limits:   { cpu: "200m", memory: "256Mi" }
+
+prometheusOperator:
+  resources:
+    requests: { cpu: "50m", memory: "100Mi" }
+    limits:   { cpu: "300m", memory: "256Mi" }
+  admissionWebhooks:
+    patch:
+      resources:
+        requests: { cpu: "20m", memory: "32Mi" }
+        limits:   { cpu: "200m", memory: "64Mi" }

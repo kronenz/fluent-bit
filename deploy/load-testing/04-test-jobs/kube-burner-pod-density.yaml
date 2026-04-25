@@ -1,0 +1,97 @@
+# Maps to scenario KSM-02 (Pod density) in docs/load-testing/05-kube-state-metrics-load-test.md
+# Generates many short-lived pods to exercise kube-state-metrics + apiserver.
+# IMPORTANT: tune `jobIterations` for cluster size. Single-node minikube: keep ≤ 200.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-burner-config
+  namespace: load-test
+data:
+  config.yaml: |
+    metricsEndpoints: []
+    global:
+      gc: true
+      gcMetrics: false
+      indexerConfig:
+        type: local
+    jobs:
+      - name: pod-density
+        jobType: create
+        jobIterations: 100
+        namespace: kburner
+        namespacedIterations: true
+        cleanup: true
+        podWait: true
+        waitWhenFinished: false
+        qps: 20
+        burst: 30
+        objects:
+          - objectTemplate: pod.yaml
+            replicas: 1
+  pod.yaml: |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: burner-pod-{{.Iteration}}-{{.Replica}}
+      labels:
+        app: kube-burner
+        iteration: "{{.Iteration}}"
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10
+          resources:
+            requests: { cpu: "5m", memory: "8Mi" }
+            limits:   { cpu: "20m", memory: "16Mi" }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-burner
+  namespace: load-test
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kube-burner-load-test
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: kube-burner
+    namespace: load-test
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kube-burner-pod-density
+  namespace: load-test
+  labels: { app: kube-burner, role: test-runner }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: kube-burner }
+    spec:
+      restartPolicy: Never
+      serviceAccountName: kube-burner
+      containers:
+        - name: kube-burner
+          image: quay.io/kube-burner/kube-burner:v1.18.1
+          workingDir: /config
+          command: ["kube-burner", "init", "-c", "config.yaml", "--uuid", "$(POD_NAME)"]
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+          volumeMounts:
+            - { name: config, mountPath: /config }
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "1000m", memory: "512Mi" }
+      volumes:
+        - name: config
+          configMap: { name: kube-burner-config }

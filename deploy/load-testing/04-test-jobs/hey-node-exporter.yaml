@@ -1,0 +1,28 @@
+# Maps to scenario NE-02 in docs/load-testing/04-node-exporter-load-test.md
+# HTTP load directly against node-exporter /metrics on the host.
+# Targets the node-exporter Service which kube-prometheus-stack exposes ClusterIP.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hey-node-exporter
+  namespace: load-test
+  labels: { app: hey-node-exporter, role: test-runner }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: hey-node-exporter }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: hey
+          image: williamyeh/hey:latest
+          # -z 2m  : run for 2 minutes
+          # -c 50  : 50 concurrent connections
+          # -q 50  : limit to 50 RPS per worker (avoid cluster API server flooding)
+          command: ["hey", "-z", "2m", "-c", "50", "-q", "50",
+                    "http://kps-prometheus-node-exporter.monitoring.svc:9100/metrics"]
+          resources:
+            requests: { cpu: "100m", memory: "64Mi" }
+            limits:   { cpu: "1000m", memory: "256Mi" }

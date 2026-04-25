@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    purpose: monitoring-stack
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: load-test
+  labels:
+    purpose: load-generation

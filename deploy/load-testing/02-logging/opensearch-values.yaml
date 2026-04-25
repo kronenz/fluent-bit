@@ -1,0 +1,47 @@
+# Single-node OpenSearch for tool validation only.
+# Uses helm chart `opensearch-project/opensearch`.
+
+clusterName: "opensearch-lt"
+nodeGroup: "node"
+masterService: "opensearch-lt"
+roles:
+  - master
+  - data
+  - ingest
+replicas: 1
+
+singleNode: true
+
+opensearchJavaOpts: "-Xms1g -Xmx1g"
+
+resources:
+  requests: { cpu: "300m", memory: "1.5Gi" }
+  limits:   { cpu: "2000m", memory: "2.5Gi" }
+
+persistence:
+  enabled: true
+  size: 5Gi
+
+# Disable security plugin for tool validation (simpler bench wiring).
+# In air-gap prod, re-enable and use proper certs/credentials.
+config:
+  opensearch.yml: |
+    cluster.name: opensearch-lt
+    network.host: 0.0.0.0
+    plugins.security.disabled: true
+    discovery.type: single-node
+
+extraEnvs:
+  - name: DISABLE_INSTALL_DEMO_CONFIG
+    value: "true"
+  - name: DISABLE_SECURITY_PLUGIN
+    value: "true"
+  - name: discovery.type
+    value: single-node
+
+service:
+  type: ClusterIP
+
+# Disable replicas for default index template (single-node has no replicas)
+sysctlInit:
+  enabled: true

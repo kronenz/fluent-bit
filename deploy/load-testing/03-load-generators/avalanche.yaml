@@ -1,0 +1,57 @@
+# Synthetic Prometheus /metrics endpoint with controlled cardinality.
+# Maps to scenarios PR-01/02/05 in docs/load-testing/03-prometheus-load-test.md
+# Per pod active series ≈ metric-count × series-count.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: avalanche
+  namespace: load-test
+  labels: { app: avalanche, role: load-generator }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: avalanche }
+  template:
+    metadata:
+      labels: { app: avalanche }
+    spec:
+      containers:
+        - name: avalanche
+          image: quay.io/prometheuscommunity/avalanche:v0.7.0
+          args:
+            - --gauge-metric-count=200
+            - --series-count=200
+            - --label-count=10
+            - --value-interval=15
+            - --series-interval=900
+            - --metric-interval=3600
+            - --port=9001
+          ports:
+            - { name: http, containerPort: 9001 }
+          resources:
+            requests: { cpu: "50m", memory: "128Mi" }
+            limits:   { cpu: "500m", memory: "256Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: avalanche
+  namespace: load-test
+  labels: { app: avalanche }
+spec:
+  selector: { app: avalanche }
+  ports:
+    - { name: http, port: 9001, targetPort: http }
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: avalanche
+  namespace: load-test
+  labels: { app: avalanche }
+spec:
+  selector: { matchLabels: { app: avalanche } }
+  endpoints:
+    - port: http
+      interval: 15s
+      scrapeTimeout: 10s
