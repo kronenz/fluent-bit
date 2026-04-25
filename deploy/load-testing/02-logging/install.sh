@@ -27,7 +27,11 @@ helm --kube-context="$CTX" upgrade --install fluent-bit-lt \
     -f fluent-bit-values.yaml \
     --wait --timeout=5m
 
-echo "[4/4] Verifying..."
+echo "[4/5] Deploying OpenSearch metrics exporter..."
+kubectl --context="$CTX" apply -f opensearch-exporter.yaml
+kubectl --context="$CTX" -n "$NS" rollout status deploy/opensearch-exporter --timeout=2m
+
+echo "[5/5] Verifying..."
 kubectl --context="$CTX" -n "$NS" get pods -l 'app.kubernetes.io/name in (opensearch,fluent-bit)'
 sleep 5
 echo "--- OpenSearch cluster health ---"
