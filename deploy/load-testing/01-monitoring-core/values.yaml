@@ -37,7 +37,8 @@ grafana:
     limits:   { cpu: "500m", memory: "512Mi" }
   persistence:
     enabled: true
-    size: 1Gi
+    size: 5Gi
+    accessModes: ["ReadWriteOnce"]
   service:
     type: NodePort
     nodePort: 30030
