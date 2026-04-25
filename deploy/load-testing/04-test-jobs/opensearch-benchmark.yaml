@@ -17,8 +17,10 @@ spec:
       restartPolicy: Never
       containers:
         - name: benchmark
-          image: opensearchproject/opensearch-benchmark:1.16.0
+          image: loadtest-tools:0.1.0
+          imagePullPolicy: IfNotPresent
           # workload `geonames` is small (~3M docs); use `http_logs` for bigger volume.
+          command: ["opensearch-benchmark"]
           args:
             - "execute-test"
             - "--target-hosts=http://opensearch-lt-node.monitoring.svc:9200"

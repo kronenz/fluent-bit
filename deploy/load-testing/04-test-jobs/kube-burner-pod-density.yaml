@@ -81,7 +81,8 @@ spec:
       serviceAccountName: kube-burner
       containers:
         - name: kube-burner
-          image: quay.io/kube-burner/kube-burner:v1.18.1
+          image: loadtest-tools:0.1.0
+          imagePullPolicy: IfNotPresent
           workingDir: /config
           command: ["kube-burner", "init", "-c", "config.yaml", "--uuid", "$(POD_NAME)"]
           env:

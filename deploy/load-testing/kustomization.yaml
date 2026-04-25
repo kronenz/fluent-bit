@@ -1,0 +1,29 @@
+# Top-level kustomization for the load-testing deploy.
+#
+# Usage:
+#   kubectl --context=minikube-remote apply -k deploy/load-testing
+#
+# Air-gap: override the loadtest-tools image registry via:
+#   kustomize edit set image loadtest-tools=nexus.intranet:8082/loadtest/loadtest-tools:0.1.0
+# (or edit the `images:` block below)
+#
+# This kustomization only covers the static manifests. The helm releases
+# (kube-prometheus-stack, opensearch, fluent-bit) are deployed separately via
+# 01-monitoring-core/install.sh and 02-logging/install.sh.
+
+resources:
+  - 00-namespaces.yaml
+  - 02-logging/opensearch-exporter.yaml
+  - 03-load-generators/avalanche.yaml
+  - 03-load-generators/flog.yaml
+  - 04-test-jobs/hey-node-exporter.yaml
+  - 04-test-jobs/k6-promql.yaml
+  - 04-test-jobs/k6-opensearch-search.yaml
+  - 04-test-jobs/kube-burner-pod-density.yaml
+  - 04-test-jobs/opensearch-benchmark.yaml
+  - 05-dashboards/dashboards.yaml
+
+images:
+  - name: loadtest-tools
+    newName: loadtest-tools
+    newTag: "0.1.0"

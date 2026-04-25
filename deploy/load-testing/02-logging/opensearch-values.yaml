@@ -1,5 +1,10 @@
 # Single-node OpenSearch for tool validation only.
-# Uses helm chart `opensearch-project/opensearch`.
+# Uses helm chart `opensearch-project/opensearch` 2.32.0 (→ image tag 2.19.1).
+
+image:
+  repository: opensearchproject/opensearch
+  tag: "2.19.1"
+  pullPolicy: IfNotPresent
 
 clusterName: "opensearch-lt"
 nodeGroup: "node"

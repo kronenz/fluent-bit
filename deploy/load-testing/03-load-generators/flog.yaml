@@ -17,11 +17,12 @@ spec:
     spec:
       containers:
         - name: flog
-          image: mingrammer/flog:0.4.3
+          image: loadtest-tools:0.1.0
+          imagePullPolicy: IfNotPresent
           # -f json   : output format
           # -d 100us  : delay between lines (smaller = higher rate)
           # -l        : loop forever
-          args: ["-f", "json", "-d", "100us", "-l"]
+          command: ["flog", "-f", "json", "-d", "100us", "-l"]
           resources:
             requests: { cpu: "100m", memory: "64Mi" }
             limits:   { cpu: "500m", memory: "128Mi" }

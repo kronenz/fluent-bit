@@ -17,7 +17,9 @@ spec:
     spec:
       containers:
         - name: avalanche
-          image: quay.io/prometheuscommunity/avalanche:v0.7.0
+          image: loadtest-tools:0.1.0
+          imagePullPolicy: IfNotPresent
+          command: ["avalanche"]
           args:
             - --gauge-metric-count=200
             - --series-count=200

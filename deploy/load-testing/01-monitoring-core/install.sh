@@ -6,7 +6,7 @@ set -euo pipefail
 CTX="${CTX:-minikube-remote}"
 NS="${NS:-monitoring}"
 RELEASE="${RELEASE:-kps}"
-CHART_VERSION="${CHART_VERSION:-}"   # pin version via env var if needed
+CHART_VERSION="${CHART_VERSION:-76.5.1}"   # 2025 early-Q3 stable, app v0.84.1
 
 cd "$(dirname "$0")"
 

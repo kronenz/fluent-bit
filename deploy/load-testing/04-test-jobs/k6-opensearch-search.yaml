@@ -53,7 +53,8 @@ spec:
       restartPolicy: Never
       containers:
         - name: k6
-          image: grafana/k6:0.55.2
+          image: loadtest-tools:0.1.0
+          imagePullPolicy: IfNotPresent
           command: ["k6", "run", "/scripts/script.js"]
           env:
             - { name: OS_URL,   value: "http://opensearch-lt-node.monitoring.svc:9200" }
