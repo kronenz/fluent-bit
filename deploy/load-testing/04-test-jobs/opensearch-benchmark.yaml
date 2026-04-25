@@ -19,14 +19,17 @@ spec:
         - name: benchmark
           image: loadtest-tools:0.1.0
           imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: lt-config   # OPENSEARCH_URL, OSB_WORKLOAD, OSB_TEST_PROCEDURE
           # workload `geonames` is small (~3M docs); use `http_logs` for bigger volume.
           command: ["opensearch-benchmark"]
           args:
             - "execute-test"
-            - "--target-hosts=http://opensearch-lt-node.monitoring.svc:9200"
+            - "--target-hosts=$(OPENSEARCH_URL)"
             - "--pipeline=benchmark-only"
-            - "--workload=geonames"
-            - "--test-procedure=append-no-conflicts-index-only"
+            - "--workload=$(OSB_WORKLOAD)"
+            - "--test-procedure=$(OSB_TEST_PROCEDURE)"
             - "--client-options=verify_certs:false"
             - "--results-file=/tmp/result.json"
             - "--kill-running-processes"

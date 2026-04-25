@@ -11,15 +11,15 @@ data:
     import { check, sleep } from 'k6';
 
     export const options = {
-      vus: 20,
-      duration: '5m',
+      vus:      Number(__ENV.K6_PROMQL_VUS || 20),
+      duration: __ENV.K6_PROMQL_DURATION || '5m',
       thresholds: {
         http_req_duration: ['p(95)<2000'],
         http_req_failed:   ['rate<0.01'],
       },
     };
 
-    const PROM = __ENV.PROM_URL || 'http://kps-prometheus.monitoring.svc:9090';
+    const PROM = __ENV.PROMETHEUS_URL || 'http://kps-prometheus.monitoring.svc:9090';
     const queries = [
       'sum(rate(node_cpu_seconds_total[5m])) by (mode)',
       'sum by (pod) (container_memory_working_set_bytes{namespace="monitoring"})',
@@ -56,9 +56,9 @@ spec:
           image: loadtest-tools:0.1.0
           imagePullPolicy: IfNotPresent
           command: ["k6", "run", "/scripts/script.js"]
-          env:
-            - name: PROM_URL
-              value: "http://kps-prometheus.monitoring.svc:9090"
+          envFrom:
+            - configMapRef:
+                name: lt-config   # PROMETHEUS_URL, K6_PROMQL_VUS, K6_PROMQL_DURATION, ...
           volumeMounts:
             - { name: scripts, mountPath: /scripts }
           resources:

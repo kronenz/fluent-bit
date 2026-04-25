@@ -1,0 +1,69 @@
+# Central configuration for load-test execution.
+# All test Jobs pull from this ConfigMap via `envFrom: configMapRef: lt-config`.
+# To target a different cluster, override these values via kustomize patch
+# or by editing this file before `kubectl apply`.
+#
+# Tunables grouped by scenario family. Defaults are tuned for the minikube
+# tool-validation environment; production-scale overrides are commented.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lt-config
+  namespace: load-test
+data:
+  # ---------- Image / Registry ----------
+  LOADTEST_IMAGE: "loadtest-tools:0.1.0"   # air-gap: nexus.intranet:8082/loadtest/loadtest-tools:0.1.0
+
+  # ---------- Endpoints (in-cluster; override for proxied/HA setups) ----------
+  PROMETHEUS_URL:   "http://kps-prometheus.monitoring.svc:9090"
+  OPENSEARCH_URL:   "http://opensearch-lt-node.monitoring.svc:9200"
+  ALERTMANAGER_URL: "http://kps-alertmanager.monitoring.svc:9093"
+  GRAFANA_URL:      "http://kps-grafana.monitoring.svc"
+  NODE_EXPORTER_SVC: "http://kps-prometheus-node-exporter.monitoring.svc:9100"
+  KSM_SVC:           "http://kps-kube-state-metrics.monitoring.svc:8080"
+
+  # ---------- Dashboard UIDs (used in docs / report links) ----------
+  DASH_OVERVIEW:      "lt-overview"
+  DASH_OPENSEARCH:    "lt-opensearch"
+  DASH_FLUENT_BIT:    "lt-fluent-bit"
+  DASH_PROMETHEUS:    "lt-prometheus"
+  DASH_NODE_EXPORTER: "lt-node-exporter"
+  DASH_KSM:           "lt-ksm"
+
+  # ---------- Fluent-bit / flog (FB-01 ~ FB-07) ----------
+  FLOG_REPLICAS:        "3"        # production: 10
+  FLOG_DELAY:           "100us"    # smaller = higher rate
+  FLOG_FORMAT:          "json"     # apache_common | json | rfc3164 | ...
+
+  # ---------- Avalanche (PR-01 ~ PR-05) ----------
+  AVALANCHE_REPLICAS:           "2"     # production: 20
+  AVALANCHE_GAUGE_METRIC_COUNT: "200"   # production: 500
+  AVALANCHE_SERIES_COUNT:       "200"   # production: 500
+  AVALANCHE_LABEL_COUNT:        "10"
+  AVALANCHE_VALUE_INTERVAL:     "15"
+  AVALANCHE_SERIES_INTERVAL:    "900"
+  AVALANCHE_METRIC_INTERVAL:    "3600"
+
+  # ---------- k6 (PromQL / search) ----------
+  K6_PROMQL_VUS:        "20"
+  K6_PROMQL_DURATION:   "5m"
+  K6_SEARCH_VU_TARGET:  "50"
+  K6_SEARCH_DURATION:   "5m"
+  OS_INDEX_PATTERN:     "logs-fb-*"
+
+  # ---------- kube-burner (KSM-02 ~ KSM-04) ----------
+  KSM_BURNER_ITERATIONS:   "100"   # production: 10000
+  KSM_BURNER_QPS:          "20"
+  KSM_BURNER_BURST:        "30"
+  KSM_BURNER_NS_PREFIX:    "kburner"
+
+  # ---------- hey (NE-02) ----------
+  HEY_CONCURRENCY:    "50"
+  HEY_DURATION:       "2m"
+  HEY_RPS_PER_WORKER: "50"
+
+  # ---------- opensearch-benchmark (OS-01) ----------
+  OSB_WORKLOAD:        "geonames"   # alternatives: pmc, http_logs, nyc_taxis
+  OSB_TEST_PROCEDURE:  "append-no-conflicts-index-only"
+  OSB_BULK_SIZE:       "5000"       # used by custom workloads
+  OSB_CLIENTS:         "16"

@@ -158,5 +158,13 @@ flowchart LR
 
 1. 본 README에서 공통 방법론을 확인합니다.
 2. 대상 컴포넌트별 문서(01~05)에서 도구/시나리오/수행 방법을 확인합니다.
-3. 각 문서의 "체크리스트"를 기준으로 테스트를 실행합니다.
-4. 결과를 동일 템플릿으로 기록하여 비교 분석합니다.
+3. [`06-test-execution-plan.md`](./06-test-execution-plan.md): 운영 절차서 (사전점검 → 부하 → 측정 → 판정 → 튜닝 → 리포팅)
+4. [`07-environment-setup.md`](./07-environment-setup.md): 환경 구성 가이드 (변수, 설치, 에어갭 워크플로)
+5. [`08-scenario-catalog.md`](./08-scenario-catalog.md): 35개 시나리오의 실행 명령 + 합격 기준 + 대시보드 링크
+6. 결과를 동일 템플릿으로 기록하여 비교 분석합니다.
+
+## 8. 자동화 자산
+
+- 매니페스트: [`../../deploy/load-testing/`](../../deploy/load-testing/)
+- 통합 도구 이미지: [`../../docker/loadtest-tools/`](../../docker/loadtest-tools/)
+- Grafana 대시보드: 6개 (`Load Test • <Component>`) — kube-prometheus-stack sidecar로 자동 임포트

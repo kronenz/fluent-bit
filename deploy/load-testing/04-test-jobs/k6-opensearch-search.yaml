@@ -10,11 +10,13 @@ data:
     import http from 'k6/http';
     import { check } from 'k6';
 
+    const SEARCH_TARGET   = Number(__ENV.K6_SEARCH_VU_TARGET || 50);
+    const SEARCH_DURATION = __ENV.K6_SEARCH_DURATION || '5m';
     export const options = {
       stages: [
-        { duration: '1m', target: 20 },
-        { duration: '5m', target: 50 },
-        { duration: '1m', target: 0 },
+        { duration: '1m',  target: Math.floor(SEARCH_TARGET / 2) },
+        { duration: SEARCH_DURATION, target: SEARCH_TARGET },
+        { duration: '1m',  target: 0 },
       ],
       thresholds: {
         http_req_duration: ['p(95)<500', 'p(99)<1500'],
@@ -22,8 +24,8 @@ data:
       },
     };
 
-    const OS = __ENV.OS_URL || 'http://opensearch-lt-node.monitoring.svc:9200';
-    const INDEX = __ENV.OS_INDEX || 'logs-fb-*';
+    const OS    = __ENV.OPENSEARCH_URL    || 'http://opensearch-lt-node.monitoring.svc:9200';
+    const INDEX = __ENV.OS_INDEX_PATTERN  || 'logs-fb-*';
 
     const body = JSON.stringify({
       query: { match: { log: 'error' } },
@@ -56,9 +58,9 @@ spec:
           image: loadtest-tools:0.1.0
           imagePullPolicy: IfNotPresent
           command: ["k6", "run", "/scripts/script.js"]
-          env:
-            - { name: OS_URL,   value: "http://opensearch-lt-node.monitoring.svc:9200" }
-            - { name: OS_INDEX, value: "logs-fb-*" }
+          envFrom:
+            - configMapRef:
+                name: lt-config   # OPENSEARCH_URL, OS_INDEX_PATTERN, K6_SEARCH_*
           volumeMounts:
             - { name: scripts, mountPath: /scripts }
           resources:
