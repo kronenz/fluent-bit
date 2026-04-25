@@ -31,7 +31,7 @@ echo "[4/4] Verifying..."
 kubectl --context="$CTX" -n "$NS" get pods -l 'app.kubernetes.io/name in (opensearch,fluent-bit)'
 sleep 5
 echo "--- OpenSearch cluster health ---"
-kubectl --context="$CTX" -n "$NS" exec -ti svc/opensearch-lt -- curl -s http://localhost:9200/_cluster/health | head -1 || true
+kubectl --context="$CTX" -n "$NS" exec -ti svc/opensearch-lt-node -- curl -s http://localhost:9200/_cluster/health | head -1 || true
 echo "--- Fluent-bit metrics endpoint check ---"
 kubectl --context="$CTX" -n "$NS" exec -ti ds/fluent-bit-lt -- curl -s http://localhost:2020/api/v2/metrics/prometheus | head -5 || true
 
@@ -42,7 +42,7 @@ Done.
 Test log flow:
   kubectl --context=$CTX -n load-test apply -f ../03-load-generators/flog.yaml
   # wait 30s
-  kubectl --context=$CTX -n monitoring exec svc/opensearch-lt -- \\
+  kubectl --context=$CTX -n monitoring exec svc/opensearch-lt-node -- \\
     curl -s 'http://localhost:9200/logs-fb-*/_count' | jq
 
 Uninstall:

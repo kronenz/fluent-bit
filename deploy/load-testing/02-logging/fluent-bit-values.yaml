@@ -59,7 +59,7 @@ config:
     [OUTPUT]
         Name opensearch
         Match kube.*
-        Host opensearch-lt.monitoring.svc
+        Host opensearch-lt-node.monitoring.svc
         Port 9200
         Index fluent-bit
         Logstash_Format On

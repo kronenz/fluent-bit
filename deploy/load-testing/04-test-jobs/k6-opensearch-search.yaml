@@ -22,7 +22,7 @@ data:
       },
     };
 
-    const OS = __ENV.OS_URL || 'http://opensearch-lt.monitoring.svc:9200';
+    const OS = __ENV.OS_URL || 'http://opensearch-lt-node.monitoring.svc:9200';
     const INDEX = __ENV.OS_INDEX || 'logs-fb-*';
 
     const body = JSON.stringify({
@@ -56,7 +56,7 @@ spec:
           image: grafana/k6:0.55.2
           command: ["k6", "run", "/scripts/script.js"]
           env:
-            - { name: OS_URL,   value: "http://opensearch-lt.monitoring.svc:9200" }
+            - { name: OS_URL,   value: "http://opensearch-lt-node.monitoring.svc:9200" }
             - { name: OS_INDEX, value: "logs-fb-*" }
           volumeMounts:
             - { name: scripts, mountPath: /scripts }

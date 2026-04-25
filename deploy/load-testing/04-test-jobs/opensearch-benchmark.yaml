@@ -21,7 +21,7 @@ spec:
           # workload `geonames` is small (~3M docs); use `http_logs` for bigger volume.
           args:
             - "execute-test"
-            - "--target-hosts=http://opensearch-lt.monitoring.svc:9200"
+            - "--target-hosts=http://opensearch-lt-node.monitoring.svc:9200"
             - "--pipeline=benchmark-only"
             - "--workload=geonames"
             - "--test-procedure=append-no-conflicts-index-only"
