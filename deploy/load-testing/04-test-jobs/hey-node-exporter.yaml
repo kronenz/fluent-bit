@@ -21,8 +21,9 @@ spec:
           # -z 2m  : run for 2 minutes
           # -c 50  : 50 concurrent connections
           # -q 50  : limit to 50 RPS per worker (avoid cluster API server flooding)
-          command: ["hey", "-z", "2m", "-c", "50", "-q", "50",
-                    "http://kps-prometheus-node-exporter.monitoring.svc:9100/metrics"]
+          # The image's ENTRYPOINT is `hey`, so only args follow.
+          args: ["-z", "2m", "-c", "50", "-q", "50",
+                 "http://kps-prometheus-node-exporter.monitoring.svc:9100/metrics"]
           resources:
             requests: { cpu: "100m", memory: "64Mi" }
             limits:   { cpu: "1000m", memory: "256Mi" }
