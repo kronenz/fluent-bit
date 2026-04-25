@@ -12,8 +12,6 @@ data:
     global:
       gc: true
       gcMetrics: false
-      indexerConfig:
-        type: local
     jobs:
       - name: pod-density
         jobType: create
@@ -26,7 +24,7 @@ data:
         qps: 20
         burst: 30
         objects:
-          - objectTemplate: pod.yaml
+          - objectTemplate: /config/pod.yaml
             replicas: 1
   pod.yaml: |
     apiVersion: v1
@@ -83,8 +81,10 @@ spec:
         - name: kube-burner
           image: loadtest-tools:0.1.0
           imagePullPolicy: IfNotPresent
-          workingDir: /config
-          command: ["kube-burner", "init", "-c", "config.yaml", "--uuid", "$(POD_NAME)"]
+          # Don't use /config (ConfigMap, read-only) as workdir — kube-burner
+          # writes its log file to PWD. /work is writable in the image.
+          workingDir: /work
+          command: ["kube-burner", "init", "-c", "/config/config.yaml", "--uuid", "$(POD_NAME)"]
           env:
             - name: POD_NAME
               valueFrom: { fieldRef: { fieldPath: metadata.name } }

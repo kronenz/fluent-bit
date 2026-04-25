@@ -50,7 +50,7 @@ data:
           },
           "options": {
             "mode": "markdown",
-            "content": "## \ud83e\udded Load Test Overview \u2014 \ubd80\ud558 \ud14c\uc2a4\ud2b8 \uc885\ud569 \ud5ec\uc2a4\uccb4\ud06c\n\n\uac01 \ubd80\ud558 \ud14c\uc2a4\ud2b8 \uc2dc\ub098\ub9ac\uc624 \uc9c4\ud589 \uc911 \ud55c \ud654\uba74\uc5d0\uc11c **\uc804\uccb4 \ucef4\ud3ec\ub10c\ud2b8\uc758 \ud575\uc2ec \uc9c0\ud45c**\ub97c \ud655\uc778\ud558\ub294 \uc885\ud569 \ub300\uc2dc\ubcf4\ub4dc\uc785\ub2c8\ub2e4. \uc0c1\uc138 \ubd84\uc11d\uc740 \uc2dc\ub098\ub9ac\uc624\ubcc4 \ub300\uc2dc\ubcf4\ub4dc \uc0ac\uc6a9:\n\n| \ucef4\ud3ec\ub10c\ud2b8 | \ub300\uc2dc\ubcf4\ub4dc | \uc2dc\ub098\ub9ac\uc624 |\n|----------|----------|----------|\n| OpenSearch | [Load Test \u2022 OpenSearch](/d/lt-opensearch) | OS-01, OS-02 |\n| Fluent-bit | [Load Test \u2022 Fluent-bit](/d/lt-fluent-bit) | FB-01 ~ FB-07 |\n| Prometheus | [Load Test \u2022 Prometheus](/d/lt-prometheus) | PR-01 ~ PR-07 |\n| node-exporter | [Load Test \u2022 node-exporter](/d/lt-node-exporter) | NE-01 ~ NE-07 |\n| kube-state-metrics | [Load Test \u2022 kube-state-metrics](/d/lt-ksm) | KSM-01 ~ KSM-07 |\n\n### \uc9c4\ud589 \uc808\ucc28 (\uc694\uc57d)\n1. **\uc0ac\uc804 \uc810\uac80**: \ud074\ub7ec\uc2a4\ud130 health, \ub514\uc2a4\ud06c \uc5ec\uc720, \uc54c\ub78c silence\n2. **\ubca0\uc774\uc2a4\ub77c\uc778**: \ubd80\ud558 \uc5c6\uc774 5\ubd84 \ucea1\ucc98 (\uc774 \ub300\uc2dc\ubcf4\ub4dc \uc2a4\ub0c5\uc0f7)\n3. **\ubd80\ud558 \uc8fc\uc785**: `kubectl apply -f deploy/load-testing/04-test-jobs/<job>.yaml`\n4. **\uce21\uc815**: \uc2dc\ub098\ub9ac\uc624\ubcc4 \ub300\uc2dc\ubcf4\ub4dc + \ub3c4\uad6c stdout\n5. **\ud569\uaca9 \ud310\uc815**: \uac00\uc774\ub4dc SLO \ud45c \ub300\ube44 \ube44\uad50\n6. **\uc815\ub9ac**: `kubectl delete` + `99-cleanup.sh`\n\n### \ud55c \ud654\uba74 \uc694\uc57d \uc9c0\ud45c\n- **Targets UP/DOWN**: \ubaa8\ub4e0 scrape target health\n- **Active Series**: Prometheus \uba54\ubaa8\ub9ac \uc555\ubc15 1\ucc28 \uc9c0\ud45c\n- **Cluster Status**: OpenSearch green \uc720\uc9c0 \uc5ec\ubd80\n- **Indexing TPS / Output Rate**: \ub370\uc774\ud130 \ud30c\uc774\ud504\ub77c\uc778 \ucc98\ub9ac\ub7c9\n- **Search Latency / PromQL p95**: \uc0ac\uc6a9\uc790 \uacbd\ud5d8 \uc9c0\ud45c\n- **Pod CPU/Memory (load-test ns)**: \ubd80\ud558\uae30 \uc790\uccb4 \uc790\uc6d0 \uc0ac\uc6a9\ub7c9\n- **Errors / Rejects**: \ub370\uc774\ud130 \uc190\uc2e4 1\ucc28 \uc2e0\ud638\n\n> \uc790\uc138\ud55c \uc6b4\uc601 \uc808\ucc28\ub294 `docs/load-testing/06-test-execution-plan.md` \ucc38\uc870.\n"
+            "content": "## \ud83e\udded Load Test Overview \u2014 \ubd80\ud558 \ud14c\uc2a4\ud2b8 \uc885\ud569 \ud5ec\uc2a4\uccb4\ud06c\n\n\uac01 \ubd80\ud558 \ud14c\uc2a4\ud2b8 \uc2dc\ub098\ub9ac\uc624 \uc9c4\ud589 \uc911 \ud55c \ud654\uba74\uc5d0\uc11c **\uc804\uccb4 \ucef4\ud3ec\ub10c\ud2b8\uc758 \ud575\uc2ec \uc9c0\ud45c**\ub97c \ud655\uc778\ud558\ub294 \uc885\ud569 \ub300\uc2dc\ubcf4\ub4dc\uc785\ub2c8\ub2e4.\n\n| \ucef4\ud3ec\ub10c\ud2b8 | \ub300\uc2dc\ubcf4\ub4dc | \uc2dc\ub098\ub9ac\uc624 |\n|----------|----------|----------|\n| OpenSearch | [OpenSearch](/d/lt-opensearch) | OS-01 ~ OS-07 |\n| Fluent-bit | [Fluent-bit](/d/lt-fluent-bit) | FB-01 ~ FB-07 |\n| Prometheus | [Prometheus](/d/lt-prometheus) | PR-01 ~ PR-07 |\n| node-exporter | [node-exporter](/d/lt-node-exporter) | NE-01 ~ NE-07 |\n| kube-state-metrics | [kube-state-metrics](/d/lt-ksm) | KSM-01 ~ KSM-07 |\n\n> \uc790\uc138\ud55c \uc6b4\uc601 \uc808\ucc28\ub294 `docs/load-testing/06-test-execution-plan.md` \ucc38\uc870.\n"
           }
         },
         {
@@ -69,7 +69,7 @@ data:
           "id": 3,
           "type": "stat",
           "title": "Targets UP",
-          "description": "health=up target \uc218",
+          "description": "health=up",
           "gridPos": {
             "x": 0,
             "y": 15,
@@ -105,7 +105,7 @@ data:
           "id": 4,
           "type": "stat",
           "title": "Targets DOWN",
-          "description": "health=down target \uc218, 0 \uc720\uc9c0\uac00 \uc815\uc0c1",
+          "description": "health=down",
           "gridPos": {
             "x": 4,
             "y": 15,
@@ -141,7 +141,7 @@ data:
           "id": 5,
           "type": "stat",
           "title": "Active Series",
-          "description": "\ud604\uc7ac Prometheus head series",
+          "description": "\ud604\uc7ac head series",
           "gridPos": {
             "x": 8,
             "y": 15,
@@ -176,8 +176,8 @@ data:
         {
           "id": 6,
           "type": "stat",
-          "title": "Cluster Status (green=1)",
-          "description": "OpenSearch green=1, otherwise=0",
+          "title": "Cluster Status",
+          "description": "OS green=1",
           "gridPos": {
             "x": 12,
             "y": 15,
@@ -213,7 +213,7 @@ data:
           "id": 7,
           "type": "stat",
           "title": "Indexing TPS",
-          "description": "\ud074\ub7ec\uc2a4\ud130 \ud569\uacc4 \uc778\ub371\uc2f1 \ucc98\ub9ac\ub7c9",
+          "description": "",
           "gridPos": {
             "x": 16,
             "y": 15,
@@ -249,7 +249,7 @@ data:
           "id": 8,
           "type": "stat",
           "title": "FB output rate",
-          "description": "Fluent-bit \ud569\uacc4 \ucd9c\ub825\ub960",
+          "description": "",
           "gridPos": {
             "x": 20,
             "y": 15,
@@ -297,7 +297,7 @@ data:
           "id": 10,
           "type": "timeseries",
           "title": "Search Latency (avg)",
-          "description": "\ud3c9\uade0 \uac80\uc0c9 \uc9c0\uc5f0 (\uc11c\ubc84 \uce21)",
+          "description": "",
           "gridPos": {
             "x": 0,
             "y": 20,
@@ -340,7 +340,7 @@ data:
           "id": 11,
           "type": "timeseries",
           "title": "PromQL p95",
-          "description": "PromQL \ud3c9\uac00 \uc2dc\uac04 p95",
+          "description": "",
           "gridPos": {
             "x": 12,
             "y": 20,
@@ -395,7 +395,7 @@ data:
           "id": 13,
           "type": "timeseries",
           "title": "Pod Memory",
-          "description": "load-test ns Pod \uba54\ubaa8\ub9ac (\ubd80\ud558\uae30 \uc790\uccb4 \uc810\uc720\ub7c9)",
+          "description": "",
           "gridPos": {
             "x": 0,
             "y": 28,
@@ -438,7 +438,7 @@ data:
           "id": 14,
           "type": "timeseries",
           "title": "Pod CPU",
-          "description": "load-test ns Pod CPU",
+          "description": "",
           "gridPos": {
             "x": 12,
             "y": 28,
@@ -493,11 +493,11 @@ data:
           "id": 16,
           "type": "timeseries",
           "title": "Output Errors / Bulk Rejects",
-          "description": "\ub370\uc774\ud130 \uc190\uc2e4 1\ucc28 \uc2e0\ud638 \u2014 \ubaa8\ub450 0 \uadfc\uc811 \uc720\uc9c0",
+          "description": "",
           "gridPos": {
             "x": 0,
             "y": 36,
-            "w": 12,
+            "w": 24,
             "h": 7
           },
           "datasource": {
@@ -564,7 +564,7 @@ data:
   dash-load-test-opensearch.json: |-
     {
       "uid": "lt-opensearch",
-      "title": "Load Test \u2022 OpenSearch (OS-01/02)",
+      "title": "Load Test \u2022 OpenSearch (OS-01~07)",
       "schemaVersion": 39,
       "version": 1,
       "editable": true,
@@ -572,7 +572,7 @@ data:
         "load-test"
       ],
       "time": {
-        "from": "now-30m",
+        "from": "now-1h",
         "to": "now"
       },
       "refresh": "30s",
@@ -592,196 +592,55 @@ data:
       },
       "panels": [
         {
-          "id": 1,
+          "id": 17,
           "type": "text",
           "title": "",
           "gridPos": {
             "x": 0,
             "y": 0,
             "w": 24,
-            "h": 12
+            "h": 14
           },
           "options": {
             "mode": "markdown",
-            "content": "## \ud83d\udd0d OpenSearch \ubd80\ud558 \ud14c\uc2a4\ud2b8 (OS-01 / OS-02)\n\n**\ubaa9\uc801**: Kubernetes\uc5d0 \ubc30\ud3ec\ub41c OpenSearch \ud074\ub7ec\uc2a4\ud130\uc758 \uc778\ub371\uc2f1 \ucc98\ub9ac\ub7c9\uacfc \uac80\uc0c9 \uc9c0\uc5f0\uc744 \uac80\uc99d\ud569\ub2c8\ub2e4.\n\n### \uc2dc\ub098\ub9ac\uc624\n| ID | \uc2dc\ub098\ub9ac\uc624 | \ub3c4\uad6c | \ub9e4\ub2c8\ud398\uc2a4\ud2b8 |\n|----|----------|------|------------|\n| **OS-01** | Bulk Indexing (30\ubd84) | opensearch-benchmark `geonames` \uc6cc\ud06c\ub85c\ub4dc | `04-test-jobs/opensearch-benchmark.yaml` |\n| **OS-02** | Mixed Read/Write (7\ubd84) | k6\ub85c \uac80\uc0c9 \ucffc\ub9ac \ub3d9\uc2dc \uc2e4\ud589 | `04-test-jobs/k6-opensearch-search.yaml` |\n\n### \ubd80\ud558 \ud504\ub85c\ud30c\uc77c\n- **OS-01**: bulk_size=5000, clients=16. \uc0ac\uc804 \ub2e4\uc6b4\ub85c\ub4dc\ub41c geonames \ub370\uc774\ud130\ub97c \uc5f0\uc18d \uc778\ub371\uc2f1.\n- **OS-02**: 1m \u2192 50 VUs ramp-up \u2192 5m \u00d7 50 VUs \u2192 1m ramp-down. \uac01 VU\ub294 `match: error` \ucffc\ub9ac \ubc18\ubcf5.\n\n### SLO (\uc6b4\uc601 \uae30\uc900 \u2014 minikube \ub2e8\uc77c \ub178\ub4dc\uc5d0\uc11c\ub294 \ub3c4\ub2ec \ubd88\uac00, \ub3c4\uad6c \ub3d9\uc791 \uac80\uc99d\uc6a9)\n| \uc9c0\ud45c | \ubaa9\ud45c |\n|------|------|\n| Bulk Indexing TPS | \u2265 30,000 docs/s |\n| Search p95 latency | \u2264 500 ms |\n| Search p99 latency | \u2264 1500 ms |\n| Write thread pool reject | < 0.1% |\n| Heap usage | \u2264 75% |\n| Cluster Status | green \uc720\uc9c0 |\n\n### \ud575\uc2ec \uc9c0\ud45c \ud574\uc124\n- **Indexing Rate**: `rate(elasticsearch_indices_indexing_index_total[1m])` \u2014 \ub178\ub4dc \ub2e8\uc704 \ucd08\ub2f9 \uc778\ub371\uc2f1 \ubb38\uc11c \uc218.\n- **Bulk Reject**: \uc4f0\uae30 thread pool \ud050\uac00 \uac00\ub4dd \ucc28\uc11c \uac70\ubd80\ub41c \uc694\uccad \uc218. **0 \uadfc\uc811 \uc720\uc9c0**\uac00 \uc815\uc0c1.\n- **Heap Used %**: JVM \ud799 \uc0ac\uc6a9\ub960. 75%\u2191 \uc9c0\uc18d\uc774\uba74 GC \uc2dc\uac04 \uae09\uc99d, \uc751\ub2f5 \uc9c0\uc5f0\uc73c\ub85c \uc774\uc5b4\uc9d0.\n- **Search Latency**: \ud3c9\uade0(`time_total/total`)\uc73c\ub85c \ud45c\uc2dc. p95/p99\ub294 \ud074\ub77c\uc774\uc5b8\ud2b8(k6) \uacb0\uacfc \ucc38\uc870.\n\n### \ud29c\ub2dd \uc758\uc0ac\uacb0\uc815\n| \uc99d\uc0c1 | 1\ucc28 \uc870\uce58 | 2\ucc28 \uc870\uce58 |\n|------|----------|----------|\n| Heap 75%\u2191 | `bulk_size`\u2193, `refresh_interval`\u2191 | data node \uc99d\uc124 |\n| reject \u2191 | `clients`\u2193, `queue_size`\u2191 | coordinator \ubd84\ub9ac |\n| disk IO 80%\u2191 | `translog.durability=async` | NVMe \uc804\ud658, shard \uc7ac\ubc30\uce58 |\n| search p99 spike | slow query log \ubd84\uc11d | query cache \uc0c1\ud5a5 |\n\n> \ub370\uc774\ud130 \ucd9c\ucc98: standalone `prometheus-community/elasticsearch_exporter` (Job: `opensearch-exporter`)\n"
+            "content": "## \ud83d\udd0d OpenSearch \ubd80\ud558 \ud14c\uc2a4\ud2b8 \u2014 \uc804 \uc2dc\ub098\ub9ac\uc624 \ub300\uc2dc\ubcf4\ub4dc\n\nKubernetes\uc5d0 \ubc30\ud3ec\ub41c OpenSearch \ud074\ub7ec\uc2a4\ud130\uc758 \uc778\ub371\uc2f1\u00b7\uac80\uc0c9\u00b7\uc9d1\uacc4\u00b7\ubcf5\uad6c\u00b7\uc18c\ud06c \uac70\ub3d9\uc744 \ubaa8\ub450 \ub2e4\ub8f9\ub2c8\ub2e4.\n\uac01 \uc2dc\ub098\ub9ac\uc624 \ube14\ub85d\uc740 **\uc124\uba85 \u2192 \ud575\uc2ec \ud328\ub110** \uc21c\uc11c\ub85c \uad6c\uc131\ub418\uc5b4 \uc788\uc5b4 \uc704\uc5d0\uc11c \uc544\ub798\ub85c \uc77d\uc73c\uba74 \ub429\ub2c8\ub2e4.\n\n| \uc2dc\ub098\ub9ac\uc624 | \uc720\ud615 | \ub9e4\ub2c8\ud398\uc2a4\ud2b8 |\n|----------|------|-----------|\n| OS-01 Bulk Indexing | Load | `04-test-jobs/opensearch-benchmark.yaml` |\n| OS-02 Mixed Read/Write | Load | `04-test-jobs/k6-opensearch-search.yaml` |\n| OS-03 Heavy Aggregation | Stress | k6 + agg query |\n| OS-04 Shard/Replica Scaling | Stress | dynamic settings \ubcc0\uacbd |\n| OS-05 Soak 24h | Soak | OS-01 24h \uc720\uc9c0 |\n| OS-06 Spike Ingest \u00d75 | Spike | flog \ub610\ub294 benchmark spike |\n| OS-07 Node Failure | Chaos | `kubectl delete pod` |\n\n> \uba54\ud2b8\ub9ad \ucd9c\ucc98: `prometheus-community/elasticsearch_exporter` (Job: `opensearch-exporter`).\n"
           }
         },
         {
-          "id": 2,
+          "id": 18,
           "type": "row",
-          "title": "Cluster",
+          "title": "OS-01 \u2014 Bulk Indexing",
           "collapsed": false,
           "gridPos": {
             "x": 0,
-            "y": 12,
+            "y": 14,
             "w": 24,
             "h": 1
           }
         },
         {
-          "id": 3,
-          "type": "stat",
-          "title": "Cluster Status (1=green)",
-          "description": "OpenSearch \ud074\ub7ec\uc2a4\ud130 \uc0c1\ud0dc. 1\uc774\uba74 green, 0\uc774\uba74 yellow/red. \ubd80\ud558 \uc911\uc5d0\ub3c4 green \uc720\uc9c0\uac00 \ud569\uaca9 \uae30\uc900.",
+          "id": 19,
+          "type": "text",
+          "title": "",
           "gridPos": {
             "x": 0,
-            "y": 13,
-            "w": 6,
-            "h": 4
-          },
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "expr": "elasticsearch_cluster_health_status{color=\"green\"}",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              }
-            }
-          ]
-        },
-        {
-          "id": 4,
-          "type": "stat",
-          "title": "Active Shards",
-          "description": "\ud604\uc7ac active \uc0c1\ud0dc\uc778 shard \uc218(primary+replica). \ub2e8\uc77c \ub178\ub4dc\ub294 replica\uac00 unassigned\uc774\ub77c yellow\uc77c \uc218 \uc788\uc74c.",
-          "gridPos": {
-            "x": 6,
-            "y": 13,
-            "w": 6,
-            "h": 4
-          },
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "expr": "elasticsearch_cluster_health_active_shards",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              }
-            }
-          ]
-        },
-        {
-          "id": 5,
-          "type": "stat",
-          "title": "Active Primary",
-          "description": "primary shard \uc218. \uc778\ub371\uc2f1\uc774 \uc77c\uc5b4\ub098\ub294 \ud575\uc2ec \ub2e8\uc704.",
-          "gridPos": {
-            "x": 12,
-            "y": 13,
-            "w": 6,
-            "h": 4
-          },
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "expr": "elasticsearch_cluster_health_active_primary_shards",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              }
-            }
-          ]
-        },
-        {
-          "id": 6,
-          "type": "stat",
-          "title": "Unassigned Shards",
-          "description": "\ud560\ub2f9\ub418\uc9c0 \ubabb\ud55c shard. single-node \ud658\uacbd\uc5d0\uc11c\ub294 replica\uac00 \uc5ec\uae30 \uc7a1\ud798. 0\uc774\uba74 green.",
-          "gridPos": {
-            "x": 18,
-            "y": 13,
-            "w": 6,
-            "h": 4
-          },
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "expr": "elasticsearch_cluster_health_unassigned_shards",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              }
-            }
-          ]
-        },
-        {
-          "id": 7,
-          "type": "row",
-          "title": "Indexing (OS-01)",
-          "collapsed": false,
-          "gridPos": {
-            "x": 0,
-            "y": 17,
+            "y": 15,
             "w": 24,
-            "h": 1
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: opensearch-benchmark\uc758 `geonames` \uc6cc\ud06c\ub85c\ub4dc\ub85c 30\ubd84\uac04 \uc5f0\uc18d bulk indexing \u2192 \uc778\ub371\uc2f1 \ucc98\ub9ac\ub7c9\uacfc \uc548\uc815\uc131 \uce21\uc815.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: bulk_size=5000, clients=16, \uc778\ub371\uc2f1 \uc804\uc6a9 procedure. **SLO**: \u2265 30,000 docs/s, reject < 0.1%, heap \u2264 75%.\n\n**\ud29c\ub2dd**: heap 75%\u2191 \u2192 bulk_size\u2193 + refresh_interval\u2191; reject\u2191 \u2192 clients\u2193 + queue_size\u2191.\n"
           }
         },
         {
-          "id": 8,
+          "id": 20,
           "type": "timeseries",
           "title": "Indexing Rate (docs/s)",
-          "description": "\ub178\ub4dc\ubcc4 \ucd08\ub2f9 \uc778\ub371\uc2f1 \ucc98\ub9ac\ub7c9. opensearch-benchmark \uc2e4\ud589 \uc911 `bulk_size \u00d7 clients \u00d7 throughput` \ub9cc\ud07c \uc0c1\uc2b9.",
+          "description": "\ub178\ub4dc\ubcc4 \ucd08\ub2f9 \uc778\ub371\uc2f1. opensearch-benchmark \uc2dc\uc791 \ud6c4 \uc0c1\uc2b9 \uace1\uc120\uc774 \ubcf4\uc5ec\uc57c \ud568.",
           "gridPos": {
             "x": 0,
-            "y": 18,
+            "y": 23,
             "w": 12,
             "h": 7
           },
@@ -818,13 +677,13 @@ data:
           ]
         },
         {
-          "id": 9,
+          "id": 21,
           "type": "timeseries",
-          "title": "Indexing Latency (avg, s)",
-          "description": "\ubb38\uc11c\ub2f9 \ud3c9\uade0 \uc778\ub371\uc2f1 \uc2dc\uac04. clamp_min\uc73c\ub85c 0 \ub098\ub217\uc148 \ubc29\uc9c0. 50ms \uc774\uc0c1\uc774\uba74 \ubcd1\ubaa9.",
+          "title": "Indexing Latency avg",
+          "description": "\ubb38\uc11c\ub2f9 \ud3c9\uade0 \uc778\ub371\uc2f1 \uc2dc\uac04. 50ms\u2191 \uc9c0\uc18d\uc774\uba74 \ubcd1\ubaa9.",
           "gridPos": {
             "x": 12,
-            "y": 18,
+            "y": 23,
             "w": 12,
             "h": 7
           },
@@ -861,13 +720,13 @@ data:
           ]
         },
         {
-          "id": 10,
+          "id": 22,
           "type": "timeseries",
           "title": "Bulk Reject Rate",
-          "description": "write thread pool\uc5d0\uc11c \uac70\ubd80\ub41c \uc694\uccad \ube44\uc728. \uc99d\uac00 \uc2dc \ud074\ub77c\uc774\uc5b8\ud2b8 \uce21 backoff/Retry_Limit \ub3d9\uc791 \ud544\uc694.",
+          "description": "0 \uadfc\uc811 \uc720\uc9c0\uac00 \uc815\uc0c1.",
           "gridPos": {
             "x": 0,
-            "y": 25,
+            "y": 30,
             "w": 12,
             "h": 7
           },
@@ -904,13 +763,13 @@ data:
           ]
         },
         {
-          "id": 11,
+          "id": 23,
           "type": "timeseries",
-          "title": "Pending Tasks",
-          "description": "master\uc5d0 \ub300\uae30 \uc911\uc778 \ud0dc\uc2a4\ud06c. \ub204\uc801 \uc2dc master \uc624\ubc84\ub85c\ub4dc \uc2e0\ud638.",
+          "title": "Pending Cluster Tasks",
+          "description": "master \ub300\uae30 \ud050. \ub204\uc801\uc740 master \uc624\ubc84\ub85c\ub4dc.",
           "gridPos": {
             "x": 12,
-            "y": 25,
+            "y": 30,
             "w": 12,
             "h": 7
           },
@@ -947,25 +806,40 @@ data:
           ]
         },
         {
-          "id": 12,
+          "id": 24,
           "type": "row",
-          "title": "Search (OS-02)",
+          "title": "OS-02 \u2014 Mixed Read/Write",
           "collapsed": false,
           "gridPos": {
             "x": 0,
-            "y": 32,
+            "y": 37,
             "w": 24,
             "h": 1
           }
         },
         {
-          "id": 13,
-          "type": "timeseries",
-          "title": "Search Rate (qps)",
-          "description": "\ucd08\ub2f9 search \ucffc\ub9ac \ucc98\ub9ac\ub7c9. k6 \ubd80\ud558 \uc2dc ramp-up \uace1\uc120\uc774 \ubcf4\uc5ec\uc57c \ud568.",
+          "id": 25,
+          "type": "text",
+          "title": "",
           "gridPos": {
             "x": 0,
-            "y": 33,
+            "y": 38,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: k6\ub85c \uac80\uc0c9 \ubd80\ud558\ub97c \uac00\ud558\uba74\uc11c indexing\uc740 \ubc31\uadf8\ub77c\uc6b4\ub4dc\uc5d0\uc11c \uc720\uc9c0 \u2192 \uc77d\uae30/\uc4f0\uae30 \ud63c\ud569 \uc2dc \uc751\ub2f5 \uac70\ub3d9 \ud655\uc778.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: 1m \u2192 50 VUs \u2192 5m \u00d7 50 VUs \u2192 1m. **SLO**: search p95 \u2264 500 ms, p99 \u2264 1500 ms, error rate < 0.5%.\n\n**\ud29c\ub2dd**: p99 spike \u2192 slow_query.threshold \ub85c\uae45 \u2192 \ube44\ud6a8\uc728 \ucffc\ub9ac \uc2dd\ubcc4; circuit breaker \u2192 indices.breaker.request.limit\u2191.\n"
+          }
+        },
+        {
+          "id": 26,
+          "type": "timeseries",
+          "title": "Search Rate (qps)",
+          "description": "k6 ramp-up\uc774 \ubcf4\uc5ec\uc57c \ud568.",
+          "gridPos": {
+            "x": 0,
+            "y": 46,
             "w": 12,
             "h": 7
           },
@@ -1002,13 +876,13 @@ data:
           ]
         },
         {
-          "id": 14,
+          "id": 27,
           "type": "timeseries",
-          "title": "Search Latency (avg, s)",
-          "description": "\ud3c9\uade0 \uac80\uc0c9 \uc9c0\uc5f0. p95/p99\ub294 k6 stdout \uacb0\uacfc\ub97c \ucc38\uc870 (\uc11c\ubc84 \uce21 \ud3c9\uade0\uc740 \uaf2c\ub9ac \uc9c0\uc5f0\uc744 \uac00\ub9bc).",
+          "title": "Search Latency avg (server)",
+          "description": "p95/p99\ub294 k6 stdout (\uc11c\ubc84 \ud3c9\uade0\uc740 \uaf2c\ub9ac \uc9c0\uc5f0 \uac00\ub9bc).",
           "gridPos": {
             "x": 12,
-            "y": 33,
+            "y": 46,
             "w": 12,
             "h": 7
           },
@@ -1045,25 +919,126 @@ data:
           ]
         },
         {
-          "id": 15,
+          "id": 28,
+          "type": "timeseries",
+          "title": "Fetch Latency avg",
+          "description": "fetch \ub2e8\uacc4 \uc9c0\uc5f0 (query \ub2e8\uacc4 \uc678).",
+          "gridPos": {
+            "x": 0,
+            "y": 53,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "rate(elasticsearch_indices_search_fetch_time_seconds_total[1m]) / clamp_min(rate(elasticsearch_indices_search_fetch_total[1m]),1)",
+              "legendFormat": "{{name}}"
+            }
+          ]
+        },
+        {
+          "id": 29,
+          "type": "timeseries",
+          "title": "Active Search Threads",
+          "description": "search thread pool \ud65c\uc6a9\ub3c4.",
+          "gridPos": {
+            "x": 12,
+            "y": 53,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_thread_pool_active_count{type=\"search\"}",
+              "legendFormat": "{{name}}"
+            }
+          ]
+        },
+        {
+          "id": 30,
           "type": "row",
-          "title": "Resource",
+          "title": "OS-03 \u2014 Heavy Aggregation",
           "collapsed": false,
           "gridPos": {
             "x": 0,
-            "y": 40,
+            "y": 60,
             "w": 24,
             "h": 1
           }
         },
         {
-          "id": 16,
-          "type": "timeseries",
-          "title": "Heap Used (%)",
-          "description": "JVM heap \uc0ac\uc6a9\ub960. 75%\u2191 \uc9c0\uc18d\uc774\uba74 GC \uc601\ud5a5\uc73c\ub85c \uc751\ub2f5 \uc9c0\uc5f0 \ubc1c\uc0dd.",
+          "id": 31,
+          "type": "text",
+          "title": "",
           "gridPos": {
             "x": 0,
-            "y": 41,
+            "y": 61,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: \ub300\uc6a9\ub7c9 \uc9d1\uacc4 \ucffc\ub9ac(`terms`, `histogram`)\ub85c \uc11c\ubc84 \uce21 \uba54\ubaa8\ub9ac\u00b7\uc5f0\uc0b0 \ubd80\ud558 \uce21\uc815. \ucd08\uae30 \ub2e8\uacc4 \ud2b8\ub808\uc774\uc2f1\uc774 \ud575\uc2ec.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: \ubcc4\ub3c4 k6 \uc2a4\ud06c\ub9bd\ud2b8(`/agg`)\ub85c 30\ubd84\uac04 \uc9d1\uacc4 \ubd80\ud558. **SLO**: heap \u2264 75%, breaker tripped 0, GC count \uc548\uc815.\n\n**\ud29c\ub2dd**: heap \uc555\ubc15 \u2192 bucket \ud06c\uae30 \uc81c\ud55c / scroll API \uc0ac\uc6a9; breaker tripped \u2192 request limit \uc0c1\ud5a5.\n"
+          }
+        },
+        {
+          "id": 32,
+          "type": "timeseries",
+          "title": "Heap Used %",
+          "description": "75%\u2191 \uc9c0\uc18d\uc774\uba74 GC \uc601\ud5a5.",
+          "gridPos": {
+            "x": 0,
+            "y": 69,
             "w": 12,
             "h": 7
           },
@@ -1100,13 +1075,429 @@ data:
           ]
         },
         {
-          "id": 17,
+          "id": 33,
           "type": "timeseries",
-          "title": "GC Time (s/s)",
-          "description": "\ucd08\ub2f9 GC \ub204\uc801 \uc2dc\uac04. young/old gen \ubcc4\ub85c \ud45c\uc2dc. old gen\uc774 \ube48\ubc88\ud558\uba74 heap \ubd80\uc871 \uc758\uc2ec.",
+          "title": "Circuit Breaker Tripped (cumulative)",
+          "description": "0 \uc720\uc9c0\uac00 \uc815\uc0c1. \uc99d\uac00 \uc2dc \ucffc\ub9ac/\ud544\ub4dc\ub370\uc774\ud130 \ud55c\uacc4 \ub3c4\ub2ec.",
           "gridPos": {
             "x": 12,
-            "y": 41,
+            "y": 69,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_breakers_tripped",
+              "legendFormat": "{{name}} {{breaker}}"
+            }
+          ]
+        },
+        {
+          "id": 34,
+          "type": "timeseries",
+          "title": "Old GC Count",
+          "description": "old gen GC\uac00 \ube48\ubc88\ud558\uba74 heap \ubd80\uc871.",
+          "gridPos": {
+            "x": 0,
+            "y": 76,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_jvm_gc_collection_seconds_count{gc=\"old\"}",
+              "legendFormat": "{{name}}"
+            }
+          ]
+        },
+        {
+          "id": 35,
+          "type": "timeseries",
+          "title": "Search Open Contexts",
+          "description": "scroll \ucee8\ud14d\uc2a4\ud2b8 \ub204\uc801 \ub204\uc218 \uac10\uc9c0.",
+          "gridPos": {
+            "x": 12,
+            "y": 76,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_indices_search_open_contexts",
+              "legendFormat": "{{name}}"
+            }
+          ]
+        },
+        {
+          "id": 36,
+          "type": "row",
+          "title": "OS-04 \u2014 Shard / Replica Scaling",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 83,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 37,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 84,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: `number_of_replicas` \ubcc0\uacbd \ub610\ub294 \uc778\ub371\uc2a4 \ucd94\uac00/\uc0ad\uc81c\ub85c shard relocation \ubc1c\uc0dd \u2192 \uc548\uc815\uc131\uacfc \ucc98\ub9ac\ub7c9 \uc601\ud5a5 \uce21\uc815.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: \uc778\ub371\uc2f1 \uc9c4\ud589 \uc911 dynamic settings \ubcc0\uacbd. **SLO**: relocating_shards \uc77c\uc2dc \uc99d\uac00 \ud6c4 0 \ubcf5\uadc0, recovery time < 10\ubd84.\n\n**\ud29c\ub2dd**: recovery \ub290\ub9bc \u2192 indices.recovery.max_bytes_per_sec\u2191; throughput \uc800\ud558 \u2192 \ub3d9\uc2dc \ubcc0\uacbd \ud68c\ud53c.\n"
+          }
+        },
+        {
+          "id": 38,
+          "type": "timeseries",
+          "title": "Active vs Unassigned Shards",
+          "description": "single-node\uc5d0\uc11c unassigned\ub294 replica \ubbf8\ubc30\uce58 \uc0c1\ud0dc\ub85c \uc815\uc0c1.",
+          "gridPos": {
+            "x": 0,
+            "y": 92,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_cluster_health_active_shards",
+              "legendFormat": "active"
+            },
+            {
+              "refId": "B",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_cluster_health_unassigned_shards",
+              "legendFormat": "unassigned"
+            }
+          ]
+        },
+        {
+          "id": 39,
+          "type": "timeseries",
+          "title": "Relocating / Initializing Shards",
+          "description": "shard \uc774\ub3d9\u00b7\ucd08\uae30\ud654 \uc9c4\ud589\ub3c4. \ubd80\ud558 \uc885\ub8cc \uc2dc 0.",
+          "gridPos": {
+            "x": 12,
+            "y": 92,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_cluster_health_relocating_shards",
+              "legendFormat": "relocating"
+            },
+            {
+              "refId": "B",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_cluster_health_initializing_shards",
+              "legendFormat": "initializing"
+            }
+          ]
+        },
+        {
+          "id": 40,
+          "type": "timeseries",
+          "title": "Indexing Rate (during scaling)",
+          "description": "scaling \uc911\uc5d0\ub3c4 \uc778\ub371\uc2f1\uc774 \uc720\uc9c0\ub418\ub294\uc9c0.",
+          "gridPos": {
+            "x": 0,
+            "y": 99,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum(rate(elasticsearch_indices_indexing_index_total[1m]))",
+              "legendFormat": "TPS"
+            }
+          ]
+        },
+        {
+          "id": 41,
+          "type": "timeseries",
+          "title": "Cluster Status (1=green)",
+          "description": "scaling \uc911 yellow\u2192green \ud68c\ubcf5 \uc2dc\uac04.",
+          "gridPos": {
+            "x": 12,
+            "y": 99,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_cluster_health_status{color=\"green\"}",
+              "legendFormat": "green"
+            }
+          ]
+        },
+        {
+          "id": 42,
+          "type": "row",
+          "title": "OS-05 \u2014 Soak 24h",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 106,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 43,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 107,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: OS-01 \ubd80\ud558\ub97c 24\uc2dc\uac04 \uc720\uc9c0\ud558\uba70 \uba54\ubaa8\ub9ac \ub204\uc218, GC \ube48\ub3c4 \ubcc0\ud654, FD \ub204\uc218 \ub4f1 \uc7a5\uae30 \uc548\uc815\uc131 \uac80\uc99d.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: bulk_size \ud3c9\uade0\uce58 \uace0\uc815 24h. **SLO**: heap \ud328\ud134 \uc548\uc815, GC frequency monotonic \uc99d\uac00 \uc5c6\uc74c, FD \uc548\uc815.\n\n**\ud29c\ub2dd**: heap drift \u2192 \uba54\ubaa8\ub9ac \ub204\uc218 \uc758\uc2ec \u2192 heap dump \ubd84\uc11d; FD \uc99d\uac00 \u2192 connection pool/scroll \ub204\uc218.\n"
+          }
+        },
+        {
+          "id": 44,
+          "type": "timeseries",
+          "title": "Heap Used % (24h trend)",
+          "description": "24h \ucd94\uc138\uc5d0\uc11c monotonic \uc0c1\uc2b9 \uc5c6\uc5b4\uc57c \ud568.",
+          "gridPos": {
+            "x": 0,
+            "y": 115,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_jvm_memory_used_bytes{area=\"heap\"} / elasticsearch_jvm_memory_max_bytes{area=\"heap\"} * 100",
+              "legendFormat": "{{name}}"
+            }
+          ]
+        },
+        {
+          "id": 45,
+          "type": "timeseries",
+          "title": "GC Time s/s (long range)",
+          "description": "long-range\ub85c GC \ubd80\ub2f4 \uc99d\uac00 \ucd94\uc801.",
+          "gridPos": {
+            "x": 12,
+            "y": 115,
             "w": 12,
             "h": 7
           },
@@ -1137,8 +1528,433 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "rate(elasticsearch_jvm_gc_collection_seconds_sum[1m])",
+              "expr": "rate(elasticsearch_jvm_gc_collection_seconds_sum[5m])",
               "legendFormat": "{{name}} {{gc}}"
+            }
+          ]
+        },
+        {
+          "id": 46,
+          "type": "timeseries",
+          "title": "Open File Descriptors",
+          "description": "FD \ub204\uc218 \uac10\uc9c0.",
+          "gridPos": {
+            "x": 0,
+            "y": 122,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_process_open_files_count",
+              "legendFormat": "{{name}}"
+            }
+          ]
+        },
+        {
+          "id": 47,
+          "type": "timeseries",
+          "title": "JVM Threads",
+          "description": "thread leak \uac10\uc9c0.",
+          "gridPos": {
+            "x": 12,
+            "y": 122,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_jvm_threads_count",
+              "legendFormat": "{{name}}"
+            }
+          ]
+        },
+        {
+          "id": 48,
+          "type": "row",
+          "title": "OS-06 \u2014 Spike Ingest \u00d75",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 129,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 49,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 130,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: \ud3c9\uade0 \ubd80\ud558 \ub300\ube44 5\ubc30 \uae09\uc99d \u2192 backpressure \ubc1c\uc0dd \uc2dc reject\u00b7cluster status \uc601\ud5a5 \uad00\ucc30.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: 5\ubd84 \ud3c9\uade0 \u2192 5\ubd84 \u00d7 5\ubc30 spike \u2192 5\ubd84 \ud3c9\uade0. **SLO**: reject burst \ud6c4 1\ubd84 \ub0b4 0 \ubcf5\uadc0, status green \uc720\uc9c0.\n\n**\ud29c\ub2dd**: reject \uc9c0\uc18d \u2192 coordinator/data \ub178\ub4dc \ubd84\ub9ac, queue_size\u2191; \ucc98\ub9ac\ub7c9 \ud55c\uacc4 \u2192 bulk_size\u2193 + clients\u2193.\n"
+          }
+        },
+        {
+          "id": 50,
+          "type": "timeseries",
+          "title": "Indexing TPS (spike profile)",
+          "description": "\uae09\uc99d \uace1\uc120\uc774 \uadf8\ub300\ub85c \ubcf4\uc5ec\uc57c \ud568.",
+          "gridPos": {
+            "x": 0,
+            "y": 138,
+            "w": 24,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum(rate(elasticsearch_indices_indexing_index_total[1m]))",
+              "legendFormat": "TPS"
+            }
+          ]
+        },
+        {
+          "id": 51,
+          "type": "timeseries",
+          "title": "Bulk Reject during spike",
+          "description": "spike \uc911 \uc77c\uc2dc \uc99d\uac00 \ud6c4 0 \ubcf5\uadc0\uac00 \uc815\uc0c1.",
+          "gridPos": {
+            "x": 0,
+            "y": 145,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "rate(elasticsearch_thread_pool_rejected_count{type=\"write\"}[1m])",
+              "legendFormat": "{{name}}"
+            }
+          ]
+        },
+        {
+          "id": 52,
+          "type": "timeseries",
+          "title": "Heap % during spike",
+          "description": "spike \uc2dc \uc77c\uc2dc\uc801 \uc0c1\uc2b9 \u2192 \uc815\uc0c1 \ud68c\ubcf5.",
+          "gridPos": {
+            "x": 12,
+            "y": 145,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_jvm_memory_used_bytes{area=\"heap\"} / elasticsearch_jvm_memory_max_bytes{area=\"heap\"} * 100",
+              "legendFormat": "{{name}}"
+            }
+          ]
+        },
+        {
+          "id": 53,
+          "type": "row",
+          "title": "OS-07 \u2014 Node Failure (Chaos)",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 152,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 54,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 153,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: data node 1\ub300 \uac15\uc81c \uc885\ub8cc \u2192 red\u2192yellow\u2192green \ud68c\ubcf5 \uc2dc\uac04\uacfc \ucc98\ub9ac\ub7c9 \uc601\ud5a5 \uce21\uc815.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: `kubectl delete pod opensearch-...-1`. **SLO**: green \ud68c\ubcf5 < 20\ubd84, \ub370\uc774\ud130 \uc190\uc2e4 0, \uc778\ub371\uc2f1 \uc911\ub2e8 < 1\ubd84.\n\n**\ud29c\ub2dd**: \ud68c\ubcf5 \ub290\ub9bc \u2192 recovery throttle \uc0c1\ud5a5; \uc778\ub371\uc2f1 \uba48\ucda4 \u2192 coordinator \ub178\ub4dc \ubd84\ub9ac\ub85c \ud574\uacb0.\n"
+          }
+        },
+        {
+          "id": 55,
+          "type": "timeseries",
+          "title": "Cluster Status timeline",
+          "description": "0/1 timeline. green \u2192 yellow \u2192 green \ud328\ud134\uc774\uc5b4\uc57c \ud568.",
+          "gridPos": {
+            "x": 0,
+            "y": 161,
+            "w": 24,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_cluster_health_status{color=\"green\"}",
+              "legendFormat": "green"
+            },
+            {
+              "refId": "B",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_cluster_health_status{color=\"yellow\"}",
+              "legendFormat": "yellow"
+            },
+            {
+              "refId": "C",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_cluster_health_status{color=\"red\"}",
+              "legendFormat": "red"
+            }
+          ]
+        },
+        {
+          "id": 56,
+          "type": "timeseries",
+          "title": "Number of Nodes",
+          "description": "\ub178\ub4dc 1\ub300 down \u2192 \ud68c\ubcf5 \uac00\uc2dc\ud654.",
+          "gridPos": {
+            "x": 0,
+            "y": 168,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_cluster_health_number_of_nodes",
+              "legendFormat": "nodes"
+            },
+            {
+              "refId": "B",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_cluster_health_number_of_data_nodes",
+              "legendFormat": "data nodes"
+            }
+          ]
+        },
+        {
+          "id": 57,
+          "type": "timeseries",
+          "title": "Unassigned Shards during failure",
+          "description": "spike \ud6c4 0 \ubcf5\uadc0.",
+          "gridPos": {
+            "x": 12,
+            "y": 168,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "elasticsearch_cluster_health_unassigned_shards",
+              "legendFormat": "unassigned"
             }
           ]
         }
@@ -1156,7 +1972,7 @@ data:
   dash-load-test-fluent-bit.json: |-
     {
       "uid": "lt-fluent-bit",
-      "title": "Load Test \u2022 Fluent-bit (FB)",
+      "title": "Load Test \u2022 Fluent-bit (FB-01~07)",
       "schemaVersion": 39,
       "version": 1,
       "editable": true,
@@ -1164,7 +1980,7 @@ data:
         "load-test"
       ],
       "time": {
-        "from": "now-30m",
+        "from": "now-1h",
         "to": "now"
       },
       "refresh": "30s",
@@ -1184,7 +2000,7 @@ data:
       },
       "panels": [
         {
-          "id": 1,
+          "id": 58,
           "type": "text",
           "title": "",
           "gridPos": {
@@ -1195,13 +2011,13 @@ data:
           },
           "options": {
             "mode": "markdown",
-            "content": "## \ud83e\udeb5 Fluent-bit \ubd80\ud558 \ud14c\uc2a4\ud2b8 (FB-01 ~ FB-05)\n\n**\ubaa9\uc801**: DaemonSet\uc73c\ub85c \ub3d9\uc791\ud558\ub294 Fluent-bit\uc758 \ub2e8\uc77c \uc778\uc2a4\ud134\uc2a4 \ucc98\ub9ac\ub7c9, backpressure \uac70\ub3d9, \uc190\uc2e4\ub960, \uc790\ub3d9 \ubcf5\uad6c\ub97c \uac80\uc99d\ud569\ub2c8\ub2e4.\n\n### \uc2dc\ub098\ub9ac\uc624\n| ID | \uc2dc\ub098\ub9ac\uc624 | \ud575\uc2ec \uc9c0\ud45c |\n|----|----------|-----------|\n| **FB-01** | \ub2e8\uc77c Pod throughput ceiling (30\ubd84, stress) | records/s, drops |\n| **FB-02** | \uc815\uc0c1 \uc6b4\uc601 \ubd80\ud558 (1\uc2dc\uac04, load) | CPU, buffer size |\n| **FB-03** | Output \uc7a5\uc560 \uc8fc\uc785 (chaos) | retries, filesystem buffer |\n| **FB-04** | \uba40\ud2f0\ub77c\uc778 \uc2a4\ud0dd\ud2b8\ub808\uc774\uc2a4 (load) | parse latency |\n| **FB-05** | \ub85c\uadf8 \ubc84\uc2a4\ud2b8 spike | backpressure, drop |\n\n### \ub370\uc774\ud130 \ud750\ub984\n```\nflog Pod (load-test ns) \u2500stdout\u2192 /var/log/containers/*.log\n    \u2192 Fluent-bit tail input \u2192 parser/filter \u2192 buffer (mem+filesystem)\n    \u2192 OpenSearch bulk output\n```\n- \ubd80\ud558\uae30: `mingrammer/flog` (`-f json -d 100us -l`), replicas\ub85c \ub178\ub4dc\ubcc4 \ubd80\ud558 \uc870\uc808.\n- \ucd9c\ub825: `opensearch-lt-node.monitoring.svc:9200` (logstash-format \u2192 `logs-fb-YYYY.MM.DD`).\n\n### SLO\n| \uc9c0\ud45c | \ubaa9\ud45c |\n|------|------|\n| per-pod throughput (FB-01) | \u2265 50,000 lines/s |\n| \uc190\uc2e4\ub960 (with `storage.type=filesystem`) | 0% |\n| tail \u2192 output p95 \uc9c0\uc5f0 | \u2264 5 s |\n| CPU | \u2264 pod limit 70% |\n| RSS | \u2264 pod limit 70% |\n\n### \ud575\uc2ec \uc9c0\ud45c \ud574\uc124\n- **Input Records Rate**: `rate(fluentbit_input_records_total[1m])` \u2014 tail input\uc774 \ucd08\ub2f9 \uc77d\uc740 \ub77c\uc778 \uc218.\n- **Output Processed Rate**: \uc815\uc0c1 \ucd9c\ub825\ub41c \ub808\ucf54\ub4dc. input rate\uc640 \ucc28\uc774\uac00 = drops/buffer \ub204\uc801.\n- **Output Errors / Retries**: \uc7ac\uc2dc\ub3c4\uac00 \ub204\uc801\ub418\uba74 backpressure \ubc1c\uc0dd. `Retry_Limit=False`\uba74 \ubb34\uc81c\ud55c \uc7ac\uc2dc\ub3c4\ub85c \ub370\uc774\ud130 \ubcf4\uc804.\n- **Storage Backlog**: `fluentbit_input_storage_chunks_busy_bytes` \u2014 filesystem buffer \ub204\uc801\ub7c9. \ub514\uc2a4\ud06c \uc5ec\uc720 \ubaa8\ub2c8\ud130\ub9c1 \ud544\uc218.\n\n### \ud29c\ub2dd \uc758\uc0ac\uacb0\uc815\n| \uc99d\uc0c1 | \uc870\uce58 |\n|------|------|\n| drops \ubc1c\uc0dd | `Mem_Buf_Limit`\u2191, `storage.type=filesystem` |\n| CPU throttling | `Workers`\u2191 (output), filter \ub2e8\uc21c\ud654 |\n| output \uc5d0\ub7ec \uc9c0\uc18d | OpenSearch bulk reject \uc870\uc0ac, backoff |\n| parser \uc9c0\uc5f0 | \uc815\uaddc\uc2dd \ub2e8\uc21c\ud654, multiline \ucd5c\uc801\ud654 |\n\n> \ub370\uc774\ud130 \ucd9c\ucc98: Fluent-bit `/api/v2/metrics/prometheus` (Job: `fluent-bit-lt`)\n"
+            "content": "## \ud83e\udeb5 Fluent-bit \ubd80\ud558 \ud14c\uc2a4\ud2b8 \u2014 \uc804 \uc2dc\ub098\ub9ac\uc624 \ub300\uc2dc\ubcf4\ub4dc\n\nDaemonSet \ub3d9\uc791 \ud658\uacbd\uc5d0\uc11c \ub2e8\uc77c \uc778\uc2a4\ud134\uc2a4 \ucc98\ub9ac \ud55c\uacc4, \ucd9c\ub825 \uc7a5\uc560 \ubcf5\uad6c, \uba40\ud2f0\ub77c\uc778 \ud30c\uc2f1, \uc2a4\ud30c\uc774\ud06c/\uc18c\ud06c/\ub300\uc6a9\ub7c9 \ub77c\uc778\uc744 \ubaa8\ub450 \ub2e4\ub8f9\ub2c8\ub2e4.\n\n| \uc2dc\ub098\ub9ac\uc624 | \uc720\ud615 | \ub3c4\uad6c |\n|----------|------|------|\n| FB-01 \ub2e8\uc77c Pod throughput ceiling | Stress | flog \uace0\ubc00\ub3c4 |\n| FB-02 \uc815\uc0c1 \uc6b4\uc601 \ubd80\ud558 | Load | flog \ud3c9\uade0\uac12 |\n| FB-03 Output \uc7a5\uc560 \uc8fc\uc785 | Chaos | OpenSearch \uc77c\uc2dc \ub2e4\uc6b4 |\n| FB-04 \uba40\ud2f0\ub77c\uc778 \uc2a4\ud0dd\ud2b8\ub808\uc774\uc2a4 | Load | \uba40\ud2f0\ub77c\uc778 generator |\n| FB-05 \ub85c\uadf8 \ubc84\uc2a4\ud2b8 spike | Spike | flog rate \uae09\uc99d |\n| FB-06 Soak 24h | Soak | flog 24h \uc720\uc9c0 |\n| FB-07 \ub300\uc6a9\ub7c9 \ub85c\uadf8(line=16KB) | Stress | flog `--byte-size` |\n\n> \uba54\ud2b8\ub9ad \ucd9c\ucc98: Fluent-bit `/api/v2/metrics/prometheus` (Job: `fluent-bit-lt`).\n"
           }
         },
         {
-          "id": 2,
+          "id": 59,
           "type": "row",
-          "title": "Throughput (FB-01)",
+          "title": "FB-01 \u2014 \ub2e8\uc77c Pod throughput ceiling",
           "collapsed": false,
           "gridPos": {
             "x": 0,
@@ -1211,13 +2027,28 @@ data:
           }
         },
         {
-          "id": 3,
-          "type": "timeseries",
-          "title": "Input Records Rate",
-          "description": "tail input\uc774 \ucd08\ub2f9 \uc77d\uc740 \ub85c\uadf8 \ub77c\uc778 \uc218. flog replicas\uc640 -d \uc635\uc158\uc5d0 \ub530\ub77c \ubcc0\ub3d9.",
+          "id": 60,
+          "type": "text",
+          "title": "",
           "gridPos": {
             "x": 0,
             "y": 15,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: \ub2e8\uc77c Fluent-bit Pod\uac00 \ud758\ub824\ubcf4\ub0bc \uc218 \uc788\ub294 \ucd5c\ub300 \ub77c\uc778/\ucd08 \uce21\uc815.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: flog `-d 100us` \ubb34\ud55c \ub8e8\ud504, replicas\ub85c \ub178\ub4dc\ubcc4 \ubd80\ud558 \uc870\uc808. **SLO**: per-pod \u2265 50,000 lines/s, drop=0.\n\n**\ud29c\ub2dd**: drop \u2192 Mem_Buf_Limit\u2191, storage.type=filesystem; CPU throttling \u2192 Workers\u2191, filter \ub2e8\uc21c\ud654.\n"
+          }
+        },
+        {
+          "id": 61,
+          "type": "timeseries",
+          "title": "Input Records Rate per pod",
+          "description": "tail input\uc774 \ucd08\ub2f9 \uc77d\uc740 \ub77c\uc778 \uc218.",
+          "gridPos": {
+            "x": 0,
+            "y": 23,
             "w": 12,
             "h": 7
           },
@@ -1254,13 +2085,13 @@ data:
           ]
         },
         {
-          "id": 4,
+          "id": 62,
           "type": "timeseries",
           "title": "Output Processed Rate",
-          "description": "output\ubcc4 \uc815\uc0c1 \ucc98\ub9ac\ub41c \ub808\ucf54\ub4dc. input rate\uc640 \ube44\uad50\ud574 drops/\uc9c0\uc5f0 \uc5ec\ubd80 \ud655\uc778.",
+          "description": "input\uacfc \ucc28\uc774 = drop/buffer \ub204\uc801.",
           "gridPos": {
             "x": 12,
-            "y": 15,
+            "y": 23,
             "w": 12,
             "h": 7
           },
@@ -1297,25 +2128,248 @@ data:
           ]
         },
         {
-          "id": 5,
+          "id": 63,
+          "type": "timeseries",
+          "title": "CPU Usage",
+          "description": "limit \uadfc\uc811 \uc2dc throttling.",
+          "gridPos": {
+            "x": 0,
+            "y": 30,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "rate(container_cpu_usage_seconds_total{namespace=\"monitoring\",pod=~\"fluent-bit.*\",container=\"fluent-bit\"}[1m])",
+              "legendFormat": "{{pod}}"
+            }
+          ]
+        },
+        {
+          "id": 64,
+          "type": "timeseries",
+          "title": "Memory Working Set",
+          "description": "limit 70% \uc774\ub0b4 \uc720\uc9c0.",
+          "gridPos": {
+            "x": 12,
+            "y": 30,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "container_memory_working_set_bytes{namespace=\"monitoring\",pod=~\"fluent-bit.*\",container=\"fluent-bit\"}",
+              "legendFormat": "{{pod}}"
+            }
+          ]
+        },
+        {
+          "id": 65,
           "type": "row",
-          "title": "Reliability (FB-03/05)",
+          "title": "FB-02 \u2014 \uc815\uc0c1 \uc6b4\uc601 \ubd80\ud558",
           "collapsed": false,
           "gridPos": {
             "x": 0,
-            "y": 22,
+            "y": 37,
             "w": 24,
             "h": 1
           }
         },
         {
-          "id": 6,
-          "type": "timeseries",
-          "title": "Output Errors",
-          "description": "output \uc5d0\ub7ec\uc728. 0 \uc720\uc9c0\uac00 \uc815\uc0c1. \uc99d\uac00 \uc2dc OpenSearch \uc751\ub2f5 \ucf54\ub4dc/\uc5f0\uacb0 \uc810\uac80.",
+          "id": 66,
+          "type": "text",
+          "title": "",
           "gridPos": {
             "x": 0,
-            "y": 23,
+            "y": 38,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: 1\uc2dc\uac04 \ub3d9\uc548 \ud3c9\uade0 \uc6b4\uc601 \ubd80\ud558\ub97c \uac00\ud574 buffer \uac70\ub3d9\u00b7\uc790\uc6d0 \uc548\uc815\uc131 \uac80\uc99d.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: flog `-d 500us`, replicas=3 (or \ud3c9\uade0\uac12). **SLO**: CPU/RSS \u2264 limit 70%, buffer \ub204\uc801 \uc5c6\uc74c.\n\n**\ud29c\ub2dd**: buffer \ub204\uc801 \u2192 output Workers\u2191; output \uc751\ub2f5 \uc9c0\uc5f0 \u2192 backoff/retry \uc815\ucc45.\n"
+          }
+        },
+        {
+          "id": 67,
+          "type": "timeseries",
+          "title": "Input/Output Rate Comparison",
+          "description": "\ub450 \uace1\uc120\uc774 \uac70\uc758 \uc77c\uce58\ud574\uc57c \uc815\uc0c1.",
+          "gridPos": {
+            "x": 0,
+            "y": 46,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum(rate(fluentbit_input_records_total[1m]))",
+              "legendFormat": "input"
+            },
+            {
+              "refId": "B",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum(rate(fluentbit_output_proc_records_total[1m]))",
+              "legendFormat": "output"
+            }
+          ]
+        },
+        {
+          "id": 68,
+          "type": "timeseries",
+          "title": "Storage Backlog (filesystem buffer)",
+          "description": "filesystem buffer \ub204\uc801. \ucd9c\ub825 \uc815\uc0c1 \uc2dc 0 \uadfc\ucc98.",
+          "gridPos": {
+            "x": 12,
+            "y": 46,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "fluentbit_input_storage_chunks_busy_bytes",
+              "legendFormat": "{{name}} {{pod}}"
+            }
+          ]
+        },
+        {
+          "id": 69,
+          "type": "row",
+          "title": "FB-03 \u2014 Output \uc7a5\uc560 \uc8fc\uc785 (Chaos)",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 53,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 70,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 54,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: OpenSearch\ub97c \uc77c\uc2dc \ub2e4\uc6b4\uc2dc\ud0a8 \ub4a4 Fluent-bit\uc758 \uc7ac\uc2dc\ub3c4 / filesystem buffer \uc801\uc7ac / \uc790\ub3d9 \ubcf5\uad6c \uac80\uc99d.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: \uc77c\uc815 \ubd80\ud558 \uc911 `helm uninstall opensearch-lt`. **SLO**: \ub370\uc774\ud130 \uc190\uc2e4 0, \ubcf5\uad6c \ud6c4 backlog \uc790\ub3d9 \uc18c\uc9c4.\n\n**\ud29c\ub2dd**: backlog \ubb34\ud55c \uc99d\uac00 \u2192 storage.total_limit_size \uc124\uc815; retry \ud3ed\uc8fc \u2192 backoff \uc870\uc815.\n"
+          }
+        },
+        {
+          "id": 71,
+          "type": "timeseries",
+          "title": "Output Errors",
+          "description": "\uc7a5\uc560 \uc2dc spike, \ubcf5\uad6c \ud6c4 0.",
+          "gridPos": {
+            "x": 0,
+            "y": 62,
             "w": 12,
             "h": 7
           },
@@ -1352,13 +2406,13 @@ data:
           ]
         },
         {
-          "id": 7,
+          "id": 72,
           "type": "timeseries",
-          "title": "Retries vs Retries Failed",
-          "description": "\uc7ac\uc2dc\ub3c4 \ubc1c\uc0dd\ub960 / \uc7ac\uc2dc\ub3c4\uac00 \uacb0\uad6d \uc2e4\ud328\ud55c \ube44\uc728. failed > 0\uc774\uba74 \ub370\uc774\ud130 \uc190\uc2e4 \uc758\uc2ec.",
+          "title": "Retries vs Retries-Failed",
+          "description": "failed > 0\uc774\uba74 \ub370\uc774\ud130 \uc190\uc2e4 \uc758\uc2ec.",
           "gridPos": {
             "x": 12,
-            "y": 23,
+            "y": 62,
             "w": 12,
             "h": 7
           },
@@ -1404,26 +2458,14 @@ data:
           ]
         },
         {
-          "id": 8,
-          "type": "row",
-          "title": "Buffer / Resource (FB-02)",
-          "collapsed": false,
-          "gridPos": {
-            "x": 0,
-            "y": 30,
-            "w": 24,
-            "h": 1
-          }
-        },
-        {
-          "id": 9,
+          "id": 73,
           "type": "timeseries",
-          "title": "Memory Working Set",
-          "description": "Fluent-bit Pod RSS. limit 70% \uc774\ub0b4 \uc720\uc9c0.",
+          "title": "Filesystem Buffer Growth",
+          "description": "\uc7a5\uc560 \ub3d9\uc548 \ub204\uc801 \u2192 \ubcf5\uad6c \uc2dc \uac10\uc18c.",
           "gridPos": {
             "x": 0,
-            "y": 31,
-            "w": 12,
+            "y": 69,
+            "w": 24,
             "h": 7
           },
           "datasource": {
@@ -1453,19 +2495,46 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "container_memory_working_set_bytes{namespace=\"monitoring\",pod=~\"fluent-bit.*\",container=\"fluent-bit\"}",
-              "legendFormat": "{{pod}}"
+              "expr": "fluentbit_input_storage_chunks_busy_bytes",
+              "legendFormat": "{{name}} {{pod}}"
             }
           ]
         },
         {
-          "id": 10,
-          "type": "timeseries",
-          "title": "CPU Usage (cores)",
-          "description": "CPU \uc0ac\uc6a9\ub960(\ucf54\uc5b4 \ub2e8\uc704). limit \uadfc\uc811 \uc2dc throttling \ubc1c\uc0dd \uac00\ub2a5.",
+          "id": 74,
+          "type": "row",
+          "title": "FB-04 \u2014 \uba40\ud2f0\ub77c\uc778 \uc2a4\ud0dd\ud2b8\ub808\uc774\uc2a4 (Parser Stress)",
+          "collapsed": false,
           "gridPos": {
-            "x": 12,
-            "y": 31,
+            "x": 0,
+            "y": 76,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 75,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 77,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: \uc790\ubc14 \uc2a4\ud0dd\ud2b8\ub808\uc774\uc2a4 \uac19\uc740 \uba40\ud2f0\ub77c\uc778 \ub85c\uadf8 \ube44\uc728 \u2191 \uc2dc parser \uc9c0\uc5f0\u00b7CPU \uc0ac\uc6a9\ub960 \uce21\uc815.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: \uba40\ud2f0\ub77c\uc778 generator (`tail multiline.parser` \ud65c\uc131). **SLO**: parse \uc9c0\uc5f0 \u2264 \ud3c9\uc18c \u00d71.5.\n\n**\ud29c\ub2dd**: \uc815\uaddc\uc2dd \ub2e8\uc21c\ud654, multiline.parser \ucd5c\uc801\ud654, Mem_Buf_Limit\u2191.\n"
+          }
+        },
+        {
+          "id": 76,
+          "type": "timeseries",
+          "title": "CPU per pod (parser load)",
+          "description": "\uc815\uaddc\uc2dd \uc624\ubc84\ud5e4\ub4dc\ub97c CPU\ub85c \uce21\uc815.",
+          "gridPos": {
+            "x": 0,
+            "y": 85,
             "w": 12,
             "h": 7
           },
@@ -1502,13 +2571,169 @@ data:
           ]
         },
         {
-          "id": 11,
+          "id": 77,
           "type": "timeseries",
-          "title": "Storage Backlog (filesystem buffer)",
-          "description": "filesystem buffer\uc5d0 \ub204\uc801\ub41c \ubbf8\uc804\uc1a1 chunk. \ucd9c\ub825 \uc7a5\uc560 \uc2dc \uc99d\uac00, \ubcf5\uad6c \uc2dc \uac10\uc18c.",
+          "title": "Output Throughput (Bps)",
+          "description": "\ucc98\ub9ac \ubc14\uc774\ud2b8\uc728\ub85c throughput \ube44\uad50.",
+          "gridPos": {
+            "x": 12,
+            "y": 85,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (name) (rate(fluentbit_output_proc_bytes_total[1m]))",
+              "legendFormat": "{{name}}"
+            }
+          ]
+        },
+        {
+          "id": 78,
+          "type": "row",
+          "title": "FB-05 \u2014 \ub85c\uadf8 \ubc84\uc2a4\ud2b8 (Spike)",
+          "collapsed": false,
           "gridPos": {
             "x": 0,
-            "y": 38,
+            "y": 92,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 79,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 93,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: \ud3c9\uc18c \ub300\ube44 \u00d730 ~ \u00d740 spike \uc2dc backpressure\u00b7drop \uac70\ub3d9 \uad00\ucc30.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: 5\ubd84 \ud3c9\uade0 \u2192 4\ubd84 \u00d7 30\ubc30 \u2192 5\ubd84 \ud3c9\uade0. **SLO**: drop=0 (filesystem buffer \uc0ac\uc6a9), \ud68c\ubcf5 \ud6c4 backlog \uc18c\uc9c4.\n\n**\ud29c\ub2dd**: drop \u2192 Mem_Buf_Limit\u2191 + storage.type=filesystem; output \ud55c\uacc4 \u2192 Workers\u2191 + bulk size\u2191.\n"
+          }
+        },
+        {
+          "id": 80,
+          "type": "timeseries",
+          "title": "Input Rate (spike profile)",
+          "description": "spike \uace1\uc120 \uac00\uc2dc\ud654.",
+          "gridPos": {
+            "x": 0,
+            "y": 101,
+            "w": 24,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum(rate(fluentbit_input_records_total[1m]))",
+              "legendFormat": "input"
+            }
+          ]
+        },
+        {
+          "id": 81,
+          "type": "timeseries",
+          "title": "Output Rate (during spike)",
+          "description": "input\uacfc \ucc28\uc774 = buffer.",
+          "gridPos": {
+            "x": 0,
+            "y": 108,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum(rate(fluentbit_output_proc_records_total[1m]))",
+              "legendFormat": "output"
+            }
+          ]
+        },
+        {
+          "id": 82,
+          "type": "timeseries",
+          "title": "Storage Backlog (during spike)",
+          "description": "spike \uc911 \ub204\uc801, \ud3c9\uc0c1\uc2dc 0 \ubcf5\uadc0.",
+          "gridPos": {
+            "x": 12,
+            "y": 108,
             "w": 12,
             "h": 7
           },
@@ -1545,13 +2770,153 @@ data:
           ]
         },
         {
-          "id": 12,
+          "id": 83,
+          "type": "row",
+          "title": "FB-06 \u2014 Soak 24h",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 115,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 84,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 116,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: \ud3c9\uade0 \ubd80\ud558 24\uc2dc\uac04 \uc720\uc9c0\ud558\uc5ec RSS drift, FD \ub204\uc218, retry \ub204\uc801 \uc5c6\uc74c \ud655\uc778.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: flog 24h. **SLO**: RSS \uc548\uc815, retry \ub204\uc801 0 \uc720\uc9c0.\n\n**\ud29c\ub2dd**: RSS drift \u2192 Mem_Buf_Limit \uc870\uc815; retry \ub204\uc801 \u2192 output \uc548\uc815\uc131 \uc810\uac80.\n"
+          }
+        },
+        {
+          "id": 85,
           "type": "timeseries",
-          "title": "Output Throughput (Bps)",
-          "description": "output\ubcc4 \ucc98\ub9ac \ubc14\uc774\ud2b8\uc728. \ub124\ud2b8\uc6cc\ud06c \ud3ec\ud654 \uc9c4\ub2e8\uc6a9.",
+          "title": "RSS over time",
+          "description": "monotonic \uc0c1\uc2b9\uc740 \ub204\uc218.",
+          "gridPos": {
+            "x": 0,
+            "y": 124,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "container_memory_working_set_bytes{namespace=\"monitoring\",pod=~\"fluent-bit.*\",container=\"fluent-bit\"}",
+              "legendFormat": "{{pod}}"
+            }
+          ]
+        },
+        {
+          "id": 86,
+          "type": "timeseries",
+          "title": "Retries cumulative",
+          "description": "\uc7a5\uae30 \ub204\uc801\ub7c9. 0 \ub610\ub294 \ucc9c\ucc9c\ud788 \uc99d\uac00\uac00 \uc815\uc0c1.",
           "gridPos": {
             "x": 12,
-            "y": 38,
+            "y": 124,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "fluentbit_output_retries_total",
+              "legendFormat": "{{pod}} {{name}}"
+            }
+          ]
+        },
+        {
+          "id": 87,
+          "type": "row",
+          "title": "FB-07 \u2014 \ub300\uc6a9\ub7c9 \ub85c\uadf8 (1 line = 16 KB)",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 131,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 88,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 132,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: \ub77c\uc778 \ud06c\uae30 \u2191 \uc2dc throughput\u00b7CPU\u00b7\ub124\ud2b8\uc6cc\ud06c \ub300\uc5ed \uc0ac\uc6a9 \ubcc0\ud654.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: flog `-b 16K`. **SLO**: bytes/s \u2265 \ud3c9\uc18c \u00d7n, CPU \u2264 limit 70%.\n\n**\ud29c\ub2dd**: \ub124\ud2b8\uc6cc\ud06c \ud3ec\ud654 \u2192 output bulk size \uc870\uc815; CPU \uacfc\ubd80\ud558 \u2192 flush \uac04\uaca9 \uc870\uc815.\n"
+          }
+        },
+        {
+          "id": 89,
+          "type": "timeseries",
+          "title": "Output Throughput (Bps)",
+          "description": "\ubc14\uc774\ud2b8\uc728 \u2014 \ub77c\uc778 \ud06c\uae30 \u2191 \uc2dc \ud575\uc2ec \uc9c0\ud45c.",
+          "gridPos": {
+            "x": 0,
+            "y": 140,
             "w": 12,
             "h": 7
           },
@@ -1586,6 +2951,49 @@ data:
               "legendFormat": "{{name}}"
             }
           ]
+        },
+        {
+          "id": 90,
+          "type": "timeseries",
+          "title": "Avg Bytes per Record",
+          "description": "\ub77c\uc778 \ud3c9\uade0 \ud06c\uae30 \u2014 flog `-b` \ud6a8\uacfc \uac80\uc99d.",
+          "gridPos": {
+            "x": 12,
+            "y": 140,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum(rate(fluentbit_input_bytes_total[1m])) / clamp_min(sum(rate(fluentbit_input_records_total[1m])),1)",
+              "legendFormat": "avg bytes/line"
+            }
+          ]
         }
       ]
     }
@@ -1601,7 +3009,7 @@ data:
   dash-load-test-prometheus.json: |-
     {
       "uid": "lt-prometheus",
-      "title": "Load Test \u2022 Prometheus (PR)",
+      "title": "Load Test \u2022 Prometheus (PR-01~07)",
       "schemaVersion": 39,
       "version": 1,
       "editable": true,
@@ -1609,7 +3017,7 @@ data:
         "load-test"
       ],
       "time": {
-        "from": "now-30m",
+        "from": "now-1h",
         "to": "now"
       },
       "refresh": "30s",
@@ -1629,112 +3037,55 @@ data:
       },
       "panels": [
         {
-          "id": 1,
+          "id": 91,
           "type": "text",
           "title": "",
           "gridPos": {
             "x": 0,
             "y": 0,
             "w": 24,
-            "h": 15
+            "h": 14
           },
           "options": {
             "mode": "markdown",
-            "content": "## \ud83d\udcca Prometheus \ubd80\ud558 \ud14c\uc2a4\ud2b8 (PR-01 ~ PR-07)\n\n**\ubaa9\uc801**: Prometheus\uc758 \uc218\uc9d1(Scrape), \uc800\uc7a5(TSDB), \uc9c8\uc758(PromQL) \uc138 \ucd95\uc744 \ubd84\ub9ac\ud574 \ud55c\uacc4 \uc6a9\ub7c9\uacfc \uc548\uc815\uc131\uc744 \uac80\uc99d\ud569\ub2c8\ub2e4.\n\n### \uc2dc\ub098\ub9ac\uc624\n| ID | \uc2dc\ub098\ub9ac\uc624 | \ub3c4\uad6c | \ud575\uc2ec \uc9c0\ud45c |\n|----|----------|------|-----------|\n| **PR-01** | \uc218\uc9d1 \ud0c0\uae43 \uc218 \uc99d\uac00 (stress) | avalanche replicas\u2191 | scrape duration |\n| **PR-02** | Active series 1M\u21925M | avalanche `--series-count` | head_series, RSS |\n| **PR-03** | \uc9c8\uc758 \ub3d9\uc2dc\uc131 (load) | k6 PromQL queries | request duration |\n| **PR-04** | \uc7a5\uae30 Range Query (load) | k6 with 30d step | p99 latency |\n| **PR-05** | Cardinality Spike | avalanche label \ud3ed\uc99d | head series churn |\n| **PR-06** | WAL replay \ubcf5\uad6c | Pod restart | startup time |\n| **PR-07** | Soak 24h | \ud3c9\uade0 \ubd80\ud558 \uc720\uc9c0 | \uba54\ubaa8\ub9ac/\ub514\uc2a4\ud06c \uc99d\uac00\uc728 |\n\n### \ubd80\ud558 \ub3c4\uad6c\n- **avalanche** (`quay.io/prometheuscommunity/avalanche:v0.7.0`): \ud569\uc131 `/metrics` \uc5d4\ub4dc\ud3ec\uc778\ud2b8.\n  - `--gauge-metric-count \u00d7 --series-count` = \ub2e8\uc77c Pod active series. \ubcf8 \ud658\uacbd \uae30\ubcf8\uac12 200\u00d7200=40k/Pod.\n- **k6** (`grafana/k6:0.55.2`): 7\uac00\uc9c0 PromQL \ucffc\ub9ac \ubb34\uc791\uc704 \uc2e4\ud589. 20 VUs \u00d7 5\ubd84.\n\n### SLO\n| \uc9c0\ud45c | \ubaa9\ud45c |\n|------|------|\n| scrape duration p95 | \u2264 1 s |\n| WAL fsync p99 | \u2264 30 ms |\n| range query p95 (24h) | \u2264 2 s |\n| RSS | \u2264 pod limit 80% |\n| `prometheus_tsdb_compactions_failed_total` | 0 |\n\n### \ud575\uc2ec \uc9c0\ud45c \ud574\uc124\n- **Active Head Series**: \ud604\uc7ac \uba54\ubaa8\ub9ac\uc5d0 \ubcf4\uad00 \uc911\uc778 \uc2dc\ub9ac\uc988 \uc218. \uba54\ubaa8\ub9ac \uc0ac\uc6a9\ub7c9\uacfc \ube44\ub840.\n- **Series Churn**: \uc2dc\ub9ac\uc988 \uc0dd\uc131/\uc81c\uac70 \uc18d\ub3c4. \ub192\uc73c\uba74 \uce74\ub514\ub110\ub9ac\ud2f0 \ud3ed\uc99d \uc2e0\ud638.\n- **Scrape Duration p95**: target\ubcc4 scrape\uc5d0 \uac78\ub9b0 \uc2dc\uac04 \ubd84\ud3ec 95\ubd84\uc704.\n- **WAL fsync sum/s**: write-ahead log \ub3d9\uae30\ud654 \ubd80\ub2f4. SSD \uad8c\uc7a5.\n- **Engine Query Duration p95**: PromQL \ud3c9\uac00 \uc2dc\uac04. recording rule \ub3c4\uc785\uc73c\ub85c \ub2e8\ucd95 \uac00\ub2a5.\n\n### \ud29c\ub2dd \uc758\uc0ac\uacb0\uc815\n| \uc99d\uc0c1 | \uc870\uce58 |\n|------|------|\n| RSS \uc9c0\uc18d \uc99d\uac00 | relabel `metric_relabel_configs` drop, allowlist |\n| WAL fsync\u2191 | SSD/IO class \uc0c1\ud5a5 |\n| compaction \uc2e4\ud328 | \ub514\uc2a4\ud06c \uc5ec\uc720 \ud655\uc778, retention\u2193 |\n| query duration\u2191 | recording rule, `step`\u2191, `--query.max-samples` |\n\n> \uc6a9\ub7c9 \uc0b0\uc815 \ucc38\uace0:\n> 100\ub9cc series \u2248 3~5 GiB heap, \uc77c\uc77c \ub514\uc2a4\ud06c \u2248 `series \u00d7 samples/sec \u00d7 2B \u00d7 86400`\n"
+            "content": "## \ud83d\udcca Prometheus \ubd80\ud558 \ud14c\uc2a4\ud2b8 \u2014 \uc804 \uc2dc\ub098\ub9ac\uc624 \ub300\uc2dc\ubcf4\ub4dc\n\nPrometheus\uc758 \uc218\uc9d1(Scrape), \uc800\uc7a5(TSDB), \uc9c8\uc758(PromQL) \uc138 \ucd95\uc744 \ubd84\ub9ac\ud574 \ud55c\uacc4 \uc6a9\ub7c9\uacfc \uc548\uc815\uc131\uc744 \uce21\uc815\ud569\ub2c8\ub2e4.\n\n| \uc2dc\ub098\ub9ac\uc624 | \uc720\ud615 | \ub3c4\uad6c |\n|----------|------|------|\n| PR-01 \uc218\uc9d1 \ud0c0\uae43 \uc218 \uc99d\uac00 | Stress | avalanche replicas\u2191 |\n| PR-02 Active series 1M\u21925M | Stress | avalanche `--series-count` |\n| PR-03 \uc9c8\uc758 \ub3d9\uc2dc\uc131 | Load | k6 PromQL |\n| PR-04 \uc7a5\uae30 Range Query | Load | k6 with 30d step |\n| PR-05 Cardinality Spike | Spike | avalanche label \ud3ed\uc99d |\n| PR-06 WAL replay \ubcf5\uad6c | Chaos | Pod restart |\n| PR-07 Soak 24h | Soak | \ud3c9\uade0 \ubd80\ud558 \uc720\uc9c0 |\n\n> 100\ub9cc series \u2248 3~5 GiB heap. \uc77c\uc77c \ub514\uc2a4\ud06c \u2248 `series \u00d7 samples/sec \u00d7 2B \u00d7 86400`.\n"
           }
         },
         {
-          "id": 2,
+          "id": 92,
           "type": "row",
-          "title": "Series & Cardinality (PR-01/02/05)",
+          "title": "PR-01 \u2014 \uc218\uc9d1 \ud0c0\uae43 \uc218 \uc99d\uac00",
           "collapsed": false,
           "gridPos": {
             "x": 0,
-            "y": 15,
+            "y": 14,
             "w": 24,
             "h": 1
           }
         },
         {
-          "id": 3,
-          "type": "stat",
-          "title": "Active Head Series",
-          "description": "\ud604\uc7ac \uba54\ubaa8\ub9ac\uc5d0 \uc788\ub294 \uc2dc\ub9ac\uc988 \uc218. \uba54\ubaa8\ub9ac/\ub514\uc2a4\ud06c\uc758 1\ucc28 \uacb0\uc815 \ubcc0\uc218.",
+          "id": 93,
+          "type": "text",
+          "title": "",
           "gridPos": {
             "x": 0,
-            "y": 16,
-            "w": 6,
-            "h": 4
-          },
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short"
-            },
-            "overrides": []
+            "y": 15,
+            "w": 24,
+            "h": 8
           },
           "options": {
-            "colorMode": "value",
-            "graphMode": "area"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "expr": "prometheus_tsdb_head_series",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              }
-            }
-          ]
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: \ud569\uc131 endpoint(avalanche) \uc218\ub97c \ub298\ub9ac\uba70 scrape \ub2e8\uacc4 \ubcd1\ubaa9 \uce21\uc815.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: avalanche replicas \uc810\uc9c4 \uc99d\uac00. **SLO**: scrape duration p95 \u2264 1s, scrape timeout 0.\n\n**\ud29c\ub2dd**: scrape timeout \u2192 scrape_timeout\u2191 \ub610\ub294 target relabel \ubd84\uc0b0.\n"
+          }
         },
         {
-          "id": 4,
-          "type": "stat",
-          "title": "Series Created /5m",
-          "description": "\uc2dc\ub9ac\uc988 \uc0dd\uc131\ub960. \uce74\ub514\ub110\ub9ac\ud2f0 \ud3ed\uc99d \ub610\ub294 series_interval\uc5d0 \ub530\ub978 churn \uce21\uc815.",
-          "gridPos": {
-            "x": 6,
-            "y": 16,
-            "w": 6,
-            "h": 4
-          },
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ops"
-            },
-            "overrides": []
-          },
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area"
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "expr": "rate(prometheus_tsdb_head_series_created_total[5m])",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              }
-            }
-          ]
-        },
-        {
-          "id": 5,
+          "id": 94,
           "type": "stat",
           "title": "Targets UP",
-          "description": "health=up \uc0c1\ud0dc target \uc218.",
+          "description": "\ud604\uc7ac health=up target \uc218.",
           "gridPos": {
-            "x": 12,
-            "y": 16,
+            "x": 0,
+            "y": 23,
             "w": 6,
             "h": 4
           },
@@ -1764,13 +3115,13 @@ data:
           ]
         },
         {
-          "id": 6,
+          "id": 95,
           "type": "stat",
           "title": "Targets DOWN",
-          "description": "health=down \uc0c1\ud0dc target \uc218. 0 \uc720\uc9c0\uac00 \uc815\uc0c1.",
+          "description": "0 \uc720\uc9c0\uac00 \uc815\uc0c1.",
           "gridPos": {
-            "x": 18,
-            "y": 16,
+            "x": 6,
+            "y": 23,
             "w": 6,
             "h": 4
           },
@@ -1800,13 +3151,270 @@ data:
           ]
         },
         {
-          "id": 7,
+          "id": 96,
+          "type": "stat",
+          "title": "Total Scrapes /s",
+          "description": "\uc804\uccb4 scrape \ubd80\ub2f4.",
+          "gridPos": {
+            "x": 12,
+            "y": 23,
+            "w": 12,
+            "h": 4
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            },
+            "overrides": []
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(rate(prometheus_target_scrape_pool_targets[1m]))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ]
+        },
+        {
+          "id": 97,
           "type": "timeseries",
-          "title": "Head Series Over Time",
-          "description": "\uc2dc\uac04 \uacbd\uacfc\uc5d0 \ub530\ub978 active series. avalanche replica/series-count \uc870\uc815 \uc2dc \uace1\uc120 \ubcc0\ud654.",
+          "title": "Scrape Duration p95 by job",
+          "description": "interval \ubd84\ud3ec p95.",
           "gridPos": {
             "x": 0,
-            "y": 20,
+            "y": 27,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "histogram_quantile(0.95, sum by (le, job) (rate(prometheus_target_interval_length_seconds_bucket[5m])))",
+              "legendFormat": "{{job}}"
+            }
+          ]
+        },
+        {
+          "id": 98,
+          "type": "timeseries",
+          "title": "Samples Scraped per Target",
+          "description": "1\ud68c scrape\uc758 \uc0d8\ud50c \uc218.",
+          "gridPos": {
+            "x": 12,
+            "y": 27,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "scrape_samples_scraped",
+              "legendFormat": "{{job}} {{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 99,
+          "type": "row",
+          "title": "PR-02 \u2014 Active Series \ud655\uc7a5",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 34,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 100,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 35,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: avalanche `--series-count`/`replicas` \uc99d\uac00\ub85c active series \ud3ed\uc99d \u2192 \uba54\ubaa8\ub9ac/\uc800\uc7a5 \uc555\ubc15 \uce21\uc815.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: 0.5M \u2192 5M series \ub2e8\uacc4 ramp. **SLO**: RSS \u2264 pod limit 80%, compactions_failed 0.\n\n**\ud29c\ub2dd**: RSS \u2191 \u2192 relabel drop / allowlist; cardinality \ud3ed\uc99d \u2192 metric_relabel_configs.\n"
+          }
+        },
+        {
+          "id": 101,
+          "type": "stat",
+          "title": "Active Head Series",
+          "description": "\ud604\uc7ac active series.",
+          "gridPos": {
+            "x": 0,
+            "y": 43,
+            "w": 8,
+            "h": 4
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "prometheus_tsdb_head_series",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ]
+        },
+        {
+          "id": 102,
+          "type": "stat",
+          "title": "Series Created /5m",
+          "description": "\uc2dc\ub9ac\uc988 \uc0dd\uc131\ub960.",
+          "gridPos": {
+            "x": 8,
+            "y": 43,
+            "w": 8,
+            "h": 4
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            },
+            "overrides": []
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "rate(prometheus_tsdb_head_series_created_total[5m])",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ]
+        },
+        {
+          "id": 103,
+          "type": "stat",
+          "title": "Process RSS",
+          "description": "\ud504\ub85c\uc138\uc2a4 \uba54\ubaa8\ub9ac.",
+          "gridPos": {
+            "x": 16,
+            "y": 43,
+            "w": 8,
+            "h": 4
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "process_resident_memory_bytes{job=\"kps-prometheus\"}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ]
+        },
+        {
+          "id": 104,
+          "type": "timeseries",
+          "title": "Head Series over time",
+          "description": "\uc2dc\uac04 \uacbd\uacfc\uc5d0 \ub530\ub978 series \uace1\uc120.",
+          "gridPos": {
+            "x": 0,
+            "y": 47,
             "w": 12,
             "h": 7
           },
@@ -1838,18 +3446,18 @@ data:
                 "uid": "${datasource}"
               },
               "expr": "prometheus_tsdb_head_series",
-              "legendFormat": "series"
+              "legendFormat": "head series"
             }
           ]
         },
         {
-          "id": 8,
+          "id": 105,
           "type": "timeseries",
-          "title": "Series Churn (created vs removed)",
-          "description": "created\uac00 \uc9c0\uc18d\uc801\uc73c\ub85c removed\ubcf4\ub2e4 \ud06c\uba74 \uce74\ub514\ub110\ub9ac\ud2f0 \ub204\uc801 \u2192 \uba54\ubaa8\ub9ac \uc555\ubc15.",
+          "title": "Series Churn",
+          "description": "created > removed \uc9c0\uc18d\uc774\uba74 \ub204\uc801.",
           "gridPos": {
             "x": 12,
-            "y": 20,
+            "y": 47,
             "w": 12,
             "h": 7
           },
@@ -1895,25 +3503,83 @@ data:
           ]
         },
         {
-          "id": 9,
+          "id": 106,
           "type": "row",
-          "title": "Scrape (PR-01)",
+          "title": "PR-03 \u2014 PromQL \ub3d9\uc2dc\uc131",
           "collapsed": false,
           "gridPos": {
             "x": 0,
-            "y": 27,
+            "y": 54,
             "w": 24,
             "h": 1
           }
         },
         {
-          "id": 10,
-          "type": "timeseries",
-          "title": "Scrape Duration p95 by job",
-          "description": "job\ubcc4 scrape \uac04\uaca9 \ubd84\ud3ec p95. interval \uc9e7\uc744\uc218\ub85d spike \uac00\ub2a5.",
+          "id": 107,
+          "type": "text",
+          "title": "",
           "gridPos": {
             "x": 0,
-            "y": 28,
+            "y": 55,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: k6\ub85c \ub3d9\uc2dc PromQL \ucffc\ub9ac \ubd80\ud558 \u2192 query engine\u00b7HTTP handler \uac70\ub3d9 \uce21\uc815.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: k6 20 VUs \u00d7 5\ubd84, 7\uac00\uc9c0 \ucffc\ub9ac \ubb34\uc791\uc704. **SLO**: http_req_duration p95 \u2264 2s, error rate < 1%.\n\n**\ud29c\ub2dd**: query_max_concurrency\u2191, query_max_samples \uc81c\ud55c, recording rule \ub3c4\uc785.\n"
+          }
+        },
+        {
+          "id": 108,
+          "type": "timeseries",
+          "title": "Query HTTP Rate",
+          "description": "QPS \ud2b8\ub80c\ub4dc.",
+          "gridPos": {
+            "x": 0,
+            "y": 63,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "rate(prometheus_http_requests_total{handler=~\"/api/v1/query.*\"}[1m])",
+              "legendFormat": "{{handler}}"
+            }
+          ]
+        },
+        {
+          "id": 109,
+          "type": "timeseries",
+          "title": "Engine Query Duration p95 by slice",
+          "description": "PromQL \ub2e8\uacc4\ubcc4 \ubd84\ud574.",
+          "gridPos": {
+            "x": 12,
+            "y": 63,
             "w": 12,
             "h": 7
           },
@@ -1944,19 +3610,19 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "histogram_quantile(0.95, sum by (le, job) (rate(prometheus_target_interval_length_seconds_bucket[5m])))",
-              "legendFormat": "{{job}}"
+              "expr": "histogram_quantile(0.95, sum by (le, slice) (rate(prometheus_engine_query_duration_seconds_bucket[5m])))",
+              "legendFormat": "p95 {{slice}}"
             }
           ]
         },
         {
-          "id": 11,
+          "id": 110,
           "type": "timeseries",
-          "title": "Samples Scraped per Target",
-          "description": "target\ubcc4 1\ud68c scrape\uc5d0\uc11c \uc218\uc9d1\ub41c \uc0d8\ud50c \uc218. textfile/exporter \ucd94\uac00 \uc2dc \uc99d\uac00.",
+          "title": "Concurrent Queries",
+          "description": "\ub3d9\uc2dc \ucffc\ub9ac \uc218 / \ud55c\uacc4.",
           "gridPos": {
-            "x": 12,
-            "y": 28,
+            "x": 0,
+            "y": 70,
             "w": 12,
             "h": 7
           },
@@ -1987,31 +3653,55 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "scrape_samples_scraped",
-              "legendFormat": "{{job}} {{instance}}"
+              "expr": "prometheus_engine_queries",
+              "legendFormat": "active"
+            },
+            {
+              "refId": "B",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "prometheus_engine_queries_concurrent_max",
+              "legendFormat": "max"
             }
           ]
         },
         {
-          "id": 12,
+          "id": 111,
           "type": "row",
-          "title": "Storage (PR-01/06)",
+          "title": "PR-04 \u2014 \uc7a5\uae30 Range Query (30d)",
           "collapsed": false,
           "gridPos": {
             "x": 0,
-            "y": 35,
+            "y": 77,
             "w": 24,
             "h": 1
           }
         },
         {
-          "id": 13,
-          "type": "timeseries",
-          "title": "WAL fsync time (s/s)",
-          "description": "WAL \ub3d9\uae30\ud654 \ub204\uc801 \uc2dc\uac04. 0.05\u2191\uc774\uba74 \ub514\uc2a4\ud06c IO \ubcd1\ubaa9.",
+          "id": 112,
+          "type": "text",
+          "title": "",
           "gridPos": {
             "x": 0,
-            "y": 36,
+            "y": 78,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: 30\uc77c range \ucffc\ub9ac \uc2dc IO\u00b7\uba54\ubaa8\ub9ac\u00b7\uc644\ub8cc \uc2dc\uac04 \uce21\uc815.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: k6 step=`30d` range query. **SLO**: p95 \u2264 5s, OOM \uc5c6\uc74c.\n\n**\ud29c\ub2dd**: \ub108\ubb34 \ub113\uc740 range \u2192 step\u2191 \ub610\ub294 recording rule; \uba54\ubaa8\ub9ac \u2192 query_max_samples\u2193.\n"
+          }
+        },
+        {
+          "id": 113,
+          "type": "timeseries",
+          "title": "Range Query Duration",
+          "description": "range query \uc751\ub2f5 \ubd84\ud3ec.",
+          "gridPos": {
+            "x": 0,
+            "y": 86,
             "w": 12,
             "h": 7
           },
@@ -2042,20 +3732,472 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "rate(prometheus_tsdb_wal_fsync_duration_seconds_sum[1m])",
-              "legendFormat": "fsync"
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(prometheus_http_request_duration_seconds_bucket{handler=\"/api/v1/query_range\"}[5m])))",
+              "legendFormat": "p95"
+            },
+            {
+              "refId": "B",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "histogram_quantile(0.99, sum by (le) (rate(prometheus_http_request_duration_seconds_bucket{handler=\"/api/v1/query_range\"}[5m])))",
+              "legendFormat": "p99"
             }
           ]
         },
         {
-          "id": 14,
+          "id": 114,
           "type": "timeseries",
-          "title": "Compactions (ok vs failed)",
-          "description": "block \uc555\ucd95. failed > 0\uc774\uba74 \ub514\uc2a4\ud06c \ubd80\uc871/\uad8c\ud55c \ubb38\uc81c.",
+          "title": "Engine Samples Touched",
+          "description": "\ucffc\ub9ac\ub2f9 \uc0d8\ud50c \ucc98\ub9ac\ub7c9.",
           "gridPos": {
             "x": 12,
-            "y": 36,
+            "y": 86,
             "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "rate(prometheus_engine_query_samples_total[1m])",
+              "legendFormat": "samples/s"
+            }
+          ]
+        },
+        {
+          "id": 115,
+          "type": "row",
+          "title": "PR-05 \u2014 Cardinality Spike",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 93,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 116,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 94,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: \ub77c\ubca8 \ud3ed\uc99d \uc2dc head_series\u00b7\uba54\ubaa8\ub9ac \ucda9\uaca9 \uad00\ucc30.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: avalanche `--label-count`\u2191 + `--series-interval` \uc9e7\uac8c \u2192 churn \ubc1c\uc0dd. **SLO**: RSS \u2264 limit 80%, churn \uc548\uc815 \ud68c\ubcf5.\n\n**\ud29c\ub2dd**: relabel drop, allowlist, metric_relabel_configs.\n"
+          }
+        },
+        {
+          "id": 117,
+          "type": "timeseries",
+          "title": "Series Created vs Removed (churn)",
+          "description": "created spike \u2192 \uac10\uc18c \ud328\ud134.",
+          "gridPos": {
+            "x": 0,
+            "y": 102,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "rate(prometheus_tsdb_head_series_created_total[5m])",
+              "legendFormat": "created"
+            },
+            {
+              "refId": "B",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "rate(prometheus_tsdb_head_series_removed_total[5m])",
+              "legendFormat": "removed"
+            }
+          ]
+        },
+        {
+          "id": 118,
+          "type": "timeseries",
+          "title": "Process RSS (during spike)",
+          "description": "spike \uc2dc \uc77c\uc2dc\uc801 \uc0c1\uc2b9.",
+          "gridPos": {
+            "x": 12,
+            "y": 102,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "process_resident_memory_bytes{job=\"kps-prometheus\"}",
+              "legendFormat": "RSS"
+            }
+          ]
+        },
+        {
+          "id": 119,
+          "type": "row",
+          "title": "PR-06 \u2014 WAL Replay \ubcf5\uad6c (Chaos)",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 109,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 120,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 110,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: Prometheus Pod \uc7ac\uc2dc\uc791 \uc2dc WAL replay \uc2dc\uac04\u00b7\uba54\ubaa8\ub9ac\u00b7startup \uc548\uc815\uc131 \uce21\uc815.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: `kubectl delete pod prometheus-...-0`. **SLO**: replay \uc2dc\uac04 < 5\ubd84, replay \uc911 \uba54\ubaa8\ub9ac spike \uc815\uc0c1 \ud68c\ubcf5.\n\n**\ud29c\ub2dd**: replay \ub290\ub9bc \u2192 SSD/IO class \uc0c1\ud5a5; replay \uc911 OOM \u2192 memory limit \uc0c1\ud5a5.\n"
+          }
+        },
+        {
+          "id": 121,
+          "type": "timeseries",
+          "title": "Process Start Time (Restart \uac10\uc9c0)",
+          "description": "\uc7ac\uc2dc\uc791 \uc2dc\uc810 \ud0c0\uc784\uc2a4\ud0ec\ud504 \ubcc0\ud654.",
+          "gridPos": {
+            "x": 0,
+            "y": 118,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "process_start_time_seconds{job=\"kps-prometheus\"}",
+              "legendFormat": "start_time"
+            }
+          ]
+        },
+        {
+          "id": 122,
+          "type": "timeseries",
+          "title": "WAL Truncate Duration",
+          "description": "WAL \uc815\ub9ac \ube44\uc6a9.",
+          "gridPos": {
+            "x": 12,
+            "y": 118,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "rate(prometheus_tsdb_wal_truncate_duration_seconds_sum[1m])",
+              "legendFormat": "truncate"
+            },
+            {
+              "refId": "B",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "rate(prometheus_tsdb_wal_truncate_duration_seconds_count[1m])",
+              "legendFormat": "events"
+            }
+          ]
+        },
+        {
+          "id": 123,
+          "type": "timeseries",
+          "title": "RSS during replay",
+          "description": "replay \uc911 \uba54\ubaa8\ub9ac \uc0ac\uc6a9.",
+          "gridPos": {
+            "x": 0,
+            "y": 125,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "process_resident_memory_bytes{job=\"kps-prometheus\"}",
+              "legendFormat": "RSS"
+            }
+          ]
+        },
+        {
+          "id": 124,
+          "type": "row",
+          "title": "PR-07 \u2014 Soak 24h",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 132,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 125,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 133,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: \ud3c9\uade0 \ubd80\ud558 24h \uc720\uc9c0\ud558\uba70 \uba54\ubaa8\ub9ac/\ub514\uc2a4\ud06c monotonic \uc99d\uac00 \uc5c6\uc74c \ud655\uc778.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: \ud3c9\uc18c \ubd80\ud558 24h. **SLO**: \uba54\ubaa8\ub9ac/\ub514\uc2a4\ud06c \uc99d\uac00\uc728 \u2264 \uc77c\ud3c9\uade0.\n\n**\ud29c\ub2dd**: retention\u2193, compaction \uc2e4\ud328 \uc2dc \ub514\uc2a4\ud06c \uc5ec\uc720 \ud655\ubcf4.\n"
+          }
+        },
+        {
+          "id": 126,
+          "type": "timeseries",
+          "title": "RSS 24h Trend",
+          "description": "24h monotonic \uc0c1\uc2b9\uc740 \ub204\uc218.",
+          "gridPos": {
+            "x": 0,
+            "y": 141,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "process_resident_memory_bytes{job=\"kps-prometheus\"}",
+              "legendFormat": "RSS"
+            }
+          ]
+        },
+        {
+          "id": 127,
+          "type": "timeseries",
+          "title": "Disk Usage (TSDB)",
+          "description": "block \ub514\uc2a4\ud06c \uc0ac\uc6a9.",
+          "gridPos": {
+            "x": 12,
+            "y": 141,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "prometheus_tsdb_storage_blocks_bytes",
+              "legendFormat": "block bytes"
+            }
+          ]
+        },
+        {
+          "id": 128,
+          "type": "timeseries",
+          "title": "Compactions ok / failed",
+          "description": "failed > 0\uc774\uba74 \ub514\uc2a4\ud06c \ubd80\uc871 \ub4f1.",
+          "gridPos": {
+            "x": 0,
+            "y": 148,
+            "w": 24,
             "h": 7
           },
           "datasource": {
@@ -2098,147 +4240,6 @@ data:
               "legendFormat": "failed"
             }
           ]
-        },
-        {
-          "id": 15,
-          "type": "row",
-          "title": "Query (PR-03/04)",
-          "collapsed": false,
-          "gridPos": {
-            "x": 0,
-            "y": 43,
-            "w": 24,
-            "h": 1
-          }
-        },
-        {
-          "id": 16,
-          "type": "timeseries",
-          "title": "Engine Query Duration p95 by slice",
-          "description": "PromQL \ud3c9\uac00 \ub2e8\uacc4(slice)\ubcc4 p95: prepare, inner_eval, exec_total.",
-          "gridPos": {
-            "x": 0,
-            "y": 44,
-            "w": 12,
-            "h": 7
-          },
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "s",
-              "min": 0
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "showLegend": true,
-              "displayMode": "list"
-            },
-            "tooltip": {
-              "mode": "multi"
-            }
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "expr": "histogram_quantile(0.95, sum by (le, slice) (rate(prometheus_engine_query_duration_seconds_bucket[5m])))",
-              "legendFormat": "p95 {{slice}}"
-            }
-          ]
-        },
-        {
-          "id": 17,
-          "type": "timeseries",
-          "title": "HTTP Query Rate",
-          "description": "API \ud578\ub4e4\ub7ec\ubcc4 QPS. range query\ub294 instant\ubcf4\ub2e4 \ube44\uc2f8\ubbc0\ub85c \ubd84\ub9ac \ubaa8\ub2c8\ud130\ub9c1.",
-          "gridPos": {
-            "x": 12,
-            "y": 44,
-            "w": 12,
-            "h": 7
-          },
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ops",
-              "min": 0
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "showLegend": true,
-              "displayMode": "list"
-            },
-            "tooltip": {
-              "mode": "multi"
-            }
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "expr": "rate(prometheus_http_requests_total{handler=~\"/api/v1/query.*\"}[1m])",
-              "legendFormat": "{{handler}}"
-            }
-          ]
-        },
-        {
-          "id": 18,
-          "type": "timeseries",
-          "title": "Process RSS",
-          "description": "Prometheus \ud504\ub85c\uc138\uc2a4 \uba54\ubaa8\ub9ac. pod limit 80% \uc774\ub0b4 \uc720\uc9c0.",
-          "gridPos": {
-            "x": 0,
-            "y": 51,
-            "w": 12,
-            "h": 7
-          },
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "bytes",
-              "min": 0
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "showLegend": true,
-              "displayMode": "list"
-            },
-            "tooltip": {
-              "mode": "multi"
-            }
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "expr": "process_resident_memory_bytes{job=\"kps-prometheus\"}",
-              "legendFormat": "RSS"
-            }
-          ]
         }
       ]
     }
@@ -2254,7 +4255,7 @@ data:
   dash-load-test-node-exporter.json: |-
     {
       "uid": "lt-node-exporter",
-      "title": "Load Test \u2022 node-exporter (NE)",
+      "title": "Load Test \u2022 node-exporter (NE-01~07)",
       "schemaVersion": 39,
       "version": 1,
       "editable": true,
@@ -2262,7 +4263,7 @@ data:
         "load-test"
       ],
       "time": {
-        "from": "now-30m",
+        "from": "now-1h",
         "to": "now"
       },
       "refresh": "30s",
@@ -2282,40 +4283,55 @@ data:
       },
       "panels": [
         {
-          "id": 1,
+          "id": 129,
           "type": "text",
           "title": "",
           "gridPos": {
             "x": 0,
             "y": 0,
             "w": 24,
-            "h": 12
+            "h": 14
           },
           "options": {
             "mode": "markdown",
-            "content": "## \ud83d\udda5\ufe0f node-exporter \ubd80\ud558 \ud14c\uc2a4\ud2b8 (NE-01 ~ NE-07)\n\n**\ubaa9\uc801**: \ub178\ub4dc\ub9c8\ub2e4 DaemonSet\uc73c\ub85c \ub3d9\uc791\ud558\ub294 node-exporter\uc758 \ub2e8\uc77c \uc778\uc2a4\ud134\uc2a4 scrape \ube44\uc6a9\uacfc \ub178\ub4dc \uc218\uc5d0 \ub530\ub978 \uc2a4\ucf00\uc77c \uc601\ud5a5\uc744 \uce21\uc815\ud569\ub2c8\ub2e4.\n\n### \uc2dc\ub098\ub9ac\uc624\n| ID | \uc2dc\ub098\ub9ac\uc624 | \ub3c4\uad6c |\n|----|----------|------|\n| **NE-01** | \uae30\ubcf8 collector scrape \ube44\uc6a9 (baseline) | curl/Prometheus self |\n| **NE-02** | \uace0\ube48\ub3c4 scrape (5s, 30\ubd84) | hey 50c \u00d7 50qps \u00d7 2\ubd84 |\n| **NE-03** | textfile \uba54\ud2b8\ub9ad 1\ub9cc \uac1c (load) | textfile collector |\n| **NE-04** | \ub9c8\uc6b4\ud2b8 \ud3ec\uc778\ud2b8 50+ (load) | mock mounts |\n| **NE-05** | \ub178\ub4dc CPU 90% \ud3ec\ud654 (stress) | stress-ng |\n| **NE-06** | Disk IO \ud3ec\ud654 (stress) | fio |\n\n### \ubd80\ud558 \ub3c4\uad6c\n- **hey** (`williamyeh/hey:latest`): `/metrics` \uc5d4\ub4dc\ud3ec\uc778\ud2b8\uc5d0 50c \u00d7 50qps \u00d7 2\ubd84 HTTP \ubd80\ud558.\n- \ub9e4\ub2c8\ud398\uc2a4\ud2b8: `04-test-jobs/hey-node-exporter.yaml`.\n\n### SLO\n| \uc9c0\ud45c | \ubaa9\ud45c |\n|------|------|\n| `/metrics` \uc751\ub2f5 p95 | \u2264 300 ms |\n| scrape timeout | 0\uac74 |\n| \uc2dc\ub9ac\uc988 \uc218 | \ub178\ub4dc\ub2f9 \u2264 2,000 (\uc120\ud0dd collector \uae30\uc900) |\n| CPU | \u2264 100m (idle \ub178\ub4dc) |\n| RSS | \u2264 50 MiB |\n\n### \ud575\uc2ec \uc9c0\ud45c \ud574\uc124\n- **Scrape Duration**: Prometheus \uce21\uc5d0\uc11c \uce21\uc815\ud55c \ub2e8\uc77c scrape \uc18c\uc694 \uc2dc\uac04.\n- **Samples Scraped**: 1\ud68c scrape\uc5d0\uc11c \uc218\uc9d1\ub41c \uc0d8\ud50c \uc218. textfile \ucd94\uac00 \uc2dc \uc99d\uac00.\n- **Per-collector duration**: `node_scrape_collector_duration_seconds` \u2014 collector(filesystem, diskstats, netdev \ub4f1)\ubcc4 \ubd84\ud574.\n- \ub178\ub4dc \ub2e8\uc704 \ubd80\ud558\ub294 `stress-ng`/`fio` \ub4f1\uc73c\ub85c \ubcc4\ub3c4 \uc8fc\uc785\ud558\uc5ec collector \uc601\ud5a5 \ube44\uad50.\n\n### \ud29c\ub2dd \uc758\uc0ac\uacb0\uc815\n| \uc99d\uc0c1 | \uc870\uce58 |\n|------|------|\n| filesystem collector \uc9c0\uc5f0 | `--collector.filesystem.mount-points-exclude` \uc801\uc6a9 |\n| \ub3d9\uc2dc \uc694\uccad \ud55c\uacc4 | `--web.max-requests`\u2191 |\n| CPU throttling | \ubd88\ud544\uc694 collector `--no-collector.*` \ube44\ud65c\uc131\ud654 |\n| textfile \uc2dc\ub9ac\uc988 \uacfc\ub2e4 | \ud14d\uc2a4\ud2b8\ud30c\uc77c \ucd95\uc18c/\uc0ad\uc81c |\n"
+            "content": "## \ud83d\udda5\ufe0f node-exporter \ubd80\ud558 \ud14c\uc2a4\ud2b8 \u2014 \uc804 \uc2dc\ub098\ub9ac\uc624 \ub300\uc2dc\ubcf4\ub4dc\n\nDaemonSet \ub3d9\uc791 \ud658\uacbd\uc5d0\uc11c collector \ube44\uc6a9\u00b7\uace0\ube48\ub3c4 scrape\u00b7textfile \uba54\ud2b8\ub9ad\u00b7\ub514\uc2a4\ud06c/CPU \ud3ec\ud654 \uc601\ud5a5\uc744 \uce21\uc815\ud569\ub2c8\ub2e4.\n\n| \uc2dc\ub098\ub9ac\uc624 | \uc720\ud615 | \ub3c4\uad6c |\n|----------|------|------|\n| NE-01 \uae30\ubcf8 collector scrape \ube44\uc6a9 | Baseline | self |\n| NE-02 \uace0\ube48\ub3c4 scrape (5s) | Stress | hey 50c \u00d7 50qps \u00d7 2\ubd84 |\n| NE-03 textfile \uba54\ud2b8\ub9ad 1\ub9cc \uac1c | Load | textfile collector |\n| NE-04 \ub9c8\uc6b4\ud2b8 \ud3ec\uc778\ud2b8 50+ | Load | mock mounts |\n| NE-05 \ub178\ub4dc CPU 90% \ud3ec\ud654 | Stress | stress-ng |\n| NE-06 Disk IO \ud3ec\ud654 | Stress | fio |\n| NE-07 Soak 24h | Soak | \ud3c9\uc18c \ubd80\ud558 24h |\n"
           }
         },
         {
-          "id": 2,
+          "id": 130,
           "type": "row",
-          "title": "node-exporter Scrape (NE-02)",
+          "title": "NE-01 \u2014 \uae30\ubcf8 collector scrape \ube44\uc6a9 (Baseline)",
           "collapsed": false,
           "gridPos": {
             "x": 0,
-            "y": 12,
+            "y": 14,
             "w": 24,
             "h": 1
           }
         },
         {
-          "id": 3,
-          "type": "timeseries",
-          "title": "Scrape Duration",
-          "description": "Prometheus\uac00 \uce21\uc815\ud55c node-exporter \ud55c \ubc88\uc758 scrape \uc18c\uc694 \uc2dc\uac04.",
+          "id": 131,
+          "type": "text",
+          "title": "",
           "gridPos": {
             "x": 0,
-            "y": 13,
+            "y": 15,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: \ubd80\ud558 \uc5c6\ub294 \uc0c1\ud0dc\uc5d0\uc11c \ub2e8\uc77c scrape\uc758 \uc790\uc6d0 \ube44\uc6a9\u00b7\uc2dc\ub9ac\uc988 \uc218 \ubca0\uc774\uc2a4\ub77c\uc778 \ucea1\ucc98.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: \ubd80\ud558 \uc5c6\uc74c. **SLO**: CPU \u2264 100m, RSS \u2264 50 MiB, \uc2dc\ub9ac\uc988 \u2264 2,000.\n\n**\ud29c\ub2dd**: \uc2dc\ub9ac\uc988 \uacfc\ub2e4 \u2192 \ubd88\ud544\uc694 collector \ube44\ud65c\uc131\ud654 (`--no-collector.*`).\n"
+          }
+        },
+        {
+          "id": 132,
+          "type": "timeseries",
+          "title": "Scrape Duration",
+          "description": "Prometheus\uac00 \uce21\uc815\ud55c scrape \uc2dc\uac04.",
+          "gridPos": {
+            "x": 0,
+            "y": 23,
             "w": 12,
             "h": 7
           },
@@ -2352,13 +4368,13 @@ data:
           ]
         },
         {
-          "id": 4,
+          "id": 133,
           "type": "timeseries",
-          "title": "Samples Scraped per Scrape",
-          "description": "1\ud68c scrape\uc5d0\uc11c \uc218\uc9d1\ub41c \uc0d8\ud50c \uc218. collector \ucd94\uac00/textfile \uc8fc\uc785\uc73c\ub85c \uc99d\uac00.",
+          "title": "Samples Scraped",
+          "description": "1\ud68c scrape\uc758 \uc0d8\ud50c \uc218.",
           "gridPos": {
             "x": 12,
-            "y": 13,
+            "y": 23,
             "w": 12,
             "h": 7
           },
@@ -2395,15 +4411,15 @@ data:
           ]
         },
         {
-          "id": 5,
+          "id": 134,
           "type": "timeseries",
-          "title": "Per-collector duration",
-          "description": "collector\ubcc4 \uc18c\uc694 \uc2dc\uac04. filesystem/diskstats\uac00 \uc790\uc8fc 1\uc704.",
+          "title": "Per-collector Duration",
+          "description": "collector\ubcc4 \ube44\uc6a9 \ubd84\ud574.",
           "gridPos": {
             "x": 0,
-            "y": 20,
-            "w": 12,
-            "h": 10
+            "y": 30,
+            "w": 24,
+            "h": 8
           },
           "datasource": {
             "type": "prometheus",
@@ -2433,61 +4449,45 @@ data:
                 "uid": "${datasource}"
               },
               "expr": "node_scrape_collector_duration_seconds",
-              "legendFormat": "{{collector}} {{instance}}"
+              "legendFormat": "{{collector}}"
             }
           ]
         },
         {
-          "id": 6,
-          "type": "timeseries",
-          "title": "node-exporter RSS",
-          "description": "node-exporter \ud504\ub85c\uc138\uc2a4 \uba54\ubaa8\ub9ac. 50 MiB \uc774\ub0b4 \uc815\uc0c1.",
+          "id": 135,
+          "type": "row",
+          "title": "NE-02 \u2014 \uace0\ube48\ub3c4 scrape (5s)",
+          "collapsed": false,
           "gridPos": {
-            "x": 12,
-            "y": 20,
-            "w": 12,
-            "h": 7
-          },
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "bytes",
-              "min": 0
-            },
-            "overrides": []
+            "x": 0,
+            "y": 38,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 136,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 39,
+            "w": 24,
+            "h": 8
           },
           "options": {
-            "legend": {
-              "showLegend": true,
-              "displayMode": "list"
-            },
-            "tooltip": {
-              "mode": "multi"
-            }
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "expr": "process_resident_memory_bytes{job=\"node-exporter\"}",
-              "legendFormat": "{{instance}}"
-            }
-          ]
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: scrape interval\uc744 \uc9e7\uac8c(5s) \ub610\ub294 \uc678\ubd80 hey \ubd80\ud558 \u2192 CPU\u00b7\uc751\ub2f5\uc2dc\uac04 \uc601\ud5a5.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: hey 50c \u00d7 50qps \u00d7 2\ubd84 (`/metrics` HTTP). **SLO**: p95 \u2264 300 ms, scrape timeout 0.\n\n**\ud29c\ub2dd**: \uc751\ub2f5 \uc9c0\uc5f0 \u2192 `--web.max-requests`\u2191; CPU throttling \u2192 \ubd88\ud544\uc694 collector off.\n"
+          }
         },
         {
-          "id": 7,
+          "id": 137,
           "type": "timeseries",
           "title": "node-exporter CPU",
-          "description": "CPU \uc0ac\uc6a9\ub960. idle \ub178\ub4dc\uc5d0\uc11c 100m \uc774\ub0b4\uac00 \uc815\uc0c1.",
+          "description": "CPU \uc0ac\uc6a9\ub960(\ucf54\uc5b4 \ub2e8\uc704).",
           "gridPos": {
-            "x": 12,
-            "y": 27,
+            "x": 0,
+            "y": 47,
             "w": 12,
             "h": 7
           },
@@ -2522,6 +4522,709 @@ data:
               "legendFormat": "{{instance}}"
             }
           ]
+        },
+        {
+          "id": 138,
+          "type": "timeseries",
+          "title": "Scrape Duration (high-freq)",
+          "description": "interval \ub2e8\ucd95 \uc2dc \uc601\ud5a5.",
+          "gridPos": {
+            "x": 12,
+            "y": 47,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "scrape_duration_seconds{job=\"node-exporter\"}",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 139,
+          "type": "row",
+          "title": "NE-03 \u2014 textfile \uba54\ud2b8\ub9ad 1\ub9cc \uac1c",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 54,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 140,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 55,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: textfile collector\ub97c \ud1b5\ud574 \uc678\ubd80 \uba54\ud2b8\ub9ad 1\ub9cc \uac1c \uc8fc\uc785 \u2192 scrape \uc2dc\uac04\u00b7\uc2dc\ub9ac\uc988 \uc218 \uc99d\uac00 \uce21\uc815.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: hostPath\uc5d0 1\ub9cc \ub77c\uc778 .prom \ud30c\uc77c. **SLO**: scrape duration \u2264 \ud3c9\uc18c \u00d72.\n\n**\ud29c\ub2dd**: \ud14d\uc2a4\ud2b8\ud30c\uc77c \ucd95\uc18c/\uc0ad\uc81c, \ub354 \uc801\uc740 \ub77c\ubca8\ub85c \uc7ac\uad6c\uc131.\n"
+          }
+        },
+        {
+          "id": 141,
+          "type": "timeseries",
+          "title": "Samples Scraped (with textfile)",
+          "description": "\uc8fc\uc785 \ud6c4 \uace1\uc120\uc774 \uc810\ud504\ud574\uc57c \ud568.",
+          "gridPos": {
+            "x": 0,
+            "y": 63,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "scrape_samples_scraped{job=\"node-exporter\"}",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 142,
+          "type": "timeseries",
+          "title": "Scrape Duration",
+          "description": "duration \uc99d\uac00 \uc815\ub3c4 \ud655\uc778.",
+          "gridPos": {
+            "x": 12,
+            "y": 63,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "scrape_duration_seconds{job=\"node-exporter\"}",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 143,
+          "type": "timeseries",
+          "title": "textfile collector duration",
+          "description": "textfile collector \ub2e8\ub3c5 \ube44\uc6a9.",
+          "gridPos": {
+            "x": 0,
+            "y": 70,
+            "w": 24,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "node_scrape_collector_duration_seconds{collector=\"textfile\"}",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 144,
+          "type": "row",
+          "title": "NE-04 \u2014 \ub9c8\uc6b4\ud2b8 \ud3ec\uc778\ud2b8 50+",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 77,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 145,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 78,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: filesystem collector\uac00 \ucc98\ub9ac\ud574\uc57c \ud560 \ub9c8\uc6b4\ud2b8 \uc218 \u2191 \u2192 collector \uc2dc\uac04\u00b7\uc2dc\ub9ac\uc988 \uc218 \uc601\ud5a5.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: bind mount 50+ \ucd94\uac00. **SLO**: filesystem collector \u2264 500 ms.\n\n**\ud29c\ub2dd**: `--collector.filesystem.mount-points-exclude`\ub85c NFS \ub4f1 \uc81c\uc678.\n"
+          }
+        },
+        {
+          "id": 146,
+          "type": "timeseries",
+          "title": "filesystem collector duration",
+          "description": "\ub9c8\uc6b4\ud2b8 \uc218 \u2191 \ud6a8\uacfc.",
+          "gridPos": {
+            "x": 0,
+            "y": 86,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "node_scrape_collector_duration_seconds{collector=\"filesystem\"}",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 147,
+          "type": "timeseries",
+          "title": "Samples Scraped",
+          "description": "filesystem \uc2dc\ub9ac\uc988 \uc99d\uac00.",
+          "gridPos": {
+            "x": 12,
+            "y": 86,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "scrape_samples_scraped{job=\"node-exporter\"}",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 148,
+          "type": "row",
+          "title": "NE-05 \u2014 \ub178\ub4dc CPU 90% \ud3ec\ud654",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 93,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 149,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 94,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: \ub178\ub4dc \uc790\uccb4 CPU \ud3ec\ud654 \uc2dc node-exporter scrape \uc601\ud5a5\uacfc timeout \ubc1c\uc0dd\ub960 \uad00\ucc30.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: stress-ng\ub85c \ub178\ub4dc CPU 90%. **SLO**: scrape timeout 0\uac74.\n\n**\ud29c\ub2dd**: scrape_timeout\u2191, exporter Pod\uc5d0 CPU request \ubcf4\uc7a5.\n"
+          }
+        },
+        {
+          "id": 150,
+          "type": "timeseries",
+          "title": "Node CPU Usage",
+          "description": "\ub178\ub4dc \uc804\uccb4 CPU \uc0ac\uc6a9\ub960.",
+          "gridPos": {
+            "x": 0,
+            "y": 102,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[1m]))",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 151,
+          "type": "timeseries",
+          "title": "Scrape Duration during saturation",
+          "description": "CPU \ud3ec\ud654 \uc2dc \uc601\ud5a5.",
+          "gridPos": {
+            "x": 12,
+            "y": 102,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "scrape_duration_seconds{job=\"node-exporter\"}",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 152,
+          "type": "row",
+          "title": "NE-06 \u2014 Disk IO \ud3ec\ud654 (fio)",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 109,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 153,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 110,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: \ub514\uc2a4\ud06c IO \ud3ec\ud654 \uc2dc diskstats / filesystem collector \uc601\ud5a5 \uce21\uc815.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: fio 100% util. **SLO**: diskstats collector duration \ud3c9\uc18c \u00d72 \uc774\ub0b4.\n\n**\ud29c\ub2dd**: `--no-collector.diskstats` \uc635\uc158 (\uc6b4\uc601\uc5d0\uc120 \ube44\uad8c\uc7a5).\n"
+          }
+        },
+        {
+          "id": 154,
+          "type": "timeseries",
+          "title": "Disk Reads/Writes",
+          "description": "\ub514\uc2a4\ud06c IO \uace1\uc120.",
+          "gridPos": {
+            "x": 0,
+            "y": 118,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "rate(node_disk_reads_completed_total[1m])",
+              "legendFormat": "reads {{device}}"
+            },
+            {
+              "refId": "B",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "rate(node_disk_writes_completed_total[1m])",
+              "legendFormat": "writes {{device}}"
+            }
+          ]
+        },
+        {
+          "id": 155,
+          "type": "timeseries",
+          "title": "diskstats collector duration",
+          "description": "\ud3ec\ud654 \uc2dc \uc601\ud5a5.",
+          "gridPos": {
+            "x": 12,
+            "y": 118,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "node_scrape_collector_duration_seconds{collector=\"diskstats\"}",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 156,
+          "type": "row",
+          "title": "NE-07 \u2014 Soak 24h",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 125,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 157,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 126,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: 24\uc2dc\uac04 \ud3c9\uade0 \ubd80\ud558\uc5d0\uc11c goroutine\u00b7FD\u00b7RSS \ub204\uc218 \uc5c6\uc74c \ud655\uc778.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: \ud3c9\uc18c scrape 24h. **SLO**: goroutine/FD \uc548\uc815.\n\n**\ud29c\ub2dd**: goroutine leak \u2192 \ud504\ub85c\ud30c\uc77c \ubd84\uc11d.\n"
+          }
+        },
+        {
+          "id": 158,
+          "type": "timeseries",
+          "title": "Goroutines",
+          "description": "goroutine \ub204\uc218 \uac10\uc9c0.",
+          "gridPos": {
+            "x": 0,
+            "y": 134,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "go_goroutines{job=\"node-exporter\"}",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 159,
+          "type": "timeseries",
+          "title": "Open FDs",
+          "description": "FD \ub204\uc218 \uac10\uc9c0.",
+          "gridPos": {
+            "x": 12,
+            "y": 134,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "process_open_fds{job=\"node-exporter\"}",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 160,
+          "type": "timeseries",
+          "title": "RSS",
+          "description": "\uba54\ubaa8\ub9ac \ub204\uc218 \uac10\uc9c0.",
+          "gridPos": {
+            "x": 0,
+            "y": 141,
+            "w": 24,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "process_resident_memory_bytes{job=\"node-exporter\"}",
+              "legendFormat": "{{instance}}"
+            }
+          ]
         }
       ]
     }
@@ -2537,7 +5240,7 @@ data:
   dash-load-test-ksm.json: |-
     {
       "uid": "lt-ksm",
-      "title": "Load Test \u2022 kube-state-metrics (KSM)",
+      "title": "Load Test \u2022 kube-state-metrics (KSM-01~07)",
       "schemaVersion": 39,
       "version": 1,
       "editable": true,
@@ -2545,7 +5248,7 @@ data:
         "load-test"
       ],
       "time": {
-        "from": "now-30m",
+        "from": "now-1h",
         "to": "now"
       },
       "refresh": "30s",
@@ -2565,40 +5268,199 @@ data:
       },
       "panels": [
         {
-          "id": 1,
+          "id": 161,
           "type": "text",
           "title": "",
           "gridPos": {
             "x": 0,
             "y": 0,
             "w": 24,
-            "h": 12
+            "h": 14
           },
           "options": {
             "mode": "markdown",
-            "content": "## \ud83e\uddf1 kube-state-metrics \ubd80\ud558 \ud14c\uc2a4\ud2b8 (KSM-01 ~ KSM-07)\n\n**\ubaa9\uc801**: K8s API \uc11c\ubc84\uc5d0 informer\ub97c \ubd99\uc5ec \uc624\ube0c\uc81d\ud2b8 \uc0c1\ud0dc\ub97c \uba54\ud2b8\ub9ad\uc73c\ub85c \ub178\ucd9c\ud558\ub294 KSM\uc774 \ub300\uaddc\ubaa8 \ud074\ub7ec\uc2a4\ud130\uc5d0\uc11c \uc5b4\ub5bb\uac8c \ud655\uc7a5\ub418\ub294\uc9c0 \uce21\uc815\ud569\ub2c8\ub2e4.\n\n### \uc2dc\ub098\ub9ac\uc624\n| ID | \uc2dc\ub098\ub9ac\uc624 | \ub3c4\uad6c |\n|----|----------|------|\n| **KSM-01** | Baseline | \ud604\ud589 |\n| **KSM-02** | Pod 1\ub9cc \uac1c (single-node\ub294 100) | kube-burner |\n| **KSM-03** | ConfigMap 5\ub9cc \uac1c | kube-burner |\n| **KSM-04** | Namespace churn | kube-burner |\n| **KSM-05** | Shard(`--total-shards`) \uad6c\uc131 | StatefulSet |\n| **KSM-06** | Soak 24h | \uc720\uc9c0 |\n| **KSM-07** | allowlist/denylist \uc801\uc6a9 | KSM \uc635\uc158 |\n\n### \ubd80\ud558 \ub3c4\uad6c\n- **kube-burner** (`quay.io/kube-burner/kube-burner:v1.18.1`): Pod \ub300\ub7c9 \uc0dd\uc131/\uc0ad\uc81c.\n- \ubcf8 \ud658\uacbd \uae30\ubcf8\uac12: `jobIterations=100` (single-node \ubcf4\ud638). \uc6b4\uc601\uc740 10000\uc73c\ub85c \uc0c1\ud5a5.\n- \ub9e4\ub2c8\ud398\uc2a4\ud2b8: `04-test-jobs/kube-burner-pod-density.yaml`.\n\n### SLO\n| \uc9c0\ud45c | \ubaa9\ud45c |\n|------|------|\n| `/metrics` \uc751\ub2f5 p95 | \u2264 2 s |\n| scrape timeout | 0\uac74 |\n| RSS | \u2264 pod limit 70% |\n| API \uc11c\ubc84 LIST/WATCH \uc2e4\ud328\uc728 | \u2248 0 |\n| \uba54\ud2b8\ub9ad \uc5c5\ub370\uc774\ud2b8 \uc9c0\uc5f0 | \u2264 30 s |\n\n### \ud575\uc2ec \uc9c0\ud45c \ud574\uc124\n- **HTTP Request Duration p95**: KSM /metrics \uc751\ub2f5 \ubd84\ud3ec 95\ubd84\uc704.\n- **Samples per Scrape**: scrape\ub2f9 \uc0d8\ud50c \uc218 (\uc624\ube0c\uc81d\ud2b8 \uc218\uc5d0 \ube44\ub840).\n- **KSM RSS**: informer \uce90\uc2dc \uba54\ubaa8\ub9ac. \uc624\ube0c\uc81d\ud2b8 \uc218\uc5d0 \uac70\uc758 \uc120\ud615\uc73c\ub85c \uc99d\uac00.\n- **Pods count**: \ucd1d Pod \uc218, kburner-* ns \ubd84\ud3ec.\n- **API Server Request Rate by verb**: kube-burner\uac00 \ub9cc\ub4e0 LIST/WATCH/CREATE \ubd80\ub2f4.\n\n### \ud29c\ub2dd \uc758\uc0ac\uacb0\uc815\n| \uc99d\uc0c1 | \uc870\uce58 |\n|------|------|\n| RSS \ud55c\uacc4 \uadfc\uc811 | `--total-shards`\ub85c \uc218\ud3c9 \uc0e4\ub529, `--metric-denylist` |\n| /metrics \ub290\ub9bc | `--resources` \ud55c\uc815, `--metric-denylist` |\n| API \uc11c\ubc84 throttle | kube-burner `qps`/`burst`\u2193 |\n| label cardinality \ud3ed\uc99d | Prometheus \uce21 `metric_relabel_configs` drop |\n"
+            "content": "## \ud83e\uddf1 kube-state-metrics \ubd80\ud558 \ud14c\uc2a4\ud2b8 \u2014 \uc804 \uc2dc\ub098\ub9ac\uc624 \ub300\uc2dc\ubcf4\ub4dc\n\nK8s API \uc11c\ubc84\uc5d0 informer\ub97c \ubd99\uc5ec \uc624\ube0c\uc81d\ud2b8 \uc0c1\ud0dc\ub97c \uba54\ud2b8\ub9ad\uc73c\ub85c \ub178\ucd9c\ud558\ub294 KSM\uc774 \ub300\uaddc\ubaa8 \ud074\ub7ec\uc2a4\ud130\uc5d0\uc11c \uc5b4\ub5bb\uac8c \ud655\uc7a5\ub418\ub294\uc9c0 \uce21\uc815\ud569\ub2c8\ub2e4.\n\n| \uc2dc\ub098\ub9ac\uc624 | \uc720\ud615 | \ub3c4\uad6c |\n|----------|------|------|\n| KSM-01 Baseline | Baseline | \ud604\ud589 |\n| KSM-02 Pod 1\ub9cc \uac1c (single-node 100) | Stress | kube-burner |\n| KSM-03 ConfigMap 5\ub9cc \uac1c | Stress | kube-burner |\n| KSM-04 Namespace churn | Load | kube-burner |\n| KSM-05 Shard(`--total-shards`) | Load | StatefulSet |\n| KSM-06 Soak 24h | Soak | \uc720\uc9c0 |\n| KSM-07 allowlist/denylist | Tuning | KSM \uc635\uc158 |\n\n> \uc624\ube0c\uc81d\ud2b8 1\uac1c\ub2f9 \uc2dc\ub9ac\uc988 \uc218\ub294 \ub9ac\uc18c\uc2a4 \uc885\ub958\ubcc4\ub85c \ub2e4\ub984 (Pod\uac00 \uac00\uc7a5 \ud07c).\n"
           }
         },
         {
-          "id": 2,
+          "id": 162,
           "type": "row",
-          "title": "kube-state-metrics (KSM-02)",
+          "title": "KSM-01 \u2014 Baseline",
           "collapsed": false,
           "gridPos": {
             "x": 0,
-            "y": 12,
+            "y": 14,
             "w": 24,
             "h": 1
           }
         },
         {
-          "id": 3,
-          "type": "timeseries",
-          "title": "HTTP Request Duration p95",
-          "description": "KSM /metrics \ud578\ub4e4\ub7ec \uc751\ub2f5 \uc2dc\uac04 p95. 2s \uc774\ub0b4 \uc720\uc9c0.",
+          "id": 163,
+          "type": "text",
+          "title": "",
           "gridPos": {
             "x": 0,
-            "y": 13,
+            "y": 15,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: \ubd80\ud558 \uc5c6\uc774 \ud074\ub7ec\uc2a4\ud130 \ud604\ud589 \uc624\ube0c\uc81d\ud2b8 \uc218 / KSM RSS / \uc751\ub2f5 \uc2dc\uac04 \ubca0\uc774\uc2a4\ub77c\uc778 \ucea1\ucc98.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: \ubd80\ud558 \uc5c6\uc74c. **SLO**: /metrics p95 \u2264 2s, RSS \u2264 pod limit 70%.\n"
+          }
+        },
+        {
+          "id": 164,
+          "type": "stat",
+          "title": "Pods total",
+          "description": "\uc804\uccb4 Pod \uc218.",
+          "gridPos": {
+            "x": 0,
+            "y": 23,
+            "w": 6,
+            "h": 4
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "count(kube_pod_info)",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ]
+        },
+        {
+          "id": 165,
+          "type": "stat",
+          "title": "Deployments total",
+          "description": "\uc804\uccb4 Deployment \uc218.",
+          "gridPos": {
+            "x": 6,
+            "y": 23,
+            "w": 6,
+            "h": 4
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "count(kube_deployment_labels)",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ]
+        },
+        {
+          "id": 166,
+          "type": "stat",
+          "title": "ConfigMaps total",
+          "description": "\uc804\uccb4 ConfigMap \uc218.",
+          "gridPos": {
+            "x": 12,
+            "y": 23,
+            "w": 6,
+            "h": 4
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "count(kube_configmap_info)",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ]
+        },
+        {
+          "id": 167,
+          "type": "stat",
+          "title": "Services total",
+          "description": "\uc804\uccb4 Service \uc218.",
+          "gridPos": {
+            "x": 18,
+            "y": 23,
+            "w": 6,
+            "h": 4
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "count(kube_service_info)",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ]
+        },
+        {
+          "id": 168,
+          "type": "timeseries",
+          "title": "KSM /metrics duration p95",
+          "description": "\uc751\ub2f5 \uc2dc\uac04 \ubd84\ud3ec p95.",
+          "gridPos": {
+            "x": 0,
+            "y": 27,
             "w": 12,
             "h": 7
           },
@@ -2635,56 +5497,13 @@ data:
           ]
         },
         {
-          "id": 4,
-          "type": "timeseries",
-          "title": "Samples per Scrape",
-          "description": "1\ud68c scrape\uc5d0\uc11c \uc218\uc9d1\ub41c \uc0d8\ud50c \uc218. \uc624\ube0c\uc81d\ud2b8 \uc218\uc5d0 \ube44\ub840 \uc99d\uac00.",
-          "gridPos": {
-            "x": 12,
-            "y": 13,
-            "w": 12,
-            "h": 7
-          },
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "min": 0
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "showLegend": true,
-              "displayMode": "list"
-            },
-            "tooltip": {
-              "mode": "multi"
-            }
-          },
-          "targets": [
-            {
-              "refId": "A",
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "expr": "scrape_samples_scraped{job=\"kube-state-metrics\"}",
-              "legendFormat": "samples"
-            }
-          ]
-        },
-        {
-          "id": 5,
+          "id": 169,
           "type": "timeseries",
           "title": "KSM RSS",
-          "description": "KSM \uba54\ubaa8\ub9ac. informer \uce90\uc2dc \ube44\uc6a9. limit 70% \uc774\ub0b4.",
+          "description": "informer cache \uba54\ubaa8\ub9ac.",
           "gridPos": {
-            "x": 0,
-            "y": 20,
+            "x": 12,
+            "y": 27,
             "w": 12,
             "h": 7
           },
@@ -2715,19 +5534,132 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "process_resident_memory_bytes{job=\"kube-state-metrics\"}",
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"monitoring\",pod=~\".*kube-state-metrics.*\",container=\"kube-state-metrics\"})",
               "legendFormat": "RSS"
             }
           ]
         },
         {
-          "id": 6,
+          "id": 170,
+          "type": "row",
+          "title": "KSM-02 \u2014 Pod \ub300\ub7c9 \uc0dd\uc131",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 34,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 171,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 35,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: Pod 1\ub9cc \uac1c(\ub610\ub294 minikube 100) \uc0dd\uc131 \u2192 KSM informer cache\u00b7\uc751\ub2f5 \uc601\ud5a5 \uad00\ucc30.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: kube-burner `jobIterations=10000` (minikube=100). **SLO**: /metrics p95 \u2264 2s, RSS \u2264 limit 70%.\n\n**\ud29c\ub2dd**: shard \ub3c4\uc785, denylist\ub85c \ubd88\ud544\uc694 \uba54\ud2b8\ub9ad \uc81c\uac70.\n"
+          }
+        },
+        {
+          "id": 172,
           "type": "timeseries",
-          "title": "Pods count",
-          "description": "\uc804\uccb4 Pod \uc218\uc640 kburner \ubd80\ud558 ns\uc758 Pod \uc218. KSM-02 \uc9c4\ud589 \uc911 \ud6c4\uc790 \uace1\uc120\uc774 \uc0c1\uc2b9.",
+          "title": "KSM /metrics p95",
+          "description": "Pod \uc99d\uac00\uc5d0 \ub530\ub978 \uc751\ub2f5 \uc2dc\uac04 \uc99d\uac00.",
+          "gridPos": {
+            "x": 0,
+            "y": 43,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{job=\"kube-state-metrics\"}[5m])))",
+              "legendFormat": "p95"
+            }
+          ]
+        },
+        {
+          "id": 173,
+          "type": "timeseries",
+          "title": "KSM RSS",
+          "description": "\uc624\ube0c\uc81d\ud2b8 \uc218\uc5d0 \uac70\uc758 \uc120\ud615 \uc99d\uac00.",
           "gridPos": {
             "x": 12,
-            "y": 20,
+            "y": 43,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"monitoring\",pod=~\".*kube-state-metrics.*\",container=\"kube-state-metrics\"})",
+              "legendFormat": "RSS"
+            }
+          ]
+        },
+        {
+          "id": 174,
+          "type": "timeseries",
+          "title": "Total Pods vs kburner Pods",
+          "description": "kube-burner \uc9c4\ud589\ub960.",
+          "gridPos": {
+            "x": 0,
+            "y": 50,
             "w": 12,
             "h": 7
           },
@@ -2767,19 +5699,19 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "count(kube_pod_info{namespace=\"kburner\"})",
+              "expr": "count(kube_pod_info{namespace=~\"kburner.*\"})",
               "legendFormat": "kburner"
             }
           ]
         },
         {
-          "id": 7,
+          "id": 175,
           "type": "timeseries",
-          "title": "API Server Request Rate by verb",
-          "description": "API \uc11c\ubc84 verb\ubcc4 RPS. CREATE/LIST/WATCH \ubd84\ud3ec\ub85c kube-burner \ubd80\ub2f4 \uac00\uc2dc\ud654.",
+          "title": "API Server Request Rate",
+          "description": "CREATE \ud3ed\uc99d \uac00\uc2dc\ud654.",
           "gridPos": {
-            "x": 0,
-            "y": 27,
+            "x": 12,
+            "y": 50,
             "w": 12,
             "h": 7
           },
@@ -2812,6 +5744,698 @@ data:
               },
               "expr": "sum by (verb) (rate(apiserver_request_total[1m]))",
               "legendFormat": "{{verb}}"
+            }
+          ]
+        },
+        {
+          "id": 176,
+          "type": "row",
+          "title": "KSM-03 \u2014 ConfigMap \ub300\ub7c9 \uc0dd\uc131",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 57,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 177,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 58,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: ConfigMap 5\ub9cc \uac1c \uc0dd\uc131 \u2192 KSM \uba54\ubaa8\ub9ac / etcd \uc555\ubc15 \uad00\ucc30.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: kube-burner ConfigMap \uc0dd\uc131. **SLO**: KSM RSS \u2264 pod limit 70%, etcd \ub514\uc2a4\ud06c \uc5ec\uc720.\n\n**\ud29c\ub2dd**: ConfigMap allowlist \uc81c\uc678, KSM `--resources` \ud55c\uc815.\n"
+          }
+        },
+        {
+          "id": 178,
+          "type": "timeseries",
+          "title": "ConfigMaps total",
+          "description": "kube-burner \uc9c4\ud589\ub960.",
+          "gridPos": {
+            "x": 0,
+            "y": 66,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "count(kube_configmap_info)",
+              "legendFormat": "configmaps"
+            }
+          ]
+        },
+        {
+          "id": 179,
+          "type": "timeseries",
+          "title": "KSM RSS",
+          "description": "informer cache \uc601\ud5a5.",
+          "gridPos": {
+            "x": 12,
+            "y": 66,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"monitoring\",pod=~\".*kube-state-metrics.*\",container=\"kube-state-metrics\"})",
+              "legendFormat": "RSS"
+            }
+          ]
+        },
+        {
+          "id": 180,
+          "type": "timeseries",
+          "title": "etcd request latency p95",
+          "description": "etcd \uc751\ub2f5 \uc555\ubc15 (kps\uc5d0\uc11c etcd \ud65c\uc131\ud654 \ud544\uc694).",
+          "gridPos": {
+            "x": 0,
+            "y": 73,
+            "w": 24,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "histogram_quantile(0.95, sum by (le, operation) (rate(etcd_request_duration_seconds_bucket[5m])))",
+              "legendFormat": "{{operation}}"
+            }
+          ]
+        },
+        {
+          "id": 181,
+          "type": "row",
+          "title": "KSM-04 \u2014 Namespace churn",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 80,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 182,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 81,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: namespace \uc0dd\uc131/\uc0ad\uc81c \ubc18\ubcf5 \u2192 API \uc11c\ubc84 LIST/WATCH \ubd80\ub2f4 \uce21\uc815.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: kube-burner namespace churn. **SLO**: API \uc11c\ubc84 LIST \uc2e4\ud328\uc728 \u2248 0.\n\n**\ud29c\ub2dd**: kube-burner `qps`/`burst`\u2193.\n"
+          }
+        },
+        {
+          "id": 183,
+          "type": "timeseries",
+          "title": "Namespaces total",
+          "description": "namespace \uc218 \uc9c4\ub3d9.",
+          "gridPos": {
+            "x": 0,
+            "y": 89,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "count(kube_namespace_status_phase)",
+              "legendFormat": "namespaces"
+            }
+          ]
+        },
+        {
+          "id": 184,
+          "type": "timeseries",
+          "title": "API Server LIST/WATCH rate",
+          "description": "LIST/WATCH \ubd80\ub2f4.",
+          "gridPos": {
+            "x": 12,
+            "y": 89,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (verb) (rate(apiserver_request_total{verb=~\"LIST|WATCH\"}[1m]))",
+              "legendFormat": "{{verb}}"
+            }
+          ]
+        },
+        {
+          "id": 185,
+          "type": "timeseries",
+          "title": "API Server Errors (non-2xx)",
+          "description": "\uc5d0\ub7ec\uc728.",
+          "gridPos": {
+            "x": 0,
+            "y": 96,
+            "w": 24,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (code) (rate(apiserver_request_total{code!~\"2..\"}[1m]))",
+              "legendFormat": "{{code}}"
+            }
+          ]
+        },
+        {
+          "id": 186,
+          "type": "row",
+          "title": "KSM-05 \u2014 Shard \uad6c\uc131",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 103,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 187,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 104,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: KSM `--total-shards`\ub85c \uc218\ud3c9 \ubd84\ud560 \u2192 \ub2e8\uc77c \uc778\uc2a4\ud134\uc2a4 \ubd80\ub2f4 \ubd84\uc0b0 \uac80\uc99d.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: KSM StatefulSet replicas=N. **SLO**: \uac01 shard RSS \uac70\uc758 \ub3d9\ub4f1, \ub204\ub77d \uba54\ud2b8\ub9ad \uc5c6\uc74c.\n\n**\ud29c\ub2dd**: shard \ubd84\ubc30 \ubd88\uade0\ud615 \u2192 label/selector \uc810\uac80.\n"
+          }
+        },
+        {
+          "id": 188,
+          "type": "stat",
+          "title": "KSM Pods (shards)",
+          "description": "\ud604\uc7ac shard \uc778\uc2a4\ud134\uc2a4 \uc218.",
+          "gridPos": {
+            "x": 0,
+            "y": 112,
+            "w": 12,
+            "h": 4
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": [
+                [
+                  "count(kube_pod_info{namespace=\"monitoring\",pod=~\"kps-kube-state-metrics.*\"})",
+                  "shards"
+                ]
+              ],
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              }
+            }
+          ]
+        },
+        {
+          "id": 189,
+          "type": "timeseries",
+          "title": "Per-shard RSS",
+          "description": "shard\ubcc4 \uba54\ubaa8\ub9ac \ubd84\uc0b0.",
+          "gridPos": {
+            "x": 12,
+            "y": 112,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"monitoring\",pod=~\".*kube-state-metrics.*\",container=\"kube-state-metrics\"})",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 190,
+          "type": "timeseries",
+          "title": "Per-shard /metrics duration",
+          "description": "shard\ubcc4 \uc751\ub2f5 \uc2dc\uac04.",
+          "gridPos": {
+            "x": 0,
+            "y": 119,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "histogram_quantile(0.95, sum by (le, instance) (rate(http_request_duration_seconds_bucket{job=\"kube-state-metrics\"}[5m])))",
+              "legendFormat": "{{instance}}"
+            }
+          ]
+        },
+        {
+          "id": 191,
+          "type": "row",
+          "title": "KSM-06 \u2014 Soak 24h",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 126,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 192,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 127,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: 24\uc2dc\uac04 \ud3c9\uade0 \ubd80\ud558\uc5d0\uc11c KSM RSS / API \uc11c\ubc84 \ubd80\ub2f4 \uc548\uc815\uc131 \uac80\uc99d.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: \ud074\ub7ec\uc2a4\ud130 \ud3c9\uc18c \ubd80\ud558 24h. **SLO**: RSS \uc548\uc815, API \uc11c\ubc84 \uc751\ub2f5 \uc815\uc0c1.\n"
+          }
+        },
+        {
+          "id": 193,
+          "type": "timeseries",
+          "title": "KSM RSS 24h",
+          "description": "monotonic \uc0c1\uc2b9 = \ub204\uc218.",
+          "gridPos": {
+            "x": 0,
+            "y": 135,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"monitoring\",pod=~\".*kube-state-metrics.*\",container=\"kube-state-metrics\"})",
+              "legendFormat": "RSS"
+            }
+          ]
+        },
+        {
+          "id": 194,
+          "type": "timeseries",
+          "title": "KSM goroutines",
+          "description": "goroutine leak \uac10\uc9c0.",
+          "gridPos": {
+            "x": 12,
+            "y": 135,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"monitoring\",pod=~\".*kube-state-metrics.*\",container=\"kube-state-metrics\"}[1m]))",
+              "legendFormat": "goroutines"
+            }
+          ]
+        },
+        {
+          "id": 195,
+          "type": "row",
+          "title": "KSM-07 \u2014 allowlist/denylist \ud29c\ub2dd",
+          "collapsed": false,
+          "gridPos": {
+            "x": 0,
+            "y": 142,
+            "w": 24,
+            "h": 1
+          }
+        },
+        {
+          "id": 196,
+          "type": "text",
+          "title": "",
+          "gridPos": {
+            "x": 0,
+            "y": 143,
+            "w": 24,
+            "h": 8
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "**\ubaa9\uc801**: high-cardinality \uba54\ud2b8\ub9ad\uc744 \uc81c\uac70 \u2192 \uc2dc\ub9ac\uc988 \uc218 / \uba54\ubaa8\ub9ac \uac10\uc18c \ud6a8\uacfc \uce21\uc815.\n\n**\ubd80\ud558 \ud504\ub85c\ud30c\uc77c**: \ub3d9\uc77c \ubd80\ud558\uc5d0\uc11c allowlist/denylist \uc801\uc6a9 \uc804\ud6c4 \ube44\uad50. **SLO**: series \u2265 30% \uac10\uc18c.\n\n**\ud29c\ub2dd**: `kube_pod_labels` \ub4f1 \ub77c\ubca8 \ud3ed\uc99d \uba54\ud2b8\ub9ad \uc6b0\uc120 \uc81c\uac70.\n"
+          }
+        },
+        {
+          "id": 197,
+          "type": "timeseries",
+          "title": "Samples per Scrape (with allowlist)",
+          "description": "\ud29c\ub2dd \uc804\ud6c4 \ube44\uad50.",
+          "gridPos": {
+            "x": 0,
+            "y": 151,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "scrape_samples_scraped{job=\"kube-state-metrics\"}",
+              "legendFormat": "samples"
+            }
+          ]
+        },
+        {
+          "id": 198,
+          "type": "timeseries",
+          "title": "KSM RSS (with allowlist)",
+          "description": "\uba54\ubaa8\ub9ac \uac10\uc18c \ud6a8\uacfc.",
+          "gridPos": {
+            "x": 12,
+            "y": 151,
+            "w": 12,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"monitoring\",pod=~\".*kube-state-metrics.*\",container=\"kube-state-metrics\"})",
+              "legendFormat": "RSS"
             }
           ]
         }
