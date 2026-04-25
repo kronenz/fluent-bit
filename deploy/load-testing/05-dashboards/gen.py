@@ -117,18 +117,21 @@ def scenario_block(y, scenario_id, title, desc, panels_2d, text_height=10):
 OS_OVERVIEW = textwrap.dedent("""\
     ## 🔍 OpenSearch 부하 테스트 — 전 시나리오 대시보드
 
-    Kubernetes에 배포된 OpenSearch 클러스터의 인덱싱·검색·집계·복구·소크 거동을 모두 다룹니다.
-    각 시나리오 블록은 **설명 → 핵심 패널** 순서로 구성되어 있어 위에서 아래로 읽으면 됩니다.
+    **운영 워크로드 가정**: 200대 cluster (Spark/Trino/Airflow) 로그 ingest가 주, 검색은 6팀 간헐적.
+    따라서 **인덱싱 폭격 패턴**과 **운영 작업 충돌**이 핵심이며, 검색 부하는 가벼운 통합 시나리오로 흡수합니다.
 
-    | 시나리오 | 유형 | 매니페스트 |
-    |----------|------|-----------|
-    | OS-01 Bulk Indexing | Load | `04-test-jobs/opensearch-benchmark.yaml` |
-    | OS-02 Mixed Read/Write | Load | `04-test-jobs/k6-opensearch-search.yaml` |
+    | 시나리오 | 유형 | 매니페스트 / 도구 |
+    |----------|------|-------------------|
+    | OS-01 Bulk Indexing (baseline) | Load | `04-test-jobs/opensearch-benchmark.yaml` |
     | OS-03 Heavy Aggregation | Stress | k6 + agg query |
     | OS-04 Shard/Replica Scaling | Stress | dynamic settings 변경 |
     | OS-05 Soak 24h | Soak | OS-01 24h 유지 |
-    | OS-06 Spike Ingest ×5 | Spike | flog 또는 benchmark spike |
     | OS-07 Node Failure | Chaos | `kubectl delete pod` |
+    | **OS-08** Sustained high ingest (200대 모사) | Load (new) | flog 다수 → FB → OS, 1h |
+    | **OS-09** Spark startup burst (×30) | Spike (new) | `kubectl scale`로 flog replicas 급증 |
+    | **OS-12** Refresh interval 튜닝 | Tuning (new) | `_settings.refresh_interval` 변경 비교 |
+    | **OS-14** High-cardinality field | Stress (new) | loggen-spark Pod (task_attempt_id 주입) |
+    | **OS-16** Heavy ingest + light search | Integration (new) | flog + k6 6 VUs 동시 |
 
     > 메트릭 출처: `prometheus-community/elasticsearch_exporter` (Job: `opensearch-exporter`).
 """)
@@ -155,28 +158,8 @@ opensearch_blocks = [
          [("elasticsearch_cluster_health_number_of_pending_tasks", "pending")],
          12, 7, "short", "master 대기 큐. 누적은 master 오버로드."),
     ]),
-    ("OS-02", "Mixed Read/Write", textwrap.dedent("""\
-        **목적**: k6로 검색 부하를 가하면서 indexing은 백그라운드에서 유지 → 읽기/쓰기 혼합 시 응답 거동 확인.
-
-        **부하 프로파일**: 1m → 50 VUs → 5m × 50 VUs → 1m. **SLO**: search p95 ≤ 500 ms, p99 ≤ 1500 ms, error rate < 0.5%.
-
-        **튜닝**: p99 spike → slow_query.threshold 로깅 → 비효율 쿼리 식별; circuit breaker → indices.breaker.request.limit↑.
-    """), [
-        ("Search Rate (qps)",
-         [("rate(elasticsearch_indices_search_query_total[1m])", "{{name}}")],
-         12, 7, "ops", "k6 ramp-up이 보여야 함."),
-        ("Search Latency avg (server)",
-         [("rate(elasticsearch_indices_search_query_time_seconds_total[1m]) / "
-           "clamp_min(rate(elasticsearch_indices_search_query_total[1m]),1)", "{{name}}")],
-         12, 7, "s", "p95/p99는 k6 stdout (서버 평균은 꼬리 지연 가림)."),
-        ("Fetch Latency avg",
-         [("rate(elasticsearch_indices_search_fetch_time_seconds_total[1m]) / "
-           "clamp_min(rate(elasticsearch_indices_search_fetch_total[1m]),1)", "{{name}}")],
-         12, 7, "s", "fetch 단계 지연 (query 단계 외)."),
-        ("Active Search Threads",
-         [("elasticsearch_thread_pool_active_count{type=\"search\"}", "{{name}}")],
-         12, 7, "short", "search thread pool 활용도."),
-    ]),
+    # OS-02 was folded into OS-16 (heavy ingest + light search) since the real
+    # workload has only ~6 teams searching intermittently — 50 VU was unrealistic.
     ("OS-03", "Heavy Aggregation", textwrap.dedent("""\
         **목적**: 대용량 집계 쿼리(`terms`, `histogram`)로 서버 측 메모리·연산 부하 측정. 초기 단계 트레이싱이 핵심.
 
@@ -239,23 +222,7 @@ opensearch_blocks = [
          [("elasticsearch_jvm_threads_count", "{{name}}")],
          12, 7, "short", "thread leak 감지."),
     ]),
-    ("OS-06", "Spike Ingest ×5", textwrap.dedent("""\
-        **목적**: 평균 부하 대비 5배 급증 → backpressure 발생 시 reject·cluster status 영향 관찰.
-
-        **부하 프로파일**: 5분 평균 → 5분 × 5배 spike → 5분 평균. **SLO**: reject burst 후 1분 내 0 복귀, status green 유지.
-
-        **튜닝**: reject 지속 → coordinator/data 노드 분리, queue_size↑; 처리량 한계 → bulk_size↓ + clients↓.
-    """), [
-        ("Indexing TPS (spike profile)",
-         [("sum(rate(elasticsearch_indices_indexing_index_total[1m]))", "TPS")],
-         24, 7, "ops", "급증 곡선이 그대로 보여야 함."),
-        ("Bulk Reject during spike",
-         [("rate(elasticsearch_thread_pool_rejected_count{type=\"write\"}[1m])", "{{name}}")],
-         12, 7, "ops", "spike 중 일시 증가 후 0 복귀가 정상."),
-        ("Heap % during spike",
-         [("elasticsearch_jvm_memory_used_bytes{area=\"heap\"} / elasticsearch_jvm_memory_max_bytes{area=\"heap\"} * 100", "{{name}}")],
-         12, 7, "percent", "spike 시 일시적 상승 → 정상 회복."),
-    ]),
+    # OS-06 (×5 spike) was strengthened into OS-09 (×30 Spark startup wave).
     ("OS-07", "Node Failure (Chaos)", textwrap.dedent("""\
         **목적**: data node 1대 강제 종료 → red→yellow→green 회복 시간과 처리량 영향 측정.
 
@@ -275,6 +242,167 @@ opensearch_blocks = [
         ("Unassigned Shards during failure",
          [("elasticsearch_cluster_health_unassigned_shards", "unassigned")],
          12, 7, "short", "spike 후 0 복귀."),
+    ]),
+
+    # ---- 신규: 운영 워크로드(200대 cluster log ingest) 맞춤 ----
+
+    ("OS-08", "Sustained High Ingest (200대 모사)", textwrap.dedent("""\
+        **목적**: 200대 cluster의 Spark/Trino/Airflow 로그를 흡수할 수 있는 **sustainable** TPS 정량화.
+
+        **부하 프로파일**: flog `replicas` 단계적 증가(5→20→50→100→200) × 1시간 sustain. 운영 FB DS가 처리.
+        **SLO**: 1시간 동안 reject 0, FB output_errors 0, OS heap ≤ 75%, segment count 안정.
+
+        **튜닝**: bulk_size↓ + refresh_interval↑(OS-12), data 노드 증설, FB Workers↑.
+    """), [
+        ("Sustained Indexing TPS",
+         [("sum(rate(elasticsearch_indices_indexing_index_total[1m]))", "TPS")],
+         12, 7, "ops",
+         "1시간 동안 일정 수준 유지되어야 함. 곡선이 점진적 하락이면 sustainable 한계 초과."),
+        ("Bulk Reject (sustained)",
+         [("sum(rate(elasticsearch_thread_pool_rejected_count{type=\"write\"}[1m]))", "rejects/s")],
+         12, 7, "ops",
+         "0 유지. 비제로 시점이 sustainable TPS 초과 신호."),
+        ("Heap % (long range)",
+         [("elasticsearch_jvm_memory_used_bytes{area=\"heap\"} / elasticsearch_jvm_memory_max_bytes{area=\"heap\"} * 100", "{{name}}")],
+         12, 7, "percent",
+         "75%↑ 지속이면 GC 영향. 곡선 평탄화가 정상."),
+        ("Segment Count (merge keep up?)",
+         [("elasticsearch_indices_segments_count", "{{name}}")],
+         12, 7, "short",
+         "segment 수가 무한 증가하면 merge가 못 따라옴 → throughput 저하."),
+        ("FB Output Rate vs OS Indexing Rate (cross-check)",
+         [("sum(rate(fluentbit_output_proc_records_total[1m]))", "FB out"),
+          ("sum(rate(elasticsearch_indices_indexing_index_total[1m]))", "OS indexed")],
+         24, 7, "ops",
+         "두 곡선이 일치해야 손실 없음. FB가 더 많으면 누락."),
+        ("FB Storage Backlog",
+         [("sum(fluentbit_input_storage_chunks_busy_bytes)", "backlog bytes")],
+         12, 7, "bytes",
+         "지속 증가하면 OS가 따라오지 못해 FB filesystem buffer 누적."),
+        ("FB Output Retries",
+         [("sum(rate(fluentbit_output_retries_total[1m]))", "retries/s")],
+         12, 7, "ops",
+         "비제로 = OS bulk reject가 발생하고 있음."),
+    ]),
+
+    ("OS-09", "Spark Job Startup Burst (×30)", textwrap.dedent("""\
+        **목적**: Spark/Airflow 작업 일제 시작 시 평소 대비 ×30 spike → backpressure·복구 검증.
+
+        **부하 프로파일**: 5분 평균(replicas=3) → 4분 × 30배(replicas=90) → 5분 평균.
+        **SLO**: spike 동안 drop=0 (FB filesystem buffer 사용), spike 종료 후 1분 내 backlog 소진, OS green 유지.
+
+        **튜닝**: drop 발생 → FB `Mem_Buf_Limit`↑·`storage.type=filesystem` (필수); OS reject burst → coordinator 분리.
+    """), [
+        ("Indexing TPS (spike profile)",
+         [("sum(rate(elasticsearch_indices_indexing_index_total[1m]))", "OS TPS"),
+          ("sum(rate(fluentbit_input_records_total[1m]))", "FB input"),
+          ("sum(rate(fluentbit_output_proc_records_total[1m]))", "FB output")],
+         24, 8, "ops",
+         "spike 곡선. FB input은 즉시 ↑, FB output은 OS 한계까지 ↑, 차이는 buffer 누적."),
+        ("Bulk Reject during burst",
+         [("sum(rate(elasticsearch_thread_pool_rejected_count{type=\"write\"}[1m]))", "rejects/s")],
+         12, 7, "ops",
+         "spike 중 burst 후 즉시 0 복귀가 정상."),
+        ("FB Storage Backlog (spike + drain)",
+         [("sum(fluentbit_input_storage_chunks_busy_bytes)", "backlog")],
+         12, 7, "bytes",
+         "spike 중 누적 → spike 종료 후 단조 감소가 정상."),
+        ("Heap % during burst",
+         [("elasticsearch_jvm_memory_used_bytes{area=\"heap\"} / elasticsearch_jvm_memory_max_bytes{area=\"heap\"} * 100", "{{name}}")],
+         12, 7, "percent",
+         "spike 시 일시 상승 후 정상 회복."),
+        ("Cluster Status (must stay green)",
+         [("elasticsearch_cluster_health_status{color=\"green\"}", "green=1")],
+         12, 7, "short",
+         "burst 중에도 green 유지가 합격 기준."),
+    ]),
+
+    ("OS-12", "Refresh Interval 튜닝 비교", textwrap.dedent("""\
+        **목적**: `refresh_interval`을 1s(default) vs 30s vs 60s로 바꾸며 동일 부하에서 throughput·검색 가시성 trade-off 측정.
+
+        **부하 프로파일**: 동일한 OS-08 부하(예: replicas=50, 30분)를 3차례 실행. 각 실행 전 `_settings`로 refresh_interval 변경.
+        **SLO**: 30s/60s 설정에서 1s 대비 indexing TPS ≥ +30%, 검색 lag ≤ 60s.
+
+        **튜닝 적용 명령**:
+        ```
+        kubectl exec opensearch-lt-node-0 -- curl -X PUT $OPENSEARCH_URL/logs-fb-*/_settings \\
+          -H 'Content-Type: application/json' -d '{"index": {"refresh_interval": "30s"}}'
+        ```
+    """), [
+        ("Indexing Rate (compare across runs)",
+         [("sum(rate(elasticsearch_indices_indexing_index_total[1m]))", "TPS")],
+         12, 7, "ops",
+         "각 refresh_interval 설정 구간을 시간 범위로 비교."),
+        ("Refresh Operations Rate",
+         [("rate(elasticsearch_indices_refresh_total[1m])", "{{name}}")],
+         12, 7, "ops",
+         "refresh_interval ↑ 시 이 곡선이 떨어져야 함."),
+        ("Refresh Time spent (s/s)",
+         [("rate(elasticsearch_indices_refresh_time_seconds_total[1m])", "{{name}}")],
+         12, 7, "s",
+         "refresh에 쓰인 시간 비율. 높으면 indexing 시간 잠식."),
+        ("Segment Count (interval ↑ → segments↓)",
+         [("elasticsearch_indices_segments_count", "{{name}}")],
+         12, 7, "short",
+         "refresh_interval 키울수록 더 적은 segment로 더 큰 chunk."),
+    ]),
+
+    ("OS-14", "High-Cardinality Field (Spark task_attempt_id)", textwrap.dedent("""\
+        **목적**: Spark `task_attempt_id`, Airflow `dag_run_id` 같은 고유값 keyword가 매핑·cluster state에 미치는 압박 측정.
+
+        **부하 프로파일**: `loggen-spark` Pod (ConfigMap의 Python 스크립트, UUID를 task_attempt_id로 주입) 30분.
+        **SLO**: 매핑 필드 수 < 1000, master heap ≤ 70%, cluster state size 안정.
+
+        **튜닝**: `index.mapping.total_fields.limit` 설정, `dynamic: strict`로 매핑 폭증 방어, 운영 ILM에서 매핑 reset 주기 단축.
+    """), [
+        ("Indices Memory Usage (proxy for fielddata)",
+         [("elasticsearch_indices_fielddata_memory_size_bytes", "{{name}}")],
+         12, 7, "bytes",
+         "fielddata 메모리. high-card 누적 시 증가."),
+        ("Indices Memory: total",
+         [("elasticsearch_indices_segments_memory_bytes", "{{name}}")],
+         12, 7, "bytes",
+         "segment 전체 메모리. high-card term이 누적."),
+        ("Active Indices",
+         [("count(elasticsearch_index_stats_health) or vector(0)", "active indices")],
+         12, 7, "short",
+         "필드 수 직접 측정은 어려우나, 인덱스 수 / 누적 사이즈로 영향 추적."),
+        ("OS Heap %",
+         [("elasticsearch_jvm_memory_used_bytes{area=\"heap\"} / elasticsearch_jvm_memory_max_bytes{area=\"heap\"} * 100", "{{name}}")],
+         12, 7, "percent",
+         "매핑/state 부담은 heap에 직접 반영."),
+        ("Pending Cluster Tasks (master 부담)",
+         [("elasticsearch_cluster_health_number_of_pending_tasks", "pending")],
+         24, 7, "short",
+         "master에 매핑 업데이트 큐가 쌓이면 indexing 멈춤."),
+    ]),
+
+    ("OS-16", "Heavy Ingest + Light Search (운영 통합)", textwrap.dedent("""\
+        **목적**: 가장 운영 현실적인 시나리오 — 200대 ingest 부하 중 6팀 간헐적 검색이 SLO 만족하는지 검증.
+
+        **부하 프로파일**: OS-08 동등 ingest (sustained) 진행 중 k6 6 VU `last 1h` range query 30분 동시 실행.
+        **SLO**: indexing TPS ≥ OS-08 단독 대비 95%, 검색 p95 ≤ 5s, 검색 error rate < 1%.
+
+        **튜닝**: search 영향 시 → coordinator 노드 분리; range query 느림 → recording rule 도입 (Prom 측), shard 적정화.
+    """), [
+        ("Indexing TPS (during light search)",
+         [("sum(rate(elasticsearch_indices_indexing_index_total[1m]))", "TPS")],
+         12, 7, "ops",
+         "OS-08 단독 실행과 비교 — drop이 5%를 넘으면 search가 ingest에 영향."),
+        ("Light Search Rate",
+         [("rate(elasticsearch_indices_search_query_total[1m])", "{{name}}")],
+         12, 7, "ops",
+         "k6 6 VU 부하 곡선 (~6 qps)."),
+        ("Search Latency avg",
+         [("rate(elasticsearch_indices_search_query_time_seconds_total[1m]) / "
+           "clamp_min(rate(elasticsearch_indices_search_query_total[1m]),1)", "{{name}}")],
+         12, 7, "s",
+         "p95/p99는 k6 stdout 결과 참조 (서버 평균은 꼬리 지연 가림)."),
+        ("Active Search/Write Threads",
+         [("elasticsearch_thread_pool_active_count{type=\"search\"}", "search {{name}}"),
+          ("elasticsearch_thread_pool_active_count{type=\"write\"}", "write {{name}}")],
+         12, 7, "short",
+         "두 thread pool 모두 활성. write가 우선이면 search 지연."),
     ]),
 ]
 

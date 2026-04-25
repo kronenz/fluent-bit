@@ -1,0 +1,90 @@
+# OS-14 / FB high-cardinality stress: emits Spark/Airflow-style JSON logs
+# with UUID task_attempt_id and rotating container_id. Drives mapping field
+# growth and segment-memory accumulation in OpenSearch.
+#
+# Script lives in a ConfigMap so the loadtest-tools image stays untouched.
+# Run with: kubectl apply -f 03-load-generators/loggen-spark.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loggen-spark-script
+  namespace: load-test
+data:
+  loggen-spark.py: |
+    #!/usr/bin/env python3
+    """High-cardinality Spark/Airflow log generator. UUID per record forces
+    OpenSearch to keep many distinct keyword values, growing segment memory
+    and (on dynamic mappings) field count."""
+    import json, os, random, sys, time, uuid
+
+    DELAY      = float(os.environ.get("LOGGEN_DELAY", "0.0005"))
+    APP        = os.environ.get("LOGGEN_APP", "spark-loadtest")
+    LEVELS     = ["INFO"]*9 + ["WARN"] + ["ERROR"]   # weighted
+    STAGES     = list(range(1, 30))
+    MESSAGES = [
+        "Started shuffle read for partition {p}",
+        "Wrote {b} bytes to disk for stage {s}",
+        "Task attempt finished in {ms}ms",
+        "Executor heartbeat received",
+        "Block manager replicated block rdd_{rdd}_{p}",
+        "Fetching {p} blocks from {host}",
+        "GC took {ms}ms for {gen} generation",
+    ]
+
+    while True:
+        s = random.choice(STAGES)
+        rec = {
+            "ts":               time.time(),
+            "level":            random.choice(LEVELS),
+            "app":              APP,
+            "stage_id":         s,
+            # high-cardinality fields:
+            "task_attempt_id":  str(uuid.uuid4()),
+            "container_id":     f"container_{random.randint(1, 50000):08d}",
+            "executor_id":      f"executor_{random.randint(1, 200)}",
+            "dag_run_id":       f"manual__{int(time.time())}_{random.randint(0, 10**6)}",
+            # message
+            "msg": random.choice(MESSAGES).format(
+                p=random.randint(0, 1024),
+                b=random.randint(1, 10**8),
+                ms=random.randint(1, 5000),
+                s=s, rdd=random.randint(1, 1000),
+                host=f"node-{random.randint(1, 200)}",
+                gen=random.choice(["young", "old"]),
+            ),
+        }
+        print(json.dumps(rec), flush=True)
+        time.sleep(DELAY)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loggen-spark
+  namespace: load-test
+  labels: { app: loggen-spark, role: load-generator, scenario: OS-14 }
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: loggen-spark }
+  template:
+    metadata:
+      labels: { app: loggen-spark }
+    spec:
+      containers:
+        - name: loggen
+          image: loadtest-tools:0.1.0
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "/scripts/loggen-spark.py"]
+          envFrom:
+            - configMapRef: { name: lt-config }
+          env:
+            - { name: LOGGEN_DELAY, value: "0.0005" }
+            - { name: LOGGEN_APP,   value: "spark-loadtest" }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+          resources:
+            requests: { cpu: "100m", memory: "64Mi" }
+            limits:   { cpu: "500m", memory: "128Mi" }
+      volumes:
+        - name: scripts
+          configMap: { name: loggen-spark-script, defaultMode: 0755 }
