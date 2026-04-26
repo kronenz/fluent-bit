@@ -17,7 +17,9 @@ data:
     jobs:
       - name: ksm-oom-density
         jobType: create
-        jobIterations: 50           # testbed 안전치 (멀티노드: 500~5000)
+        jobIterations: 30           # testbed 단일노드 안전치 — 9 obj/iter × 30 = 270 객체
+                                    # (50 iter 시 stuck 사례 — 06-testbed-handson-results.md §3.3 참조)
+                                    # 멀티노드: 500~5000
         namespace: ksm-oom
         namespacedIterations: true
         cleanup: true
