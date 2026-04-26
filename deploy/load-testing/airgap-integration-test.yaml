@@ -1,30 +1,30 @@
-# Air-gap integration-test deployment (single vanilla YAML).
+# =====================================================================
+#  폐쇄망(Air-gap) 통합 부하 테스트 배포 — 단일 vanilla YAML
+# =====================================================================
 #
-# All images point at the internal Nexus Docker registry. If your Nexus
-# host/path differs from the example, do a single sed across this file:
+# 📌 목적
+#   이 매니페스트는 사내 Nexus Docker Registry에서 이미지를 pull 하여
+#   200-node 규모 Spark/Trino/Airflow 로그 수집 운영환경을 시뮬레이션
+#   하는 *통합 부하 테스트 스위트*를 한 번에 배포합니다.
 #
-#   sed -i 's|nexus.intranet:8082/loadtest|<your-nexus-host:port>/<project>|g' \
-#       deploy/load-testing/airgap-integration-test.yaml
+#   배포 후 11개 시나리오 그룹 (총 38개 시나리오)이 동시 또는 개별로
+#   실행 가능하며, 미리 배포된 Grafana 대시보드 6개에서 결과를 확인할
+#   수 있습니다.
 #
-# Apply:
-#   kubectl --context=airgap-prod apply -f deploy/load-testing/airgap-integration-test.yaml
+# 📌 대상 시나리오 (자세한 정의는 docs/load-testing/08-scenario-catalog.md)
+#   • OS-01      : opensearch-benchmark 벌크 인덱싱 (test-mode 1k docs)
+#   • OS-02      : k6 heavy search (50 VU, _search 부하)
+#   • OS-14      : 고-cardinality Spark 로그 인덱싱 (UUID 폭증)
+#   • OS-16      : 6개 팀 light search × 30분
+#   • FB-01~07   : flog 다중 replica → fluent-bit DaemonSet → OpenSearch
+#   • PR-01~05   : avalanche → ServiceMonitor → Prometheus
+#   • NE-02      : hey HTTP 부하 → node-exporter /metrics
+#   • PR-03/04   : k6 PromQL 랜덤 쿼리 → Prometheus
+#   • KSM-02~04  : kube-burner 100 iter pod-density → kube-state-metrics
 #
-# Watch:
-#   kubectl --context=airgap-prod -n load-test get pods,jobs -w
+# 📌 적용 방법
 #
-# Pre-requisites (deployed separately, also from Nexus):
-#   - kube-prometheus-stack helm release in `monitoring`
-#   - opensearch helm release in `monitoring` (service: opensearch-lt-node)
-#   - fluent-bit helm release in `kube-system` (or wherever the daemonset runs)
-#
-# This bundle does NOT include the Grafana dashboards (large generated file).
-# Apply those separately from `deploy/load-testing/05-dashboards/dashboards.yaml`.
-#
-# Image references that need to exist in Nexus:
-#   nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
-#   nexus.intranet:8082/loadtest/pause:3.10
-#
-# If Nexus requires authentication, create the pull secret first:
+#   # 1) Nexus 인증이 필요하면 pull secret 먼저 생성
 #   kubectl create secret docker-registry nexus-cred \
 #     --docker-server=nexus.intranet:8082 \
 #     --docker-username=$NEXUS_USER \
@@ -35,11 +35,66 @@
 #     --docker-username=$NEXUS_USER \
 #     --docker-password=$NEXUS_PASS \
 #     -n monitoring
-# Then add `imagePullSecrets: [{ name: nexus-cred }]` under each PodSpec.
+#   # secret을 사용하려면 각 PodSpec에 imagePullSecrets: [{name: nexus-cred}] 추가
+#
+#   # 2) 매니페스트 적용
+#   kubectl --context=airgap-prod apply -f deploy/load-testing/airgap-integration-test.yaml
+#
+#   # 3) 진행 상황 모니터링
+#   kubectl --context=airgap-prod -n load-test get pods,jobs -w
+#
+#   # 4) 결과 확인 (Grafana)
+#   #    http://<grafana-host>/d/lt-overview        — 통합 Overview
+#   #    http://<grafana-host>/d/lt-opensearch      — OS 시나리오
+#   #    http://<grafana-host>/d/lt-fluent-bit      — FB 시나리오
+#   #    http://<grafana-host>/d/lt-prometheus      — PR 시나리오
+#   #    http://<grafana-host>/d/lt-node-exporter   — NE 시나리오
+#   #    http://<grafana-host>/d/lt-ksm             — KSM 시나리오
+#
+# 📌 Nexus 주소 변경 (한 줄 sed)
+#   기본값은 docs/load-testing/15-nexus-push-quick.md의 예시인
+#   "nexus.intranet:8082/loadtest"입니다. 실제 사내 주소가 다르면:
+#
+#     sed -i 's|nexus.intranet:8082/loadtest|<your-host:port>/<project>|g' \
+#       deploy/load-testing/airgap-integration-test.yaml
+#
+# 📌 사전 요구사항 (이 매니페스트가 의존하는 외부 컴포넌트)
+#   ┌──────────────────────────┬───────────────────────────────────────┐
+#   │ 컴포넌트                 │ 배포 위치                             │
+#   ├──────────────────────────┼───────────────────────────────────────┤
+#   │ kube-prometheus-stack    │ helm release `kps` in monitoring ns   │
+#   │   - kps-prometheus       │ Prometheus (메트릭 수집/저장)         │
+#   │   - kps-grafana          │ Grafana (대시보드 UI)                 │
+#   │   - kps-alertmanager     │ Alertmanager                          │
+#   │   - kps-kube-state-metrics│ KSM (k8s 객체 메트릭)                │
+#   │   - kps-prometheus-node-exporter (DaemonSet)│ NE (노드 메트릭)   │
+#   │ opensearch-lt            │ helm release in monitoring ns         │
+#   │   service: opensearch-lt-node:9200                              │
+#   │ fluent-bit DaemonSet     │ kube-system 또는 logging ns          │
+#   │   /var/log/containers/*.log → OPENSEARCH_URL                    │
+#   └──────────────────────────┴───────────────────────────────────────┘
+#   Helm 차트 이미지(grafana, prometheus, opensearch, fluent-bit 등)도
+#   Nexus에 mirror 되어 있어야 합니다 — `airgap-export.sh` 참고.
+#
+# 📌 필요한 Nexus 이미지 목록 (이 파일이 참조)
+#   nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+#   nexus.intranet:8082/loadtest/pause:3.10
+#
+# 📌 부하 강도 조절
+#   기본값은 *도구 검증용* 소규모 스케일입니다. 운영 시뮬레이션에는
+#   하단 ConfigMap `lt-config`의 `production` 주석을 참고해 값을 올린
+#   뒤 `kubectl apply` 다시 수행하세요.
+#
+# 📌 정리
+#   kubectl --context=airgap-prod delete -f deploy/load-testing/airgap-integration-test.yaml
+#
+# =====================================================================
 ---
-# ===================================================================
-# 0. Namespaces
-# ===================================================================
+# ┌───────────────────────────────────────────────────────────────────┐
+# │ 0. Namespaces                                                     │
+# │   • monitoring : kube-prometheus-stack + opensearch + exporter    │
+# │   • load-test  : 부하 발생기 + 테스트 Job + 그 부산물 객체        │
+# └───────────────────────────────────────────────────────────────────┘
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -52,23 +107,35 @@ metadata:
   name: load-test
   labels: { purpose: load-generation }
 ---
-# ===================================================================
-# 1. Central configuration consumed by every test Job/Deployment
-# ===================================================================
+# ┌───────────────────────────────────────────────────────────────────┐
+# │ 1. lt-config — 모든 테스트 Job/Deployment가 envFrom 으로 참조      │
+# │                                                                   │
+# │ 한 곳에서 endpoint/스케일 변수를 관리해 운영환경 이전 시          │
+# │ "이 ConfigMap만 수정 → 모든 매니페스트 재적용" 패턴이 가능합니다. │
+# │                                                                   │
+# │ 변수 카테고리:                                                    │
+# │   - LOADTEST_IMAGE / 엔드포인트 URL (dashboard 링크에도 사용)     │
+# │   - 시나리오별 튜닝 노브 (FLOG_*, AVALANCHE_*, K6_*, KSM_BURNER_*)│
+# │                                                                   │
+# │ "production" 주석은 200-node 시뮬레이션용 권장값입니다. 처음에는  │
+# │ 기본값으로 smoke test → 안정성 확인 후 production 값으로 교체.   │
+# └───────────────────────────────────────────────────────────────────┘
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: lt-config
   namespace: load-test
 data:
+  # ── 이미지 / 엔드포인트 ────────────────────────────────────────
   LOADTEST_IMAGE:    "nexus.intranet:8082/loadtest/loadtest-tools:0.1.1"
-  PROMETHEUS_URL:    "http://kps-prometheus.monitoring.svc:9090"
-  OPENSEARCH_URL:    "http://opensearch-lt-node.monitoring.svc:9200"
+  PROMETHEUS_URL:    "http://kps-prometheus.monitoring.svc:9090"      # PromQL 쿼리 대상
+  OPENSEARCH_URL:    "http://opensearch-lt-node.monitoring.svc:9200"  # 인덱싱/검색 대상
   ALERTMANAGER_URL:  "http://kps-alertmanager.monitoring.svc:9093"
   GRAFANA_URL:       "http://kps-grafana.monitoring.svc"
   NODE_EXPORTER_SVC: "http://kps-prometheus-node-exporter.monitoring.svc:9100"
   KSM_SVC:           "http://kps-kube-state-metrics.monitoring.svc:8080"
 
+  # ── 대시보드 UID (docs/dashboards.yaml 와 일치해야 함) ──────────
   DASH_OVERVIEW:      "lt-overview"
   DASH_OPENSEARCH:    "lt-opensearch"
   DASH_FLUENT_BIT:    "lt-fluent-bit"
@@ -76,47 +143,65 @@ data:
   DASH_NODE_EXPORTER: "lt-node-exporter"
   DASH_KSM:           "lt-ksm"
 
-  # Fluent-bit / flog (FB-01 ~ FB-07)
-  FLOG_REPLICAS:        "3"        # production: 10
-  FLOG_DELAY:           "100us"
-  FLOG_FORMAT:          "json"
+  # ── Fluent-bit / flog (FB-01 ~ FB-07) ──────────────────────────
+  # FLOG_REPLICAS × (1 / FLOG_DELAY) ≒ 초당 발생 line 수.
+  # 기본 3 × 10,000 = 30k lines/s → 운영급은 10 × 10,000 = 100k lines/s.
+  FLOG_REPLICAS:        "3"        # 운영: 10
+  FLOG_DELAY:           "100us"    # 작을수록 부하 ↑
+  FLOG_FORMAT:          "json"     # apache_common | rfc3164 | ...
 
-  # Avalanche (PR-01 ~ PR-05)
-  AVALANCHE_REPLICAS:           "2"     # production: 20
-  AVALANCHE_GAUGE_METRIC_COUNT: "200"   # production: 500
-  AVALANCHE_SERIES_COUNT:       "200"   # production: 500
+  # ── Avalanche (PR-01 ~ PR-05) ──────────────────────────────────
+  # 단일 pod 활성 series ≈ gauge_metric_count × series_count.
+  # 기본 200 × 200 × 2 replica = 80k series → 운영급 500 × 500 × 20 = 5M series.
+  AVALANCHE_REPLICAS:           "2"     # 운영: 20
+  AVALANCHE_GAUGE_METRIC_COUNT: "200"   # 운영: 500
+  AVALANCHE_SERIES_COUNT:       "200"   # 운영: 500
   AVALANCHE_LABEL_COUNT:        "10"
   AVALANCHE_VALUE_INTERVAL:     "15"
   AVALANCHE_SERIES_INTERVAL:    "900"
   AVALANCHE_METRIC_INTERVAL:    "3600"
 
-  # k6
-  K6_PROMQL_VUS:        "20"
+  # ── k6 PromQL / Search ─────────────────────────────────────────
+  K6_PROMQL_VUS:        "20"      # 동시 PromQL 쿼리 수
   K6_PROMQL_DURATION:   "5m"
-  K6_SEARCH_VU_TARGET:  "50"
+  K6_SEARCH_VU_TARGET:  "50"      # heavy search 최대 VU (3-stage ramp)
   K6_SEARCH_DURATION:   "5m"
-  OS_INDEX_PATTERN:     "logs-fb-*"
+  OS_INDEX_PATTERN:     "logs-fb-*"  # fluent-bit이 만든 인덱스 패턴
 
-  # kube-burner (KSM-02 ~ KSM-04)
-  KSM_BURNER_ITERATIONS:   "100"   # production: 10000
-  KSM_BURNER_QPS:          "20"
+  # ── kube-burner (KSM-02 ~ KSM-04) ──────────────────────────────
+  # iterations 당 1 namespace + N pods 생성/삭제. 단일 노드 minikube
+  # 에서는 100 정도가 안전 (200 이상은 OOM/스케줄 지연 발생).
+  KSM_BURNER_ITERATIONS:   "100"   # 운영: 10000
+  KSM_BURNER_QPS:          "20"    # apiserver QPS 제한
   KSM_BURNER_BURST:        "30"
   KSM_BURNER_NS_PREFIX:    "kburner"
 
-  # hey (NE-02)
-  HEY_CONCURRENCY:    "50"
+  # ── hey (NE-02) ────────────────────────────────────────────────
+  HEY_CONCURRENCY:    "50"   # 동시 워커
   HEY_DURATION:       "2m"
-  HEY_RPS_PER_WORKER: "50"
+  HEY_RPS_PER_WORKER: "50"   # 총 RPS = concurrency × rps_per_worker = 2,500
 
-  # opensearch-benchmark (OS-01)
-  OSB_WORKLOAD:        "geonames"
+  # ── opensearch-benchmark (OS-01) ───────────────────────────────
+  # OSB_TEST_MODE=true 면 1k docs로만 워크로드 절차 검증 → 폐쇄망에서
+  # corpus 데이터 불필요. false 로 하려면 PVC에 .json.bz2 사전 적재 필요.
+  OSB_WORKLOAD:        "geonames"   # alternatives: pmc, http_logs, nyc_taxis
   OSB_TEST_PROCEDURE:  "append-no-conflicts-index-only"
   OSB_BULK_SIZE:       "5000"
   OSB_CLIENTS:         "16"
 ---
-# ===================================================================
-# 2. OpenSearch exporter — exposes /metrics about the OS cluster
-# ===================================================================
+# ┌───────────────────────────────────────────────────────────────────┐
+# │ 2. opensearch-exporter — OpenSearch 클러스터 메트릭 노출          │
+# │                                                                   │
+# │ OS 컨테이너에 prometheus-exporter 플러그인을 추가 빌드하지 않고   │
+# │ 외부 sidecar 형태로 prometheus-community/elasticsearch_exporter   │
+# │ (OS REST API 호환) 를 띄워서 ServiceMonitor로 prometheus가 scrape │
+# │ 하도록 구성. monitoring ns 에 위치해야 ServiceMonitor selector가  │
+# │ 정상 매칭됩니다 (kps-prometheus 의 namespaceSelector 정책).       │
+# │                                                                   │
+# │ 노출 메트릭(주요): elasticsearch_cluster_health_status,          │
+# │   elasticsearch_indices_*, elasticsearch_node_stats_*,            │
+# │   elasticsearch_thread_pool_*                                     │
+# └───────────────────────────────────────────────────────────────────┘
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -138,10 +223,10 @@ spec:
           command: ["elasticsearch_exporter"]
           args:
             - --es.uri=http://opensearch-lt-node.monitoring.svc:9200
-            - --es.all
-            - --es.indices
-            - --es.indices_settings
-            - --es.shards
+            - --es.all              # 모든 클러스터 메트릭
+            - --es.indices          # per-index 메트릭
+            - --es.indices_settings # index settings (메모리 제약 추적)
+            - --es.shards           # shard 단위 통계
             - --es.timeout=30s
           ports:
             - { name: metrics, containerPort: 9114 }
@@ -167,16 +252,30 @@ kind: ServiceMonitor
 metadata:
   name: opensearch-exporter
   namespace: monitoring
-  labels: { app: opensearch-exporter }
+  labels: { app: opensearch-exporter }   # kps prometheus selector 매칭용
 spec:
   selector: { matchLabels: { app: opensearch-exporter } }
   endpoints:
     - port: metrics
       interval: 30s
 ---
-# ===================================================================
-# 3. flog — synthetic JSON log producer (FB-01/02/04/05)
-# ===================================================================
+# ┌───────────────────────────────────────────────────────────────────┐
+# │ 3. flog — 합성 JSON 로그 생산자 (FB-01/02/04/05)                  │
+# │                                                                   │
+# │ 컨테이너 stdout 으로 JSON 로그를 무한 출력 → kubelet이             │
+# │ /var/log/containers/<pod>.log 에 기록 → fluent-bit DaemonSet이    │
+# │ tail input 으로 읽어 OpenSearch로 전송. 즉, fluent-bit이 폐쇄망   │
+# │ 클러스터에 이미 배포되어 있어야 이 부하가 실제 ingest 파이프라인  │
+# │ 까지 흐릅니다.                                                    │
+# │                                                                   │
+# │ 부하 = replicas × (1 / delay).                                    │
+# │   기본: 3 × (1 / 100us) = 30,000 lines/s                          │
+# │   운영: 10 × (1 / 100us) = 100,000 lines/s                        │
+# │                                                                   │
+# │ 실제 production 워크로드와 동등한 시나리오 재현을 위해서는        │
+# │ loggen-spark (아래 5번) 도 함께 가동하세요 — 그쪽은 cardinality   │
+# │ 폭증 시나리오 (OS-14) 를 담당.                                    │
+# └───────────────────────────────────────────────────────────────────┘
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -195,14 +294,30 @@ spec:
         - name: flog
           image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
           imagePullPolicy: IfNotPresent
+          # -f json   : 출력 포맷
+          # -d 100us  : 라인 사이 지연 (작을수록 rate ↑)
+          # -l        : 무한 루프
           command: ["flog", "-f", "json", "-d", "100us", "-l"]
           resources:
             requests: { cpu: "100m", memory: "64Mi" }
             limits:   { cpu: "500m", memory: "128Mi" }
 ---
-# ===================================================================
-# 4. Avalanche — synthetic Prometheus /metrics (PR-01/02/05)
-# ===================================================================
+# ┌───────────────────────────────────────────────────────────────────┐
+# │ 4. avalanche — 합성 Prometheus /metrics endpoint (PR-01/02/05)    │
+# │                                                                   │
+# │ 지정한 metric/series 카운트 만큼 active timeseries 를 노출하는    │
+# │ /metrics 페이지를 띄움. ServiceMonitor 가 prometheus 에게 scrape  │
+# │ 시키도록 등록 → ingest/저장/쿼리 부하 발생.                       │
+# │                                                                   │
+# │ Active series 추정:                                              │
+# │   per-pod = gauge_metric_count × series_count                     │
+# │   total   = per-pod × replicas                                    │
+# │   기본    = 200 × 200 × 2 = 80,000 active series                  │
+# │   운영    = 500 × 500 × 20 = 5,000,000 active series              │
+# │                                                                   │
+# │ ⚠  series 수를 지나치게 키우면 prometheus WAL replay 시 OOM.     │
+# │    PR-05 cardinality bomb 시나리오를 반드시 감시해야 합니다.      │
+# └───────────────────────────────────────────────────────────────────┘
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -223,12 +338,12 @@ spec:
           imagePullPolicy: IfNotPresent
           command: ["avalanche"]
           args:
-            - --gauge-metric-count=200
-            - --series-count=200
-            - --label-count=10
-            - --value-interval=15
-            - --series-interval=900
-            - --metric-interval=3600
+            - --gauge-metric-count=200    # 별개 metric name 수
+            - --series-count=200          # metric 당 series 수
+            - --label-count=10            # series 당 label 수
+            - --value-interval=15         # 값이 변경되는 주기 (초)
+            - --series-interval=900       # series 새로 만드는 주기
+            - --metric-interval=3600      # metric 새로 만드는 주기
             - --port=9001
           ports:
             - { name: http, containerPort: 9001 }
@@ -247,6 +362,9 @@ spec:
   ports:
     - { name: http, port: 9001, targetPort: http }
 ---
+# ServiceMonitor 가 load-test ns 에 있어도 kps-prometheus 가 cross-ns
+# 에서 scrape 하도록 chart values 에 namespaceSelector: any=true 가
+# 설정되어 있어야 합니다 (01-monitoring-core/values.yaml).
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -260,9 +378,23 @@ spec:
       interval: 15s
       scrapeTimeout: 10s
 ---
-# ===================================================================
-# 5. loggen-spark — high-cardinality Spark/Airflow style logs (OS-14 / FB)
-# ===================================================================
+# ┌───────────────────────────────────────────────────────────────────┐
+# │ 5. loggen-spark — 고-cardinality Spark/Airflow 스타일 로그 생성   │
+# │   (시나리오 OS-14)                                                │
+# │                                                                   │
+# │ 왜 별도 부하 발생기? flog 의 합성 로그는 cardinality 가 낮아      │
+# │ (template 내 random 정수만 변함) OpenSearch 운영 사고 1순위인     │
+# │ "UUID/task_id 같은 unbounded keyword field 인덱싱 → cluster_state │
+# │ 비대화 → master OOM" 패턴을 재현 못 함. 이 generator 는:          │
+# │   • task_attempt_id  : UUID per record                            │
+# │   • container_id     : 50,000 사이에서 순환                       │
+# │   • dag_run_id       : timestamp + random                         │
+# │ 위 3 필드를 keyword 로 매핑되게 하여 segment memory 를 증가시킴.  │
+# │                                                                   │
+# │ ⚠  Index template에 dynamic mapping 막혀 있으면 효과 없음 →      │
+# │    fluent-bit values 에서 mapping 정책을 dynamic 으로 풀거나     │
+# │    OpenSearch 인덱스 템플릿을 dynamic:true 로 설정.               │
+# └───────────────────────────────────────────────────────────────────┘
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -296,6 +428,7 @@ data:
             "level":            random.choice(LEVELS),
             "app":              APP,
             "stage_id":         s,
+            # 고-cardinality 필드 ↓
             "task_attempt_id":  str(uuid.uuid4()),
             "container_id":     f"container_{random.randint(1, 50000):08d}",
             "executor_id":      f"executor_{random.randint(1, 200)}",
@@ -334,7 +467,7 @@ spec:
           envFrom:
             - configMapRef: { name: lt-config }
           env:
-            - { name: LOGGEN_DELAY, value: "0.0005" }
+            - { name: LOGGEN_DELAY, value: "0.0005" }   # 0.5ms 간격 → ~2k lines/s/pod
             - { name: LOGGEN_APP,   value: "spark-loadtest" }
           volumeMounts:
             - { name: scripts, mountPath: /scripts }
@@ -345,9 +478,22 @@ spec:
         - name: scripts
           configMap: { name: loggen-spark-script, defaultMode: 0755 }
 ---
-# ===================================================================
-# 6. hey — HTTP load against node-exporter /metrics (NE-02)
-# ===================================================================
+# ┌───────────────────────────────────────────────────────────────────┐
+# │ 6. hey — node-exporter /metrics HTTP 부하 (시나리오 NE-02)        │
+# │                                                                   │
+# │ node-exporter 는 워커마다 9100 포트로 /metrics 를 노출합니다.     │
+# │ 외부에서 직접 scrape 가 들어오는 흔치 않은 운영 사고(예: 잘못     │
+# │ 짠 외부 모니터링 시스템이 모든 노드를 동시에 5초 간격 scrape)     │
+# │ 을 시뮬레이션하기 위해 hey 로 의도적으로 RPS 부하를 줍니다.       │
+# │                                                                   │
+# │ 총 RPS = HEY_CONCURRENCY × HEY_RPS_PER_WORKER                     │
+# │   기본 = 50 × 50 = 2,500 RPS for 2 minutes                        │
+# │                                                                   │
+# │ 측정 포인트:                                                      │
+# │   - node_cpu_seconds_total{mode="user"} 의 spike                 │
+# │   - process_resident_memory_bytes 추세                           │
+# │   - kubelet eviction 이벤트 (NE-04 시나리오와 연계)              │
+# └───────────────────────────────────────────────────────────────────┘
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -356,7 +502,7 @@ metadata:
   labels: { app: hey-node-exporter, role: test-runner }
 spec:
   backoffLimit: 0
-  ttlSecondsAfterFinished: 86400
+  ttlSecondsAfterFinished: 86400   # 1일 후 자동 정리
   template:
     metadata:
       labels: { app: hey-node-exporter }
@@ -368,6 +514,10 @@ spec:
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef: { name: lt-config }
+          # ⚠  hey 이미지 entrypoint = hey 이므로 command 만 지정.
+          # -z duration   : 테스트 지속 시간
+          # -c N          : 동시 워커
+          # -q N          : 워커당 RPS 제한
           command: ["hey"]
           args: ["-z", "$(HEY_DURATION)",
                  "-c", "$(HEY_CONCURRENCY)",
@@ -377,9 +527,21 @@ spec:
             requests: { cpu: "100m", memory: "64Mi" }
             limits:   { cpu: "1000m", memory: "256Mi" }
 ---
-# ===================================================================
-# 7. k6 PromQL — random query load against Prometheus (PR-03/04)
-# ===================================================================
+# ┌───────────────────────────────────────────────────────────────────┐
+# │ 7. k6 PromQL — Prometheus 랜덤 쿼리 부하 (시나리오 PR-03/04)       │
+# │                                                                   │
+# │ 운영 환경 Grafana 대시보드의 다양한 PromQL 패턴을 7가지 묶어      │
+# │ 라운드로빈으로 실행. PR-03 은 "쿼리 동시성", PR-04 는 "wide range │
+# │ + heavy aggregation" 케이스를 평가하는 것이 목적.                 │
+# │                                                                   │
+# │ Threshold (실패 시 k6 exit code != 0):                            │
+# │   - http_req_duration p95 < 2,000 ms                             │
+# │   - http_req_failed   < 1%                                       │
+# │                                                                   │
+# │ 결과 확인:                                                        │
+# │   kubectl -n load-test logs job/k6-promql                         │
+# │   → 마지막에 summary 표 (avg/p95/p99/max + check pass rate)       │
+# └───────────────────────────────────────────────────────────────────┘
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -444,9 +606,23 @@ spec:
         - name: scripts
           configMap: { name: k6-promql-script }
 ---
-# ===================================================================
-# 8. k6 OpenSearch heavy search — sustained _search load (OS-02)
-# ===================================================================
+# ┌───────────────────────────────────────────────────────────────────┐
+# │ 8. k6 OpenSearch *heavy* search (시나리오 OS-02)                   │
+# │                                                                   │
+# │ "최악 케이스" — 50 VU 가 동시에 _search 를 때려 OpenSearch 의     │
+# │ thread_pool/search saturation, JVM heap pressure, GC pause 를     │
+# │ 측정. 실제 운영에서는 6개 팀이 *간헐적*으로 쿼리하므로 (OS-16)    │
+# │ 이 시나리오는 stress / capacity ceiling 을 찾는 용도입니다.       │
+# │                                                                   │
+# │ ramp pattern: 25 VU(1m) → 50 VU(5m) → 0 VU(1m) 총 7분             │
+# │                                                                   │
+# │ Threshold:                                                        │
+# │   - p95 < 500 ms, p99 < 1,500 ms                                  │
+# │   - failure < 0.5%                                                │
+# │                                                                   │
+# │ 인덱스 패턴 logs-fb-* 에 데이터가 *반드시* 있어야 결과가 의미     │
+# │ 있음. 사전에 flog/loggen-spark 를 충분히 가동해 인덱스 채울 것.   │
+# └───────────────────────────────────────────────────────────────────┘
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -509,9 +685,20 @@ spec:
         - name: scripts
           configMap: { name: k6-opensearch-search-script }
 ---
-# ===================================================================
-# 9. k6 OpenSearch light search — 6 service-team intermittent search (OS-16)
-# ===================================================================
+# ┌───────────────────────────────────────────────────────────────────┐
+# │ 9. k6 OpenSearch *light* search — 6 팀 간헐 검색 (시나리오 OS-16) │
+# │                                                                   │
+# │ 실제 운영 패턴 ─ 서비스 팀 6개가 각자 Grafana 대시보드를 열어     │
+# │ "최근 1시간 ERROR 로그" 같은 range query 를 5~15초 간격으로 띄움. │
+# │ 이 동안 ingest 는 풀스로틀 (flog + loggen-spark + osb).           │
+# │                                                                   │
+# │ 핵심 SLO 검증:                                                    │
+# │   ★ heavy ingest 와 light search 가 *동시*에 흘러도               │
+# │     search p95 < 5,000 ms 가 깨지지 않는가?                       │
+# │                                                                   │
+# │ 30분 지속 — heavy search (위 8번) 와 같이 켜지 마세요. 운영       │
+# │ 패턴이 아니므로 의미 있는 데이터가 나오지 않습니다.               │
+# └───────────────────────────────────────────────────────────────────┘
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -521,11 +708,12 @@ data:
   script.js: |
     import http from 'k6/http';
     import { check, sleep } from 'k6';
+    // 6 VU = 6 서비스 팀. 각 VU 는 5-15초 간격 → "대시보드 열어보고 다음 쿼리"
     export const options = {
       vus:      Number(__ENV.LIGHT_SEARCH_VUS || 6),
       duration: __ENV.LIGHT_SEARCH_DURATION || '30m',
       thresholds: {
-        http_req_duration: ['p(95)<5000', 'p(99)<10000'],
+        http_req_duration: ['p(95)<5000', 'p(99)<10000'],   // OS-16 SLO
         http_req_failed:   ['rate<0.01'],
       },
     };
@@ -536,11 +724,14 @@ data:
       const levels   = ['ERROR', 'WARN', 'INFO'];
       const t = Date.now();
       const queries = [
+        // 1) 마지막 1h 전체 로그
         { range: { ts: { gte: (t/1000) - 3600 } } },
+        // 2) 특정 서비스의 1h 로그
         { bool: { must: [
           { range: { ts: { gte: (t/1000) - 3600 } } },
           { match: { app: services[Math.floor(Math.random()*services.length)] } },
         ]}},
+        // 3) 레벨별 카운트
         { bool: { must: [
           { range: { ts: { gte: (t/1000) - 3600 } } },
           { match: { level: levels[Math.floor(Math.random()*levels.length)] } },
@@ -554,7 +745,7 @@ data:
         headers: { 'Content-Type': 'application/json' },
       });
       check(r, { '2xx': (res) => res.status >= 200 && res.status < 300 });
-      sleep(5 + Math.random() * 10);
+      sleep(5 + Math.random() * 10);   // 팀 멤버가 결과 보고 다음 쿼리까지 대기
     }
 ---
 apiVersion: batch/v1
@@ -590,9 +781,26 @@ spec:
         - name: scripts
           configMap: { name: k6-opensearch-light-search-script }
 ---
-# ===================================================================
-# 10. kube-burner — pod density (KSM-02 ~ KSM-04)
-# ===================================================================
+# ┌───────────────────────────────────────────────────────────────────┐
+# │ 10. kube-burner — pod density 부하 (시나리오 KSM-02 ~ KSM-04)     │
+# │                                                                   │
+# │ 짧게 살다 죽는 pause 컨테이너 다수를 빠르게 생성/삭제하여:       │
+# │   - apiserver 처리 부하 (request rate, etcd write rate)          │
+# │   - kube-state-metrics scrape 시간 증가 (KSM-02)                  │
+# │   - prometheus ingest backlog (KSM-03)                            │
+# │   - watch event burst (KSM-04)                                    │
+# │ 를 동시에 발생시킵니다.                                           │
+# │                                                                   │
+# │ ⚠  cluster-admin ClusterRoleBinding 부여 (Pod 생성 + 자동 GC).   │
+# │    운영 클러스터에 적용 시 RBAC scope 를 제한할 것.               │
+# │                                                                   │
+# │ ⚠  단일 노드 minikube 는 jobIterations ≤ 200 권장. 그 이상은     │
+# │    스케줄링 지연/eviction 으로 측정값 오염.                       │
+# │                                                                   │
+# │ ⚠  pause 이미지는 hardcoded — Nexus 의 pause:3.10 이 반드시      │
+# │    존재해야 합니다. kube-burner v1.13.0 의 sprig env() 가 pod env │
+# │    를 못 읽어서 ConfigMap 변수화가 불가능 → 직접 박아둠.         │
+# └───────────────────────────────────────────────────────────────────┘
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -606,7 +814,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cluster-admin
+  name: cluster-admin       # ⚠ 운영에선 좁혀야 함
 subjects:
   - kind: ServiceAccount
     name: kube-burner
@@ -621,18 +829,18 @@ data:
   config.yaml: |
     metricsEndpoints: []
     global:
-      gc: true
+      gc: true              # Job 종료 시 생성한 namespace/Pod 자동 정리
       gcMetrics: false
     jobs:
       - name: pod-density
         jobType: create
-        jobIterations: 100
+        jobIterations: 100         # 여기 ↓ 가 KSM_BURNER_ITERATIONS 와 일치해야 함
         namespace: kburner
         namespacedIterations: true
         cleanup: true
-        podWait: true
+        podWait: true              # Ready 기다린 후 다음 iter
         waitWhenFinished: false
-        qps: 20
+        qps: 20                    # apiserver QPS
         burst: 30
         objects:
           - objectTemplate: /config/pod.yaml
@@ -673,6 +881,8 @@ spec:
         - name: kube-burner
           image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
           imagePullPolicy: IfNotPresent
+          # /config 는 ConfigMap (read-only) 이므로 작업 디렉터리는 /work 로.
+          # kube-burner 는 PWD 에 로그 파일을 쓰기 때문.
           workingDir: /work
           command: ["kube-burner", "init", "-c", "/config/config.yaml", "--uuid", "$(POD_NAME)"]
           envFrom:
@@ -689,9 +899,29 @@ spec:
         - name: config
           configMap: { name: kube-burner-config }
 ---
-# ===================================================================
-# 11. opensearch-benchmark — bulk-ingest workload (OS-01)
-# ===================================================================
+# ┌───────────────────────────────────────────────────────────────────┐
+# │ 11. opensearch-benchmark — 벌크 인덱싱 (시나리오 OS-01)           │
+# │                                                                   │
+# │ OpenSearch 공식 부하 도구 (rally 의 fork). 워크로드 정의 (track)  │
+# │ 와 corpus 데이터를 사용해 표준화된 시나리오를 실행합니다.         │
+# │                                                                   │
+# │ 폐쇄망 운영 모드:                                                 │
+# │   1) OSB_TEST_MODE=true (기본)                                    │
+# │      - --test-mode 플래그 자동 적용                               │
+# │      - 1,000 docs 만 인덱싱 → corpus 다운로드 불필요              │
+# │      - 도구 검증 / 절차 점검 용. 실제 부하 측정은 안 됨.          │
+# │   2) OSB_TEST_MODE=false                                          │
+# │      - /opt/osb-workloads/$OSB_WORKLOAD (이미지에 baked) 사용     │
+# │      - corpus (.json.bz2) 는 별도 PVC 에 사전 적재 필요          │
+# │      - geonames 280MB ~ http_logs 80GB                            │
+# │                                                                   │
+# │ --workload-path 를 항상 사용해 default git repo 를 절대 fetch     │
+# │ 하지 않도록 강제 (폐쇄망 안전성).                                 │
+# │                                                                   │
+# │ 결과:                                                             │
+# │   /tmp/result.json (Job 종료 후 logs 에서 summary 출력)           │
+# │   metric: indexing_throughput, latency_p95, error_rate            │
+# └───────────────────────────────────────────────────────────────────┘
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -713,6 +943,7 @@ spec:
           envFrom:
             - configMapRef: { name: lt-config }
           env:
+            # 운영 부하 측정 시 → "false" 로 바꾸고 osb-data 볼륨을 PVC 로 교체.
             - { name: OSB_TEST_MODE, value: "true" }
             - { name: OSB_DATA_PATH, value: "/tmp/osb-data" }
           command: ["bash", "-c"]
@@ -724,6 +955,8 @@ spec:
                 EXTRA_ARGS+=(--test-mode)
               fi
               mkdir -p "${OSB_DATA_PATH}"
+              # --workload-path 강제 사용 → default git repo 접근 차단 (폐쇄망 안전).
+              # OSB_WORKLOADS_PATH 는 이미지 빌드 시 /opt/osb-workloads 로 고정됨.
               opensearch-benchmark execute-test \
                 --target-hosts="${OPENSEARCH_URL}" \
                 --pipeline=benchmark-only \
@@ -739,5 +972,7 @@ spec:
             requests: { cpu: "200m", memory: "512Mi" }
             limits:   { cpu: "2000m", memory: "1500Mi" }
       volumes:
+        # ⚠  운영 측정 시: emptyDir 대신 PVC (corpus pre-loaded) 로 교체.
+        #    예) persistentVolumeClaim: { claimName: osb-corpus-pvc }
         - name: osb-data
           emptyDir: {}
