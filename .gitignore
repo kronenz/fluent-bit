@@ -6,3 +6,9 @@ scripts/.env
 __pycache__/
 *.pyc
 connection.md
+
+# Air-gap bundle binaries (rebuilt via docker/loadtest-tools/build.sh +
+# save-image.sh — do not commit the image tarballs to the repo)
+dist/**/*.tar.gz
+dist/**/*.tar.gz.sha256
+docker/loadtest-tools/out/
