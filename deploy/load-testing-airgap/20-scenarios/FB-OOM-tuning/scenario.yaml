@@ -1,0 +1,72 @@
+# FB-OOM-tuning — fluent-bit memory limit 튜닝 (concept "OOMKilled 한계 튜닝")
+#
+# 절차:
+#   1. flog 가 단계별로 ramp 하는 부하를 생성 (3 → 10 → 30 replica)
+#   2. 각 stage 동안 fluent-bit pod 의 RSS 피크 측정
+#   3. 결과: "load X 에서 fluent-bit 가 Y MB 사용" 곡선 → 운영 limit 결정
+#
+# 시나리오 본체는 이 Job 하나가 ramp 를 자동으로 진행함.
+# 실시간 모니터링은 README 참조.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fb-oom-tuning
+  namespace: load-test
+  labels: { app: fb-oom-tuning, role: test-runner, scenario: FB-OOM }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: fb-oom-tuning, scenario: FB-OOM }
+    spec:
+      restartPolicy: Never
+      serviceAccountName: kube-burner    # flog scale 권한 재사용
+      containers:
+        - name: ramp-controller
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: lt-config }
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              echo "=== FB-OOM-tuning (fluent-bit memory limit discovery) ==="
+
+              # 단계별 flog replica + 안정화 시간
+              STAGES=(
+                "1:3min:baseline"
+                "3:5min:normal"
+                "10:5min:high"
+                "30:5min:peak"
+              )
+              FB_LABEL='app.kubernetes.io/name=fluent-bit'
+              FB_NS=monitoring
+
+              record_rss() {
+                local stage="$1"
+                # fluent-bit memory peak from prometheus
+                local mem_q='max(container_memory_working_set_bytes{namespace="'$FB_NS'",pod=~"fluent-bit.*",container="fluent-bit"})'
+                local v=$(curl -fsS --max-time 5 "${PROMETHEUS_URL}/api/v1/query?query=$(echo $mem_q | tr -d ' ' | python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.stdin.read()))')" \
+                  | python3 -c 'import sys,json;d=json.load(sys.stdin);r=d["data"]["result"];print(int(float(r[0]["value"][1]))//1024//1024 if r else 0)' 2>/dev/null || echo 0)
+                echo "[stage=${stage}] fluent-bit RSS peak = ${v} MB"
+              }
+
+              for entry in "${STAGES[@]}"; do
+                IFS=':' read -r REPLICAS DURATION LABEL <<< "$entry"
+                echo
+                echo "--- stage [${LABEL}] : flog replicas=${REPLICAS} for ${DURATION} ---"
+                kubectl scale deploy/flog-loader -n load-test --replicas="${REPLICAS}"
+                # 부하 안정화 대기
+                sleep "${DURATION/min/m}"
+                record_rss "${LABEL}"
+              done
+
+              # 마무리 — flog 기본값 복귀
+              kubectl scale deploy/flog-loader -n load-test --replicas=3
+              echo
+              echo "=== DONE — peak 값 기준 운영 limit = peak × 1.5 권장 ==="
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "500m", memory: "256Mi" }

@@ -1,0 +1,68 @@
+# NE-OOM-tuning — node-exporter memory limit 튜닝
+#
+# concept 의 "node-exporter OOMKilled 한계 튜닝".
+# 실제 testbed 에서 node-exporter 가 17번 OOMKilled 된 사례를 재현 +
+# 안전 limit 도출.
+#
+# 절차:
+#   1. hey 가 단계별로 RPS ramp (500 → 2,500 → 5,000 → 10,000 RPS)
+#   2. 각 stage 동안 node-exporter RSS 피크 측정
+#   3. 결과: "RPS X 에서 node-exporter 가 Y MB 사용" 곡선
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ne-oom-tuning
+  namespace: load-test
+  labels: { app: ne-oom-tuning, role: test-runner, scenario: NE-OOM }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: ne-oom-tuning, scenario: NE-OOM }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: ramp-controller
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: lt-config }
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              echo "=== NE-OOM-tuning (node-exporter memory limit discovery) ==="
+
+              # 단계별 RPS = HEY_CONCURRENCY × HEY_RPS_PER_WORKER
+              STAGES=(
+                "10:50:30s:baseline"      # 500 RPS
+                "50:50:60s:normal"        # 2,500 RPS
+                "100:50:60s:high"         # 5,000 RPS
+                "200:50:60s:peak"         # 10,000 RPS
+              )
+
+              record_rss() {
+                local stage="$1"
+                local mem_q='max(container_memory_working_set_bytes{namespace="monitoring",pod=~"kps-prometheus-node-exporter.*"})'
+                local v=$(curl -fsS --max-time 5 "${PROMETHEUS_URL}/api/v1/query?query=$(echo $mem_q | tr -d ' ' | python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.stdin.read()))')" \
+                  | python3 -c 'import sys,json;d=json.load(sys.stdin);r=d["data"]["result"];print(int(float(r[0]["value"][1]))//1024//1024 if r else 0)' 2>/dev/null || echo 0)
+                echo "[stage=${stage}] node-exporter RSS peak = ${v} MB"
+              }
+
+              for entry in "${STAGES[@]}"; do
+                IFS=':' read -r CONC RPS DUR LABEL <<< "$entry"
+                TOTAL_RPS=$((CONC * RPS))
+                echo
+                echo "--- stage [${LABEL}] : ${CONC} workers × ${RPS} RPS = ${TOTAL_RPS} RPS for ${DUR} ---"
+                hey -z "${DUR}" -c "${CONC}" -q "${RPS}" "${NODE_EXPORTER_SVC}/metrics" || true
+                # 다음 stage 전 안정화
+                sleep 10
+                record_rss "${LABEL}"
+              done
+
+              echo
+              echo "=== DONE ==="
+          resources:
+            requests: { cpu: "200m",  memory: "128Mi" }
+            limits:   { cpu: "2000m", memory: "256Mi" }

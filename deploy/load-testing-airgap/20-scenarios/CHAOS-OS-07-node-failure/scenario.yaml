@@ -1,0 +1,96 @@
+# CHAOS-OS-07 — OpenSearch 노드 장애 (chaos)
+#
+# concept 의 "장애 테스트". OS data 노드 1개를 강제로 죽인 뒤 cluster 가
+# red → yellow → green 으로 회복하는 시간을 측정.
+#
+# ⚠ 단일노드 testbed 에서는 의미 약함 (replica=0 강제). 멀티노드에서
+#   replica ≥ 1 일 때 본 시나리오가 본질적 의미를 가짐.
+#
+# 파라미터:
+#   TARGET_POD_LABEL  : 어떤 OS pod 를 죽일지 (기본 master+data role)
+#   POST_KILL_WAIT    : 회복 대기 최대 시간
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chaos-os-07-node-failure
+  namespace: load-test
+  labels: { app: chaos-os-07, role: chaos-runner, scenario: OS-07 }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: chaos-os-07, scenario: OS-07 }
+    spec:
+      restartPolicy: Never
+      serviceAccountName: kube-burner   # pod delete 권한 (cluster-admin) 재사용
+      containers:
+        - name: chaos-runner
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: lt-config }
+            - secretRef:
+                name: opensearch-creds
+                optional: true
+          env:
+            - { name: TARGET_POD_LABEL, value: "app.kubernetes.io/name=opensearch" }
+            - { name: TARGET_NS,        value: "monitoring" }
+            - { name: POST_KILL_WAIT,   value: "600" }   # 10분 회복 한도
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              echo "=== CHAOS-OS-07 — OpenSearch node failure ==="
+
+              CURL_AUTH=()
+              [[ -n "${OS_BASIC_AUTH_USER:-}" ]] && CURL_AUTH=(-u "${OS_BASIC_AUTH_USER}:${OS_BASIC_AUTH_PASS}")
+
+              echo "[1] pre-kill cluster health"
+              curl -fsS "${CURL_AUTH[@]}" "${OPENSEARCH_URL}/_cluster/health?pretty"
+
+              echo
+              echo "[2] target pod 선정"
+              TARGET=$(kubectl -n "${TARGET_NS}" get pod -l "${TARGET_POD_LABEL}" \
+                       -o jsonpath='{.items[0].metadata.name}')
+              echo "    → ${TARGET}"
+
+              echo
+              echo "[3] T0 = $(date +%s) — kill"
+              T0=$(date +%s)
+              kubectl -n "${TARGET_NS}" delete pod "${TARGET}" --grace-period=0 --force
+
+              echo
+              echo "[4] cluster 상태 polling (5s 간격, 최대 ${POST_KILL_WAIT}s)"
+              T_RED=""; T_YELLOW=""; T_GREEN=""
+              END=$((T0 + ${POST_KILL_WAIT}))
+              while [[ $(date +%s) -lt $END ]]; do
+                STATUS=$(curl -fsS --max-time 3 "${CURL_AUTH[@]}" "${OPENSEARCH_URL}/_cluster/health" 2>/dev/null \
+                         | python3 -c 'import sys,json;print(json.load(sys.stdin).get("status","unreachable"))' 2>/dev/null \
+                         || echo "unreachable")
+                NOW=$(date +%s)
+                ELAPSED=$((NOW - T0))
+                echo "  t+${ELAPSED}s  status=${STATUS}"
+                case "${STATUS}" in
+                  red)    [[ -z "$T_RED"    ]] && T_RED=$ELAPSED    ;;
+                  yellow) [[ -z "$T_YELLOW" ]] && T_YELLOW=$ELAPSED ;;
+                  green)  T_GREEN=$ELAPSED; break ;;
+                esac
+                sleep 5
+              done
+
+              echo
+              echo "=== 결과 ==="
+              echo "RED 진입       : ${T_RED:-N/A} s"
+              echo "YELLOW 진입    : ${T_YELLOW:-N/A} s"
+              echo "GREEN 회복     : ${T_GREEN:-NOT RECOVERED in ${POST_KILL_WAIT}s} s"
+              echo
+              echo "[5] post-recovery cluster health"
+              curl -fsS "${CURL_AUTH[@]}" "${OPENSEARCH_URL}/_cluster/health?pretty"
+
+              # 단일노드 / replica=0 → green 못 옴 → exit 1 (의도된 실패)
+              [[ -n "${T_GREEN}" ]] || { echo "[FAIL] green 회복 실패 — replica ≥ 1 필요"; exit 1; }
+              echo "[PASS] green 회복 ${T_GREEN}s"
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "500m", memory: "256Mi" }

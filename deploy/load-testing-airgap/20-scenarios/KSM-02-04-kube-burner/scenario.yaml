@@ -40,7 +40,7 @@ data:
     jobs:
       - name: pod-density
         jobType: create
-        jobIterations: 100
+        jobIterations: 50          # testbed 단일노드 안전치 (멀티노드: 1000+)
         namespace: kburner
         namespacedIterations: true
         cleanup: true

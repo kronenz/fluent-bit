@@ -1,0 +1,136 @@
+# KSM-OOM-tuning — kube-state-metrics memory limit 튜닝
+#
+# concept 의 "kube-state-metric OOMKilled 한계 튜닝".
+# kube-burner 로 K8s 객체 (pods/configmaps/services) 를 단계적으로 만들어
+# KSM 의 메트릭 export 메모리를 ramp.
+#
+# ⚠ testbed (단일 노드 minikube) 안전치: 50 iter. 멀티 노드는 1000+ 가능.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ksm-oom-tuning-config
+  namespace: load-test
+data:
+  config.yaml: |
+    metricsEndpoints: []
+    global: { gc: true, gcMetrics: false }
+    jobs:
+      - name: ksm-oom-density
+        jobType: create
+        jobIterations: 50           # testbed 안전치 (멀티노드: 500~5000)
+        namespace: ksm-oom
+        namespacedIterations: true
+        cleanup: true
+        podWait: true
+        waitWhenFinished: false
+        qps: 30
+        burst: 50
+        objects:
+          - objectTemplate: /config/pod.yaml
+            replicas: 3            # iter 당 pod 3개 + cm 3개 + svc 3개 → KSM scrape 압박
+          - objectTemplate: /config/cm.yaml
+            replicas: 3
+          - objectTemplate: /config/svc.yaml
+            replicas: 3
+  pod.yaml: |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: oomp-{{.Iteration}}-{{.Replica}}
+      labels: { app: ksm-oom, iter: "{{.Iteration}}" }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: pause
+          image: nexus.intranet:8082/loadtest/pause:3.10
+          resources:
+            requests: { cpu: "1m", memory: "8Mi" }
+            limits:   { cpu: "10m", memory: "16Mi" }
+  cm.yaml: |
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: oomcm-{{.Iteration}}-{{.Replica}}
+      labels: { app: ksm-oom, iter: "{{.Iteration}}" }
+    data:
+      key: "value-{{.Iteration}}-{{.Replica}}"
+  svc.yaml: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: oomsvc-{{.Iteration}}-{{.Replica}}
+      labels: { app: ksm-oom, iter: "{{.Iteration}}" }
+    spec:
+      selector: { app: ksm-oom }
+      ports:
+        - { port: 80, targetPort: 80 }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ksm-oom-tuning
+  namespace: load-test
+  labels: { app: ksm-oom-tuning, role: test-runner, scenario: KSM-OOM }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: ksm-oom-tuning, scenario: KSM-OOM }
+    spec:
+      restartPolicy: Never
+      serviceAccountName: kube-burner
+      containers:
+        - name: kube-burner
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          workingDir: /work
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              echo "=== KSM-OOM-tuning ==="
+
+              record_rss() {
+                local stage="$1"
+                local mem_q='max(container_memory_working_set_bytes{namespace="monitoring",pod=~"kps-kube-state-metrics.*"})'
+                local v=$(curl -fsS --max-time 5 "${PROMETHEUS_URL}/api/v1/query?query=$(echo $mem_q | tr -d ' ' | python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.stdin.read()))')" \
+                  | python3 -c 'import sys,json;d=json.load(sys.stdin);r=d["data"]["result"];print(int(float(r[0]["value"][1]))//1024//1024 if r else 0)' 2>/dev/null || echo 0)
+                local scrape_q='max(kube_state_metrics_scrape_duration_seconds)'
+                local s=$(curl -fsS --max-time 5 "${PROMETHEUS_URL}/api/v1/query?query=$(echo $scrape_q | tr -d ' ' | python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.stdin.read()))')" \
+                  | python3 -c 'import sys,json;d=json.load(sys.stdin);r=d["data"]["result"];print(round(float(r[0]["value"][1]),3) if r else 0)' 2>/dev/null || echo 0)
+                echo "[stage=${stage}] KSM RSS=${v} MB, scrape_duration=${s}s"
+              }
+
+              echo "--- baseline (부하 없음) ---"
+              record_rss "baseline"
+
+              echo "--- ramp: kube-burner 50 iter × (3 pods + 3 cm + 3 svc) = 450 객체 ---"
+              kube-burner init -c /config/config.yaml --uuid="ksm-oom-$(date +%s)" &
+              BURNER_PID=$!
+
+              # 부하 진행 중 30초 간격으로 측정
+              for i in 1 2 3 4 5 6; do
+                sleep 30
+                record_rss "ramp-${i}"
+              done
+
+              wait $BURNER_PID
+              echo "--- post-cleanup ---"
+              sleep 30
+              record_rss "post"
+
+              echo "=== DONE ==="
+          envFrom:
+            - configMapRef: { name: lt-config }
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+          volumeMounts:
+            - { name: config, mountPath: /config }
+          resources:
+            requests: { cpu: "200m", memory: "256Mi" }
+            limits:   { cpu: "1500m", memory: "768Mi" }
+      volumes:
+        - name: config
+          configMap: { name: ksm-oom-tuning-config }
