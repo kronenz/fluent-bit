@@ -1,0 +1,1213 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "panels": [
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 82,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "## 🪵 Fluent-bit 부하 테스트 — 전 시나리오 대시보드\n\nDaemonSet 동작 환경에서 단일 인스턴스 처리 한계, 출력 장애 복구, 멀티라인 파싱, 스파이크/소크/대용량 라인을 모두 다룹니다.\n\n| 시나리오 | 유형 | 도구 |\n|----------|------|------|\n| FB-01 단일 Pod throughput ceiling | Stress | flog 고밀도 |\n| FB-02 정상 운영 부하 | Load | flog 평균값 |\n| FB-03 Output 장애 주입 | Chaos | OpenSearch 일시 다운 |\n| FB-04 멀티라인 스택트레이스 | Load | 멀티라인 generator |\n| FB-05 로그 버스트 spike | Spike | flog rate 급증 |\n| FB-06 Soak 24h | Soak | flog 24h 유지 |\n| FB-07 대용량 로그(line=16KB) | Stress | flog `--byte-size` |\n\n> 메트릭 출처: Fluent-bit `/api/v2/metrics/prometheus` (Job: `fluent-bit-lt`).\n",
+        "mode": "markdown"
+      },
+      "pluginVersion": "12.1.0",
+      "title": "",
+      "type": "text"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 83,
+      "panels": [],
+      "title": "FB-01 — 단일 Pod throughput ceiling",
+      "type": "row"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "id": 84,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "**왜 측정?**: per-pod 한계를 알아야 200 노드 운영 시 자원 산정 가능. 한계 도달 시 'FB resource를 늘릴 것인가, 노드를 늘릴 것인가' 판단의 근거.\n\n**목적**: 단일 Fluent-bit Pod가 흘려보낼 수 있는 최대 라인/초 측정.\n\n**부하 프로파일**: flog `-d 100us` 무한 루프, replicas로 노드별 부하 조절. **SLO**: per-pod ≥ 50,000 lines/s, drop=0.\n\n**튜닝**: drop → Mem_Buf_Limit↑, storage.type=filesystem; CPU throttling → Workers↑, filter 단순화.\n",
+        "mode": "markdown"
+      },
+      "pluginVersion": "12.1.0",
+      "title": "",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "tail input이 초당 읽은 라인 수.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 27
+      },
+      "id": 85,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (pod) (rate(fluentbit_input_records_total[1m]))",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Input Records Rate per pod",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "input과 차이 = drop/buffer 누적.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 27
+      },
+      "id": 86,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (pod, name) (rate(fluentbit_output_proc_records_total[1m]))",
+          "legendFormat": "{{pod}} {{name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Output Processed Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "limit 근접 시 throttling.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 34
+      },
+      "id": 87,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(container_cpu_usage_seconds_total{namespace=\"monitoring\",pod=~\"fluent-bit.*\",container=\"fluent-bit\"}[1m])",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU Usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "limit 70% 이내 유지.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 34
+      },
+      "id": 88,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "container_memory_working_set_bytes{namespace=\"monitoring\",pod=~\"fluent-bit.*\",container=\"fluent-bit\"}",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Memory Working Set",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      },
+      "id": 89,
+      "panels": [],
+      "title": "FB-02 — 정상 운영 부하",
+      "type": "row"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 42
+      },
+      "id": 90,
+      "options": {
+        "content": "**왜 측정?**: 평균 부하 1시간 안정 = 24/7 운영의 전제. drift 발생 시 자정쯤 다운 → 새벽 호출 → 이를 사전 차단.\n\n**목적**: 1시간 동안 평균 운영 부하를 가해 buffer 거동·자원 안정성 검증.\n\n**부하 프로파일**: flog `-d 500us`, replicas=3 (or 평균값). **SLO**: CPU/RSS ≤ limit 70%, buffer 누적 없음.\n\n**튜닝**: buffer 누적 → output Workers↑; output 응답 지연 → backoff/retry 정책.\n",
+        "mode": "markdown"
+      },
+      "title": "",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "두 곡선이 거의 일치해야 정상.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 54
+      },
+      "id": 91,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(fluentbit_input_records_total[1m]))",
+          "legendFormat": "input",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(fluentbit_output_proc_records_total[1m]))",
+          "legendFormat": "output",
+          "refId": "B"
+        }
+      ],
+      "title": "Input/Output Rate Comparison",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "filesystem buffer 누적. 출력 정상 시 0 근처.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 54
+      },
+      "id": 92,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "fluentbit_input_storage_chunks_busy_bytes",
+          "legendFormat": "{{name}} {{pod}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Storage Backlog (filesystem buffer)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 61
+      },
+      "id": 93,
+      "panels": [],
+      "title": "FB-03 — Output 장애 주입 (Chaos)",
+      "type": "row"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 62
+      },
+      "id": 94,
+      "options": {
+        "content": "**왜 측정?**: OS 다운(클러스터 패치, 일시 장애)이 흔함. 그 동안 데이터 손실 0 = 사고 분석 가능 vs 불가능을 가르는 신뢰성의 기반.\n\n**목적**: OpenSearch를 일시 다운시킨 뒤 Fluent-bit의 재시도 / filesystem buffer 적재 / 자동 복구 검증.\n\n**부하 프로파일**: 일정 부하 중 `helm uninstall opensearch-lt`. **SLO**: 데이터 손실 0, 복구 후 backlog 자동 소진.\n\n**튜닝**: backlog 무한 증가 → storage.total_limit_size 설정; retry 폭주 → backoff 조정.\n",
+        "mode": "markdown"
+      },
+      "title": "",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "장애 시 spike, 복구 후 0.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 74
+      },
+      "id": 95,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (name) (rate(fluentbit_output_errors_total[1m]))",
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Output Errors",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "failed > 0이면 데이터 손실 의심.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 74
+      },
+      "id": 96,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (name) (rate(fluentbit_output_retries_total[1m]))",
+          "legendFormat": "retries {{name}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (name) (rate(fluentbit_output_retries_failed_total[1m]))",
+          "legendFormat": "failed {{name}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Retries vs Retries-Failed",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "장애 동안 누적 → 복구 시 감소.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 81
+      },
+      "id": 97,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "fluentbit_input_storage_chunks_busy_bytes",
+          "legendFormat": "{{name}} {{pod}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Filesystem Buffer Growth",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 88
+      },
+      "id": 98,
+      "panels": [],
+      "title": "FB-04 — 멀티라인 스택트레이스 (Parser Stress)",
+      "type": "row"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 89
+      },
+      "id": 99,
+      "options": {
+        "content": "**왜 측정?**: Spring/Spark 환경에서 멀티라인 스택트레이스는 흔함. parser CPU 비용이 가려진 채 누적되면 운영 시점에 throughput 저하 — 사전 정량화 필요.\n\n**목적**: 자바 스택트레이스 같은 멀티라인 로그 비율 ↑ 시 parser 지연·CPU 사용률 측정.\n\n**부하 프로파일**: 멀티라인 generator (`tail multiline.parser` 활성). **SLO**: parse 지연 ≤ 평소 ×1.5.\n\n**튜닝**: 정규식 단순화, multiline.parser 최적화, Mem_Buf_Limit↑.\n",
+        "mode": "markdown"
+      },
+      "title": "",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "정규식 오버헤드를 CPU로 측정.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 101
+      },
+      "id": 100,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(container_cpu_usage_seconds_total{namespace=\"monitoring\",pod=~\"fluent-bit.*\",container=\"fluent-bit\"}[1m])",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU per pod (parser load)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "처리 바이트율로 throughput 비교.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 101
+      },
+      "id": 101,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (name) (rate(fluentbit_output_proc_bytes_total[1m]))",
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Output Throughput (Bps)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 108
+      },
+      "id": 102,
+      "panels": [],
+      "title": "FB-05 — 로그 버스트 (Spike)",
+      "type": "row"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 109
+      },
+      "id": 103,
+      "options": {
+        "content": "**왜 측정?**: 배포·새벽 batch·이벤트 트래픽으로 인한 spike는 운영의 일상. 그때 drop = 0 보증 못 하면 분석에 필요한 직전 로그가 사라짐.\n\n**목적**: 평소 대비 ×30 ~ ×40 spike 시 backpressure·drop 거동 관찰.\n\n**부하 프로파일**: 5분 평균 → 4분 × 30배 → 5분 평균. **SLO**: drop=0 (filesystem buffer 사용), 회복 후 backlog 소진.\n\n**튜닝**: drop → Mem_Buf_Limit↑ + storage.type=filesystem; output 한계 → Workers↑ + bulk size↑.\n",
+        "mode": "markdown"
+      },
+      "title": "",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "spike 곡선 가시화.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 121
+      },
+      "id": 104,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(fluentbit_input_records_total[1m]))",
+          "legendFormat": "input",
+          "refId": "A"
+        }
+      ],
+      "title": "Input Rate (spike profile)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "input과 차이 = buffer.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 128
+      },
+      "id": 105,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(fluentbit_output_proc_records_total[1m]))",
+          "legendFormat": "output",
+          "refId": "A"
+        }
+      ],
+      "title": "Output Rate (during spike)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "spike 중 누적, 평상시 0 복귀.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 128
+      },
+      "id": 106,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "fluentbit_input_storage_chunks_busy_bytes",
+          "legendFormat": "{{name}} {{pod}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Storage Backlog (during spike)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 135
+      },
+      "id": 107,
+      "panels": [],
+      "title": "FB-06 — Soak 24h",
+      "type": "row"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 136
+      },
+      "id": 108,
+      "options": {
+        "content": "**왜 측정?**: 24h 안정성. RSS drift·FD leak이 1주 후 OOM 유발하는 패턴 — 일주 재기동 정책의 근거이거나 그 정책을 없앨 수 있는 근거.\n\n**목적**: 평균 부하 24시간 유지하여 RSS drift, FD 누수, retry 누적 없음 확인.\n\n**부하 프로파일**: flog 24h. **SLO**: RSS 안정, retry 누적 0 유지.\n\n**튜닝**: RSS drift → Mem_Buf_Limit 조정; retry 누적 → output 안정성 점검.\n",
+        "mode": "markdown"
+      },
+      "title": "",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "monotonic 상승은 누수.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 148
+      },
+      "id": 109,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "container_memory_working_set_bytes{namespace=\"monitoring\",pod=~\"fluent-bit.*\",container=\"fluent-bit\"}",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "title": "RSS over time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "장기 누적량. 0 또는 천천히 증가가 정상.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 148
+      },
+      "id": 110,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "fluentbit_output_retries_total",
+          "legendFormat": "{{pod}} {{name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Retries cumulative",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 155
+      },
+      "id": 111,
+      "panels": [],
+      "title": "FB-07 — 대용량 로그 (1 line = 16 KB)",
+      "type": "row"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 156
+      },
+      "id": 112,
+      "options": {
+        "content": "**왜 측정?**: JVM stacktrace 등 큰 라인은 흔하지만 throughput·CPU 비용 차이가 큼. 운영 SLO 검증.\n\n**목적**: 라인 크기 ↑ 시 throughput·CPU·네트워크 대역 사용 변화.\n\n**부하 프로파일**: flog `-b 16K`. **SLO**: bytes/s ≥ 평소 ×n, CPU ≤ limit 70%.\n\n**튜닝**: 네트워크 포화 → output bulk size 조정; CPU 과부하 → flush 간격 조정.\n",
+        "mode": "markdown"
+      },
+      "title": "",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "바이트율 — 라인 크기 ↑ 시 핵심 지표.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 168
+      },
+      "id": 113,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (name) (rate(fluentbit_output_proc_bytes_total[1m]))",
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Output Throughput (Bps)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "라인 평균 크기 — flog `-b` 효과 검증.",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 168
+      },
+      "id": 114,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(fluentbit_input_bytes_total[1m])) / clamp_min(sum(rate(fluentbit_input_records_total[1m])),1)",
+          "legendFormat": "avg bytes/line",
+          "refId": "A"
+        }
+      ],
+      "title": "Avg Bytes per Record",
+      "type": "timeseries"
+    }
+  ],
+  "preload": false,
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": [
+    "load-test"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "label": "Datasource",
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Load Test • Fluent-bit (FB-01~07)",
+  "uid": "lt-fluent-bit",
+  "version": 3
+}
