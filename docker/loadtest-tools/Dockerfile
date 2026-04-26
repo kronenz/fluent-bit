@@ -186,6 +186,11 @@ RUN k6 version \
 
 WORKDIR /work
 
+# Disable phone-home / telemetry for offline operation (k6 sends a usage
+# report to Grafana endpoint after each test by default; in air-gap it fails
+# silently but adds latency). Other tools have no telemetry.
+ENV K6_NO_USAGE_REPORT=true
+
 # Use tini so signals propagate when running test runs as Jobs
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/bin/bash"]
