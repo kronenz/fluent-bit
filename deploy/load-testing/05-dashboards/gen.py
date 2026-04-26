@@ -76,7 +76,7 @@ def row(title, y, collapsed=False):
 # Scenario layout helper
 # ---------------------------------------------------------------------------
 
-def scenario_block(y, scenario_id, title, desc, panels_2d, text_height=10):
+def scenario_block(y, scenario_id, title, desc, panels_2d, text_height=12):
     """Lay out one scenario as a list of panel dicts:
         - row separator
         - description text (full width, height=text_height)
@@ -138,6 +138,8 @@ OS_OVERVIEW = textwrap.dedent("""\
 
 opensearch_blocks = [
     ("OS-01", "Bulk Indexing", textwrap.dedent("""\
+        **왜 측정?**: 이후 모든 시나리오의 **회귀 비교 기준** — 도구 자체가 정상 동작하는지, 환경 응답이 일관적인지를 매번 같은 명령으로 확인해야 결과를 신뢰할 수 있음.
+
         **목적**: opensearch-benchmark의 `geonames` 워크로드로 30분간 연속 bulk indexing → 인덱싱 처리량과 안정성 측정.
 
         **부하 프로파일**: bulk_size=5000, clients=16, 인덱싱 전용 procedure. **SLO**: ≥ 30,000 docs/s, reject < 0.1%, heap ≤ 75%.
@@ -161,6 +163,8 @@ opensearch_blocks = [
     # OS-02 was folded into OS-16 (heavy ingest + light search) since the real
     # workload has only ~6 teams searching intermittently — 50 VU was unrealistic.
     ("OS-03", "Heavy Aggregation", textwrap.dedent("""\
+        **왜 측정?**: 잘못 작성된 dashboard 쿼리 1개로 cluster heap을 다 써버려 전체 다운되는 사고가 운영에서 흔함. 집계 부담의 한계와 breaker 동작을 미리 측정해야 그 사고를 방어 가능.
+
         **목적**: 대용량 집계 쿼리(`terms`, `histogram`)로 서버 측 메모리·연산 부하 측정. 초기 단계 트레이싱이 핵심.
 
         **부하 프로파일**: 별도 k6 스크립트(`/agg`)로 30분간 집계 부하. **SLO**: heap ≤ 75%, breaker tripped 0, GC count 안정.
@@ -181,6 +185,8 @@ opensearch_blocks = [
          12, 7, "short", "scroll 컨텍스트 누적 누수 감지."),
     ]),
     ("OS-04", "Shard / Replica Scaling", textwrap.dedent("""\
+        **왜 측정?**: shard 추가·replica 변경은 운영 중에 자주 일어남(노드 증설, ILM 전환). 그 순간에 인덱싱이 멈추거나 search 응답이 망가지면 사용자에게 직접적 영향. 무중단 변경 가능 여부의 근거.
+
         **목적**: `number_of_replicas` 변경 또는 인덱스 추가/삭제로 shard relocation 발생 → 안정성과 처리량 영향 측정.
 
         **부하 프로파일**: 인덱싱 진행 중 dynamic settings 변경. **SLO**: relocating_shards 일시 증가 후 0 복귀, recovery time < 10분.
@@ -203,6 +209,8 @@ opensearch_blocks = [
          12, 7, "short", "scaling 중 yellow→green 회복 시간."),
     ]),
     ("OS-05", "Soak 24h", textwrap.dedent("""\
+        **왜 측정?**: 1주일 운영 후 점진적 OOM·GC drift로 다운되는 패턴은 베이스라인 5분 측정으로 안 보임. 24h 누적치만이 메모리 누수·FD 누수를 드러냄.
+
         **목적**: OS-01 부하를 24시간 유지하며 메모리 누수, GC 빈도 변화, FD 누수 등 장기 안정성 검증.
 
         **부하 프로파일**: bulk_size 평균치 고정 24h. **SLO**: heap 패턴 안정, GC frequency monotonic 증가 없음, FD 안정.
@@ -224,6 +232,8 @@ opensearch_blocks = [
     ]),
     # OS-06 (×5 spike) was strengthened into OS-09 (×30 Spark startup wave).
     ("OS-07", "Node Failure (Chaos)", textwrap.dedent("""\
+        **왜 측정?**: 노드 1대 장애 시 자동 복구 시간 = 사용자가 알 수 있는 최대 다운타임 SLA. 운영 패치·재기동을 안심하고 할 수 있는 신뢰의 기반.
+
         **목적**: data node 1대 강제 종료 → red→yellow→green 회복 시간과 처리량 영향 측정.
 
         **부하 프로파일**: `kubectl delete pod opensearch-...-1`. **SLO**: green 회복 < 20분, 데이터 손실 0, 인덱싱 중단 < 1분.
@@ -247,6 +257,8 @@ opensearch_blocks = [
     # ---- 신규: 운영 워크로드(200대 cluster log ingest) 맞춤 ----
 
     ("OS-08", "Sustained High Ingest (200대 모사)", textwrap.dedent("""\
+        **왜 측정?**: 매일 200대 cluster의 base ingest를 흡수할 sustainable TPS를 모르면 capacity planning 불가. 노드 수·자원 산정의 가장 핵심 데이터.
+
         **목적**: 200대 cluster의 Spark/Trino/Airflow 로그를 흡수할 수 있는 **sustainable** TPS 정량화.
 
         **부하 프로파일**: flog `replicas` 단계적 증가(5→20→50→100→200) × 1시간 sustain. 운영 FB DS가 처리.
@@ -286,6 +298,8 @@ opensearch_blocks = [
     ]),
 
     ("OS-09", "Spark Job Startup Burst (×30)", textwrap.dedent("""\
+        **왜 측정?**: Spark/Airflow job 시작 시 평소 대비 ×30 spike — 미준비 시 reject burst → 로그 손실 → 정작 사고 분석 시점에 누락 발견. 손실 0 보증이 운영 신뢰의 기반.
+
         **목적**: Spark/Airflow 작업 일제 시작 시 평소 대비 ×30 spike → backpressure·복구 검증.
 
         **부하 프로파일**: 5분 평균(replicas=3) → 4분 × 30배(replicas=90) → 5분 평균.
@@ -318,6 +332,8 @@ opensearch_blocks = [
     ]),
 
     ("OS-12", "Refresh Interval 튜닝 비교", textwrap.dedent("""\
+        **왜 측정?**: default `refresh_interval=1s`가 indexing throughput을 30~50% 잠식. 검색 가시성 30s lag을 협상하면 같은 자원으로 30%↑ 처리 가능 — 운영 비용 절감의 단일 가장 큰 lever.
+
         **목적**: `refresh_interval`을 1s(default) vs 30s vs 60s로 바꾸며 동일 부하에서 throughput·검색 가시성 trade-off 측정.
 
         **부하 프로파일**: 동일한 OS-08 부하(예: replicas=50, 30분)를 3차례 실행. 각 실행 전 `_settings`로 refresh_interval 변경.
@@ -348,6 +364,8 @@ opensearch_blocks = [
     ]),
 
     ("OS-14", "High-Cardinality Field (Spark task_attempt_id)", textwrap.dedent("""\
+        **왜 측정?**: Spark `task_attempt_id` / Airflow `dag_run_id` 같은 UUID를 keyword로 ingest하면 매핑 폭증 → cluster_state 비대화 → master OOM. **실제 운영 사고 1순위 패턴** — 사전 방어책(`dynamic: strict`, allowlist) 검증.
+
         **목적**: Spark `task_attempt_id`, Airflow `dag_run_id` 같은 고유값 keyword가 매핑·cluster state에 미치는 압박 측정.
 
         **부하 프로파일**: `loggen-spark` Pod (ConfigMap의 Python 스크립트, UUID를 task_attempt_id로 주입) 30분.
@@ -378,6 +396,8 @@ opensearch_blocks = [
     ]),
 
     ("OS-16", "Heavy Ingest + Light Search (운영 통합)", textwrap.dedent("""\
+        **왜 측정?**: ingest는 200대 부하, search는 6팀 간헐적 — 일반 단독 SLO만 보면 놓치는 **상호 영향**을 정량화. 'ingest scale-up 시 search 영향 있는가?'는 운영 의사결정의 핵심.
+
         **목적**: 가장 운영 현실적인 시나리오 — 200대 ingest 부하 중 6팀 간헐적 검색이 SLO 만족하는지 검증.
 
         **부하 프로파일**: OS-08 동등 ingest (sustained) 진행 중 k6 6 VU `last 1h` range query 30분 동시 실행.
@@ -430,6 +450,8 @@ FB_OVERVIEW = textwrap.dedent("""\
 
 fluent_blocks = [
     ("FB-01", "단일 Pod throughput ceiling", textwrap.dedent("""\
+        **왜 측정?**: per-pod 한계를 알아야 200 노드 운영 시 자원 산정 가능. 한계 도달 시 'FB resource를 늘릴 것인가, 노드를 늘릴 것인가' 판단의 근거.
+
         **목적**: 단일 Fluent-bit Pod가 흘려보낼 수 있는 최대 라인/초 측정.
 
         **부하 프로파일**: flog `-d 100us` 무한 루프, replicas로 노드별 부하 조절. **SLO**: per-pod ≥ 50,000 lines/s, drop=0.
@@ -450,6 +472,8 @@ fluent_blocks = [
          12, 7, "bytes", "limit 70% 이내 유지."),
     ]),
     ("FB-02", "정상 운영 부하", textwrap.dedent("""\
+        **왜 측정?**: 평균 부하 1시간 안정 = 24/7 운영의 전제. drift 발생 시 자정쯤 다운 → 새벽 호출 → 이를 사전 차단.
+
         **목적**: 1시간 동안 평균 운영 부하를 가해 buffer 거동·자원 안정성 검증.
 
         **부하 프로파일**: flog `-d 500us`, replicas=3 (or 평균값). **SLO**: CPU/RSS ≤ limit 70%, buffer 누적 없음.
@@ -465,6 +489,8 @@ fluent_blocks = [
          12, 7, "bytes", "filesystem buffer 누적. 출력 정상 시 0 근처."),
     ]),
     ("FB-03", "Output 장애 주입 (Chaos)", textwrap.dedent("""\
+        **왜 측정?**: OS 다운(클러스터 패치, 일시 장애)이 흔함. 그 동안 데이터 손실 0 = 사고 분석 가능 vs 불가능을 가르는 신뢰성의 기반.
+
         **목적**: OpenSearch를 일시 다운시킨 뒤 Fluent-bit의 재시도 / filesystem buffer 적재 / 자동 복구 검증.
 
         **부하 프로파일**: 일정 부하 중 `helm uninstall opensearch-lt`. **SLO**: 데이터 손실 0, 복구 후 backlog 자동 소진.
@@ -483,6 +509,8 @@ fluent_blocks = [
          24, 7, "bytes", "장애 동안 누적 → 복구 시 감소."),
     ]),
     ("FB-04", "멀티라인 스택트레이스 (Parser Stress)", textwrap.dedent("""\
+        **왜 측정?**: Spring/Spark 환경에서 멀티라인 스택트레이스는 흔함. parser CPU 비용이 가려진 채 누적되면 운영 시점에 throughput 저하 — 사전 정량화 필요.
+
         **목적**: 자바 스택트레이스 같은 멀티라인 로그 비율 ↑ 시 parser 지연·CPU 사용률 측정.
 
         **부하 프로파일**: 멀티라인 generator (`tail multiline.parser` 활성). **SLO**: parse 지연 ≤ 평소 ×1.5.
@@ -497,6 +525,8 @@ fluent_blocks = [
          12, 7, "Bps", "처리 바이트율로 throughput 비교."),
     ]),
     ("FB-05", "로그 버스트 (Spike)", textwrap.dedent("""\
+        **왜 측정?**: 배포·새벽 batch·이벤트 트래픽으로 인한 spike는 운영의 일상. 그때 drop = 0 보증 못 하면 분석에 필요한 직전 로그가 사라짐.
+
         **목적**: 평소 대비 ×30 ~ ×40 spike 시 backpressure·drop 거동 관찰.
 
         **부하 프로파일**: 5분 평균 → 4분 × 30배 → 5분 평균. **SLO**: drop=0 (filesystem buffer 사용), 회복 후 backlog 소진.
@@ -514,6 +544,8 @@ fluent_blocks = [
          12, 7, "bytes", "spike 중 누적, 평상시 0 복귀."),
     ]),
     ("FB-06", "Soak 24h", textwrap.dedent("""\
+        **왜 측정?**: 24h 안정성. RSS drift·FD leak이 1주 후 OOM 유발하는 패턴 — 일주 재기동 정책의 근거이거나 그 정책을 없앨 수 있는 근거.
+
         **목적**: 평균 부하 24시간 유지하여 RSS drift, FD 누수, retry 누적 없음 확인.
 
         **부하 프로파일**: flog 24h. **SLO**: RSS 안정, retry 누적 0 유지.
@@ -528,6 +560,8 @@ fluent_blocks = [
          12, 7, "short", "장기 누적량. 0 또는 천천히 증가가 정상."),
     ]),
     ("FB-07", "대용량 로그 (1 line = 16 KB)", textwrap.dedent("""\
+        **왜 측정?**: JVM stacktrace 등 큰 라인은 흔하지만 throughput·CPU 비용 차이가 큼. 운영 SLO 검증.
+
         **목적**: 라인 크기 ↑ 시 throughput·CPU·네트워크 대역 사용 변화.
 
         **부하 프로파일**: flog `-b 16K`. **SLO**: bytes/s ≥ 평소 ×n, CPU ≤ limit 70%.
@@ -567,6 +601,8 @@ PR_OVERVIEW = textwrap.dedent("""\
 
 prom_blocks = [
     ("PR-01", "수집 타깃 수 증가", textwrap.dedent("""\
+        **왜 측정?**: 운영 중 신규 service / exporter 추가가 빈번. 점진 증가가 어디까지 sustainable한지 모르면 갑자기 scrape timeout 발생.
+
         **목적**: 합성 endpoint(avalanche) 수를 늘리며 scrape 단계 병목 측정.
 
         **부하 프로파일**: avalanche replicas 점진 증가. **SLO**: scrape duration p95 ≤ 1s, scrape timeout 0.
@@ -587,6 +623,8 @@ prom_blocks = [
          12, 7, "short", "1회 scrape의 샘플 수."),
     ]),
     ("PR-02", "Active Series 확장", textwrap.dedent("""\
+        **왜 측정?**: 운영 active series 1M↑. 메모리 비용을 모르면 OOM 발생 → 알람 누락 → 사고 인지 지연.
+
         **목적**: avalanche `--series-count`/`replicas` 증가로 active series 폭증 → 메모리/저장 압박 측정.
 
         **부하 프로파일**: 0.5M → 5M series 단계 ramp. **SLO**: RSS ≤ pod limit 80%, compactions_failed 0.
@@ -608,6 +646,8 @@ prom_blocks = [
          12, 7, "ops", "created > removed 지속이면 누적."),
     ]),
     ("PR-03", "PromQL 동시성", textwrap.dedent("""\
+        **왜 측정?**: 6팀이 동시에 dashboard 새로고침 + alert rule 동시 평가가 일상. 그때 query duration 안정성이 운영 가시성의 기반.
+
         **목적**: k6로 동시 PromQL 쿼리 부하 → query engine·HTTP handler 거동 측정.
 
         **부하 프로파일**: k6 20 VUs × 5분, 7가지 쿼리 무작위. **SLO**: http_req_duration p95 ≤ 2s, error rate < 1%.
@@ -626,6 +666,8 @@ prom_blocks = [
          12, 7, "short", "동시 쿼리 수 / 한계."),
     ]),
     ("PR-04", "장기 Range Query (30d)", textwrap.dedent("""\
+        **왜 측정?**: 장기 추세 차트(30d, capacity planning)는 흔함. recording rule 없이 매번 raw query 시 부담 큼 — recording rule 도입 효과 정량화.
+
         **목적**: 30일 range 쿼리 시 IO·메모리·완료 시간 측정.
 
         **부하 프로파일**: k6 step=`30d` range query. **SLO**: p95 ≤ 5s, OOM 없음.
@@ -641,6 +683,8 @@ prom_blocks = [
          12, 7, "ops", "쿼리당 샘플 처리량."),
     ]),
     ("PR-05", "Cardinality Spike", textwrap.dedent("""\
+        **왜 측정?**: 잘못된 label 한 개로 cardinality 폭증 → cluster 전체 다운. 한 번 일어나면 매우 위험 — 사전 감지·대응 능력 검증.
+
         **목적**: 라벨 폭증 시 head_series·메모리 충격 관찰.
 
         **부하 프로파일**: avalanche `--label-count`↑ + `--series-interval` 짧게 → churn 발생. **SLO**: RSS ≤ limit 80%, churn 안정 회복.
@@ -656,6 +700,8 @@ prom_blocks = [
          12, 7, "bytes", "spike 시 일시적 상승."),
     ]),
     ("PR-06", "WAL Replay 복구 (Chaos)", textwrap.dedent("""\
+        **왜 측정?**: HA failover, Pod 재시작 시 WAL replay 시간 = SLO 다운타임. 그 시간을 모르면 무리한 SLO 약속하게 됨.
+
         **목적**: Prometheus Pod 재시작 시 WAL replay 시간·메모리·startup 안정성 측정.
 
         **부하 프로파일**: `kubectl delete pod prometheus-...-0`. **SLO**: replay 시간 < 5분, replay 중 메모리 spike 정상 회복.
@@ -674,6 +720,8 @@ prom_blocks = [
          12, 7, "bytes", "replay 중 메모리 사용."),
     ]),
     ("PR-07", "Soak 24h", textwrap.dedent("""\
+        **왜 측정?**: 24h 운영 시 메모리·디스크 monotonic 증가 없어야. 일주 운영 시 OOM 유발 패턴 사전 차단.
+
         **목적**: 평균 부하 24h 유지하며 메모리/디스크 monotonic 증가 없음 확인.
 
         **부하 프로파일**: 평소 부하 24h. **SLO**: 메모리/디스크 증가율 ≤ 일평균.
@@ -715,6 +763,8 @@ NE_OVERVIEW = textwrap.dedent("""\
 
 node_blocks = [
     ("NE-01", "기본 collector scrape 비용 (Baseline)", textwrap.dedent("""\
+        **왜 측정?**: 이후 NE-02~07의 모든 비교 기준점 — 부하 없을 때 어떻게 동작하는지를 정량화 안 하면 부하 시 영향이 측정 불가.
+
         **목적**: 부하 없는 상태에서 단일 scrape의 자원 비용·시리즈 수 베이스라인 캡처.
 
         **부하 프로파일**: 부하 없음. **SLO**: CPU ≤ 100m, RSS ≤ 50 MiB, 시리즈 ≤ 2,000.
@@ -732,6 +782,8 @@ node_blocks = [
          24, 8, "s", "collector별 비용 분해."),
     ]),
     ("NE-02", "고빈도 scrape (5s)", textwrap.dedent("""\
+        **왜 측정?**: alert 정밀도를 위해 scrape interval 5s로 줄이는 경우 흔함. 그게 노드 자체에 부담을 주는지 미검증 시 운영 사고로 이어짐.
+
         **목적**: scrape interval을 짧게(5s) 또는 외부 hey 부하 → CPU·응답시간 영향.
 
         **부하 프로파일**: hey 50c × 50qps × 2분 (`/metrics` HTTP). **SLO**: p95 ≤ 300 ms, scrape timeout 0.
@@ -746,6 +798,8 @@ node_blocks = [
          12, 7, "s", "interval 단축 시 영향."),
     ]),
     ("NE-03", "textfile 메트릭 1만 개", textwrap.dedent("""\
+        **왜 측정?**: textfile collector로 custom 메트릭 추가가 빈번. 1만 개↑ 추가 시 scrape duration 영향 — 신중한 선정 필요.
+
         **목적**: textfile collector를 통해 외부 메트릭 1만 개 주입 → scrape 시간·시리즈 수 증가 측정.
 
         **부하 프로파일**: hostPath에 1만 라인 .prom 파일. **SLO**: scrape duration ≤ 평소 ×2.
@@ -763,6 +817,8 @@ node_blocks = [
          24, 7, "s", "textfile collector 단독 비용."),
     ]),
     ("NE-04", "마운트 포인트 50+", textwrap.dedent("""\
+        **왜 측정?**: NFS/managed disk 환경에서 마운트 수가 많은 경우 흔함. filesystem collector 시간 폭증 → 전체 scrape timeout → 알람 누락.
+
         **목적**: filesystem collector가 처리해야 할 마운트 수 ↑ → collector 시간·시리즈 수 영향.
 
         **부하 프로파일**: bind mount 50+ 추가. **SLO**: filesystem collector ≤ 500 ms.
@@ -777,6 +833,8 @@ node_blocks = [
          12, 7, "short", "filesystem 시리즈 증가."),
     ]),
     ("NE-05", "노드 CPU 90% 포화", textwrap.dedent("""\
+        **왜 측정?**: 노드 자체 포화 시점은 곧 사고 시점 — 그때 메트릭이 못 들어오면 정작 알람 못 보냄. 자기 자신을 못 보는 상황 방지.
+
         **목적**: 노드 자체 CPU 포화 시 node-exporter scrape 영향과 timeout 발생률 관찰.
 
         **부하 프로파일**: stress-ng로 노드 CPU 90%. **SLO**: scrape timeout 0건.
@@ -791,6 +849,8 @@ node_blocks = [
          12, 7, "s", "CPU 포화 시 영향."),
     ]),
     ("NE-06", "Disk IO 포화 (fio)", textwrap.dedent("""\
+        **왜 측정?**: 디스크 IO 포화 시 diskstats collector 영향. 사고 분석 시점에 메트릭 누락하지 않게.
+
         **목적**: 디스크 IO 포화 시 diskstats / filesystem collector 영향 측정.
 
         **부하 프로파일**: fio 100% util. **SLO**: diskstats collector duration 평소 ×2 이내.
@@ -806,6 +866,8 @@ node_blocks = [
          12, 7, "s", "포화 시 영향."),
     ]),
     ("NE-07", "Soak 24h", textwrap.dedent("""\
+        **왜 측정?**: 24h 안정성. goroutine·FD 누수가 1주 후 OOM 유발 패턴 사전 차단.
+
         **목적**: 24시간 평균 부하에서 goroutine·FD·RSS 누수 없음 확인.
 
         **부하 프로파일**: 평소 scrape 24h. **SLO**: goroutine/FD 안정.
@@ -848,6 +910,8 @@ KSM_OVERVIEW = textwrap.dedent("""\
 
 ksm_blocks = [
     ("KSM-01", "Baseline", textwrap.dedent("""\
+        **왜 측정?**: 현행 클러스터의 KSM 부담 baseline — 클러스터 성장(노드·Pod 증가)에 따른 KSM 부담 추적의 기준.
+
         **목적**: 부하 없이 클러스터 현행 오브젝트 수 / KSM RSS / 응답 시간 베이스라인 캡처.
 
         **부하 프로파일**: 부하 없음. **SLO**: /metrics p95 ≤ 2s, RSS ≤ pod limit 70%.
@@ -868,6 +932,8 @@ ksm_blocks = [
          12, 7, "bytes", "informer cache 메모리."),
     ]),
     ("KSM-02", "Pod 대량 생성", textwrap.dedent("""\
+        **왜 측정?**: Pod 수 폭증(K8s scale-up, kube-burner 같은 도구)이 흔함. KSM가 거기서 OOM 발생하면 정작 그 시점의 K8s 상태를 못 봄.
+
         **목적**: Pod 1만 개(또는 minikube 100) 생성 → KSM informer cache·응답 영향 관찰.
 
         **부하 프로파일**: kube-burner `jobIterations=10000` (minikube=100). **SLO**: /metrics p95 ≤ 2s, RSS ≤ limit 70%.
@@ -889,6 +955,8 @@ ksm_blocks = [
          12, 7, "ops", "CREATE 폭증 가시화."),
     ]),
     ("KSM-03", "ConfigMap 대량 생성", textwrap.dedent("""\
+        **왜 측정?**: GitOps·argocd 등에서 ConfigMap 수가 폭증 가능. KSM + etcd 압박 사전 측정.
+
         **목적**: ConfigMap 5만 개 생성 → KSM 메모리 / etcd 압박 관찰.
 
         **부하 프로파일**: kube-burner ConfigMap 생성. **SLO**: KSM RSS ≤ pod limit 70%, etcd 디스크 여유.
@@ -906,6 +974,8 @@ ksm_blocks = [
          24, 7, "s", "etcd 응답 압박 (kps에서 etcd 활성화 필요)."),
     ]),
     ("KSM-04", "Namespace churn", textwrap.dedent("""\
+        **왜 측정?**: multi-tenant·CI 환경에서 namespace churn 빈번. API 서버 LIST/WATCH 폭증 영향 측정.
+
         **목적**: namespace 생성/삭제 반복 → API 서버 LIST/WATCH 부담 측정.
 
         **부하 프로파일**: kube-burner namespace churn. **SLO**: API 서버 LIST 실패율 ≈ 0.
@@ -923,6 +993,8 @@ ksm_blocks = [
          24, 7, "ops", "에러율."),
     ]),
     ("KSM-05", "Shard 구성", textwrap.dedent("""\
+        **왜 측정?**: 수천 노드 운영 시 KSM 단일 인스턴스 한계 도달 — shard 분산이 필수. 분산 효과 정량화.
+
         **목적**: KSM `--total-shards`로 수평 분할 → 단일 인스턴스 부담 분산 검증.
 
         **부하 프로파일**: KSM StatefulSet replicas=N. **SLO**: 각 shard RSS 거의 동등, 누락 메트릭 없음.
@@ -940,6 +1012,8 @@ ksm_blocks = [
          12, 7, "s", "shard별 응답 시간."),
     ]),
     ("KSM-06", "Soak 24h", textwrap.dedent("""\
+        **왜 측정?**: 24h 안정성. KSM informer cache leak 사전 검증.
+
         **목적**: 24시간 평균 부하에서 KSM RSS / API 서버 부담 안정성 검증.
 
         **부하 프로파일**: 클러스터 평소 부하 24h. **SLO**: RSS 안정, API 서버 응답 정상.
@@ -952,6 +1026,8 @@ ksm_blocks = [
          12, 7, "short", "goroutine leak 감지."),
     ]),
     ("KSM-07", "allowlist/denylist 튜닝", textwrap.dedent("""\
+        **왜 측정?**: 사용 안 하는 메트릭 제거(allowlist/denylist) 효과를 정량화해야 운영 비용 절감 결정 근거.
+
         **목적**: high-cardinality 메트릭을 제거 → 시리즈 수 / 메모리 감소 효과 측정.
 
         **부하 프로파일**: 동일 부하에서 allowlist/denylist 적용 전후 비교. **SLO**: series ≥ 30% 감소.
@@ -975,7 +1051,7 @@ def build_dashboard(uid, title, overview_md, blocks, overview_height=14):
     panels = [text_panel(overview_md, 0, 0, w=24, h=overview_height)]
     y = overview_height
     for sid, st, desc, panels_2d in blocks:
-        block, y = scenario_block(y, sid, st, desc, panels_2d, text_height=8)
+        block, y = scenario_block(y, sid, st, desc, panels_2d, text_height=12)
         panels.extend(block)
     return {
         "uid": uid, "title": title,
