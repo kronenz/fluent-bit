@@ -1,0 +1,82 @@
+# OS-02 — k6 heavy search (50 VU 동시 _search 부하)
+#
+# 변경:
+#   • memory limit 512Mi → 1Gi (50 VU × JSON 파싱 OOM 대응)
+#   • k6/encoding 모듈 import + Authorization header 로 admin:admin 주입
+#   • envFrom: secretRef opensearch-creds (security plugin 활성 cluster 대응)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k6-opensearch-search-script
+  namespace: load-test
+data:
+  script.js: |
+    import http from 'k6/http';
+    import { check } from 'k6';
+    import encoding from 'k6/encoding';
+
+    const SEARCH_TARGET   = Number(__ENV.K6_SEARCH_VU_TARGET || 50);
+    const SEARCH_DURATION = __ENV.K6_SEARCH_DURATION || '5m';
+    export const options = {
+      stages: [
+        { duration: '1m',  target: Math.floor(SEARCH_TARGET / 2) },
+        { duration: SEARCH_DURATION, target: SEARCH_TARGET },
+        { duration: '1m',  target: 0 },
+      ],
+      thresholds: {
+        http_req_duration: ['p(95)<500', 'p(99)<1500'],
+        http_req_failed:   ['rate<0.005'],
+      },
+    };
+
+    const OS    = __ENV.OPENSEARCH_URL    || 'http://opensearch-lt-node.monitoring.svc:9200';
+    const INDEX = __ENV.OS_INDEX_PATTERN  || 'logs-fb-*';
+    // admin:admin 은 Secret opensearch-creds → envFrom 으로 들어옴.
+    const USER  = __ENV.OS_BASIC_AUTH_USER || '';
+    const PASS  = __ENV.OS_BASIC_AUTH_PASS || '';
+
+    const HEADERS = { 'Content-Type': 'application/json' };
+    if (USER) {
+      HEADERS['Authorization'] = 'Basic ' + encoding.b64encode(`${USER}:${PASS}`);
+    }
+
+    const body = JSON.stringify({ query: { match: { log: 'error' } }, size: 20 });
+
+    export default function () {
+      const r = http.post(`${OS}/${INDEX}/_search`, body, { headers: HEADERS });
+      check(r, { '2xx': (res) => res.status >= 200 && res.status < 300 });
+    }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-opensearch-search
+  namespace: load-test
+  labels: { app: k6-opensearch-search, role: test-runner, scenario: OS-02 }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: k6-opensearch-search, scenario: OS-02 }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: k6
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          command: ["k6", "run", "/scripts/script.js"]
+          envFrom:
+            - configMapRef: { name: lt-config }
+            # admin:admin → OS_BASIC_AUTH_USER / OS_BASIC_AUTH_PASS
+            - secretRef:
+                name: opensearch-creds
+                optional: true
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+          resources:
+            requests: { cpu: "200m",  memory: "256Mi" }
+            limits:   { cpu: "1500m", memory: "1Gi" }   # 512Mi → 1Gi
+      volumes:
+        - name: scripts
+          configMap: { name: k6-opensearch-search-script }

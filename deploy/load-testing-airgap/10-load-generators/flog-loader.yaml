@@ -1,0 +1,35 @@
+# 부하 발생기: flog (시나리오 FB-01/02/04/05 의 입력원)
+#
+# 역할:
+#   stdout 으로 무한 JSON 로그 출력 → kubelet 이 /var/log/containers/<pod>.log
+#   에 기록 → fluent-bit DaemonSet 이 tail input 으로 읽어 OpenSearch 로 전송.
+#
+# 부하 = replicas × (1 / FLOG_DELAY)
+#   기본 = 3 × (1 / 100us) = 30,000 lines/s
+#   운영 = 10 × (1 / 100us) = 100,000 lines/s
+#
+# 가동/중지:
+#   kubectl apply  -f flog-loader.yaml
+#   kubectl delete -f flog-loader.yaml   # 또는 replicas 0 으로 scale
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flog-loader
+  namespace: load-test
+  labels: { app: flog-loader, role: load-generator, scenario: FB }
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: flog-loader }
+  template:
+    metadata:
+      labels: { app: flog-loader }
+    spec:
+      containers:
+        - name: flog
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          command: ["flog", "-f", "json", "-d", "100us", "-l"]
+          resources:
+            requests: { cpu: "100m", memory: "64Mi" }
+            limits:   { cpu: "500m", memory: "128Mi" }

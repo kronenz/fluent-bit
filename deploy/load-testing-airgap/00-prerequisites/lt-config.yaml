@@ -1,0 +1,73 @@
+# 모든 시나리오 공통 — 중앙 ConfigMap (lt-config)
+#
+# 모든 부하 발생기/테스트 Job 이 envFrom 으로 참조합니다.
+# 운영 시뮬레이션 시 "# 운영:" 주석값으로 교체.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lt-config
+  namespace: load-test
+data:
+  # ── 이미지 / 엔드포인트 ────────────────────────────────────────
+  LOADTEST_IMAGE:    "nexus.intranet:8082/loadtest/loadtest-tools:0.1.1"
+  PROMETHEUS_URL:    "http://kps-prometheus.monitoring.svc:9090"
+  OPENSEARCH_URL:    "http://opensearch-lt-node.monitoring.svc:9200"
+  ALERTMANAGER_URL:  "http://kps-alertmanager.monitoring.svc:9093"
+  GRAFANA_URL:       "http://kps-grafana.monitoring.svc"
+  NODE_EXPORTER_SVC: "http://kps-prometheus-node-exporter.monitoring.svc:9100"
+  KSM_SVC:           "http://kps-kube-state-metrics.monitoring.svc:8080"
+
+  # ── OpenSearch 인증 ────────────────────────────────────────────
+  # ⚠ 자격증명은 lt-config 에 두지 않고 Secret `opensearch-creds` 에 보관.
+  #   모든 OS REST 사용 컴포넌트가 envFrom: secretRef: opensearch-creds 로 참조.
+  #   security plugin 비활성 클러스터에서는 Secret 의 값이 무시되므로 무관.
+
+  # ── 대시보드 UID ───────────────────────────────────────────────
+  DASH_OVERVIEW:      "lt-overview"
+  DASH_OPENSEARCH:    "lt-opensearch"
+  DASH_FLUENT_BIT:    "lt-fluent-bit"
+  DASH_PROMETHEUS:    "lt-prometheus"
+  DASH_NODE_EXPORTER: "lt-node-exporter"
+  DASH_KSM:           "lt-ksm"
+
+  # ── Fluent-bit / flog (FB-01 ~ FB-07) ──────────────────────────
+  FLOG_REPLICAS:        "3"        # 운영: 10
+  FLOG_DELAY:           "100us"
+  FLOG_FORMAT:          "json"
+
+  # ── Avalanche (PR-01 ~ PR-05) ──────────────────────────────────
+  AVALANCHE_REPLICAS:           "2"     # 운영: 20
+  AVALANCHE_GAUGE_METRIC_COUNT: "200"   # 운영: 500
+  AVALANCHE_SERIES_COUNT:       "200"   # 운영: 500
+  AVALANCHE_LABEL_COUNT:        "10"
+  AVALANCHE_VALUE_INTERVAL:     "15"
+  AVALANCHE_SERIES_INTERVAL:    "900"
+  AVALANCHE_METRIC_INTERVAL:    "3600"
+
+  # ── k6 ─────────────────────────────────────────────────────────
+  K6_PROMQL_VUS:        "20"
+  K6_PROMQL_DURATION:   "5m"
+  K6_SEARCH_VU_TARGET:  "50"
+  K6_SEARCH_DURATION:   "5m"
+  OS_INDEX_PATTERN:     "logs-fb-*"
+
+  # ── kube-burner ────────────────────────────────────────────────
+  KSM_BURNER_ITERATIONS:   "100"   # 운영: 10000
+  KSM_BURNER_QPS:          "20"
+  KSM_BURNER_BURST:        "30"
+  KSM_BURNER_NS_PREFIX:    "kburner"
+
+  # ── hey (NE-02) ────────────────────────────────────────────────
+  HEY_CONCURRENCY:    "50"
+  HEY_DURATION:       "2m"
+  HEY_RPS_PER_WORKER: "50"
+
+  # ── opensearch-benchmark (OS-01) ───────────────────────────────
+  # OSB_WORKLOADS_PATH 는 이미지 ENV(/opt/osb-workloads) 와 동일하게
+  # ConfigMap 에도 명시 — 진단 시 이 값을 직접 echo 할 수 있도록.
+  OSB_WORKLOADS_PATH:  "/opt/osb-workloads"
+  OSB_WORKLOAD:        "geonames"   # alternatives: pmc, http_logs, nyc_taxis
+  OSB_TEST_PROCEDURE:  "append-no-conflicts-index-only"
+  OSB_BULK_SIZE:       "5000"
+  OSB_CLIENTS:         "16"
+  OSB_TEST_MODE:       "true"       # false: corpus PVC 마운트 필요

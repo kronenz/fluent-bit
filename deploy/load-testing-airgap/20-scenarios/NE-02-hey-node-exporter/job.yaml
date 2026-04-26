@@ -1,0 +1,30 @@
+# NE-02 — hey HTTP 부하 (node-exporter /metrics)
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hey-node-exporter
+  namespace: load-test
+  labels: { app: hey-node-exporter, role: test-runner, scenario: NE-02 }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: hey-node-exporter, scenario: NE-02 }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: hey
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: lt-config }
+          # ⚠ hey 이미지의 entrypoint 가 hey 자체 → command 만 지정.
+          command: ["hey"]
+          args: ["-z", "$(HEY_DURATION)",
+                 "-c", "$(HEY_CONCURRENCY)",
+                 "-q", "$(HEY_RPS_PER_WORKER)",
+                 "$(NODE_EXPORTER_SVC)/metrics"]
+          resources:
+            requests: { cpu: "200m",  memory: "128Mi" }
+            limits:   { cpu: "1500m", memory: "256Mi" }

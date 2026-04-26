@@ -1,0 +1,70 @@
+# 부하 발생기: avalanche (시나리오 PR-01/02/05)
+#
+# 역할:
+#   합성 Prometheus /metrics endpoint 를 노출. ServiceMonitor 가 등록되어
+#   kps-prometheus 가 자동으로 scrape → ingest/저장/쿼리 부하 발생.
+#
+# active series 추정:
+#   per-pod = gauge_metric_count × series_count
+#   total   = per-pod × replicas
+#   기본    = 200 × 200 × 2  = 80,000 series
+#   운영    = 500 × 500 × 20 = 5,000,000 series
+#
+# ⚠ 메모리 limit 은 256Mi → 512Mi 로 상향 (실제 cluster 에서 OOMKilled 사례
+#   대응). label_count 가 크면 추가 상향 필요 (1Gi).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: avalanche
+  namespace: load-test
+  labels: { app: avalanche, role: load-generator, scenario: PR }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: avalanche }
+  template:
+    metadata:
+      labels: { app: avalanche }
+    spec:
+      containers:
+        - name: avalanche
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          command: ["avalanche"]
+          args:
+            - --gauge-metric-count=200
+            - --series-count=200
+            - --label-count=10
+            - --value-interval=15
+            - --series-interval=900
+            - --metric-interval=3600
+            - --port=9001
+          ports:
+            - { name: http, containerPort: 9001 }
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits:   { cpu: "500m", memory: "512Mi" }   # 256Mi → 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: avalanche
+  namespace: load-test
+  labels: { app: avalanche }
+spec:
+  selector: { app: avalanche }
+  ports:
+    - { name: http, port: 9001, targetPort: http }
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: avalanche
+  namespace: load-test
+  labels: { app: avalanche }
+spec:
+  selector: { matchLabels: { app: avalanche } }
+  endpoints:
+    - port: http
+      interval: 15s
+      scrapeTimeout: 10s

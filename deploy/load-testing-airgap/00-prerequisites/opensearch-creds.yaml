@@ -1,0 +1,47 @@
+# OpenSearch security plugin 자격증명
+#
+# 사내 OpenSearch 클러스터는 security plugin 이 활성화되어 있어 익명 접근이
+# 차단됩니다. 이 Secret 이 없으면 다음이 모두 401/403 으로 실패합니다:
+#   • opensearch-exporter (REST 기반)
+#   • opensearch-benchmark
+#   • k6 OS-* search jobs
+#   • 직접 curl ${OPENSEARCH_URL} ...
+#
+# Key/Value 약속:
+#   username : admin           ← 환경에 맞게 변경
+#   password : admin           ← 환경에 맞게 변경
+#
+# 두 namespace (monitoring, load-test) 모두에 동일하게 배포 — 두 namespace
+# 의 Pod 가 envFrom 으로 참조합니다. K8s Secret 은 namespace scoped 이므로
+# 같은 데이터를 두 곳에 만들어야 합니다.
+#
+# 운영 적용 시 Secret 관리 전환 권장:
+#   - SealedSecret / external-secrets-operator 사용해 평문 yaml 회피
+#   - 또는 sops + gitops 로 암호화
+apiVersion: v1
+kind: Secret
+metadata:
+  name: opensearch-creds
+  namespace: monitoring
+  labels: { purpose: opensearch-auth }
+type: Opaque
+stringData:
+  # elasticsearch_exporter 가 인식하는 표준 환경변수 키
+  ES_USERNAME: "admin"
+  ES_PASSWORD: "admin"
+  # 그 외 도구가 사용하는 별칭 (lt-config 자리에서 옮겨옴)
+  OS_BASIC_AUTH_USER: "admin"
+  OS_BASIC_AUTH_PASS: "admin"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: opensearch-creds
+  namespace: load-test
+  labels: { purpose: opensearch-auth }
+type: Opaque
+stringData:
+  ES_USERNAME: "admin"
+  ES_PASSWORD: "admin"
+  OS_BASIC_AUTH_USER: "admin"
+  OS_BASIC_AUTH_PASS: "admin"

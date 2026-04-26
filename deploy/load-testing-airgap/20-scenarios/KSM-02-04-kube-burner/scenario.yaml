@@ -1,0 +1,104 @@
+# KSM-02 / KSM-03 / KSM-04 — kube-burner pod density
+#
+# 짧게 살다 죽는 pause 컨테이너 다수를 빠르게 생성/삭제 → apiserver / etcd /
+# kube-state-metrics / prometheus ingest backlog / watch event burst 동시 부하.
+#
+# 변경:
+#   • memory limit 512Mi → 768Mi
+#   • cluster-admin 사용 — 운영 cluster 적용 시 좁힐 것 (Pod CRUD + namespace
+#     생성/삭제만 허용하는 ClusterRole)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-burner
+  namespace: load-test
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kube-burner-load-test
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin       # ⚠ 운영 적용 시 좁혀야 함
+subjects:
+  - kind: ServiceAccount
+    name: kube-burner
+    namespace: load-test
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-burner-config
+  namespace: load-test
+data:
+  config.yaml: |
+    metricsEndpoints: []
+    global:
+      gc: true
+      gcMetrics: false
+    jobs:
+      - name: pod-density
+        jobType: create
+        jobIterations: 100
+        namespace: kburner
+        namespacedIterations: true
+        cleanup: true
+        podWait: true
+        waitWhenFinished: false
+        qps: 20
+        burst: 30
+        objects:
+          - objectTemplate: /config/pod.yaml
+            replicas: 1
+  pod.yaml: |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: burner-pod-{{.Iteration}}-{{.Replica}}
+      labels:
+        app: kube-burner
+        iteration: "{{.Iteration}}"
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: pause
+          image: nexus.intranet:8082/loadtest/pause:3.10
+          resources:
+            requests: { cpu: "5m", memory: "8Mi" }
+            limits:   { cpu: "20m", memory: "16Mi" }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kube-burner-pod-density
+  namespace: load-test
+  labels: { app: kube-burner, role: test-runner, scenario: KSM-02 }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: kube-burner, scenario: KSM-02 }
+    spec:
+      restartPolicy: Never
+      serviceAccountName: kube-burner
+      containers:
+        - name: kube-burner
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          workingDir: /work       # /config 는 read-only ConfigMap → PWD 분리
+          command: ["kube-burner", "init", "-c", "/config/config.yaml", "--uuid", "$(POD_NAME)"]
+          envFrom:
+            - configMapRef: { name: lt-config }
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+          volumeMounts:
+            - { name: config, mountPath: /config }
+          resources:
+            requests: { cpu: "200m",  memory: "256Mi" }
+            limits:   { cpu: "1500m", memory: "768Mi" }   # 512Mi → 768Mi
+      volumes:
+        - name: config
+          configMap: { name: kube-burner-config }

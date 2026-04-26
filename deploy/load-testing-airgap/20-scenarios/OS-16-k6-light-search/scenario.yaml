@@ -1,0 +1,96 @@
+# OS-16 — 6 서비스 팀 light search (heavy ingest 동시)
+#
+# 핵심 SLO: heavy ingest (flog + loggen-spark + osb) 와 light search 가
+# *동시*에 흘러도 search p95 < 5,000 ms 가 깨지지 않는가?
+#
+# 변경: admin:admin Authorization header (security plugin 대응)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k6-opensearch-light-search-script
+  namespace: load-test
+data:
+  script.js: |
+    import http from 'k6/http';
+    import { check, sleep } from 'k6';
+    import encoding from 'k6/encoding';
+
+    export const options = {
+      vus:      Number(__ENV.LIGHT_SEARCH_VUS || 6),
+      duration: __ENV.LIGHT_SEARCH_DURATION || '30m',
+      thresholds: {
+        http_req_duration: ['p(95)<5000', 'p(99)<10000'],
+        http_req_failed:   ['rate<0.01'],
+      },
+    };
+
+    const OS    = __ENV.OPENSEARCH_URL    || 'http://opensearch-lt-node.monitoring.svc:9200';
+    const INDEX = __ENV.OS_INDEX_PATTERN  || 'logs-fb-*';
+    const USER  = __ENV.OS_BASIC_AUTH_USER || '';
+    const PASS  = __ENV.OS_BASIC_AUTH_PASS || '';
+
+    const HEADERS = { 'Content-Type': 'application/json' };
+    if (USER) {
+      HEADERS['Authorization'] = 'Basic ' + encoding.b64encode(`${USER}:${PASS}`);
+    }
+
+    function buildQuery() {
+      const services = ['spark-loadtest', 'airflow', 'trino', 'flog'];
+      const levels   = ['ERROR', 'WARN', 'INFO'];
+      const t = Date.now();
+      const queries = [
+        { range: { ts: { gte: (t/1000) - 3600 } } },
+        { bool: { must: [
+          { range: { ts: { gte: (t/1000) - 3600 } } },
+          { match: { app: services[Math.floor(Math.random()*services.length)] } },
+        ]}},
+        { bool: { must: [
+          { range: { ts: { gte: (t/1000) - 3600 } } },
+          { match: { level: levels[Math.floor(Math.random()*levels.length)] } },
+        ]}},
+      ];
+      return queries[Math.floor(Math.random() * queries.length)];
+    }
+
+    export default function () {
+      const body = JSON.stringify({ query: buildQuery(), size: 50 });
+      const r = http.post(`${OS}/${INDEX}/_search`, body, { headers: HEADERS });
+      check(r, { '2xx': (res) => res.status >= 200 && res.status < 300 });
+      sleep(5 + Math.random() * 10);
+    }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-opensearch-light-search
+  namespace: load-test
+  labels: { app: k6-opensearch-light-search, role: test-runner, scenario: OS-16 }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: k6-opensearch-light-search, scenario: OS-16 }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: k6
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          command: ["k6", "run", "/scripts/script.js"]
+          envFrom:
+            - configMapRef: { name: lt-config }
+            - secretRef:
+                name: opensearch-creds
+                optional: true
+          env:
+            - { name: LIGHT_SEARCH_VUS,      value: "6"   }
+            - { name: LIGHT_SEARCH_DURATION, value: "30m" }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "500m", memory: "256Mi" }
+      volumes:
+        - name: scripts
+          configMap: { name: k6-opensearch-light-search-script }

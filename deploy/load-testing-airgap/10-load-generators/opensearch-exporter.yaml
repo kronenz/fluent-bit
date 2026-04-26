@@ -1,0 +1,76 @@
+# 부하 발생기: opensearch-exporter (모든 OS-* 시나리오의 메트릭 소스)
+#
+# 역할:
+#   OpenSearch REST API → Prometheus 메트릭으로 변환. ServiceMonitor 가 등록
+#   되어 kps-prometheus 가 자동 scrape. Grafana OpenSearch 대시보드의 모든
+#   panel 이 이 exporter 의 메트릭을 사용.
+#
+# ⚠ 메모리 limit 128Mi → 512Mi 상향 (실제 cluster 에서 인덱스 多 시 OOMKilled
+#   사례). --es.indices --es.indices_settings --es.shards 가 인덱스 수에
+#   비례해 응답 크기를 키움.
+#
+# ⚠ 자격증명: OpenSearch security plugin 활성 클러스터는 익명 접근이
+#   차단되므로 admin/admin 을 envFrom: secretRef: opensearch-creds 로 주입.
+#   Secret 이 없으면 모든 scrape 가 401 로 실패 → 대시보드 panel 도 빈 값.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opensearch-exporter
+  namespace: monitoring
+  labels: { app: opensearch-exporter }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: opensearch-exporter }
+  template:
+    metadata:
+      labels: { app: opensearch-exporter }
+    spec:
+      containers:
+        - name: exporter
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          command: ["elasticsearch_exporter"]
+          args:
+            - --es.uri=http://opensearch-lt-node.monitoring.svc:9200
+            - --es.all
+            - --es.indices
+            - --es.indices_settings
+            - --es.shards
+            - --es.timeout=30s
+          envFrom:
+            # ES_USERNAME / ES_PASSWORD : elasticsearch_exporter 표준 인식.
+            # Secret 이 없는 클러스터(비-security)에서도 빈 값으로 무시되어 무해.
+            - secretRef:
+                name: opensearch-creds
+                optional: true
+          ports:
+            - { name: metrics, containerPort: 9114 }
+          resources:
+            requests: { cpu: "50m",  memory: "128Mi" }
+            limits:   { cpu: "500m", memory: "512Mi" }   # 128Mi → 512Mi
+          readinessProbe: { httpGet: { path: /healthz, port: metrics }, initialDelaySeconds: 10 }
+          livenessProbe:  { httpGet: { path: /healthz, port: metrics }, initialDelaySeconds: 30 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensearch-exporter
+  namespace: monitoring
+  labels: { app: opensearch-exporter }
+spec:
+  selector: { app: opensearch-exporter }
+  ports:
+    - { name: metrics, port: 9114, targetPort: metrics }
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: opensearch-exporter
+  namespace: monitoring
+  labels: { app: opensearch-exporter }
+spec:
+  selector: { matchLabels: { app: opensearch-exporter } }
+  endpoints:
+    - port: metrics
+      interval: 30s

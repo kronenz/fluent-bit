@@ -1,0 +1,120 @@
+# OS-01 — opensearch-benchmark 벌크 인덱싱
+#
+# 변경 (이전 버전 대비):
+#   • memory limit 1.5Gi → 4Gi (실제 cluster 에서 OOMKilled 사례)
+#   • cpu limit 2000m → 4000m
+#   • 사전 진단: OS 연결성 / workload 디렉터리 / 권한 print
+#   • basic_auth 옵션 (security plugin 활성 클러스터 대응)
+#   • 실패 시 종료 직전 result.json 마지막 N줄 dump
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: opensearch-benchmark
+  namespace: load-test
+  labels: { app: opensearch-benchmark, role: test-runner, scenario: OS-01 }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: opensearch-benchmark, scenario: OS-01 }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: benchmark
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: lt-config }
+            # admin:admin → OS_BASIC_AUTH_USER / OS_BASIC_AUTH_PASS
+            - secretRef:
+                name: opensearch-creds
+                optional: true
+          env:
+            - { name: OSB_DATA_PATH, value: "/tmp/osb-data" }
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+
+              echo "================ OSB pre-flight diagnostic ================"
+              echo "OPENSEARCH_URL    = ${OPENSEARCH_URL}"
+              echo "OSB_WORKLOADS_PATH= ${OSB_WORKLOADS_PATH}"
+              echo "OSB_WORKLOAD      = ${OSB_WORKLOAD}"
+              echo "OSB_TEST_PROCEDURE= ${OSB_TEST_PROCEDURE}"
+              echo "OSB_TEST_MODE     = ${OSB_TEST_MODE:-true}"
+              echo "OSB_BASIC_AUTH_USER = ${OS_BASIC_AUTH_USER:-<empty>}"
+              echo
+
+              echo "[1/4] opensearch-benchmark version"
+              opensearch-benchmark --version
+
+              echo "[2/4] Workload directory"
+              if [[ ! -d "${OSB_WORKLOADS_PATH}/${OSB_WORKLOAD}" ]]; then
+                echo "FATAL: workload not found at ${OSB_WORKLOADS_PATH}/${OSB_WORKLOAD}" >&2
+                ls "${OSB_WORKLOADS_PATH}/" >&2 || true
+                exit 1
+              fi
+              ls "${OSB_WORKLOADS_PATH}/${OSB_WORKLOAD}" | head
+
+              echo "[3/4] OpenSearch reachability"
+              CURL_AUTH=()
+              if [[ -n "${OS_BASIC_AUTH_USER:-}" ]]; then
+                CURL_AUTH=(-u "${OS_BASIC_AUTH_USER}:${OS_BASIC_AUTH_PASS}")
+              fi
+              if ! curl -fsS --max-time 10 "${CURL_AUTH[@]}" "${OPENSEARCH_URL}/_cluster/health" ; then
+                echo "FATAL: cannot reach ${OPENSEARCH_URL}" >&2
+                exit 1
+              fi
+              echo
+
+              echo "[4/4] Disk + memory"
+              df -h /tmp
+              free -m
+
+              echo "============== OSB execution =============="
+              EXTRA_ARGS=()
+              if [[ "${OSB_TEST_MODE:-true}" == "true" ]]; then
+                EXTRA_ARGS+=(--test-mode)
+              fi
+
+              # security plugin 클러스터: client-options 에 basic auth 추가.
+              CLIENT_OPTS="verify_certs:false"
+              if [[ -n "${OS_BASIC_AUTH_USER:-}" ]]; then
+                CLIENT_OPTS="${CLIENT_OPTS},basic_auth_user:${OS_BASIC_AUTH_USER},basic_auth_password:${OS_BASIC_AUTH_PASS}"
+              fi
+
+              mkdir -p "${OSB_DATA_PATH}"
+
+              # --workload-path 강제 사용 → default git repo 접근 차단
+              if ! opensearch-benchmark execute-test \
+                  --target-hosts="${OPENSEARCH_URL}" \
+                  --pipeline=benchmark-only \
+                  --workload-path="${OSB_WORKLOADS_PATH}/${OSB_WORKLOAD}" \
+                  --test-procedure="${OSB_TEST_PROCEDURE}" \
+                  --client-options="${CLIENT_OPTS}" \
+                  --results-file=/tmp/result.json \
+                  --kill-running-processes \
+                  "${EXTRA_ARGS[@]}" ; then
+                echo "============== OSB FAILED =============="
+                if [[ -f /tmp/result.json ]]; then
+                  echo "--- last 100 lines of result.json ---"
+                  tail -100 /tmp/result.json || true
+                fi
+                if compgen -G "/root/.benchmark/logs/*.log" > /dev/null; then
+                  echo "--- last 200 lines of OSB log ---"
+                  tail -200 /root/.benchmark/logs/*.log || true
+                fi
+                exit 1
+              fi
+
+              echo "============== OSB SUCCESS =============="
+              cat /tmp/result.json | head -200
+          volumeMounts:
+            - { name: osb-data, mountPath: /tmp/osb-data }
+          resources:
+            requests: { cpu: "500m",  memory: "1Gi" }
+            limits:   { cpu: "4000m", memory: "4Gi" }   # 1.5Gi → 4Gi
+      volumes:
+        - name: osb-data
+          emptyDir: {}

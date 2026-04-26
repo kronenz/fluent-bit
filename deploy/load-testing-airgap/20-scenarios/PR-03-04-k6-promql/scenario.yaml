@@ -1,0 +1,68 @@
+# PR-03 / PR-04 — k6 PromQL 랜덤 쿼리 부하
+#
+# 변경: memory limit 512Mi → 1Gi (안전 마진)
+# Prometheus 는 보통 인증 미설정 → Authorization header 불필요. 만약
+# kps-grafana 뒤단으로 프록시했다면 OS_BASIC_AUTH_* 와 동일 패턴 추가.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k6-promql-script
+  namespace: load-test
+data:
+  script.js: |
+    import http from 'k6/http';
+    import { check, sleep } from 'k6';
+    export const options = {
+      vus:      Number(__ENV.K6_PROMQL_VUS || 20),
+      duration: __ENV.K6_PROMQL_DURATION || '5m',
+      thresholds: {
+        http_req_duration: ['p(95)<2000'],
+        http_req_failed:   ['rate<0.01'],
+      },
+    };
+    const PROM = __ENV.PROMETHEUS_URL || 'http://kps-prometheus.monitoring.svc:9090';
+    const queries = [
+      'sum(rate(node_cpu_seconds_total[5m])) by (mode)',
+      'sum by (pod) (container_memory_working_set_bytes{namespace="monitoring"})',
+      'topk(10, max by (pod)(container_memory_working_set_bytes))',
+      'rate(prometheus_http_requests_total[5m])',
+      'histogram_quantile(0.99, sum by (le) (rate(prometheus_http_request_duration_seconds_bucket[5m])))',
+      'count(up == 1)',
+      'sum(rate(apiserver_request_total[5m])) by (verb)',
+    ];
+    export default function () {
+      const q = queries[Math.floor(Math.random() * queries.length)];
+      const r = http.get(`${PROM}/api/v1/query?query=${encodeURIComponent(q)}`);
+      check(r, { '200': (res) => res.status === 200 });
+      sleep(0.1);
+    }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-promql
+  namespace: load-test
+  labels: { app: k6-promql, role: test-runner, scenario: PR-03 }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: k6-promql, scenario: PR-03 }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: k6
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          command: ["k6", "run", "/scripts/script.js"]
+          envFrom:
+            - configMapRef: { name: lt-config }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+          resources:
+            requests: { cpu: "200m",  memory: "256Mi" }
+            limits:   { cpu: "1500m", memory: "1Gi" }   # 512Mi → 1Gi
+      volumes:
+        - name: scripts
+          configMap: { name: k6-promql-script }
