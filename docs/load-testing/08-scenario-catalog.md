@@ -155,6 +155,116 @@ kubectl --context=${KUBECONTEXT} -n monitoring delete pod opensearch-lt-node-1  
 
 ---
 
+> 아래 OS-08/09/12/14/16은 **운영 워크로드(200대 cluster log ingest)** 맞춤 신규 시나리오입니다.
+
+## OS-08 — Sustained High Ingest (200대 모사)
+
+| 항목 | 내용 |
+|------|------|
+| **목적** | 200대 cluster의 Spark/Trino/Airflow 로그 ingest를 흡수할 수 있는 sustainable TPS 정량화 |
+| **도구** | flog Deployment (`replicas` 단계적 증가) → Fluent-bit DS → OpenSearch |
+| **매니페스트** | `03-load-generators/flog.yaml` + `lt-config.yaml` (`FLOG_REPLICAS`) |
+| **주요 변수** | `FLOG_REPLICAS` (5→20→50→100→200), `FLOG_DELAY` |
+| **합격 기준** | 1시간 reject 0, FB output_errors 0, OS heap ≤ 75%, segment count 안정 |
+| **대시보드** | [`${GRAFANA_BASE_URL}/d/lt-opensearch`](#) → row "OS-08" |
+
+```bash
+# 운영: lt-config의 FLOG_REPLICAS=200 으로 ramp
+kubectl --context=${KUBECONTEXT} edit configmap -n load-test lt-config
+# FLOG_REPLICAS: "200"
+kubectl --context=${KUBECONTEXT} apply -f deploy/load-testing/03-load-generators/flog.yaml
+kubectl --context=${KUBECONTEXT} -n load-test scale deploy flog-loader --replicas=200
+# 1시간 sustain 후 metric 확인
+```
+
+## OS-09 — Spark Job Startup Burst (×30)
+
+| 항목 | 내용 |
+|------|------|
+| **목적** | Spark/Airflow 작업 일제 시작 시 평소 대비 ×30 spike → backpressure·복구 검증 |
+| **도구** | `kubectl scale`로 flog replicas 단기간 ×30 |
+| **합격 기준** | spike 동안 drop 0 (FB filesystem buffer 사용), spike 종료 후 1분 내 backlog 소진, OS green 유지 |
+| **대시보드** | [`${GRAFANA_BASE_URL}/d/lt-opensearch`](#) → row "OS-09" |
+
+```bash
+# 평소 부하 (replicas=3) → 4분간 ×30 spike → 평소 복귀
+kubectl --context=${KUBECONTEXT} -n load-test scale deploy flog-loader --replicas=90
+sleep 240
+kubectl --context=${KUBECONTEXT} -n load-test scale deploy flog-loader --replicas=3
+# 대시보드에서 spike 곡선 + filesystem buffer 누적/소진 확인
+```
+
+## OS-12 — Refresh Interval 튜닝 비교
+
+| 항목 | 내용 |
+|------|------|
+| **목적** | `refresh_interval`을 1s/30s/60s로 바꾸며 동일 부하에서 throughput·검색 가시성 trade-off |
+| **도구** | curl로 `_settings` 변경 + flog 부하 |
+| **합격 기준** | 30s/60s에서 indexing TPS ≥ 1s 대비 +30%, 검색 lag ≤ 60s |
+| **대시보드** | [`${GRAFANA_BASE_URL}/d/lt-opensearch`](#) → row "OS-12" (refresh ops, segment count) |
+
+```bash
+# 1) 동일 부하 시작 (예: flog replicas=50)
+kubectl --context=${KUBECONTEXT} -n load-test scale deploy flog-loader --replicas=50
+
+# 2) refresh_interval 변경 (각 설정 30분씩 sustain)
+for INTERVAL in 1s 30s 60s; do
+  kubectl --context=${KUBECONTEXT} -n monitoring exec opensearch-lt-node-0 -c opensearch -- \
+    curl -sX PUT "${OPENSEARCH_URL}/logs-fb-*/_settings" \
+    -H 'Content-Type: application/json' \
+    -d "{\"index\": {\"refresh_interval\": \"${INTERVAL}\"}}"
+  echo "interval=$INTERVAL applied at $(date +%H:%M:%S) — sleep 30m"
+  sleep 1800
+done
+# 3) Grafana 대시보드에서 시간 범위로 3구간 비교
+```
+
+## OS-14 — High-Cardinality Field 폭증
+
+| 항목 | 내용 |
+|------|------|
+| **목적** | Spark `task_attempt_id`, Airflow `dag_run_id` 같은 고유값 keyword가 매핑·cluster state에 미치는 압박 측정 |
+| **도구** | `loggen-spark` Pod (Python 스크립트가 ConfigMap, UUID 주입) |
+| **매니페스트** | `03-load-generators/loggen-spark.yaml` |
+| **주요 변수** | `LOGGEN_DELAY`(생성 속도), replicas |
+| **합격 기준** | 매핑 필드 수 < 1000, master heap ≤ 70%, cluster state size 안정 |
+| **대시보드** | [`${GRAFANA_BASE_URL}/d/lt-opensearch`](#) → row "OS-14" |
+
+```bash
+kubectl --context=${KUBECONTEXT} apply -f deploy/load-testing/03-load-generators/loggen-spark.yaml
+# 30분 후
+kubectl --context=${KUBECONTEXT} -n monitoring exec opensearch-lt-node-0 -c opensearch -- \
+  curl -s "${OPENSEARCH_URL}/_cluster/state?filter_path=metadata.indices.*.mappings.properties" | jq 'keys | length'
+# 매핑 필드 수 추적; 종료 시 cleanup
+kubectl --context=${KUBECONTEXT} delete -f deploy/load-testing/03-load-generators/loggen-spark.yaml
+```
+
+## OS-16 — Heavy Ingest + Light Search (운영 통합)
+
+| 항목 | 내용 |
+|------|------|
+| **목적** | 가장 운영 현실적인 시나리오 — 200대 ingest 부하 중 6팀 간헐적 검색이 SLO 만족하는지 검증 |
+| **도구** | flog (sustained ingest) + k6 6 VU `last 1h` range query |
+| **매니페스트** | `04-test-jobs/k6-opensearch-light-search.yaml` |
+| **주요 변수** | `LIGHT_SEARCH_VUS`(=6), `LIGHT_SEARCH_DURATION`, `OS_INDEX_PATTERN` |
+| **합격 기준** | indexing TPS ≥ OS-08 단독 대비 95%, 검색 p95 ≤ 5s, error rate < 1% |
+| **대시보드** | [`${GRAFANA_BASE_URL}/d/lt-opensearch`](#) → row "OS-16" |
+
+```bash
+# 1) Heavy ingest 시작
+kubectl --context=${KUBECONTEXT} -n load-test scale deploy flog-loader --replicas=50
+
+# 2) 동시에 6 VU light search Job
+kubectl --context=${KUBECONTEXT} apply -f deploy/load-testing/04-test-jobs/k6-opensearch-light-search.yaml
+kubectl --context=${KUBECONTEXT} -n load-test wait --for=condition=complete \
+  job/k6-opensearch-light-search --timeout=45m
+
+# 3) k6 stdout summary에서 p95/p99 확인
+kubectl --context=${KUBECONTEXT} -n load-test logs job/k6-opensearch-light-search | tail -30
+```
+
+---
+
 # Fluent-bit (FB-01 ~ FB-07)
 
 ## FB-01 — 단일 Pod throughput ceiling

@@ -65,15 +65,23 @@ flowchart LR
 
 ### 4.1 시나리오 매트릭스
 
-| ID | 시나리오 | 유형 | 핵심 지표 | 수행 시간 |
-|----|----------|------|-----------|-----------|
-| OS-01 | Bulk Indexing | Load | indexing TPS, reject | 30분 |
-| OS-02 | Mixed Read/Write | Load | p95 latency, CPU | 1시간 |
-| OS-03 | Heavy Aggregation | Stress | circuit breaker, heap | 30분 |
-| OS-04 | Shard/Replica Scaling | Stress | recovery time, throughput | 1시간 |
-| OS-05 | Soak 24h | Soak | GC pause, heap 누수 | 24시간 |
-| OS-06 | Spike Ingest ×5 | Spike | backpressure, reject | 15분 |
-| OS-07 | Node Failure | Chaos | red→yellow→green 시간 | 20분 |
+> **워크로드 가정**: 200대 cluster (Spark/Trino/Airflow) 로그 ingest가 주, 검색은 6팀 간헐적.
+> 따라서 인덱싱 폭격 패턴과 운영 작업 충돌이 핵심이며, 검색은 가벼운 통합 시나리오(OS-16)로 흡수합니다.
+
+| ID | 시나리오 | 유형 | 핵심 지표 | 수행 시간 | 비고 |
+|----|----------|------|-----------|-----------|------|
+| OS-01 | Bulk Indexing (baseline) | Load | indexing TPS, reject | 30분 | benchmark 도구 동작 확인용 baseline |
+| OS-02 | Mixed Read/Write | Load | p95 latency, CPU | 1시간 | **OS-16에 흡수됨** (50 VU 검색은 본 워크로드와 안 맞음) |
+| OS-03 | Heavy Aggregation | Stress | circuit breaker, heap | 30분 | |
+| OS-04 | Shard/Replica Scaling | Stress | recovery time, throughput | 1시간 | |
+| OS-05 | Soak 24h | Soak | GC pause, heap 누수 | 24시간 | |
+| OS-06 | Spike Ingest ×5 | Spike | backpressure, reject | 15분 | **OS-09로 강화** (×30 Spark wave) |
+| OS-07 | Node Failure | Chaos | red→yellow→green 시간 | 20분 | |
+| **OS-08** | **Sustained High Ingest (200대 모사)** | **Load** | sustainable TPS, segment count | **1시간** | **신규 — 본 워크로드 핵심** |
+| **OS-09** | **Spark Job Startup Burst (×30)** | **Spike** | FB filesystem buffer, OS reject | **15분** | **신규 — Spark/Airflow 시작 wave 대응** |
+| **OS-12** | **Refresh Interval 튜닝 비교** | **Tuning** | indexing TPS / refresh ops | **1.5시간 (3회)** | **신규 — 1s vs 30s vs 60s** |
+| **OS-14** | **High-Cardinality Field 폭증** | **Stress** | indices memory, mapping fields | **30분** | **신규 — Spark task_attempt_id 등** |
+| **OS-16** | **Heavy Ingest + Light Search** | **Integration** | search p95, indexing 영향 | **30분** | **신규 — 운영 통합 시나리오 (6 VU)** |
 
 ### 4.2 부하 프로파일
 
