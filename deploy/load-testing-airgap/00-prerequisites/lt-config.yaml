@@ -9,7 +9,7 @@ metadata:
   namespace: load-test
 data:
   # ── 이미지 / 엔드포인트 ────────────────────────────────────────
-  LOADTEST_IMAGE:    "nexus.intranet:8082/loadtest/loadtest-tools:0.1.1"
+  LOADTEST_IMAGE:    "nexus.intranet:8082/loadtest/loadtest-tools:0.1.2"
   PROMETHEUS_URL:    "http://kps-prometheus.monitoring.svc:9090"
   OPENSEARCH_URL:    "http://opensearch-lt-node.monitoring.svc:9200"
   ALERTMANAGER_URL:  "http://kps-alertmanager.monitoring.svc:9093"

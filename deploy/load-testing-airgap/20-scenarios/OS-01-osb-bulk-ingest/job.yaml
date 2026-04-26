@@ -22,7 +22,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: benchmark
-          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.2
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef: { name: lt-config }

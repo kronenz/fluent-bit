@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: flog
-          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.2
           imagePullPolicy: IfNotPresent
           command: ["flog", "-f", "json", "-d", "100us", "-l"]
           resources:
