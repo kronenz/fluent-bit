@@ -1,0 +1,743 @@
+# Air-gap integration-test deployment (single vanilla YAML).
+#
+# All images point at the internal Nexus Docker registry. If your Nexus
+# host/path differs from the example, do a single sed across this file:
+#
+#   sed -i 's|nexus.intranet:8082/loadtest|<your-nexus-host:port>/<project>|g' \
+#       deploy/load-testing/airgap-integration-test.yaml
+#
+# Apply:
+#   kubectl --context=airgap-prod apply -f deploy/load-testing/airgap-integration-test.yaml
+#
+# Watch:
+#   kubectl --context=airgap-prod -n load-test get pods,jobs -w
+#
+# Pre-requisites (deployed separately, also from Nexus):
+#   - kube-prometheus-stack helm release in `monitoring`
+#   - opensearch helm release in `monitoring` (service: opensearch-lt-node)
+#   - fluent-bit helm release in `kube-system` (or wherever the daemonset runs)
+#
+# This bundle does NOT include the Grafana dashboards (large generated file).
+# Apply those separately from `deploy/load-testing/05-dashboards/dashboards.yaml`.
+#
+# Image references that need to exist in Nexus:
+#   nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+#   nexus.intranet:8082/loadtest/pause:3.10
+#
+# If Nexus requires authentication, create the pull secret first:
+#   kubectl create secret docker-registry nexus-cred \
+#     --docker-server=nexus.intranet:8082 \
+#     --docker-username=$NEXUS_USER \
+#     --docker-password=$NEXUS_PASS \
+#     -n load-test
+#   kubectl create secret docker-registry nexus-cred \
+#     --docker-server=nexus.intranet:8082 \
+#     --docker-username=$NEXUS_USER \
+#     --docker-password=$NEXUS_PASS \
+#     -n monitoring
+# Then add `imagePullSecrets: [{ name: nexus-cred }]` under each PodSpec.
+---
+# ===================================================================
+# 0. Namespaces
+# ===================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels: { purpose: monitoring-stack }
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: load-test
+  labels: { purpose: load-generation }
+---
+# ===================================================================
+# 1. Central configuration consumed by every test Job/Deployment
+# ===================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lt-config
+  namespace: load-test
+data:
+  LOADTEST_IMAGE:    "nexus.intranet:8082/loadtest/loadtest-tools:0.1.1"
+  PROMETHEUS_URL:    "http://kps-prometheus.monitoring.svc:9090"
+  OPENSEARCH_URL:    "http://opensearch-lt-node.monitoring.svc:9200"
+  ALERTMANAGER_URL:  "http://kps-alertmanager.monitoring.svc:9093"
+  GRAFANA_URL:       "http://kps-grafana.monitoring.svc"
+  NODE_EXPORTER_SVC: "http://kps-prometheus-node-exporter.monitoring.svc:9100"
+  KSM_SVC:           "http://kps-kube-state-metrics.monitoring.svc:8080"
+
+  DASH_OVERVIEW:      "lt-overview"
+  DASH_OPENSEARCH:    "lt-opensearch"
+  DASH_FLUENT_BIT:    "lt-fluent-bit"
+  DASH_PROMETHEUS:    "lt-prometheus"
+  DASH_NODE_EXPORTER: "lt-node-exporter"
+  DASH_KSM:           "lt-ksm"
+
+  # Fluent-bit / flog (FB-01 ~ FB-07)
+  FLOG_REPLICAS:        "3"        # production: 10
+  FLOG_DELAY:           "100us"
+  FLOG_FORMAT:          "json"
+
+  # Avalanche (PR-01 ~ PR-05)
+  AVALANCHE_REPLICAS:           "2"     # production: 20
+  AVALANCHE_GAUGE_METRIC_COUNT: "200"   # production: 500
+  AVALANCHE_SERIES_COUNT:       "200"   # production: 500
+  AVALANCHE_LABEL_COUNT:        "10"
+  AVALANCHE_VALUE_INTERVAL:     "15"
+  AVALANCHE_SERIES_INTERVAL:    "900"
+  AVALANCHE_METRIC_INTERVAL:    "3600"
+
+  # k6
+  K6_PROMQL_VUS:        "20"
+  K6_PROMQL_DURATION:   "5m"
+  K6_SEARCH_VU_TARGET:  "50"
+  K6_SEARCH_DURATION:   "5m"
+  OS_INDEX_PATTERN:     "logs-fb-*"
+
+  # kube-burner (KSM-02 ~ KSM-04)
+  KSM_BURNER_ITERATIONS:   "100"   # production: 10000
+  KSM_BURNER_QPS:          "20"
+  KSM_BURNER_BURST:        "30"
+  KSM_BURNER_NS_PREFIX:    "kburner"
+
+  # hey (NE-02)
+  HEY_CONCURRENCY:    "50"
+  HEY_DURATION:       "2m"
+  HEY_RPS_PER_WORKER: "50"
+
+  # opensearch-benchmark (OS-01)
+  OSB_WORKLOAD:        "geonames"
+  OSB_TEST_PROCEDURE:  "append-no-conflicts-index-only"
+  OSB_BULK_SIZE:       "5000"
+  OSB_CLIENTS:         "16"
+---
+# ===================================================================
+# 2. OpenSearch exporter — exposes /metrics about the OS cluster
+# ===================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opensearch-exporter
+  namespace: monitoring
+  labels: { app: opensearch-exporter }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: opensearch-exporter }
+  template:
+    metadata:
+      labels: { app: opensearch-exporter }
+    spec:
+      containers:
+        - name: exporter
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          command: ["elasticsearch_exporter"]
+          args:
+            - --es.uri=http://opensearch-lt-node.monitoring.svc:9200
+            - --es.all
+            - --es.indices
+            - --es.indices_settings
+            - --es.shards
+            - --es.timeout=30s
+          ports:
+            - { name: metrics, containerPort: 9114 }
+          resources:
+            requests: { cpu: "20m", memory: "32Mi" }
+            limits:   { cpu: "200m", memory: "128Mi" }
+          readinessProbe: { httpGet: { path: /healthz, port: metrics } }
+          livenessProbe:  { httpGet: { path: /healthz, port: metrics } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensearch-exporter
+  namespace: monitoring
+  labels: { app: opensearch-exporter }
+spec:
+  selector: { app: opensearch-exporter }
+  ports:
+    - { name: metrics, port: 9114, targetPort: metrics }
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: opensearch-exporter
+  namespace: monitoring
+  labels: { app: opensearch-exporter }
+spec:
+  selector: { matchLabels: { app: opensearch-exporter } }
+  endpoints:
+    - port: metrics
+      interval: 30s
+---
+# ===================================================================
+# 3. flog — synthetic JSON log producer (FB-01/02/04/05)
+# ===================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flog-loader
+  namespace: load-test
+  labels: { app: flog-loader, role: load-generator }
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: flog-loader }
+  template:
+    metadata:
+      labels: { app: flog-loader }
+    spec:
+      containers:
+        - name: flog
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          command: ["flog", "-f", "json", "-d", "100us", "-l"]
+          resources:
+            requests: { cpu: "100m", memory: "64Mi" }
+            limits:   { cpu: "500m", memory: "128Mi" }
+---
+# ===================================================================
+# 4. Avalanche — synthetic Prometheus /metrics (PR-01/02/05)
+# ===================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: avalanche
+  namespace: load-test
+  labels: { app: avalanche, role: load-generator }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: avalanche }
+  template:
+    metadata:
+      labels: { app: avalanche }
+    spec:
+      containers:
+        - name: avalanche
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          command: ["avalanche"]
+          args:
+            - --gauge-metric-count=200
+            - --series-count=200
+            - --label-count=10
+            - --value-interval=15
+            - --series-interval=900
+            - --metric-interval=3600
+            - --port=9001
+          ports:
+            - { name: http, containerPort: 9001 }
+          resources:
+            requests: { cpu: "50m", memory: "128Mi" }
+            limits:   { cpu: "500m", memory: "256Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: avalanche
+  namespace: load-test
+  labels: { app: avalanche }
+spec:
+  selector: { app: avalanche }
+  ports:
+    - { name: http, port: 9001, targetPort: http }
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: avalanche
+  namespace: load-test
+  labels: { app: avalanche }
+spec:
+  selector: { matchLabels: { app: avalanche } }
+  endpoints:
+    - port: http
+      interval: 15s
+      scrapeTimeout: 10s
+---
+# ===================================================================
+# 5. loggen-spark — high-cardinality Spark/Airflow style logs (OS-14 / FB)
+# ===================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loggen-spark-script
+  namespace: load-test
+data:
+  loggen-spark.py: |
+    #!/usr/bin/env python3
+    """High-cardinality Spark/Airflow log generator. UUID per record forces
+    OpenSearch to keep many distinct keyword values, growing segment memory
+    and (on dynamic mappings) field count."""
+    import json, os, random, time, uuid
+
+    DELAY      = float(os.environ.get("LOGGEN_DELAY", "0.0005"))
+    APP        = os.environ.get("LOGGEN_APP", "spark-loadtest")
+    LEVELS     = ["INFO"]*9 + ["WARN"] + ["ERROR"]
+    STAGES     = list(range(1, 30))
+    MESSAGES = [
+        "Started shuffle read for partition {p}",
+        "Wrote {b} bytes to disk for stage {s}",
+        "Task attempt finished in {ms}ms",
+        "Executor heartbeat received",
+        "Block manager replicated block rdd_{rdd}_{p}",
+        "Fetching {p} blocks from {host}",
+        "GC took {ms}ms for {gen} generation",
+    ]
+    while True:
+        s = random.choice(STAGES)
+        rec = {
+            "ts":               time.time(),
+            "level":            random.choice(LEVELS),
+            "app":              APP,
+            "stage_id":         s,
+            "task_attempt_id":  str(uuid.uuid4()),
+            "container_id":     f"container_{random.randint(1, 50000):08d}",
+            "executor_id":      f"executor_{random.randint(1, 200)}",
+            "dag_run_id":       f"manual__{int(time.time())}_{random.randint(0, 10**6)}",
+            "msg": random.choice(MESSAGES).format(
+                p=random.randint(0, 1024),
+                b=random.randint(1, 10**8),
+                ms=random.randint(1, 5000),
+                s=s, rdd=random.randint(1, 1000),
+                host=f"node-{random.randint(1, 200)}",
+                gen=random.choice(["young", "old"]),
+            ),
+        }
+        print(json.dumps(rec), flush=True)
+        time.sleep(DELAY)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loggen-spark
+  namespace: load-test
+  labels: { app: loggen-spark, role: load-generator, scenario: OS-14 }
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: loggen-spark }
+  template:
+    metadata:
+      labels: { app: loggen-spark }
+    spec:
+      containers:
+        - name: loggen
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "/scripts/loggen-spark.py"]
+          envFrom:
+            - configMapRef: { name: lt-config }
+          env:
+            - { name: LOGGEN_DELAY, value: "0.0005" }
+            - { name: LOGGEN_APP,   value: "spark-loadtest" }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+          resources:
+            requests: { cpu: "100m", memory: "64Mi" }
+            limits:   { cpu: "500m", memory: "128Mi" }
+      volumes:
+        - name: scripts
+          configMap: { name: loggen-spark-script, defaultMode: 0755 }
+---
+# ===================================================================
+# 6. hey — HTTP load against node-exporter /metrics (NE-02)
+# ===================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hey-node-exporter
+  namespace: load-test
+  labels: { app: hey-node-exporter, role: test-runner }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: hey-node-exporter }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: hey
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: lt-config }
+          command: ["hey"]
+          args: ["-z", "$(HEY_DURATION)",
+                 "-c", "$(HEY_CONCURRENCY)",
+                 "-q", "$(HEY_RPS_PER_WORKER)",
+                 "$(NODE_EXPORTER_SVC)/metrics"]
+          resources:
+            requests: { cpu: "100m", memory: "64Mi" }
+            limits:   { cpu: "1000m", memory: "256Mi" }
+---
+# ===================================================================
+# 7. k6 PromQL — random query load against Prometheus (PR-03/04)
+# ===================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k6-promql-script
+  namespace: load-test
+data:
+  script.js: |
+    import http from 'k6/http';
+    import { check, sleep } from 'k6';
+    export const options = {
+      vus:      Number(__ENV.K6_PROMQL_VUS || 20),
+      duration: __ENV.K6_PROMQL_DURATION || '5m',
+      thresholds: {
+        http_req_duration: ['p(95)<2000'],
+        http_req_failed:   ['rate<0.01'],
+      },
+    };
+    const PROM = __ENV.PROMETHEUS_URL || 'http://kps-prometheus.monitoring.svc:9090';
+    const queries = [
+      'sum(rate(node_cpu_seconds_total[5m])) by (mode)',
+      'sum by (pod) (container_memory_working_set_bytes{namespace="monitoring"})',
+      'topk(10, max by (pod)(container_memory_working_set_bytes))',
+      'rate(prometheus_http_requests_total[5m])',
+      'histogram_quantile(0.99, sum by (le) (rate(prometheus_http_request_duration_seconds_bucket[5m])))',
+      'count(up == 1)',
+      'sum(rate(apiserver_request_total[5m])) by (verb)',
+    ];
+    export default function () {
+      const q = queries[Math.floor(Math.random() * queries.length)];
+      const r = http.get(`${PROM}/api/v1/query?query=${encodeURIComponent(q)}`);
+      check(r, { '200': (res) => res.status === 200 });
+      sleep(0.1);
+    }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-promql
+  namespace: load-test
+  labels: { app: k6-promql, role: test-runner }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: k6-promql }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: k6
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          command: ["k6", "run", "/scripts/script.js"]
+          envFrom:
+            - configMapRef: { name: lt-config }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "1000m", memory: "512Mi" }
+      volumes:
+        - name: scripts
+          configMap: { name: k6-promql-script }
+---
+# ===================================================================
+# 8. k6 OpenSearch heavy search — sustained _search load (OS-02)
+# ===================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k6-opensearch-search-script
+  namespace: load-test
+data:
+  script.js: |
+    import http from 'k6/http';
+    import { check } from 'k6';
+    const SEARCH_TARGET   = Number(__ENV.K6_SEARCH_VU_TARGET || 50);
+    const SEARCH_DURATION = __ENV.K6_SEARCH_DURATION || '5m';
+    export const options = {
+      stages: [
+        { duration: '1m',  target: Math.floor(SEARCH_TARGET / 2) },
+        { duration: SEARCH_DURATION, target: SEARCH_TARGET },
+        { duration: '1m',  target: 0 },
+      ],
+      thresholds: {
+        http_req_duration: ['p(95)<500', 'p(99)<1500'],
+        http_req_failed:   ['rate<0.005'],
+      },
+    };
+    const OS    = __ENV.OPENSEARCH_URL    || 'http://opensearch-lt-node.monitoring.svc:9200';
+    const INDEX = __ENV.OS_INDEX_PATTERN  || 'logs-fb-*';
+    const body = JSON.stringify({ query: { match: { log: 'error' } }, size: 20 });
+    export default function () {
+      const r = http.post(`${OS}/${INDEX}/_search`, body, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      check(r, { '2xx': (res) => res.status >= 200 && res.status < 300 });
+    }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-opensearch-search
+  namespace: load-test
+  labels: { app: k6-opensearch-search, role: test-runner }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: k6-opensearch-search }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: k6
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          command: ["k6", "run", "/scripts/script.js"]
+          envFrom:
+            - configMapRef: { name: lt-config }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "1000m", memory: "512Mi" }
+      volumes:
+        - name: scripts
+          configMap: { name: k6-opensearch-search-script }
+---
+# ===================================================================
+# 9. k6 OpenSearch light search — 6 service-team intermittent search (OS-16)
+# ===================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k6-opensearch-light-search-script
+  namespace: load-test
+data:
+  script.js: |
+    import http from 'k6/http';
+    import { check, sleep } from 'k6';
+    export const options = {
+      vus:      Number(__ENV.LIGHT_SEARCH_VUS || 6),
+      duration: __ENV.LIGHT_SEARCH_DURATION || '30m',
+      thresholds: {
+        http_req_duration: ['p(95)<5000', 'p(99)<10000'],
+        http_req_failed:   ['rate<0.01'],
+      },
+    };
+    const OS    = __ENV.OPENSEARCH_URL    || 'http://opensearch-lt-node.monitoring.svc:9200';
+    const INDEX = __ENV.OS_INDEX_PATTERN  || 'logs-fb-*';
+    function buildQuery() {
+      const services = ['spark-loadtest', 'airflow', 'trino', 'flog'];
+      const levels   = ['ERROR', 'WARN', 'INFO'];
+      const t = Date.now();
+      const queries = [
+        { range: { ts: { gte: (t/1000) - 3600 } } },
+        { bool: { must: [
+          { range: { ts: { gte: (t/1000) - 3600 } } },
+          { match: { app: services[Math.floor(Math.random()*services.length)] } },
+        ]}},
+        { bool: { must: [
+          { range: { ts: { gte: (t/1000) - 3600 } } },
+          { match: { level: levels[Math.floor(Math.random()*levels.length)] } },
+        ]}},
+      ];
+      return queries[Math.floor(Math.random() * queries.length)];
+    }
+    export default function () {
+      const body = JSON.stringify({ query: buildQuery(), size: 50 });
+      const r = http.post(`${OS}/${INDEX}/_search`, body, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      check(r, { '2xx': (res) => res.status >= 200 && res.status < 300 });
+      sleep(5 + Math.random() * 10);
+    }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-opensearch-light-search
+  namespace: load-test
+  labels: { app: k6-opensearch-light-search, role: test-runner, scenario: OS-16 }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: k6-opensearch-light-search }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: k6
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          command: ["k6", "run", "/scripts/script.js"]
+          envFrom:
+            - configMapRef: { name: lt-config }
+          env:
+            - { name: LIGHT_SEARCH_VUS,      value: "6"   }
+            - { name: LIGHT_SEARCH_DURATION, value: "30m" }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "500m", memory: "256Mi" }
+      volumes:
+        - name: scripts
+          configMap: { name: k6-opensearch-light-search-script }
+---
+# ===================================================================
+# 10. kube-burner — pod density (KSM-02 ~ KSM-04)
+# ===================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-burner
+  namespace: load-test
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kube-burner-load-test
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: kube-burner
+    namespace: load-test
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-burner-config
+  namespace: load-test
+data:
+  config.yaml: |
+    metricsEndpoints: []
+    global:
+      gc: true
+      gcMetrics: false
+    jobs:
+      - name: pod-density
+        jobType: create
+        jobIterations: 100
+        namespace: kburner
+        namespacedIterations: true
+        cleanup: true
+        podWait: true
+        waitWhenFinished: false
+        qps: 20
+        burst: 30
+        objects:
+          - objectTemplate: /config/pod.yaml
+            replicas: 1
+  pod.yaml: |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: burner-pod-{{.Iteration}}-{{.Replica}}
+      labels:
+        app: kube-burner
+        iteration: "{{.Iteration}}"
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: pause
+          image: nexus.intranet:8082/loadtest/pause:3.10
+          resources:
+            requests: { cpu: "5m", memory: "8Mi" }
+            limits:   { cpu: "20m", memory: "16Mi" }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kube-burner-pod-density
+  namespace: load-test
+  labels: { app: kube-burner, role: test-runner }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: kube-burner }
+    spec:
+      restartPolicy: Never
+      serviceAccountName: kube-burner
+      containers:
+        - name: kube-burner
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          workingDir: /work
+          command: ["kube-burner", "init", "-c", "/config/config.yaml", "--uuid", "$(POD_NAME)"]
+          envFrom:
+            - configMapRef: { name: lt-config }
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+          volumeMounts:
+            - { name: config, mountPath: /config }
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "1000m", memory: "512Mi" }
+      volumes:
+        - name: config
+          configMap: { name: kube-burner-config }
+---
+# ===================================================================
+# 11. opensearch-benchmark — bulk-ingest workload (OS-01)
+# ===================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: opensearch-benchmark
+  namespace: load-test
+  labels: { app: opensearch-benchmark, role: test-runner }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: opensearch-benchmark }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: benchmark
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: lt-config }
+          env:
+            - { name: OSB_TEST_MODE, value: "true" }
+            - { name: OSB_DATA_PATH, value: "/tmp/osb-data" }
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              EXTRA_ARGS=()
+              if [[ "${OSB_TEST_MODE:-true}" == "true" ]]; then
+                EXTRA_ARGS+=(--test-mode)
+              fi
+              mkdir -p "${OSB_DATA_PATH}"
+              opensearch-benchmark execute-test \
+                --target-hosts="${OPENSEARCH_URL}" \
+                --pipeline=benchmark-only \
+                --workload-path="${OSB_WORKLOADS_PATH}/${OSB_WORKLOAD}" \
+                --test-procedure="${OSB_TEST_PROCEDURE}" \
+                --client-options=verify_certs:false \
+                --results-file=/tmp/result.json \
+                --kill-running-processes \
+                "${EXTRA_ARGS[@]}"
+          volumeMounts:
+            - { name: osb-data, mountPath: /tmp/osb-data }
+          resources:
+            requests: { cpu: "200m", memory: "512Mi" }
+            limits:   { cpu: "2000m", memory: "1500Mi" }
+      volumes:
+        - name: osb-data
+          emptyDir: {}
