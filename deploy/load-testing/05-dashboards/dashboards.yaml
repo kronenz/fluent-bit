@@ -564,7 +564,7 @@ data:
   dash-load-test-opensearch.json: |-
     {
       "uid": "lt-opensearch",
-      "title": "Load Test \u2022 OpenSearch (OS-01~07)",
+      "title": "Load Test \u2022 OpenSearch (OS \u2014 log-ingest workload, 10 scenarios)",
       "schemaVersion": 39,
       "version": 1,
       "editable": true,
