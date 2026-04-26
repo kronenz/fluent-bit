@@ -6,7 +6,7 @@ set -euo pipefail
 
 REGISTRY="${REGISTRY:-}"
 IMAGE="${IMAGE:-loadtest-tools}"
-TAG="${TAG:-0.1.0}"
+TAG="${TAG:-0.1.1}"
 
 cd "$(dirname "$0")"
 

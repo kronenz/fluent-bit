@@ -6,7 +6,7 @@
 set -euo pipefail
 
 OUT_DIR="${OUT_DIR:-./airgap-bundle}"
-TAG="${TAG:-0.1.0}"
+TAG="${TAG:-0.1.1}"
 IMAGE="${IMAGE:-loadtest-tools}"
 
 cd "$(dirname "$0")"
@@ -33,8 +33,9 @@ THIRD_PARTY_IMAGES=(
     "registry.k8s.io/ingress-nginx/controller:v1.14.3"
     "registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.6.7"
     "registry.k8s.io/metrics-server/metrics-server:v0.8.1"
-    "registry.k8s.io/pause:3.10"
+    "registry.k8s.io/pause:3.10"             # used by kube-burner object template
     "docker.io/library/busybox:1.37.0"
+    "curlimages/curl:latest"                 # used by ad-hoc curl Pods (k6 verifications, smoke tests)
 )
 for img in "${THIRD_PARTY_IMAGES[@]}"; do
     safe=$(echo "$img" | tr '/:' '__')

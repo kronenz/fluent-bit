@@ -12,7 +12,7 @@ metadata:
   namespace: load-test
 data:
   # ---------- Image / Registry ----------
-  LOADTEST_IMAGE: "loadtest-tools:0.1.0"   # air-gap: nexus.intranet:8082/loadtest/loadtest-tools:0.1.0
+  LOADTEST_IMAGE: "loadtest-tools:0.1.1"   # air-gap: nexus.intranet:8082/loadtest/loadtest-tools:0.1.1
 
   # ---------- Endpoints (in-cluster; override for proxied/HA setups) ----------
   PROMETHEUS_URL:   "http://kps-prometheus.monitoring.svc:9090"
@@ -56,6 +56,9 @@ data:
   KSM_BURNER_QPS:          "20"
   KSM_BURNER_BURST:        "30"
   KSM_BURNER_NS_PREFIX:    "kburner"
+  # Image used by the object templates kube-burner instantiates. Air-gap:
+  # mirror to Nexus (e.g. nexus.intranet:8082/loadtest/pause:3.10).
+  PAUSE_IMAGE:             "registry.k8s.io/pause:3.10"
 
   # ---------- hey (NE-02) ----------
   HEY_CONCURRENCY:    "50"

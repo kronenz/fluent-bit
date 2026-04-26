@@ -37,8 +37,10 @@ data:
     spec:
       restartPolicy: Never
       containers:
+        # PAUSE_IMAGE is provided via lt-config ConfigMap. Air-gap: point at
+        # the Nexus mirror (e.g. nexus.intranet:8082/loadtest/pause:3.10).
         - name: pause
-          image: registry.k8s.io/pause:3.10
+          image: {{.PAUSE_IMAGE}}
           resources:
             requests: { cpu: "5m", memory: "8Mi" }
             limits:   { cpu: "20m", memory: "16Mi" }
@@ -85,6 +87,8 @@ spec:
           # writes its log file to PWD. /work is writable in the image.
           workingDir: /work
           command: ["kube-burner", "init", "-c", "/config/config.yaml", "--uuid", "$(POD_NAME)"]
+          envFrom:
+            - configMapRef: { name: lt-config }   # PAUSE_IMAGE, KSM_BURNER_*
           env:
             - name: POD_NAME
               valueFrom: { fieldRef: { fieldPath: metadata.name } }

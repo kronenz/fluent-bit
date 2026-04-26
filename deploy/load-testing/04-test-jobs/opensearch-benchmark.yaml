@@ -1,6 +1,16 @@
 # Maps to scenario OS-01 in docs/load-testing/01-opensearch-load-test.md
 # Single Job that runs opensearch-benchmark against the in-cluster OpenSearch.
-# Logs result to stdout; for persistent results mount a PVC at /tmp.
+#
+# Air-gap behaviour:
+#   OSB_TEST_MODE=true (default)  → --test-mode: 1,000 docs per workload, no
+#                                   external corpus download required.
+#   OSB_TEST_MODE=false           → uses /opt/osb-workloads/$OSB_WORKLOAD
+#                                   (baked into image) + corpus at
+#                                   $OSB_DATA_PATH (must be PVC-mounted).
+#
+# Set $OSB_DATA_PATH to a writable directory pre-loaded with the corpus
+# (e.g. /var/benchmark/data/geonames/documents-2.json.bz2). Default
+# /tmp/osb-data is fine for --test-mode (no files needed).
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -21,18 +31,37 @@ spec:
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef:
-                name: lt-config   # OPENSEARCH_URL, OSB_WORKLOAD, OSB_TEST_PROCEDURE
-          # workload `geonames` is small (~3M docs); use `http_logs` for bigger volume.
-          command: ["opensearch-benchmark"]
+                name: lt-config
+          env:
+            - { name: OSB_TEST_MODE, value: "true" }    # set "false" + mount PVC for full corpus
+            - { name: OSB_DATA_PATH, value: "/tmp/osb-data" }
+          command: ["bash", "-c"]
           args:
-            - "execute-test"
-            - "--target-hosts=$(OPENSEARCH_URL)"
-            - "--pipeline=benchmark-only"
-            - "--workload=$(OSB_WORKLOAD)"
-            - "--test-procedure=$(OSB_TEST_PROCEDURE)"
-            - "--client-options=verify_certs:false"
-            - "--results-file=/tmp/result.json"
-            - "--kill-running-processes"
+            - |
+              set -euo pipefail
+              EXTRA_ARGS=()
+              if [[ "${OSB_TEST_MODE:-true}" == "true" ]]; then
+                EXTRA_ARGS+=(--test-mode)
+              fi
+              mkdir -p "${OSB_DATA_PATH}"
+              # Always use --workload-path so opensearch-benchmark never
+              # touches the default git repo (which would try to fetch).
+              opensearch-benchmark execute-test \
+                --target-hosts="${OPENSEARCH_URL}" \
+                --pipeline=benchmark-only \
+                --workload-path="${OSB_WORKLOADS_PATH}/${OSB_WORKLOAD}" \
+                --test-procedure="${OSB_TEST_PROCEDURE}" \
+                --client-options=verify_certs:false \
+                --results-file=/tmp/result.json \
+                --kill-running-processes \
+                "${EXTRA_ARGS[@]}"
+          volumeMounts:
+            - { name: osb-data, mountPath: /tmp/osb-data }
           resources:
             requests: { cpu: "200m", memory: "512Mi" }
             limits:   { cpu: "2000m", memory: "1500Mi" }
+      volumes:
+        # In air-gap full-mode, replace with PVC pre-loaded with corpora.
+        # For OSB_TEST_MODE=true this is just a scratch dir.
+        - name: osb-data
+          emptyDir: {}

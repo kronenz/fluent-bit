@@ -13,6 +13,9 @@ ARG AVALANCHE_VERSION=v0.7.0
 ARG ESEXP_VERSION=v1.8.0
 ARG KUBECTL_VERSION=1.32.0
 ARG OSB_VERSION=1.7.0
+# Pinned commit on the OpenSearch benchmark workloads default branch (main).
+# Updated 2026-04 — bump as needed and rebuild.
+ARG OSB_WORKLOADS_REF=main
 
 FROM grafana/k6:${K6_VERSION} AS k6
 FROM quay.io/kube-burner/kube-burner:${KB_VERSION} AS kube-burner
@@ -45,6 +48,21 @@ RUN curl -fsSL "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/amd64/ku
 
 # opensearch-benchmark (Python)
 RUN pip install --no-cache-dir "opensearch-benchmark==${OSB_VERSION}"
+
+# opensearch-benchmark workload definitions (so air-gap doesn't need to clone
+# https://github.com/opensearch-project/opensearch-benchmark-workloads at run
+# time). Corpus data (.json.bz2 from benchmarks.opensearch.org) is too large
+# to bake; supply via PVC at /opt/osb-data or use --test-mode (1k docs).
+ARG OSB_WORKLOADS_REF
+# Pre-stage workloads at /opt/osb-workloads. We use --workload-path in the
+# Job manifest so opensearch-benchmark never tries to git-fetch the default
+# repo. .git is removed because OSB attempts `git checkout` on it even with
+# --offline, which fails on shallow clones.
+RUN git clone --depth 1 -b ${OSB_WORKLOADS_REF} \
+        https://github.com/opensearch-project/opensearch-benchmark-workloads.git \
+        /opt/osb-workloads \
+ && rm -rf /opt/osb-workloads/.git
+ENV OSB_WORKLOADS_PATH=/opt/osb-workloads
 
 # Binaries from upstream images
 COPY --from=k6        /usr/bin/k6                                 /usr/local/bin/k6

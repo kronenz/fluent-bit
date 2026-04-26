@@ -26,4 +26,4 @@ resources:
 images:
   - name: loadtest-tools
     newName: loadtest-tools
-    newTag: "0.1.0"
+    newTag: "0.1.1"

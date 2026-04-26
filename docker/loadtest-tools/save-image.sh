@@ -5,7 +5,7 @@
 set -euo pipefail
 
 IMAGE="${IMAGE:-loadtest-tools}"
-TAG="${TAG:-0.1.0}"
+TAG="${TAG:-0.1.1}"
 OUT_DIR="${OUT_DIR:-./out}"
 
 mkdir -p "$OUT_DIR"

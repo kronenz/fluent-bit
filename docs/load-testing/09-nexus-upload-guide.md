@@ -275,6 +275,58 @@ kubectl --context=$CTX -n load-test rollout restart deploy
 
 ---
 
+## 8.5 부가 자산 — 도구별 오프라인 의존성
+
+`loadtest-tools` 이미지 외에도 폐쇄망에서 동작하려면 **간접 자산**이 함께 필요합니다.
+
+| 도구 | 자산 종류 | 처리 방안 |
+|------|-----------|-----------|
+| `opensearch-benchmark` workload 정의 | git repo (~MB) | ✅ **이미지에 포함**: `/opt/osb-workloads` (Dockerfile에서 `git clone --depth 1`) |
+| `opensearch-benchmark` corpus 데이터 | `.json.bz2` (geonames 280 MB ~ http_logs 80 GB) | (a) **`OSB_TEST_MODE=true` 사용** (1k docs, 데이터 불필요 — 도구 검증 충분) <br> (b) **PVC 마운트**: 사전에 NFS/object-storage에서 `/opt/osb-data`에 적재 |
+| `kube-burner` 의 object template image (`pause:3.10`) | 컨테이너 이미지 | ✅ **Nexus에 mirror** (`airgap-export.sh`에 포함). 매니페스트는 `lt-config`의 `PAUSE_IMAGE` 변수로 지정 |
+| `curlimages/curl:latest` (ad-hoc 검증용) | 컨테이너 이미지 | ✅ **Nexus에 mirror** (`airgap-export.sh`에 포함) |
+| K8s 컨테이너 이미지 (OS, FB, Prom, Grafana, ingress 등) | 컨테이너 이미지 | ✅ **`airgap-export.sh`에 목록 포함** — 한 번에 export → import |
+
+### 8.5.1 opensearch-benchmark `--test-mode` (도구 검증 / 폐쇄망 코퍼스 미준비 시)
+
+```yaml
+# deploy/load-testing/04-test-jobs/opensearch-benchmark.yaml 의 env:
+- { name: OSB_TEST_MODE, value: "true" }     # 1k docs로 워크로드 절차 검증
+```
+
+`--test-mode` 플래그가 자동 적용되어 corpus 다운로드 없이 동작.
+
+### 8.5.2 opensearch-benchmark 전체 corpus PVC 마운트 (운영 부하 측정)
+
+```bash
+# 1) 외부망에서 corpus 미리 다운로드 (예: geonames)
+opensearch-benchmark download --workload=geonames \
+    --workload-repository=default
+# ~/.benchmark/benchmarks/data/geonames/ 에 .json.bz2 생성됨
+
+# 2) 폐쇄망 NFS / object storage 등에 업로드
+
+# 3) PVC StorageClass 정의 후 매니페스트 patch:
+kubectl patch job opensearch-benchmark -n load-test --type=json -p='[
+  {"op":"replace","path":"/spec/template/spec/volumes/0",
+   "value":{"name":"osb-data","persistentVolumeClaim":{"claimName":"osb-corpus-pvc"}}}
+]'
+
+# 4) 실행
+kubectl set env job/opensearch-benchmark -n load-test OSB_TEST_MODE=false
+```
+
+### 8.5.3 kube-burner pause 이미지 변수화
+
+기본값 (`registry.k8s.io/pause:3.10`)을 Nexus mirror 경로로 변경:
+```bash
+kubectl --context=$CTX -n load-test edit configmap lt-config
+# PAUSE_IMAGE: nexus.intranet:8082/loadtest/pause:3.10
+kubectl --context=$CTX -n load-test rollout restart deploy   # 또는 새 Job 생성 시 자동 반영
+```
+
+---
+
 ## 9. 참고 — 보안 권장사항
 
 - Nexus 자격증명은 절대 git에 커밋하지 말 것 (Vault / Sealed Secret / external-secrets 권장)
