@@ -37,10 +37,12 @@ data:
     spec:
       restartPolicy: Never
       containers:
-        # PAUSE_IMAGE is provided via lt-config ConfigMap. Air-gap: point at
-        # the Nexus mirror (e.g. nexus.intranet:8082/loadtest/pause:3.10).
+        # Pause image used by the burner pods. For air-gap, replace this
+        # value with your Nexus mirror, e.g. via:
+        #   kustomize edit set image registry.k8s.io/pause=nexus.intranet:8082/loadtest/pause
+        # or just sed before kubectl apply.
         - name: pause
-          image: {{.PAUSE_IMAGE}}
+          image: registry.k8s.io/pause:3.10
           resources:
             requests: { cpu: "5m", memory: "8Mi" }
             limits:   { cpu: "20m", memory: "16Mi" }
