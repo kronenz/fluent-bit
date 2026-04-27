@@ -1,0 +1,200 @@
+# 'bitbucket repo' 의 testbed 시뮬레이션 — seed Job 이 이 ConfigMap 의 key 들을
+# 디렉터리 트리로 펼쳐서 (__ → /) gitea 에 push.
+#
+# 운영에선 이 ConfigMap 대신 실제 bitbucket clone URL 을 사용 → seed Job 자체가
+# 불필요해지고, provisioner Job 만 직접 bitbucket 에서 clone.
+#
+# 디렉터리 트리:
+#   dashboards/
+#   ├── ingest-pipeline/
+#   │   ├── opensearch/        (cluster-overview, index-performance)
+#   │   └── fluent-bit/        (pipeline-throughput, memory-usage)
+#   ├── infrastructure/
+#   │   ├── compute/           (node-overview, pod-resources)
+#   │   └── network/           (connectivity)
+#   ├── application/           (spark-jobs, trino-queries)
+#   └── chaos-and-reliability/ (failure-drill)
+#
+# 각 대시보드 = uid 고정 (재배포 멱등) + Prometheus 데이터소스 (provisioner 가
+# org 마다 동일 datasource 자동 생성).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboards-repo
+  namespace: gitops
+data:
+  # --- 메타 ---
+  orgs.json: |
+    {
+      "orgs": [
+        { "name": "Engineering" },
+        { "name": "DataPlatform" },
+        { "name": "Security" },
+        { "name": "Operations" },
+        { "name": "Research" }
+      ]
+    }
+  README.md: |
+    # grafana-dashboards (testbed seed)
+
+    조직 5개에 동일 폴더 트리 + 동일 대시보드를 배포하는 source-of-truth.
+    디렉터리 = Grafana 폴더 (UID = path-slug, 중첩 = parentUid).
+
+  # --- Ingest Pipeline / OpenSearch ---
+  dashboards__ingest-pipeline__opensearch__cluster-overview.json: |
+    {
+      "uid": "loadtest-os-cluster-overview",
+      "title": "OpenSearch Cluster Overview",
+      "tags": ["loadtest", "opensearch", "cluster"],
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "30s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "stat",       "title": "Cluster Status",
+          "gridPos": {"x":0,"y":0,"w":6,"h":4},
+          "targets": [{"expr":"opensearch_cluster_status","refId":"A"}] },
+        { "id": 2, "type": "timeseries", "title": "Indexing Rate",
+          "gridPos": {"x":6,"y":0,"w":18,"h":8},
+          "targets": [{"expr":"rate(opensearch_indices_indexing_index_total[5m])","refId":"A"}] }
+      ]
+    }
+  dashboards__ingest-pipeline__opensearch__index-performance.json: |
+    {
+      "uid": "loadtest-os-index-perf",
+      "title": "OpenSearch Index Performance",
+      "tags": ["loadtest", "opensearch", "index"],
+      "schemaVersion": 39, "version": 1, "refresh": "30s",
+      "time": { "from": "now-3h", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "timeseries", "title": "p95 Latency",
+          "gridPos": {"x":0,"y":0,"w":12,"h":8},
+          "targets": [{"expr":"histogram_quantile(0.95, rate(opensearch_indices_indexing_index_time_seconds_bucket[5m]))","refId":"A"}] },
+        { "id": 2, "type": "timeseries", "title": "Bulk Queue Depth",
+          "gridPos": {"x":12,"y":0,"w":12,"h":8},
+          "targets": [{"expr":"opensearch_thread_pool_queue_count{thread_pool_name=\"write\"}","refId":"A"}] }
+      ]
+    }
+
+  # --- Ingest Pipeline / Fluent Bit ---
+  dashboards__ingest-pipeline__fluent-bit__pipeline-throughput.json: |
+    {
+      "uid": "loadtest-fb-throughput",
+      "title": "Fluent Bit Pipeline Throughput",
+      "tags": ["loadtest", "fluent-bit", "throughput"],
+      "schemaVersion": 39, "version": 1, "refresh": "15s",
+      "time": { "from": "now-30m", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "timeseries", "title": "Records / sec",
+          "gridPos": {"x":0,"y":0,"w":24,"h":8},
+          "targets": [{"expr":"rate(fluentbit_input_records_total[1m])","refId":"A"}] }
+      ]
+    }
+  dashboards__ingest-pipeline__fluent-bit__memory-usage.json: |
+    {
+      "uid": "loadtest-fb-memory",
+      "title": "Fluent Bit Memory Usage",
+      "tags": ["loadtest", "fluent-bit", "memory"],
+      "schemaVersion": 39, "version": 1, "refresh": "30s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "timeseries", "title": "RSS by Pod",
+          "gridPos": {"x":0,"y":0,"w":24,"h":8},
+          "targets": [{"expr":"container_memory_rss{container=\"fluent-bit\"}","refId":"A"}] }
+      ]
+    }
+
+  # --- Infrastructure / Compute ---
+  dashboards__infrastructure__compute__node-overview.json: |
+    {
+      "uid": "loadtest-node-overview",
+      "title": "Node Overview",
+      "tags": ["loadtest", "infrastructure", "node"],
+      "schemaVersion": 39, "version": 1, "refresh": "30s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "timeseries", "title": "CPU Usage",
+          "gridPos": {"x":0,"y":0,"w":12,"h":8},
+          "targets": [{"expr":"100 - (avg by (instance)(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)","refId":"A"}] },
+        { "id": 2, "type": "timeseries", "title": "Memory Available",
+          "gridPos": {"x":12,"y":0,"w":12,"h":8},
+          "targets": [{"expr":"node_memory_MemAvailable_bytes","refId":"A"}] }
+      ]
+    }
+  dashboards__infrastructure__compute__pod-resources.json: |
+    {
+      "uid": "loadtest-pod-resources",
+      "title": "Pod Resource Usage",
+      "tags": ["loadtest", "infrastructure", "pod"],
+      "schemaVersion": 39, "version": 1, "refresh": "30s",
+      "time": { "from": "now-30m", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "timeseries", "title": "Top 10 CPU",
+          "gridPos": {"x":0,"y":0,"w":24,"h":10},
+          "targets": [{"expr":"topk(10, rate(container_cpu_usage_seconds_total{container!=\"\"}[5m]))","refId":"A"}] }
+      ]
+    }
+
+  # --- Infrastructure / Network ---
+  dashboards__infrastructure__network__connectivity.json: |
+    {
+      "uid": "loadtest-net-connectivity",
+      "title": "Network Connectivity",
+      "tags": ["loadtest", "infrastructure", "network"],
+      "schemaVersion": 39, "version": 1, "refresh": "30s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "timeseries", "title": "Receive Bytes / sec",
+          "gridPos": {"x":0,"y":0,"w":12,"h":8},
+          "targets": [{"expr":"rate(node_network_receive_bytes_total{device!~\"lo|veth.*\"}[5m])","refId":"A"}] },
+        { "id": 2, "type": "timeseries", "title": "Transmit Bytes / sec",
+          "gridPos": {"x":12,"y":0,"w":12,"h":8},
+          "targets": [{"expr":"rate(node_network_transmit_bytes_total{device!~\"lo|veth.*\"}[5m])","refId":"A"}] }
+      ]
+    }
+
+  # --- Application ---
+  dashboards__application__spark-jobs.json: |
+    {
+      "uid": "loadtest-spark-jobs",
+      "title": "Spark Jobs",
+      "tags": ["loadtest", "application", "spark"],
+      "schemaVersion": 39, "version": 1, "refresh": "30s",
+      "time": { "from": "now-2h", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "stat",       "title": "Active Executors",
+          "gridPos": {"x":0,"y":0,"w":6,"h":4},
+          "targets": [{"expr":"count(spark_executor_active) or vector(0)","refId":"A"}] },
+        { "id": 2, "type": "timeseries", "title": "Task Throughput",
+          "gridPos": {"x":6,"y":0,"w":18,"h":8},
+          "targets": [{"expr":"rate(spark_task_complete_total[1m]) or vector(0)","refId":"A"}] }
+      ]
+    }
+  dashboards__application__trino-queries.json: |
+    {
+      "uid": "loadtest-trino-queries",
+      "title": "Trino Queries",
+      "tags": ["loadtest", "application", "trino"],
+      "schemaVersion": 39, "version": 1, "refresh": "30s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "timeseries", "title": "Running Queries",
+          "gridPos": {"x":0,"y":0,"w":24,"h":8},
+          "targets": [{"expr":"trino_execution_QueryManager_RunningQueries or vector(0)","refId":"A"}] }
+      ]
+    }
+
+  # --- Chaos and Reliability ---
+  dashboards__chaos-and-reliability__failure-drill.json: |
+    {
+      "uid": "loadtest-chaos-drill",
+      "title": "Chaos Failure Drill",
+      "tags": ["loadtest", "chaos", "reliability"],
+      "schemaVersion": 39, "version": 1, "refresh": "10s",
+      "time": { "from": "now-15m", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "timeseries", "title": "Pod Restarts",
+          "gridPos": {"x":0,"y":0,"w":24,"h":8},
+          "targets": [{"expr":"increase(kube_pod_container_status_restarts_total[5m])","refId":"A"}] }
+      ]
+    }

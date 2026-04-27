@@ -1,0 +1,108 @@
+# Seed Job — testbed 한정.
+#
+# ConfigMap 'dashboards-repo' 의 flat key 들을 디렉터리 트리로 펼쳐 gitea 에 push.
+# 한 번만 실행 (gitea 가 emptyDir 라 재기동되면 다시 실행 필요).
+#
+# 운영 swap: 이 Job 자체 제거 — bitbucket 이 source-of-truth.
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gitea-seed
+  namespace: gitops
+  labels: { app: gitea-seed, role: seed }
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: gitea-seed }
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: seed
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.2
+          imagePullPolicy: IfNotPresent
+          env:
+            - { name: GITEA_URL,  value: "http://gitea.gitops.svc:3000" }
+            - { name: REPO_NAME,  value: "grafana-dashboards" }
+            - { name: GIT_USER,     valueFrom: { secretKeyRef: { name: gitea-creds, key: username } } }
+            - { name: GIT_PASS,     valueFrom: { secretKeyRef: { name: gitea-creds, key: password } } }
+            - { name: GIT_EMAIL,    valueFrom: { secretKeyRef: { name: gitea-creds, key: email    } } }
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+
+              echo "[1/5] gitea API ready 대기"
+              for i in $(seq 1 60); do
+                if curl -fsS "${GITEA_URL}/api/v1/version" >/dev/null 2>&1 \
+                   && curl -fsS -u "${GIT_USER}:${GIT_PASS}" "${GITEA_URL}/api/v1/user" >/dev/null 2>&1; then
+                  echo "  gitea ready (admin user 확인)"
+                  break
+                fi
+                sleep 3
+              done
+
+              echo "[2/5] repo 생성 (idempotent)"
+              CODE=$(curl -s -o /tmp/r -w "%{http_code}" \
+                -u "${GIT_USER}:${GIT_PASS}" \
+                -H 'Content-Type: application/json' \
+                -X POST "${GITEA_URL}/api/v1/user/repos" \
+                -d "{\"name\":\"${REPO_NAME}\",\"auto_init\":true,\"default_branch\":\"main\",\"private\":false}")
+              case $CODE in
+                201) echo "  + ${REPO_NAME} 생성됨" ;;
+                409) echo "  = ${REPO_NAME} 이미 존재" ;;
+                *)   echo "  ! 실패: $CODE"; cat /tmp/r; exit 1 ;;
+              esac
+
+              echo "[3/5] repo clone"
+              cd /tmp
+              REMOTE="http://${GIT_USER}:${GIT_PASS}@gitea.gitops.svc:3000/${GIT_USER}/${REPO_NAME}.git"
+              rm -rf repo
+              git clone "$REMOTE" repo
+              cd repo
+              git config user.email "${GIT_EMAIL}"
+              git config user.name  "${GIT_USER}"
+
+              echo "[4/5] ConfigMap key → 디렉터리 트리 펼치기 (__ → /)"
+              for f in /seed/*; do
+                fname=$(basename "$f")
+                # ConfigMap 내부 메타파일 (..2026... 같은 symlink) 건너뛰기
+                [[ "$fname" == ..* ]] && continue
+                case "$fname" in
+                  *__*)
+                    target=$(echo "$fname" | sed 's|__|/|g')
+                    mkdir -p "$(dirname "$target")"
+                    cp "$f" "$target"
+                    echo "  + $target"
+                    ;;
+                  *)
+                    cp "$f" "$fname"
+                    echo "  + $fname"
+                    ;;
+                esac
+              done
+
+              echo "[5/5] commit + push"
+              git add -A
+              if git diff --cached --quiet; then
+                echo "  변경 없음 (이미 seed 됨)"
+              else
+                git commit -m "seed: dashboard tree from ConfigMap"
+                git push origin main
+                echo "  push 완료"
+              fi
+
+              echo "================ seed 완료 ================"
+              echo "Repo URL : ${GITEA_URL}/${GIT_USER}/${REPO_NAME}"
+              echo "Clone URL: http://gitea.gitops.svc:3000/${GIT_USER}/${REPO_NAME}.git"
+          volumeMounts:
+            - { name: seed, mountPath: /seed, readOnly: true }
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "1000m", memory: "512Mi" }
+      volumes:
+        - name: seed
+          configMap:
+            name: dashboards-repo

@@ -1,0 +1,168 @@
+# Provisioner Job — gitea 의 grafana-dashboards repo 를 clone 해서
+# Grafana API 로 organization/folder/dashboard 를 멱등 적용.
+#
+# 흐름:
+#   1. Grafana ready 대기
+#   2. git clone gitea:/gitops/grafana-dashboards
+#   3. orgs.json 의 5개 조직 생성 (idempotent)
+#   4. 각 조직마다:
+#      a. /api/user/using/{id} 로 컨텍스트 전환
+#      b. Prometheus datasource 생성 (kps-prometheus.monitoring:9090)
+#      c. dashboards/ 디렉터리 트리를 폴더로 미러 (parentUid 로 중첩)
+#      d. *.json 파일을 해당 폴더에 upsert (uid 고정 + overwrite=true)
+#
+# 재실행 안전 (멱등). 운영에선 CronJob 으로 5~10분마다 sync 권장.
+#
+# 운영 swap:
+#   • GIT_REMOTE_URL 만 bitbucket 으로 변경
+#   • GIT_USER/GIT_PASS → bitbucket personal access token
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: grafana-provisioner
+  namespace: gitops
+  labels: { app: grafana-provisioner, role: provisioner }
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: { app: grafana-provisioner }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: provisioner
+          image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.2
+          imagePullPolicy: IfNotPresent
+          env:
+            - { name: GIT_REMOTE_URL, value: "http://gitea.gitops.svc:3000/gitops/grafana-dashboards.git" }
+            - { name: GIT_USER, valueFrom: { secretKeyRef: { name: gitea-creds, key: username } } }
+            - { name: GIT_PASS, valueFrom: { secretKeyRef: { name: gitea-creds, key: password } } }
+            - { name: GRAFANA_URL,    value: "http://kps-grafana.monitoring.svc:80" }
+            - { name: GRAFANA_USER,   value: "admin" }
+            - { name: GRAFANA_PASS,   value: "admin" }
+            - { name: PROMETHEUS_URL, value: "http://kps-prometheus.monitoring.svc:9090" }
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -e
+
+              AUTH=(-u "${GRAFANA_USER}:${GRAFANA_PASS}")
+              CT=(-H "Content-Type: application/json")
+              # 실패 위치를 즉시 식별: 마지막 실행 라인 + ERR trap.
+              trap 'echo "[FAIL] line=$LINENO cmd=$BASH_COMMAND" >&2' ERR
+
+              echo "[1/5] Grafana health"
+              for i in $(seq 1 60); do
+                if curl -fsS "${AUTH[@]}" "${GRAFANA_URL}/api/health" >/dev/null 2>&1; then
+                  echo "  Grafana ready"
+                  break
+                fi
+                sleep 3
+              done
+
+              echo "[2/5] git clone (gitea)"
+              CLONE_URL=$(echo "${GIT_REMOTE_URL}" | sed "s|http://|http://${GIT_USER}:${GIT_PASS}@|")
+              cd /tmp
+              rm -rf repo
+              git clone "$CLONE_URL" repo
+              cd repo
+              echo "  repo HEAD: $(git rev-parse --short HEAD)"
+
+              echo "[3/5] Organization 5개 생성 (idempotent)"
+              ORGS=$(jq -r '.orgs[].name' orgs.json)
+              for ORG in $ORGS; do
+                CODE=$(curl -s -o /tmp/r -w "%{http_code}" "${AUTH[@]}" "${CT[@]}" \
+                  -X POST "${GRAFANA_URL}/api/orgs" \
+                  -d "{\"name\":\"$ORG\"}")
+                case $CODE in
+                  200|201) echo "  + $ORG (id=$(jq -r .orgId /tmp/r))" ;;
+                  409)     echo "  = $ORG (이미 존재)" ;;
+                  *)       echo "  ! $ORG: $CODE"; cat /tmp/r; exit 1 ;;
+                esac
+              done
+
+              echo "[4/5] org 별 datasource + folder + dashboard 적용"
+              ORG_LIST=$(curl -fsS "${AUTH[@]}" "${GRAFANA_URL}/api/orgs")
+
+              # Title 도우미: "ingest-pipeline" → "Ingest Pipeline"
+              titlecase() {
+                echo "$1" | awk -F'-' '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}' OFS=' '
+              }
+
+              for ORG in $ORGS; do
+                ORG_ID=$(echo "$ORG_LIST" | jq --arg n "$ORG" '.[] | select(.name == $n) | .id')
+                echo ""
+                echo "=== org: $ORG (id=$ORG_ID) ==="
+
+                # admin 의 컨텍스트를 이 org 로
+                curl -fsS "${AUTH[@]}" "${CT[@]}" \
+                  -X POST "${GRAFANA_URL}/api/user/using/${ORG_ID}" >/dev/null
+
+                # Prometheus datasource (org 마다 새로 생성됨; 멱등 — 중복 생성은 422)
+                DS_BODY=$(jq -n --arg url "${PROMETHEUS_URL}" \
+                  '{name:"Prometheus", type:"prometheus", url:$url, access:"proxy", isDefault:true}')
+                DS_CODE=$(curl -s -o /tmp/ds -w "%{http_code}" "${AUTH[@]}" "${CT[@]}" \
+                  -X POST "${GRAFANA_URL}/api/datasources" -d "$DS_BODY")
+                case $DS_CODE in
+                  200|201) echo "  + datasource Prometheus" ;;
+                  409|422|400) echo "  = datasource Prometheus (이미 존재)" ;;
+                  *)       echo "  ! datasource: $DS_CODE"; cat /tmp/ds ;;
+                esac
+
+                # 폴더 (디렉터리 트리 → parentUid 로 중첩)
+                # 주의: bash 의 UID 는 readonly 변수 (user ID) → F_UID 로 명명
+                cd /tmp/repo/dashboards
+                find . -mindepth 1 -type d | sort | while read DIR; do
+                  REL=${DIR#./}
+                  F_UID=$(echo "$REL" | tr '/' '-' | tr '[:upper:]' '[:lower:]')
+                  TITLE=$(titlecase "$(basename "$REL")")
+                  PARENT=$(dirname "$REL")
+                  if [ "$PARENT" = "." ]; then
+                    BODY=$(jq -n --arg u "$F_UID" --arg t "$TITLE" '{uid:$u, title:$t}')
+                  else
+                    PUID=$(echo "$PARENT" | tr '/' '-' | tr '[:upper:]' '[:lower:]')
+                    BODY=$(jq -n --arg u "$F_UID" --arg t "$TITLE" --arg p "$PUID" '{uid:$u, title:$t, parentUid:$p}')
+                  fi
+                  if curl -fsS "${AUTH[@]}" "${GRAFANA_URL}/api/folders/${F_UID}" >/dev/null 2>&1; then
+                    echo "    = folder ${F_UID}"
+                  else
+                    if curl -fsS "${AUTH[@]}" "${CT[@]}" -X POST "${GRAFANA_URL}/api/folders" -d "$BODY" >/dev/null; then
+                      echo "    + folder ${F_UID} (${TITLE})"
+                    else
+                      echo "    ! folder ${F_UID} 생성 실패 (parentUid 미지원? Grafana<11)"
+                    fi
+                  fi
+                done
+
+                # 대시보드 upsert (uid 고정 + overwrite=true)
+                find . -name '*.json' -type f | sort | while read F; do
+                  REL=${F#./}
+                  DIR=$(dirname "$REL")
+                  FUID=$(echo "$DIR" | tr '/' '-' | tr '[:upper:]' '[:lower:]')
+                  PAYLOAD=$(jq -n --slurpfile d "$F" --arg fu "$FUID" \
+                    '{dashboard: $d[0], folderUid: $fu, overwrite: true}')
+                  RESULT=$(curl -fsS "${AUTH[@]}" "${CT[@]}" \
+                    -X POST "${GRAFANA_URL}/api/dashboards/db" -d "$PAYLOAD")
+                  DUID=$(echo "$RESULT" | jq -r .uid)
+                  STATUS=$(echo "$RESULT" | jq -r .status)
+                  echo "    → dashboard ${DUID} (${REL}) status=${STATUS}"
+                done
+                cd /tmp/repo
+              done
+
+              echo ""
+              echo "[5/5] 검증 — 각 org 대시보드 카운트"
+              for ORG in $ORGS; do
+                ORG_ID=$(echo "$ORG_LIST" | jq --arg n "$ORG" '.[] | select(.name == $n) | .id')
+                curl -fsS "${AUTH[@]}" -X POST "${GRAFANA_URL}/api/user/using/${ORG_ID}" >/dev/null
+                COUNT=$(curl -fsS "${AUTH[@]}" "${GRAFANA_URL}/api/search?type=dash-db" | jq 'length')
+                FOLDERS=$(curl -fsS "${AUTH[@]}" "${GRAFANA_URL}/api/folders" | jq 'length')
+                echo "  $ORG: dashboards=${COUNT} folders=${FOLDERS}"
+              done
+
+              echo "================ provision 완료 ================"
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "1000m", memory: "512Mi" }
