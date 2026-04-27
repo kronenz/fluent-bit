@@ -427,6 +427,177 @@ opensearch_blocks = [
 ]
 
 # ---------------------------------------------------------------------------
+# Scenario data — OpenSearch (6 시나리오, plugin metric 기반)
+# ---------------------------------------------------------------------------
+# aiven prometheus-exporter-plugin-for-opensearch 사용 → 메트릭 prefix
+# `opensearch_*`. cluster_status 는 단일 0/1/2 (green/yellow/red),
+# threadpool 라벨은 name="write|search|get", type="queue|active|rejected".
+
+OS_6_OVERVIEW = textwrap.dedent("""\
+    ## 📊 OpenSearch 부하·장애 시나리오 6종 — 종합 대시보드
+
+    `aiven/prometheus-exporter-plugin-for-opensearch` (init container 로 설치) 의
+    `opensearch_*` 메트릭 기반. `cluster_status` 는 0=green, 1=yellow, 2=red —
+    아래 패널은 `+1` 해서 1=G/2=Y/3=R 로 표시.
+
+    | 시나리오 | 유형 | 도구 | SLO 핵심 |
+    |----------|------|------|---------|
+    | OS-BULK-01 Bulk Indexing 처리량/지연 | Stress | OSB http_logs | p95 ≤ 200ms, rejected=0 |
+    | OS-MIX-01 인덱싱 + 검색 동시 부하 | Mixed | OSB + k6 | 색인 ≥ 0.7×base, 검색 p95 ≤ 2× |
+    | OS-WAVE-01 Spark/Airflow Batch Wave | Wave | k6 wave (5x peak) | trip=0, GC<10% |
+    | OS-SUSTAIN-01 190-Node 지속 부하 | Soak | flog ×30~190 | 24h 디스크 ≤ 80%, status changes=0 |
+    | CHAOS-NODE-01 노드 장애 회복 | Chaos | kubectl delete pod | T_yellow ≤ 30s, T_green ≤ 5min |
+    | CHAOS-PV-01 PV 유실 회복 | Chaos | kubectl delete pvc | T_green ≤ 10min, 데이터 손실 0 |
+
+    > 가이드: `deploy/load-testing-airgap/docs/08-opensearch-test-scenarios-guide.md`
+    > 메트릭 출처: aiven plugin (Job: `opensearch-plugin`).
+""")
+
+opensearch_6_blocks = [
+    ("OS-BULK-01", "Bulk Indexing 처리량 / 지연", textwrap.dedent("""\
+        **왜 측정?**: OS cluster 가 받을 수 있는 최대 색인 처리량 + 그 시점의 latency. 이후 다른 시나리오의 throughput baseline.
+
+        **목적**: bulk insert 만으로 OS 가 받을 수 있는 최대 처리량과 그 시점의 latency 캡처.
+
+        **부하 프로파일**: OSB http_logs (`--test-mode` 1k docs / 운영급은 PVC full corpus). **SLO**: p95 ≤ 200ms, rejected=0, 단일 노드 ≥ 1k docs/s.
+
+        **튜닝**: write queue 포화 → bulk size↓ 또는 thread_pool.write 증설; rejected↑ → clients↓ + queue_size↑.
+    """), [
+        ("Cluster Indexing RPS",
+         [("sum(rate(opensearch_indices_indexing_index_count[1m]))", "docs/s")],
+         12, 7, "ops", "전 노드 합산. OSB 시작 후 상승 곡선이 정상."),
+        ("Avg Indexing Latency",
+         [("sum(rate(opensearch_indices_indexing_index_time_seconds[1m])) / "
+           "clamp_min(sum(rate(opensearch_indices_indexing_index_count[1m])), 1)", "avg s")],
+         12, 7, "s", "문서당 평균 색인 시간. 50ms 지속 시 병목."),
+        ("Write Queue Depth",
+         [("opensearch_threadpool_tasks_number{name=\"write\",type=\"queue\"}", "{{node}}")],
+         12, 7, "short", "write thread pool 큐. 큐 폭증 → bulk size↓."),
+        ("Bulk Rejected Rate",
+         [("rate(opensearch_threadpool_threads_count{name=\"write\",type=\"rejected\"}[1m])", "{{node}}")],
+         12, 7, "ops", "0 근접 유지가 정상. 발생 시 OSB clients↓."),
+    ]),
+    ("OS-MIX-01", "인덱싱 + 검색 동시 부하", textwrap.dedent("""\
+        **왜 측정?**: 운영은 색인 + 검색이 항시 동시. 단독 vs mixed 의 throughput 손실, latency 증가를 정량화해야 운영 SLO 산정 가능.
+
+        **목적**: 색인이 진행 중인 상태에서 검색을 동시 수행 — 운영 실 워크로드 시뮬.
+
+        **부하 프로파일**: OSB ingest 와 k6 search (50 vus, term query) 동시 실행. **SLO**: 검색 p95 ≤ 단독 검색의 2x, 색인 throughput ≥ 단독 색인의 70%.
+
+        **튜닝**: write queue 포화 → bulk size↓; 검색 p95 폭증 → cache miss 추적, heap 증설 + JVM 튜닝.
+    """), [
+        ("Indexing vs Search RPS",
+         [("sum(rate(opensearch_indices_indexing_index_count[1m]))", "index/s"),
+          ("sum(rate(opensearch_indices_search_query_count[1m]))", "search/s")],
+         12, 7, "ops", "두 부하의 비율. mixed 구간에서 색인 손실 정도 확인."),
+        ("Avg Search Latency",
+         [("sum(rate(opensearch_indices_search_query_time_seconds[1m])) / "
+           "clamp_min(sum(rate(opensearch_indices_search_query_count[1m])), 1)", "avg s")],
+         12, 7, "s", "검색 평균. 단독 vs mixed 비교 — 2x 미만이 정상."),
+        ("Thread Pool Queue (write/search/get)",
+         [("opensearch_threadpool_tasks_number{name=\"write\",type=\"queue\"}", "write"),
+          ("opensearch_threadpool_tasks_number{name=\"search\",type=\"queue\"}", "search"),
+          ("opensearch_threadpool_tasks_number{name=\"get\",type=\"queue\"}", "get")],
+         12, 7, "short", "어느 풀이 먼저 포화되는지 가시화."),
+        ("JVM Heap Used %",
+         [("max(opensearch_jvm_mem_heap_used_percent)", "heap%")],
+         12, 7, "percent", "75% 지속 시 GC 압력 → 검색 latency 폭증 원인."),
+    ]),
+    ("OS-WAVE-01", "Spark / Airflow Batch Wave", textwrap.dedent("""\
+        **왜 측정?**: Spark/Airflow batch 가 정각마다 5x peak 를 만들 때 OS 가 status green 유지하는지 + GC pause / circuit breaker trip 발생 여부.
+
+        **목적**: 평소 = baseline 부하, 정각마다 batch ingest = 5x peak (10~15분 wave) 안정성 검증.
+
+        **부하 프로파일**: k6 wave script (10m base 50 RPS → 5m ramp → 10m peak 250 RPS → 5m cooldown). **SLO**: peak 시 status=green 유지, breaker trip = 0, GC pause < 1s.
+
+        **튜닝**: trip 발생 → indexing.bulk 메모리 한계 → bulk size↓ 또는 heap↑; status yellow 진입 → cluster.routing.allocation 점검.
+    """), [
+        ("Bulk RPS Wave",
+         [("sum(rate(opensearch_indices_indexing_index_count[1m]))", "docs/s")],
+         24, 7, "ops", "wave 패턴이 시각적으로 보여야 함. baseline ↔ peak 차이 = 진폭."),
+        ("GC Time per Second",
+         [("sum(rate(opensearch_jvm_gc_collection_time_seconds{gc=\"young\"}[1m]))", "young"),
+          ("sum(rate(opensearch_jvm_gc_collection_time_seconds{gc=\"old\"}[1m]))", "old")],
+         12, 7, "s", "0.1 s/s (=10%) 이상 지속이면 GC 지옥."),
+        ("Circuit Breaker Tripped (cumulative)",
+         [("sum by (name) (opensearch_circuitbreaker_tripped_count)", "{{name}}")],
+         12, 7, "short", "0 유지 정상. parent / fielddata trip = heap 한계 도달."),
+    ]),
+    ("OS-SUSTAIN-01", "190-Node 지속 부하", textwrap.dedent("""\
+        **왜 측정?**: 운영 동등 노드 수 (190) × 노드당 평균 로그 RPS 를 24~72시간 지속 시 status / 디스크 / restart 동향.
+
+        **목적**: 장기 부하 시 status green 유지, 디스크 사용률 < 80%, p95 latency 증가 < 50% 검증.
+
+        **부하 프로파일**: flog replicas 30 (testbed) / 190 (운영) × 200 lines/s × 24h+. **SLO**: status changes=0, 디스크 ≤ 80%, OS pod restart=0.
+
+        **튜닝**: 디스크 80% 초과 → ILM rollover 더 공격적 (1d → 6h); status≠green 5분 이상 → fail.
+    """), [
+        ("Cluster Status (1=G 2=Y 3=R)",
+         [("opensearch_cluster_status + 1", "status")],
+         12, 7, "short", "1 (green) 유지가 SLO. 2/3 진입은 1분 이내 복귀해야 함."),
+        ("Aggregate Cluster RPS",
+         [("sum(rate(opensearch_indices_indexing_index_count[5m]))", "docs/s")],
+         12, 7, "ops", "운영 동등 부하 안정성. 점진적 감소 = backpressure."),
+        ("Disk Used % (per data node)",
+         [("(1 - opensearch_fs_total_available_bytes / opensearch_fs_total_total_bytes) * 100", "{{node}}")],
+         12, 7, "percent", "80% = SLO 위험. 85% = OS flood-stage watermark."),
+        ("Per-Node Indexing (top 10)",
+         [("topk(10, sum by (node) (rate(opensearch_indices_indexing_index_count[5m])))", "{{node}}")],
+         12, 7, "ops", "노드 간 쏠림 감지. 표준편차 큰 경우 shard imbalance."),
+    ]),
+    ("CHAOS-NODE-01", "노드 장애 회복 (red→yellow→green time)", textwrap.dedent("""\
+        **왜 측정?**: 데이터 노드 1대 down 시 cluster 가 자동으로 yellow → green 회복하는 시간 (T_yellow, T_green) 정량화. replica 자동 재구성 IO 검증.
+
+        **목적**: 노드 장애 시 cluster 자동 회복 시간 측정.
+
+        **부하 프로파일**: `kubectl delete pod opensearch-* --force --grace-period=0` (T0 기록). **SLO**: yellow 진입 ≤ 30s, green 회복 ≤ 5분 (replica=1, 1GB shards × 10), 데이터 손실 0.
+
+        **튜닝**: T_green 5~15분 → replica 재구성 IO 부족 → `cluster.routing.allocation.node_initial_primaries_recoveries` 상향; red 영구 → replica=0 의심.
+    """), [
+        ("Cluster Status",
+         [("opensearch_cluster_status + 1", "status")],
+         12, 7, "short", "kill 시점 (T0) 기준 status=2 (yellow) → 1 (green) 곡선이 회복 시간."),
+        ("Active Nodes",
+         [("opensearch_cluster_nodes_number", "nodes")],
+         12, 7, "short", "kill 즉시 1 감소 → restart 후 회복 곡선."),
+        ("Shard Recovery Stages",
+         [("opensearch_cluster_shards_number{type=\"unassigned\"}", "unassigned"),
+          ("opensearch_cluster_shards_number{type=\"initializing\"}", "initializing"),
+          ("opensearch_cluster_shards_number{type=\"relocating\"}", "relocating")],
+         24, 7, "short", "unassigned → initializing → relocating → 0 천이가 회복 흐름."),
+        ("Time in Yellow / Red (last 1h, sec)",
+         [("sum_over_time((opensearch_cluster_status == 1)[1h:30s]) * 30", "yellow sec"),
+          ("sum_over_time((opensearch_cluster_status == 2)[1h:30s]) * 30", "red sec")],
+         12, 7, "s", "회복 시간 누적. 30s scrape interval 기준."),
+    ]),
+    ("CHAOS-PV-01", "스토리지 장애 회복 (PV 유실 → green 복구 시간)", textwrap.dedent("""\
+        **왜 측정?**: PVC 강제 삭제 시 OS cluster 가 reroute 로 replica 자동 재생성 후 green 복귀 시간. PV rebuild 절차 검증.
+
+        **목적**: 데이터 노드 PVC 강제 삭제 → cluster 가 reroute 로 자동 회복 (replica 자동 재생성) 시간 측정.
+
+        **부하 프로파일**: `kubectl delete pvc <pvc>` + `kubectl delete pod <pod> --force` (T0 기록). **SLO**: replica=1 + 데이터 1GB 기준 green 복구 ≤ 10분, 데이터 손실 0.
+
+        **testbed 제약**: 단일 노드 minikube + replica=0 → 의도된 RED 발생 (검증은 운영 zone ≥3 데이터 노드, replica=1 에서).
+
+        **튜닝**: 회복 지연 → `cluster.routing.allocation.node_initial_primaries_recoveries` 상향, `indices.recovery.max_bytes_per_sec` 상향.
+    """), [
+        ("Cluster Status",
+         [("opensearch_cluster_status + 1", "status")],
+         12, 7, "short", "PVC delete 시점 T0 → 1 (green) 복귀까지가 회복 시간."),
+        ("Per-Node FS Available (bytes)",
+         [("opensearch_fs_total_available_bytes", "{{node}}")],
+         12, 7, "bytes", "PV 유실 시 노드 FS 가 사라지거나 빈 PV 로 재바인딩."),
+        ("Initializing / Unassigned Shards",
+         [("opensearch_cluster_shards_number{type=\"unassigned\"}", "unassigned"),
+          ("opensearch_cluster_shards_number{type=\"initializing\"}", "initializing")],
+         12, 7, "short", "replica 가 다른 노드에 살아있으면 unassigned → initializing → 0 흐름."),
+        ("Time in Red (last 1h, sec)",
+         [("sum_over_time((opensearch_cluster_status == 2)[1h:30s]) * 30", "red sec")],
+         12, 7, "s", "복구 SLO ≤ 600 sec (10분)."),
+    ]),
+]
+
+# ---------------------------------------------------------------------------
 # Scenario data — Fluent-bit
 # ---------------------------------------------------------------------------
 
@@ -1157,6 +1328,10 @@ def main():
     out += configmap("dash-load-test-opensearch",
                      build_dashboard("lt-opensearch", "Load Test • OpenSearch (OS — log-ingest workload, 10 scenarios)",
                                      OS_OVERVIEW, opensearch_blocks)) + "\n---\n"
+    out += configmap("dash-load-test-opensearch-6",
+                     build_dashboard("lt-opensearch-6scenarios",
+                                     "Load Test • OpenSearch (6 scenarios — bulk/mixed/wave/sustained/chaos)",
+                                     OS_6_OVERVIEW, opensearch_6_blocks)) + "\n---\n"
     out += configmap("dash-load-test-fluent-bit",
                      build_dashboard("lt-fluent-bit", "Load Test • Fluent-bit (FB-01~07)",
                                      FB_OVERVIEW, fluent_blocks)) + "\n---\n"
