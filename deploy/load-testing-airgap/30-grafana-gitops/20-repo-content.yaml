@@ -41,22 +41,31 @@ data:
     디렉터리 = Grafana 폴더 (UID = path-slug, 중첩 = parentUid).
 
   # --- Ingest Pipeline / OpenSearch ---
+  # 메트릭 prefix: elasticsearch_* (prometheus-community/elasticsearch-exporter).
+  # cluster_health_status 는 color 라벨별 0/1 → 숫자화: green=1, yellow=2, red=3.
   dashboards__ingest-pipeline__opensearch__cluster-overview.json: |
     {
       "uid": "loadtest-os-cluster-overview",
       "title": "OpenSearch Cluster Overview",
       "tags": ["loadtest", "opensearch", "cluster"],
-      "schemaVersion": 39,
-      "version": 1,
-      "refresh": "30s",
+      "schemaVersion": 39, "version": 1, "refresh": "30s",
       "time": { "from": "now-1h", "to": "now" },
       "panels": [
-        { "id": 1, "type": "stat",       "title": "Cluster Status",
+        { "id": 1, "type": "stat", "title": "Cluster Status (1=G 2=Y 3=R)",
           "gridPos": {"x":0,"y":0,"w":6,"h":4},
-          "targets": [{"expr":"opensearch_cluster_status","refId":"A"}] },
-        { "id": 2, "type": "timeseries", "title": "Indexing Rate",
-          "gridPos": {"x":6,"y":0,"w":18,"h":8},
-          "targets": [{"expr":"rate(opensearch_indices_indexing_index_total[5m])","refId":"A"}] }
+          "targets": [{"expr":"max(elasticsearch_cluster_health_status{color=\"green\"})*1 + max(elasticsearch_cluster_health_status{color=\"yellow\"})*2 + max(elasticsearch_cluster_health_status{color=\"red\"})*3","refId":"A"}] },
+        { "id": 2, "type": "stat", "title": "Nodes",
+          "gridPos": {"x":6,"y":0,"w":4,"h":4},
+          "targets": [{"expr":"max(elasticsearch_cluster_health_number_of_nodes)","refId":"A"}] },
+        { "id": 3, "type": "stat", "title": "Active Shards",
+          "gridPos": {"x":10,"y":0,"w":4,"h":4},
+          "targets": [{"expr":"max(elasticsearch_cluster_health_active_shards)","refId":"A"}] },
+        { "id": 4, "type": "stat", "title": "Unassigned",
+          "gridPos": {"x":14,"y":0,"w":4,"h":4},
+          "targets": [{"expr":"max(elasticsearch_cluster_health_unassigned_shards)","refId":"A"}] },
+        { "id": 5, "type": "timeseries", "title": "Cluster Indexing RPS",
+          "gridPos": {"x":0,"y":4,"w":24,"h":8},
+          "targets": [{"expr":"sum(rate(elasticsearch_indices_indexing_index_total[1m]))","refId":"A"}] }
       ]
     }
   dashboards__ingest-pipeline__opensearch__index-performance.json: |
@@ -67,12 +76,231 @@ data:
       "schemaVersion": 39, "version": 1, "refresh": "30s",
       "time": { "from": "now-3h", "to": "now" },
       "panels": [
-        { "id": 1, "type": "timeseries", "title": "p95 Latency",
+        { "id": 1, "type": "timeseries", "title": "Avg Indexing Latency (ms)",
           "gridPos": {"x":0,"y":0,"w":12,"h":8},
-          "targets": [{"expr":"histogram_quantile(0.95, rate(opensearch_indices_indexing_index_time_seconds_bucket[5m]))","refId":"A"}] },
-        { "id": 2, "type": "timeseries", "title": "Bulk Queue Depth",
+          "targets": [{"expr":"sum(rate(elasticsearch_indices_indexing_index_time_seconds_total[5m])) / sum(rate(elasticsearch_indices_indexing_index_total[5m])) * 1000","refId":"A"}] },
+        { "id": 2, "type": "timeseries", "title": "Write Queue Depth",
           "gridPos": {"x":12,"y":0,"w":12,"h":8},
-          "targets": [{"expr":"opensearch_thread_pool_queue_count{thread_pool_name=\"write\"}","refId":"A"}] }
+          "targets": [{"expr":"max(elasticsearch_thread_pool_queue_count{type=\"write\"})","refId":"A"}] },
+        { "id": 3, "type": "timeseries", "title": "Bulk Rejected (cumulative)",
+          "gridPos": {"x":0,"y":8,"w":12,"h":6},
+          "targets": [{"expr":"max(elasticsearch_thread_pool_rejected_count{type=\"write\"})","refId":"A"}] },
+        { "id": 4, "type": "timeseries", "title": "Segment Count",
+          "gridPos": {"x":12,"y":8,"w":12,"h":6},
+          "targets": [{"expr":"sum(elasticsearch_indices_segments_count)","refId":"A"}] }
+      ]
+    }
+
+  # --- §1 Bulk Indexing 처리량/지연 ---
+  dashboards__ingest-pipeline__opensearch__bulk-throughput-latency.json: |
+    {
+      "uid": "loadtest-os-bulk-throughput",
+      "title": "OpenSearch Bulk — Throughput & Latency",
+      "tags": ["loadtest", "opensearch", "bulk", "scenario-1"],
+      "schemaVersion": 39, "version": 1, "refresh": "15s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "stat", "title": "Current RPS (docs/s)",
+          "gridPos": {"x":0,"y":0,"w":6,"h":4},
+          "targets": [{"expr":"sum(rate(elasticsearch_indices_indexing_index_total[1m]))","refId":"A"}] },
+        { "id": 2, "type": "stat", "title": "Avg Latency (ms)",
+          "gridPos": {"x":6,"y":0,"w":6,"h":4},
+          "targets": [{"expr":"sum(rate(elasticsearch_indices_indexing_index_time_seconds_total[1m])) / sum(rate(elasticsearch_indices_indexing_index_total[1m])) * 1000","refId":"A"}] },
+        { "id": 3, "type": "stat", "title": "Bulk Rejected (since start)",
+          "gridPos": {"x":12,"y":0,"w":6,"h":4},
+          "targets": [{"expr":"max(elasticsearch_thread_pool_rejected_count{type=\"write\"})","refId":"A"}] },
+        { "id": 4, "type": "stat", "title": "Cluster Status",
+          "gridPos": {"x":18,"y":0,"w":6,"h":4},
+          "targets": [{"expr":"max(elasticsearch_cluster_health_status{color=\"green\"})*1 + max(elasticsearch_cluster_health_status{color=\"yellow\"})*2 + max(elasticsearch_cluster_health_status{color=\"red\"})*3","refId":"A"}] },
+        { "id": 5, "type": "timeseries", "title": "Indexing RPS",
+          "gridPos": {"x":0,"y":4,"w":12,"h":8},
+          "targets": [{"expr":"sum(rate(elasticsearch_indices_indexing_index_total[1m]))","refId":"A","legendFormat":"docs/s"}] },
+        { "id": 6, "type": "timeseries", "title": "Avg Indexing Latency (ms)",
+          "gridPos": {"x":12,"y":4,"w":12,"h":8},
+          "targets": [{"expr":"sum(rate(elasticsearch_indices_indexing_index_time_seconds_total[1m])) / sum(rate(elasticsearch_indices_indexing_index_total[1m])) * 1000","refId":"A"}] },
+        { "id": 7, "type": "timeseries", "title": "Write Queue Depth (per node)",
+          "gridPos": {"x":0,"y":12,"w":12,"h":6},
+          "targets": [{"expr":"elasticsearch_thread_pool_queue_count{type=\"write\"}","refId":"A","legendFormat":"{{name}}"}] },
+        { "id": 8, "type": "timeseries", "title": "Bulk Rejected (rate)",
+          "gridPos": {"x":12,"y":12,"w":12,"h":6},
+          "targets": [{"expr":"sum(rate(elasticsearch_thread_pool_rejected_count{type=\"write\"}[1m]))","refId":"A"}] }
+      ]
+    }
+
+  # --- §2 인덱싱 + 검색 동시 부하 ---
+  dashboards__ingest-pipeline__opensearch__mixed-ingest-search.json: |
+    {
+      "uid": "loadtest-os-mixed-load",
+      "title": "OpenSearch Mixed — Ingest + Search",
+      "tags": ["loadtest", "opensearch", "mixed", "scenario-2"],
+      "schemaVersion": 39, "version": 1, "refresh": "15s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "stat", "title": "Cluster Status",
+          "gridPos": {"x":0,"y":0,"w":6,"h":4},
+          "targets": [{"expr":"max(elasticsearch_cluster_health_status{color=\"green\"})*1 + max(elasticsearch_cluster_health_status{color=\"yellow\"})*2 + max(elasticsearch_cluster_health_status{color=\"red\"})*3","refId":"A"}] },
+        { "id": 2, "type": "timeseries", "title": "Indexing vs Search RPS",
+          "gridPos": {"x":6,"y":0,"w":18,"h":8},
+          "targets": [
+            {"expr":"sum(rate(elasticsearch_indices_indexing_index_total[1m]))","refId":"A","legendFormat":"index/s"},
+            {"expr":"sum(rate(elasticsearch_indices_search_query_total[1m]))","refId":"B","legendFormat":"search/s"}
+          ]
+        },
+        { "id": 3, "type": "timeseries", "title": "Avg Search Latency (ms)",
+          "gridPos": {"x":0,"y":8,"w":12,"h":8},
+          "targets": [{"expr":"sum(rate(elasticsearch_indices_search_query_time_seconds_total[1m])) / sum(rate(elasticsearch_indices_search_query_total[1m])) * 1000","refId":"A"}] },
+        { "id": 4, "type": "timeseries", "title": "Thread Pool Queue Depth",
+          "gridPos": {"x":12,"y":8,"w":12,"h":8},
+          "targets": [
+            {"expr":"max(elasticsearch_thread_pool_queue_count{type=\"write\"})","refId":"A","legendFormat":"write"},
+            {"expr":"max(elasticsearch_thread_pool_queue_count{type=\"search\"})","refId":"B","legendFormat":"search"},
+            {"expr":"max(elasticsearch_thread_pool_queue_count{type=\"get\"})","refId":"C","legendFormat":"get"}
+          ]
+        },
+        { "id": 5, "type": "timeseries", "title": "JVM Heap Used %",
+          "gridPos": {"x":0,"y":16,"w":12,"h":6},
+          "targets": [{"expr":"max(elasticsearch_jvm_memory_used_bytes{area=\"heap\"} / elasticsearch_jvm_memory_max_bytes{area=\"heap\"} * 100)","refId":"A"}] },
+        { "id": 6, "type": "timeseries", "title": "Search Rejections (rate)",
+          "gridPos": {"x":12,"y":16,"w":12,"h":6},
+          "targets": [{"expr":"sum(rate(elasticsearch_thread_pool_rejected_count{type=\"search\"}[1m]))","refId":"A"}] }
+      ]
+    }
+
+  # --- §3 Spark/Airflow Batch Wave ---
+  dashboards__ingest-pipeline__opensearch__batch-wave.json: |
+    {
+      "uid": "loadtest-os-batch-wave",
+      "title": "OpenSearch Spark/Airflow Batch Wave",
+      "tags": ["loadtest", "opensearch", "wave", "scenario-3"],
+      "schemaVersion": 39, "version": 1, "refresh": "30s",
+      "time": { "from": "now-2h", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "stat", "title": "Peak RPS (1h)",
+          "gridPos": {"x":0,"y":0,"w":6,"h":4},
+          "targets": [{"expr":"max_over_time((sum(rate(elasticsearch_indices_indexing_index_total[1m])))[1h:1m])","refId":"A"}] },
+        { "id": 2, "type": "stat", "title": "Circuit Breaker Trips",
+          "gridPos": {"x":6,"y":0,"w":6,"h":4},
+          "targets": [{"expr":"sum(elasticsearch_breakers_tripped)","refId":"A"}] },
+        { "id": 3, "type": "stat", "title": "Status Stability",
+          "gridPos": {"x":12,"y":0,"w":6,"h":4},
+          "targets": [{"expr":"changes(max(elasticsearch_cluster_health_status{color=\"green\"})[1h:30s])","refId":"A"}] },
+        { "id": 4, "type": "stat", "title": "Segment Count Δ (1h)",
+          "gridPos": {"x":18,"y":0,"w":6,"h":4},
+          "targets": [{"expr":"delta(sum(elasticsearch_indices_segments_count)[1h:1m])","refId":"A"}] },
+        { "id": 5, "type": "timeseries", "title": "Bulk RPS Wave (1m window)",
+          "gridPos": {"x":0,"y":4,"w":24,"h":8},
+          "targets": [{"expr":"sum(rate(elasticsearch_indices_indexing_index_total[1m]))","refId":"A"}] },
+        { "id": 6, "type": "timeseries", "title": "GC Time per Second",
+          "gridPos": {"x":0,"y":12,"w":12,"h":6},
+          "targets": [{"expr":"sum(rate(elasticsearch_jvm_gc_collection_seconds_sum[1m]))","refId":"A"}] },
+        { "id": 7, "type": "timeseries", "title": "Circuit Breaker Tripped Total",
+          "gridPos": {"x":12,"y":12,"w":12,"h":6},
+          "targets": [{"expr":"sum(elasticsearch_breakers_tripped) by (breaker)","refId":"A","legendFormat":"{{breaker}}"}] }
+      ]
+    }
+
+  # --- §4 190-Node 지속 부하 ---
+  dashboards__ingest-pipeline__opensearch__sustained-load-190.json: |
+    {
+      "uid": "loadtest-os-sustained-190",
+      "title": "OpenSearch 190-Node Sustained Load",
+      "tags": ["loadtest", "opensearch", "sustained", "scenario-4"],
+      "schemaVersion": 39, "version": 1, "refresh": "1m",
+      "time": { "from": "now-24h", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "stat", "title": "Aggregate RPS",
+          "gridPos": {"x":0,"y":0,"w":6,"h":4},
+          "targets": [{"expr":"sum(rate(elasticsearch_indices_indexing_index_total[5m]))","refId":"A"}] },
+        { "id": 2, "type": "stat", "title": "Total Docs (Cluster)",
+          "gridPos": {"x":6,"y":0,"w":6,"h":4},
+          "targets": [{"expr":"sum(elasticsearch_indices_docs)","refId":"A"}] },
+        { "id": 3, "type": "stat", "title": "Disk Used Max %",
+          "gridPos": {"x":12,"y":0,"w":6,"h":4},
+          "targets": [{"expr":"max((1 - elasticsearch_filesystem_data_available_bytes / elasticsearch_filesystem_data_size_bytes) * 100)","refId":"A"}] },
+        { "id": 4, "type": "stat", "title": "Status Changes (24h)",
+          "gridPos": {"x":18,"y":0,"w":6,"h":4},
+          "targets": [{"expr":"changes(max(elasticsearch_cluster_health_status{color=\"green\"})[24h:1m])","refId":"A"}] },
+        { "id": 5, "type": "timeseries", "title": "Per-Node Indexing RPS (top 10)",
+          "gridPos": {"x":0,"y":4,"w":24,"h":8},
+          "targets": [{"expr":"topk(10, sum by (name) (rate(elasticsearch_indices_indexing_index_total[5m])))","refId":"A","legendFormat":"{{name}}"}] },
+        { "id": 6, "type": "timeseries", "title": "Per-Node Disk Used %",
+          "gridPos": {"x":0,"y":12,"w":12,"h":8},
+          "targets": [{"expr":"(1 - elasticsearch_filesystem_data_available_bytes / elasticsearch_filesystem_data_size_bytes) * 100","refId":"A","legendFormat":"{{name}}"}] },
+        { "id": 7, "type": "timeseries", "title": "Per-Node FS Available (bytes)",
+          "gridPos": {"x":12,"y":12,"w":12,"h":8},
+          "targets": [{"expr":"elasticsearch_filesystem_data_available_bytes","refId":"A","legendFormat":"{{name}}"}] }
+      ]
+    }
+
+  # --- §5 노드 장애 회복 ---
+  dashboards__ingest-pipeline__opensearch__chaos-node-recovery.json: |
+    {
+      "uid": "loadtest-os-chaos-node",
+      "title": "OpenSearch Chaos — Node Failure Recovery",
+      "tags": ["loadtest", "opensearch", "chaos", "scenario-5"],
+      "schemaVersion": 39, "version": 1, "refresh": "10s",
+      "time": { "from": "now-15m", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "stat", "title": "Cluster Status",
+          "gridPos": {"x":0,"y":0,"w":8,"h":6},
+          "targets": [{"expr":"max(elasticsearch_cluster_health_status{color=\"green\"})*1 + max(elasticsearch_cluster_health_status{color=\"yellow\"})*2 + max(elasticsearch_cluster_health_status{color=\"red\"})*3","refId":"A"}] },
+        { "id": 2, "type": "stat", "title": "Active Nodes",
+          "gridPos": {"x":8,"y":0,"w":4,"h":6},
+          "targets": [{"expr":"max(elasticsearch_cluster_health_number_of_nodes)","refId":"A"}] },
+        { "id": 3, "type": "stat", "title": "Time in YELLOW (last 1h, sec)",
+          "gridPos": {"x":12,"y":0,"w":6,"h":6},
+          "targets": [{"expr":"sum_over_time(max(elasticsearch_cluster_health_status{color=\"yellow\"})[1h:30s]) * 30","refId":"A"}] },
+        { "id": 4, "type": "stat", "title": "Time in RED (last 1h, sec)",
+          "gridPos": {"x":18,"y":0,"w":6,"h":6},
+          "targets": [{"expr":"sum_over_time(max(elasticsearch_cluster_health_status{color=\"red\"})[1h:30s]) * 30","refId":"A"}] },
+        { "id": 5, "type": "timeseries", "title": "Status Numeric (1=G 2=Y 3=R) — recovery curve",
+          "gridPos": {"x":0,"y":6,"w":24,"h":8},
+          "targets": [{"expr":"max(elasticsearch_cluster_health_status{color=\"green\"})*1 + max(elasticsearch_cluster_health_status{color=\"yellow\"})*2 + max(elasticsearch_cluster_health_status{color=\"red\"})*3","refId":"A"}] },
+        { "id": 6, "type": "timeseries", "title": "Shard Recovery Stages",
+          "gridPos": {"x":0,"y":14,"w":24,"h":8},
+          "targets": [
+            {"expr":"max(elasticsearch_cluster_health_unassigned_shards)","refId":"A","legendFormat":"unassigned"},
+            {"expr":"max(elasticsearch_cluster_health_initializing_shards)","refId":"B","legendFormat":"initializing"},
+            {"expr":"max(elasticsearch_cluster_health_relocating_shards)","refId":"C","legendFormat":"relocating"}
+          ]
+        }
+      ]
+    }
+
+  # --- §6 스토리지 (PV) 장애 회복 ---
+  dashboards__ingest-pipeline__opensearch__chaos-pv-recovery.json: |
+    {
+      "uid": "loadtest-os-chaos-pv",
+      "title": "OpenSearch Chaos — PV Loss Recovery",
+      "tags": ["loadtest", "opensearch", "chaos", "scenario-6"],
+      "schemaVersion": 39, "version": 1, "refresh": "10s",
+      "time": { "from": "now-30m", "to": "now" },
+      "panels": [
+        { "id": 1, "type": "stat", "title": "Cluster Status",
+          "gridPos": {"x":0,"y":0,"w":6,"h":6},
+          "targets": [{"expr":"max(elasticsearch_cluster_health_status{color=\"green\"})*1 + max(elasticsearch_cluster_health_status{color=\"yellow\"})*2 + max(elasticsearch_cluster_health_status{color=\"red\"})*3","refId":"A"}] },
+        { "id": 2, "type": "stat", "title": "Min FS Available (bytes)",
+          "gridPos": {"x":6,"y":0,"w":6,"h":6},
+          "targets": [{"expr":"min(elasticsearch_filesystem_data_available_bytes)","refId":"A"}] },
+        { "id": 3, "type": "stat", "title": "Time in RED (1h, sec)",
+          "gridPos": {"x":12,"y":0,"w":6,"h":6},
+          "targets": [{"expr":"sum_over_time(max(elasticsearch_cluster_health_status{color=\"red\"})[1h:30s]) * 30","refId":"A"}] },
+        { "id": 4, "type": "stat", "title": "Active Nodes",
+          "gridPos": {"x":18,"y":0,"w":6,"h":6},
+          "targets": [{"expr":"max(elasticsearch_cluster_health_number_of_nodes)","refId":"A"}] },
+        { "id": 5, "type": "timeseries", "title": "Status Numeric (recovery curve)",
+          "gridPos": {"x":0,"y":6,"w":24,"h":8},
+          "targets": [{"expr":"max(elasticsearch_cluster_health_status{color=\"green\"})*1 + max(elasticsearch_cluster_health_status{color=\"yellow\"})*2 + max(elasticsearch_cluster_health_status{color=\"red\"})*3","refId":"A"}] },
+        { "id": 6, "type": "timeseries", "title": "Per-Node FS Available",
+          "gridPos": {"x":0,"y":14,"w":12,"h":8},
+          "targets": [{"expr":"elasticsearch_filesystem_data_available_bytes","refId":"A","legendFormat":"{{name}}"}] },
+        { "id": 7, "type": "timeseries", "title": "Initializing/Unassigned Shards (recovery progress)",
+          "gridPos": {"x":12,"y":14,"w":12,"h":8},
+          "targets": [
+            {"expr":"max(elasticsearch_cluster_health_unassigned_shards)","refId":"A","legendFormat":"unassigned"},
+            {"expr":"max(elasticsearch_cluster_health_initializing_shards)","refId":"B","legendFormat":"initializing"}
+          ]
+        }
       ]
     }
 
