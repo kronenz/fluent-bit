@@ -47,12 +47,19 @@ source-of-truth 로 5개 조직에 동일한 폴더 트리 + 동일한 대시보
 
 testbed → 운영 시 변경:
 1. `00/10/20/30` 모두 제거 (gitea + seed Job 불필요)
-2. `40-provisioner-job.yaml` 의 env 만 변경:
+2. Bitbucket HTTP Access Token 생성 + Secret:
+   ```bash
+   kubectl -n gitops create secret generic git-token \
+     --from-literal=token='<bitbucket-access-token>' \
+     --from-literal=username='svc-loadtest' \
+     --from-literal=email='svc-loadtest@example.com'
+   ```
+3. `40-provisioner-job.yaml` 의 env 만 변경 (인증은 Bearer http.extraheader — basic auth 미사용):
    ```yaml
    env:
      - { name: GIT_REMOTE_URL, value: "https://bitbucket.example.com/scm/loadtest/grafana-dashboards.git" }
-     - { name: GIT_USER, valueFrom: { secretKeyRef: { name: bitbucket-token, key: username } } }
-     - { name: GIT_PASS, valueFrom: { secretKeyRef: { name: bitbucket-token, key: token    } } }  # PAT
+     - { name: GIT_TOKEN, valueFrom: { secretKeyRef: { name: git-token, key: token    } } }
+     - { name: GIT_USER,  valueFrom: { secretKeyRef: { name: git-token, key: username } } }
    ```
 3. CronJob 으로 변경 (5~10분 주기 sync):
    ```yaml

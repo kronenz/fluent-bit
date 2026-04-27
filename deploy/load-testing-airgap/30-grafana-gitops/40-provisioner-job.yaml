@@ -1,10 +1,13 @@
-# Provisioner Job — gitea 의 grafana-dashboards repo 를 clone 해서
+# Provisioner Job — gitea/bitbucket 의 grafana-dashboards repo 를 clone 해서
 # Grafana API 로 organization/folder/dashboard 를 멱등 적용.
+#
+# 인증: HTTP Bearer (Bitbucket DC HTTP Access Token / Cloud Repository Access Token /
+# gitea PAT) — git http.extraheader 사용. user/pass 가 아닌 access token 으로만 접근.
 #
 # 흐름:
 #   1. Grafana ready 대기
-#   2. git clone gitea:/gitops/grafana-dashboards
-#   3. orgs.json 의 5개 조직 생성 (idempotent)
+#   2. git clone (http.extraheader Bearer) → repo
+#   3. orgs.json 의 N개 조직 생성 (idempotent)
 #   4. 각 조직마다:
 #      a. /api/user/using/{id} 로 컨텍스트 전환
 #      b. Prometheus datasource 생성 (kps-prometheus.monitoring:9090)
@@ -13,9 +16,14 @@
 #
 # 재실행 안전 (멱등). 운영에선 CronJob 으로 5~10분마다 sync 권장.
 #
-# 운영 swap:
-#   • GIT_REMOTE_URL 만 bitbucket 으로 변경
-#   • GIT_USER/GIT_PASS → bitbucket personal access token
+# 운영 swap (Bitbucket access token):
+#   1. Bitbucket DC: 사용자 프로필 → HTTP access tokens → "Create token"
+#      Repository permission: Read (sync 만 한다면 Read 만으로 충분)
+#   2. kubectl -n gitops create secret generic git-token \
+#        --from-literal=token=<PAT> \
+#        --from-literal=username=svc-loadtest \
+#        --from-literal=email=svc-loadtest@example.com
+#   3. GIT_REMOTE_URL 을 bitbucket clone URL 로 변경 (https://bitbucket.intranet/scm/...)
 ---
 apiVersion: batch/v1
 kind: Job
@@ -37,8 +45,9 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - { name: GIT_REMOTE_URL, value: "http://gitea.gitops.svc:3000/gitops/grafana-dashboards.git" }
-            - { name: GIT_USER, valueFrom: { secretKeyRef: { name: gitea-creds, key: username } } }
-            - { name: GIT_PASS, valueFrom: { secretKeyRef: { name: gitea-creds, key: password } } }
+            # Bearer token (Bitbucket access token / gitea PAT) — basic auth 미사용
+            - { name: GIT_TOKEN,    valueFrom: { secretKeyRef: { name: git-token, key: token    } } }
+            - { name: GIT_USER,     valueFrom: { secretKeyRef: { name: git-token, key: username } } }
             - { name: GRAFANA_URL,    value: "http://kps-grafana.monitoring.svc:80" }
             - { name: GRAFANA_USER,   value: "admin" }
             - { name: GRAFANA_PASS,   value: "admin" }
@@ -62,12 +71,15 @@ spec:
                 sleep 3
               done
 
-              echo "[2/5] git clone (gitea)"
-              CLONE_URL=$(echo "${GIT_REMOTE_URL}" | sed "s|http://|http://${GIT_USER}:${GIT_PASS}@|")
+              echo "[2/5] git clone (Bearer http.extraheader — Bitbucket access token / gitea PAT)"
               cd /tmp
               rm -rf repo
-              git clone "$CLONE_URL" repo
+              # http.extraheader 로 token 노출 회피 (URL 에 박지 않음 → process list / git remote -v 에 안 보임).
+              git -c http.extraheader="Authorization: Bearer ${GIT_TOKEN}" \
+                  clone "${GIT_REMOTE_URL}" repo
               cd repo
+              # 후속 git 명령 (필요 시 push 등) 도 동일 헤더 사용하도록 local config 등록.
+              git config --local http.extraheader "Authorization: Bearer ${GIT_TOKEN}"
               echo "  repo HEAD: $(git rev-parse --short HEAD)"
 
               echo "[3/5] Organization 5개 생성 (idempotent)"

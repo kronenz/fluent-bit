@@ -1,9 +1,50 @@
 # Seed Job — testbed 한정.
 #
-# ConfigMap 'dashboards-repo' 의 flat key 들을 디렉터리 트리로 펼쳐 gitea 에 push.
-# 한 번만 실행 (gitea 가 emptyDir 라 재기동되면 다시 실행 필요).
+# 흐름:
+#   1. gitea ready 대기 (admin 계정 lifecycle postStart 가 먼저 만들어둠)
+#   2. gitea PAT 생성 (admin basic auth) → git-token Secret 작성
+#      (이후 모든 git 명령은 Bearer 사용 — provisioner 와 동일 인증 모델)
+#   3. repo 생성 (Bearer)
+#   4. ConfigMap 의 dashboard tree 를 disk 에 펼치고 push (Bearer)
 #
-# 운영 swap: 이 Job 자체 제거 — bitbucket 이 source-of-truth.
+# 운영 swap:
+#   • 이 Job 자체 제거 (Bitbucket 이 source-of-truth, seeding 불필요)
+#   • git-token Secret 은 운영 zone 에서 미리 만들어둠 (Bitbucket access token).
+---
+# kubectl 로 Secret 생성/갱신을 위한 RBAC.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gitea-seed
+  namespace: gitops
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gitea-seed
+  namespace: gitops
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["git-token"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitea-seed
+  namespace: gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: gitea-seed
+subjects:
+  - kind: ServiceAccount
+    name: gitea-seed
+    namespace: gitops
 ---
 apiVersion: batch/v1
 kind: Job
@@ -12,41 +53,82 @@ metadata:
   namespace: gitops
   labels: { app: gitea-seed, role: seed }
 spec:
-  backoffLimit: 3
+  backoffLimit: 0
   ttlSecondsAfterFinished: 86400
   template:
     metadata:
       labels: { app: gitea-seed }
     spec:
-      restartPolicy: OnFailure
+      restartPolicy: Never
+      serviceAccountName: gitea-seed
       containers:
         - name: seed
           image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.2
           imagePullPolicy: IfNotPresent
           env:
-            - { name: GITEA_URL,  value: "http://gitea.gitops.svc:3000" }
-            - { name: REPO_NAME,  value: "grafana-dashboards" }
-            - { name: GIT_USER,     valueFrom: { secretKeyRef: { name: gitea-creds, key: username } } }
-            - { name: GIT_PASS,     valueFrom: { secretKeyRef: { name: gitea-creds, key: password } } }
-            - { name: GIT_EMAIL,    valueFrom: { secretKeyRef: { name: gitea-creds, key: email    } } }
+            - { name: GITEA_URL,      value: "http://gitea.gitops.svc:3000" }
+            - { name: REPO_NAME,      value: "grafana-dashboards" }
+            # gitea admin 계정 — PAT 생성 1회용. 이후 git 작업은 PAT (Bearer) 사용.
+            - { name: GITEA_ADMIN,         valueFrom: { secretKeyRef: { name: gitea-creds, key: username } } }
+            - { name: GITEA_ADMIN_PASS,    valueFrom: { secretKeyRef: { name: gitea-creds, key: password } } }
+            - { name: GITEA_ADMIN_EMAIL,   valueFrom: { secretKeyRef: { name: gitea-creds, key: email    } } }
           command: ["bash", "-c"]
           args:
             - |
               set -euo pipefail
 
-              echo "[1/5] gitea API ready 대기"
+              echo "[1/6] gitea API ready 대기"
               for i in $(seq 1 60); do
                 if curl -fsS "${GITEA_URL}/api/v1/version" >/dev/null 2>&1 \
-                   && curl -fsS -u "${GIT_USER}:${GIT_PASS}" "${GITEA_URL}/api/v1/user" >/dev/null 2>&1; then
-                  echo "  gitea ready (admin user 확인)"
-                  break
+                   && curl -fsS -u "${GITEA_ADMIN}:${GITEA_ADMIN_PASS}" \
+                            "${GITEA_URL}/api/v1/user" >/dev/null 2>&1; then
+                  echo "  gitea ready (admin user 확인)"; break
                 fi
                 sleep 3
               done
 
-              echo "[2/5] repo 생성 (idempotent)"
+              echo "[2/6] gitea PAT 생성 (basic auth → Bearer 전환)"
+              # 동일 이름 PAT 가 이미 있으면 422 → 삭제 후 재생성 (멱등 보장)
+              EXISTING=$(curl -fsS -u "${GITEA_ADMIN}:${GITEA_ADMIN_PASS}" \
+                "${GITEA_URL}/api/v1/users/${GITEA_ADMIN}/tokens" | jq '.[] | select(.name=="provisioner") | .id' | head -1)
+              if [ -n "$EXISTING" ]; then
+                curl -fsS -u "${GITEA_ADMIN}:${GITEA_ADMIN_PASS}" \
+                  -X DELETE "${GITEA_URL}/api/v1/users/${GITEA_ADMIN}/tokens/${EXISTING}"
+                echo "  기존 PAT 삭제 (id=$EXISTING)"
+              fi
+              # scope 설명:
+              #   write:repository — clone/push, repo content 변경
+              #   write:user       — POST /api/v1/user/repos (계정 하위 repo 생성)
+              # provisioner 는 read 만 필요 — 운영에선 read:repository 만으로 PAT 발급 권장.
+              PAT=$(curl -fsS -u "${GITEA_ADMIN}:${GITEA_ADMIN_PASS}" \
+                -H 'Content-Type: application/json' \
+                -d '{"name":"provisioner","scopes":["write:repository","write:user"]}' \
+                "${GITEA_URL}/api/v1/users/${GITEA_ADMIN}/tokens" | jq -r .sha1)
+              [ -n "$PAT" ] && [ "$PAT" != "null" ] || { echo "FATAL: PAT 발급 실패" >&2; exit 1; }
+              echo "  PAT 발급 완료 (sha1 길이=${#PAT})"
+
+              echo "[3/6] git-token Secret 작성 (provisioner 가 이걸 읽음)"
+              cat > /tmp/secret.yaml <<EOF
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: git-token
+                namespace: gitops
+              type: Opaque
+              stringData:
+                token: "${PAT}"
+                username: "${GITEA_ADMIN}"
+                email: "${GITEA_ADMIN_EMAIL}"
+              EOF
+              kubectl apply -f /tmp/secret.yaml
+              shred -u /tmp/secret.yaml 2>/dev/null || rm -f /tmp/secret.yaml
+
+              # 이후 모든 git/curl 호출은 Bearer 헤더 사용
+              BEARER=(-H "Authorization: Bearer ${PAT}")
+
+              echo "[4/6] repo 생성 (Bearer, idempotent)"
               CODE=$(curl -s -o /tmp/r -w "%{http_code}" \
-                -u "${GIT_USER}:${GIT_PASS}" \
+                "${BEARER[@]}" \
                 -H 'Content-Type: application/json' \
                 -X POST "${GITEA_URL}/api/v1/user/repos" \
                 -d "{\"name\":\"${REPO_NAME}\",\"auto_init\":true,\"default_branch\":\"main\",\"private\":false}")
@@ -56,20 +138,21 @@ spec:
                 *)   echo "  ! 실패: $CODE"; cat /tmp/r; exit 1 ;;
               esac
 
-              echo "[3/5] repo clone"
+              echo "[5/6] repo clone (Bearer http.extraheader)"
               cd /tmp
-              REMOTE="http://${GIT_USER}:${GIT_PASS}@gitea.gitops.svc:3000/${GIT_USER}/${REPO_NAME}.git"
               rm -rf repo
-              git clone "$REMOTE" repo
+              REMOTE="${GITEA_URL}/${GITEA_ADMIN}/${REPO_NAME}.git"
+              git -c http.extraheader="Authorization: Bearer ${PAT}" \
+                  clone "$REMOTE" repo
               cd repo
-              git config user.email "${GIT_EMAIL}"
-              git config user.name  "${GIT_USER}"
+              git config --local http.extraheader "Authorization: Bearer ${PAT}"
+              git config user.email "${GITEA_ADMIN_EMAIL}"
+              git config user.name  "${GITEA_ADMIN}"
 
-              echo "[4/5] ConfigMap key → 디렉터리 트리 펼치기 (__ → /)"
+              echo "[6/6] ConfigMap key → 디렉터리 트리 펼치기 (__ → /) + push"
               for f in /seed/*; do
                 fname=$(basename "$f")
-                # ConfigMap 내부 메타파일 (..2026... 같은 symlink) 건너뛰기
-                [[ "$fname" == ..* ]] && continue
+                [[ "$fname" == ..* ]] && continue   # ConfigMap 메타파일 skip
                 case "$fname" in
                   *__*)
                     target=$(echo "$fname" | sed 's|__|/|g')
@@ -83,8 +166,6 @@ spec:
                     ;;
                 esac
               done
-
-              echo "[5/5] commit + push"
               git add -A
               if git diff --cached --quiet; then
                 echo "  변경 없음 (이미 seed 됨)"
@@ -95,8 +176,8 @@ spec:
               fi
 
               echo "================ seed 완료 ================"
-              echo "Repo URL : ${GITEA_URL}/${GIT_USER}/${REPO_NAME}"
-              echo "Clone URL: http://gitea.gitops.svc:3000/${GIT_USER}/${REPO_NAME}.git"
+              echo "Repo URL : ${GITEA_URL}/${GITEA_ADMIN}/${REPO_NAME}"
+              echo "Auth     : Bearer (git-token Secret) — provisioner Job 이 동일 token 으로 clone"
           volumeMounts:
             - { name: seed, mountPath: /seed, readOnly: true }
           resources:

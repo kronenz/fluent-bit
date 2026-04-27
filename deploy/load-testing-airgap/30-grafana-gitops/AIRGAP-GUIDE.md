@@ -17,9 +17,9 @@ testbed (minikube + gitea) 에서 검증된 매니페스트를 폐쇄망 운영 
 | `10-gitea.yaml` | gitea pod 띄움 | **불필요** (사내 Bitbucket 사용) |
 | `20-repo-content.yaml` | ConfigMap 으로 시뮬레이션 | **불필요** (Bitbucket 이 source) |
 | `30-seed-job.yaml` | ConfigMap → gitea push | **불필요** |
-| `40-provisioner-job.yaml` | gitea clone → Grafana API | **GIT_REMOTE_URL/CRED 만 교체** + CronJob 변환 |
+| `40-provisioner-job.yaml` | gitea clone → Grafana API | **GIT_REMOTE_URL + Secret(git-token)** 만 교체 + CronJob 변환 |
 | 이미지 path | `loadtest-tools:0.1.2` (local) | `nexus.intranet:8082/loadtest/loadtest-tools:0.1.2` |
-| 인증 | basic auth (gitops/gitops-pw) | Bitbucket PAT (personal access token) |
+| 인증 | Bearer (gitea PAT — seed 가 자동 생성) | Bearer (Bitbucket HTTP Access Token) — 양쪽 모두 user/pass 미사용 |
 
 ---
 
@@ -57,18 +57,24 @@ git push airgap main
 # .git/config 에 적힌 token 은 commit 후 정리
 ```
 
-운영 zone 의 git 사용자는 **read-only PAT** 만 부여:
-- Project: `LOADTEST`
-- Repository: `grafana-dashboards`
-- Permission: `Repository Read` only (provisioner 는 push 하지 않음)
+운영 zone 의 git 사용자는 **HTTP Access Token (Bitbucket DC) / Repository Access Token (Cloud)** 만 부여:
+- Project: `LOADTEST` / Repository: `grafana-dashboards`
+- Permission: `Repository Read` (provisioner 는 push 안 함 — read-only token 권장)
+- 토큰 발급 위치 (Bitbucket DC): User Profile → HTTP access tokens → Create token
 
-### 1.3 Secret 생성 (Bitbucket PAT)
+### 1.3 Secret 생성 (Bitbucket access token → git-token)
 
 ```bash
-kubectl -n gitops create secret generic bitbucket-creds \
+kubectl -n gitops create secret generic git-token \
+  --from-literal=token='<bitbucket-access-token>' \
   --from-literal=username='svc-loadtest' \
-  --from-literal=token='<PAT-readonly>'
+  --from-literal=email='svc-loadtest@example.com'
 ```
+
+> **인증 모델**: provisioner Job 은 user/pass basic auth 가 아닌 **Bearer
+> http.extraheader** 방식만 지원 (`git -c http.extraheader="Authorization: Bearer ${GIT_TOKEN}"`).
+> Bitbucket DC HTTP Access Token / Cloud Repository Access Token / GitLab PAT /
+> GitHub PAT 모두 동일 패턴.
 
 ### 1.4 Grafana admin 자격 분리 (권장)
 
@@ -123,11 +129,11 @@ spec:
               image: nexus.intranet:8082/loadtest/loadtest-tools:0.1.2
               imagePullPolicy: IfNotPresent
               env:
-                # ── 변경 2 : Bitbucket clone URL
+                # ── 변경 2 : Bitbucket clone URL + Bearer access token
                 - { name: GIT_REMOTE_URL,
                     value: "https://bitbucket.intranet/scm/loadtest/grafana-dashboards.git" }
-                - { name: GIT_USER, valueFrom: { secretKeyRef: { name: bitbucket-creds, key: username } } }
-                - { name: GIT_PASS, valueFrom: { secretKeyRef: { name: bitbucket-creds, key: token    } } }
+                - { name: GIT_TOKEN, valueFrom: { secretKeyRef: { name: git-token, key: token    } } }
+                - { name: GIT_USER,  valueFrom: { secretKeyRef: { name: git-token, key: username } } }
                 # ── 변경 3 : 운영 Grafana svc / Prometheus svc
                 - { name: GRAFANA_URL,    value: "http://kps-grafana.monitoring.svc:80" }
                 - { name: GRAFANA_USER,   value: "admin" }      # 또는 SA token (4.3)
@@ -155,8 +161,8 @@ DIR=deploy/load-testing-airgap/30-grafana-gitops
 kubectl --context=$CTX apply -f $DIR/00-namespace.yaml
 
 # 2. secret (사전 준비 1.3 에서 이미 생성했으면 skip)
-kubectl --context=$CTX -n gitops get secret bitbucket-creds || \
-  echo "FAIL: bitbucket-creds 미생성 (1.3 참고)"
+kubectl --context=$CTX -n gitops get secret git-token || \
+  echo "FAIL: git-token 미생성 (1.3 참고)"
 
 # 3. provisioner CronJob (운영용 패치본)
 kubectl --context=$CTX apply -f $DIR/40-provisioner-job.yaml.airgap
@@ -310,8 +316,12 @@ nested 포함 전체는 `/api/search?type=dash-folder` 사용.
 
 ### 6.5 Bitbucket clone 실패 (`Authentication failed`)
 
-PAT 의 권한 부족. `Repository Read` 가 필요. project-level 도 아닌 반드시
-**repository-level** PAT.
+- Token 권한 부족 — `Repository Read` (read-only sync) 또는 `Repository Write`
+  (drift 동기화 push 까지) 필요. project-level 가 아닌 **repository-level** token 권장.
+- HTTP Access Token 형식 확인: Bitbucket DC 는 `BBDC-...` 접두 / Cloud 는
+  `ATATT...` 접두. URL 에 박지 말고 항상 `Authorization: Bearer <token>`
+  헤더로만 전달 (provisioner Job 의 `git -c http.extraheader=...` 가 처리).
+- 한 번 만든 token 은 다시 조회 불가 → Secret 갱신 시 재발급 필요.
 
 ### 6.6 image pull `unauthorized`
 
@@ -379,7 +389,7 @@ provisioner 가 push 권한이 없으므로 git 은 원본 그대로 유지. 안
 배포 전 체크:
 - [ ] `nexus.intranet:8082/loadtest/loadtest-tools:0.1.2` 가 존재 (`docker pull`)
 - [ ] Bitbucket repo `LOADTEST/grafana-dashboards` 가 main branch 기준 최신
-- [ ] PAT (read-only) 발급 완료
+- [ ] HTTP Access Token (read-only) 발급 + `git-token` Secret 작성 완료
 - [ ] Grafana 버전 ≥ 11 (nested folder 지원)
 - [ ] 운영 Prometheus svc 이름 확인 (kube-prometheus-stack 의 release name 에 따라
       `kps-prometheus` / `prometheus-operated` 등 다를 수 있음)
@@ -439,8 +449,8 @@ spec:
               env:
                 - { name: GIT_REMOTE_URL,
                     value: "https://bitbucket.intranet/scm/loadtest/grafana-dashboards.git" }
-                - { name: GIT_USER, valueFrom: { secretKeyRef: { name: bitbucket-creds, key: username } } }
-                - { name: GIT_PASS, valueFrom: { secretKeyRef: { name: bitbucket-creds, key: token    } } }
+                - { name: GIT_TOKEN, valueFrom: { secretKeyRef: { name: git-token, key: token    } } }
+                - { name: GIT_USER,  valueFrom: { secretKeyRef: { name: git-token, key: username } } }
                 - { name: GRAFANA_URL,    value: "http://kps-grafana.monitoring.svc:80" }
                 - { name: GRAFANA_USER,   value: "admin" }
                 - { name: GRAFANA_PASS,
