@@ -3,25 +3,28 @@
 ## 0. 공통 사전 정보
 
 ### 0.1 메트릭 prefix
-운영 cluster 의 OS 모니터링은 `prometheus-community/elasticsearch-exporter`
-사용. 메트릭 prefix 는 **`elasticsearch_*`** (OpenSearch 도 동일 — exporter 가
-호환). 본 가이드의 PromQL 은 모두 이 prefix 기준.
+운영 cluster 의 OS 모니터링은 **OpenSearch 내부 plugin** 기반:
+`aiven/prometheus-exporter-plugin-for-opensearch` (별도 init container 로 설치 —
+`deploy/load-testing-airgap/00-prerequisites/opensearch-helm-values.yaml` 참고).
+endpoint 는 OS REST 9200 의 `/_prometheus/metrics`. 메트릭 prefix 는 `opensearch_*`.
 
 | metric | 의미 | 비고 |
 |--------|------|------|
-| `elasticsearch_cluster_health_status{color="green/yellow/red"}` | 클러스터 상태 (0/1 값) | 현재 상태인 color 만 1, 나머지 0 |
-| `elasticsearch_cluster_health_unassigned_shards` | 미할당 shard | 회복 진행도 측정 |
-| `elasticsearch_cluster_health_initializing_shards` | 초기화 중 shard | 회복 시 일시 증가 |
-| `elasticsearch_cluster_health_relocating_shards` | 재배치 중 shard | replica 재구성 |
-| `elasticsearch_cluster_health_number_of_nodes` | 살아있는 노드 수 | 노드 장애 즉시 감소 |
-| `elasticsearch_indices_indexing_index_total` | 누적 색인 건수 (per node) | `sum(rate(...))` 으로 cluster RPS |
-| `elasticsearch_indices_indexing_index_time_seconds_total` | 누적 색인 시간 | `rate / rate` 로 평균 latency |
-| `elasticsearch_indices_search_query_total` | 누적 검색 건수 | 동시 부하 시나리오 핵심 |
-| `elasticsearch_thread_pool_queue_count{type="write|search|get"}` | 큐 깊이 | 포화 지표 |
-| `elasticsearch_thread_pool_rejected_count` | 거부된 요청 누적 | RPS 초과 감지 |
-| `elasticsearch_breakers_tripped` | circuit breaker trip 누적 | 메모리 압력 |
-| `elasticsearch_jvm_memory_used_bytes{area="heap"}` | heap 사용량 | %heap = used/max |
-| `elasticsearch_filesystem_data_available_bytes` | 데이터 노드 가용 디스크 | 부하/장애 양쪽 핵심 |
+| `opensearch_cluster_status` | 클러스터 상태 (0=green, 1=yellow, 2=red) | dashboard 는 +1 해서 1/2/3 표시 |
+| `opensearch_cluster_shards_number{type="active|active_primary|initializing|relocating|unassigned"}` | shard 분류별 카운트 | 회복 진행도 |
+| `opensearch_cluster_nodes_number` / `opensearch_cluster_datanodes_number` | 노드 수 | 장애 시 감소 |
+| `opensearch_indices_indexing_index_count` | 누적 색인 건수 (per node) | `sum(rate(...))` 으로 cluster RPS |
+| `opensearch_indices_indexing_index_time_seconds` | 누적 색인 시간 (sec) | `rate / rate * 1000` = 평균 ms |
+| `opensearch_indices_search_query_count` | 누적 검색 건수 | 동시 부하 시나리오 핵심 |
+| `opensearch_indices_search_query_time_seconds` | 누적 검색 시간 | 평균 search latency |
+| `opensearch_threadpool_tasks_number{name="write|search|get",type="queue"}` | 큐 깊이 | 포화 지표 |
+| `opensearch_threadpool_threads_count{name,type="rejected"}` | 거부된 요청 누적 | RPS 초과 감지 |
+| `opensearch_circuitbreaker_tripped_count{name="parent|fielddata|request|in_flight_requests"}` | circuit breaker trip | 메모리 압력 |
+| `opensearch_jvm_mem_heap_used_percent` | heap 사용 % | 직접 % 값 (계산 불필요) |
+| `opensearch_jvm_gc_collection_time_seconds{gc="young|old"}` | GC 시간 누적 | wave 시 GC pressure |
+| `opensearch_indices_segments_number` | 세그먼트 수 | bulk 시 증가 |
+| `opensearch_fs_total_available_bytes` / `opensearch_fs_total_total_bytes` | 가용/전체 디스크 | 부하/장애 핵심 |
+| `opensearch_indices_doc_number` | 인덱싱된 doc 수 | 누적 doc count |
 
 ### 0.2 부하 도구
 
@@ -109,7 +112,7 @@ kubectl --context=$CTX -n load-test logs -f job/opensearch-benchmark
 | Median latency | OSB report `50th percentile` | _____ ms |
 | p95 latency | OSB report `95th percentile` | _____ ms |
 | Write queue 최대 | dashboard panel "Write queue depth" max | _____ |
-| Bulk rejected | `increase(elasticsearch_thread_pool_rejected_count{type="write"}[총소요])` | _____ |
+| Bulk rejected | `increase(opensearch_threadpool_threads_count{name="write",type="rejected"}[총소요])` | _____ |
 | 종료 후 segment 수 | dashboard "Segments after run" | _____ |
 
 ### 1.4 합격 / 실패 판정
@@ -161,11 +164,11 @@ kubectl --context=$CTX -n load-test wait --for=condition=complete \
 | 항목 | metric / 도구 | 기록 |
 |------|---------------|------|
 | 단독 색인 throughput (baseline) | §1 결과 재사용 | _____ docs/s |
-| Mixed 색인 throughput | sum(rate(elasticsearch_indices_indexing_index_total[5m])) — mixed 구간 평균 | _____ docs/s |
+| Mixed 색인 throughput | sum(rate(opensearch_indices_indexing_index_count[5m])) — mixed 구간 평균 | _____ docs/s |
 | 단독 검색 p95 (baseline) | OS-02 단독 실행 결과 | _____ ms |
 | Mixed 검색 p95 | k6 stdout `http_req_duration p(95)` | _____ ms |
 | Search queue 최대 | dashboard "Mixed Workload" panel | _____ |
-| Search rejected | `increase(elasticsearch_thread_pool_rejected_count{type="search"})` | _____ |
+| Search rejected | `increase(opensearch_threadpool_threads_count{name="search",type="rejected"})` | _____ |
 
 ### 2.4 합격 / 실패
 - ✅ 색인 ≥ 0.7 × baseline AND 검색 p95 ≤ 2 × baseline
@@ -257,12 +260,12 @@ EOF
 
 | 항목 | metric | 기록 |
 |------|--------|------|
-| baseline RPS (실측) | sum(rate(elasticsearch_indices_indexing_index_total[5m])) (10~15min 구간) | _____ |
-| peak RPS (실측) | sum(rate(elasticsearch_indices_indexing_index_total[1m])) max | _____ |
-| GC time / sec (peak) | rate(elasticsearch_jvm_gc_collection_seconds_sum[1m]) (peak 구간) | _____ s/s |
-| Circuit breaker trips | increase(elasticsearch_breakers_tripped[총소요]) | _____ |
-| Segment count growth | delta(elasticsearch_indices_segments_count[총소요]) | _____ |
-| Cluster status during peak | min(elasticsearch_cluster_health_status{color="green"}) | _____ (1=green 유지) |
+| baseline RPS (실측) | sum(rate(opensearch_indices_indexing_index_count[5m])) (10~15min 구간) | _____ |
+| peak RPS (실측) | sum(rate(opensearch_indices_indexing_index_count[1m])) max | _____ |
+| GC time / sec (peak) | rate(opensearch_jvm_gc_collection_time_seconds[1m]) (peak 구간) | _____ s/s |
+| Circuit breaker trips | increase(opensearch_circuitbreaker_tripped_count[총소요]) | _____ |
+| Segment count growth | delta(opensearch_indices_segments_number[총소요]) | _____ |
+| Cluster status during peak | min(opensearch_cluster_status == 0) | _____ (1=green 유지) |
 
 ### 3.4 합격 / 실패
 - ✅ peak 구간에 trip=0 + status green + GC<10% (=0.1 s/s)
@@ -314,11 +317,11 @@ echo "Ended: $(date)"
 
 | 항목 | metric | 기록 (1h smoke / 24h full) |
 |------|--------|----------------------------|
-| Aggregate ingestion RPS | sum(rate(elasticsearch_indices_indexing_index_total[5m])) avg | _____ / _____ docs/s |
+| Aggregate ingestion RPS | sum(rate(opensearch_indices_indexing_index_count[5m])) avg | _____ / _____ docs/s |
 | 누적 색인 doc 수 | delta(...total[1h]) 또는 [24h] | _____ / _____ M docs |
-| 디스크 사용률 max (data node) | max((1 - elasticsearch_filesystem_data_available_bytes / elasticsearch_filesystem_data_size_bytes) * 100) | _____ % |
-| Translog flush 빈도 | rate(elasticsearch_indices_translog_flush_total[5m]) avg | _____ |
-| Status changes | changes(elasticsearch_cluster_health_status{color="green"}[총소요]) | _____ (목표 0) |
+| 디스크 사용률 max (data node) | max((1 - opensearch_fs_total_available_bytes / opensearch_fs_total_total_bytes) * 100) | _____ % |
+| Translog flush 빈도 | rate(opensearch_indices_flush_total_count[5m]) avg | _____ |
+| Status changes | changes(opensearch_cluster_status[총소요]) | _____ (목표 0) |
 | Restart count | sum(kube_pod_container_status_restarts_total{namespace="monitoring", pod=~"opensearch.*"}) | _____ |
 
 ### 4.4 합격 / 실패
@@ -358,7 +361,7 @@ kubectl --context=$CTX -n monitoring delete pod $NODE --grace-period=0 --force
 
 # 3. status=red / yellow / green 천이 시점 기록 (Grafana 'Chaos — Node Recovery' 대시보드)
 #    각 천이를 자동 기록하는 prometheus alert 도 가능:
-#    - alert: ClusterStatusRed   expr: max(elasticsearch_cluster_health_status{color="red"}) == 1
+#    - alert: ClusterStatusRed   expr: max(opensearch_cluster_status) == 2
 #    - alert: ClusterStatusYellow ...
 
 # 4. green 회복 시 timestamp T_recover = $(date +%s)
@@ -369,13 +372,13 @@ kubectl --context=$CTX -n monitoring delete pod $NODE --grace-period=0 --force
 
 ```promql
 # red 상태 지속 시간 (초)
-sum_over_time(elasticsearch_cluster_health_status{color="red"}[1h]) * 30
+sum_over_time((opensearch_cluster_status == 2)[1h:30s]) * 30
 
 # yellow 지속 시간
-sum_over_time(elasticsearch_cluster_health_status{color="yellow"}[1h]) * 30
+sum_over_time((opensearch_cluster_status == 1)[1h:30s]) * 30
 
 # 마지막 red→green 시점
-last_over_time((elasticsearch_cluster_health_status{color="green"} == 1)[1h:30s])
+last_over_time((opensearch_cluster_status == 0)[1h:30s])
 ```
 (`* 30` 은 scrape interval 30s 가정 — 실제 interval 대입)
 
@@ -386,9 +389,9 @@ last_over_time((elasticsearch_cluster_health_status{color="green"} == 1)[1h:30s]
 | T0 (kill 시각) | 위 명령 출력 | _____ |
 | T_yellow (yellow 진입) | dashboard timeseries 의 첫 yellow 값 | _____ s after T0 |
 | T_green (green 복귀) | dashboard 첫 green 값 | _____ s after T0 |
-| 미할당 shard peak | max_over_time(elasticsearch_cluster_health_unassigned_shards[10m]) | _____ |
-| Initializing shard peak | max_over_time(elasticsearch_cluster_health_initializing_shards[10m]) | _____ |
-| 회복 throughput | rate(elasticsearch_indices_translog_size_in_bytes[1m]) | _____ MB/s |
+| 미할당 shard peak | max_over_time(opensearch_cluster_shards_number{type="unassigned"}[10m]) | _____ |
+| Initializing shard peak | max_over_time(opensearch_cluster_shards_number{type="initializing"}[10m]) | _____ |
+| 회복 throughput | rate(opensearch_indices_translog_size_bytes[1m]) | _____ MB/s |
 
 ### 5.5 합격 / 실패
 - ✅ T_yellow ≤ 30s AND T_green ≤ 5min AND 데이터 손실 0
@@ -439,9 +442,9 @@ kubectl --context=$CTX -n monitoring delete pod $POD --grace-period=0 --force
 |------|------|------|
 | T0 (PVC delete 시각) | 명령 출력 | _____ |
 | 새 PVC bound 시각 | kubectl get pvc -w 의 'Bound' 천이 | _____ s after T0 |
-| 노드 join 시각 | elasticsearch_cluster_health_number_of_nodes 회복 | _____ s after T0 |
-| Replica 재생성 진행 (peak) | max(elasticsearch_cluster_health_initializing_shards) | _____ |
-| 회복 throughput | sum(rate(elasticsearch_indices_translog_operations_total[1m])) | _____ ops/s |
+| 노드 join 시각 | opensearch_cluster_nodes_number 회복 | _____ s after T0 |
+| Replica 재생성 진행 (peak) | max(opensearch_cluster_shards_number{type="initializing"}) | _____ |
+| 회복 throughput | sum(rate(opensearch_indices_translog_operations_number[1m])) | _____ ops/s |
 | T_green | dashboard 첫 green | _____ s after T0 |
 
 ### 6.4 합격 / 실패
@@ -500,14 +503,14 @@ follow_up: []    # 후속 액션 (있으면 list)
 ### 8.2 알람 (kube-prometheus-stack PrometheusRule)
 ```yaml
 - alert: OSStatusNotGreen
-  expr: max(elasticsearch_cluster_health_status{color="green"}) < 1
+  expr: max(opensearch_cluster_status) > 0
   for: 5m
 - alert: OSWriteRejection
-  expr: rate(elasticsearch_thread_pool_rejected_count{type="write"}[5m]) > 0
+  expr: rate(opensearch_threadpool_threads_count{name="write",type="rejected"}[5m]) > 0
 - alert: OSDiskHigh
-  expr: (1 - elasticsearch_filesystem_data_available_bytes / elasticsearch_filesystem_data_size_bytes) * 100 > 80
+  expr: (1 - opensearch_fs_total_available_bytes / opensearch_fs_total_total_bytes) * 100 > 80
 - alert: OSCircuitBreakerTripped
-  expr: increase(elasticsearch_breakers_tripped[5m]) > 0
+  expr: increase(opensearch_circuitbreaker_tripped_count[5m]) > 0
 ```
 
 ### 8.3 GitOps drift sync

@@ -1,0 +1,87 @@
+# OpenSearch helm chart values — prometheus-exporter plugin (aiven) 통합
+#
+# 적용:
+#   # 1. plugin .zip → ConfigMap (한 번)
+#   curl -fsSL -o /tmp/prometheus-exporter-2.19.1.0.zip \
+#     https://github.com/aiven/prometheus-exporter-plugin-for-opensearch/releases/download/2.19.1.0/prometheus-exporter-2.19.1.0.zip
+#   kubectl -n monitoring create configmap opensearch-prometheus-plugin \
+#     --from-file=prometheus-exporter-2.19.1.0.zip=/tmp/prometheus-exporter-2.19.1.0.zip
+#
+#   # 폐쇄망: Nexus raw repo 에 plugin .zip 업로드 후 Service/Ingress 로 노출
+#   #         또는 위처럼 ConfigMap 으로 직접 in-cluster 노출
+#
+#   # 2. helm upgrade (기존 release 명: opensearch-lt)
+#   helm upgrade opensearch-lt opensearch/opensearch \
+#     --version 2.32.0 -n monitoring --reuse-values \
+#     -f deploy/load-testing-airgap/00-prerequisites/opensearch-helm-values.yaml
+#
+#   # 3. ServiceMonitor 적용 (별도 파일)
+#   kubectl apply -f deploy/load-testing-airgap/00-prerequisites/opensearch-servicemonitor.yaml
+#
+# 검증:
+#   kubectl exec -n monitoring opensearch-lt-node-0 -- curl -s localhost:9200/_prometheus/metrics | head -20
+
+# --- 1. 별도 init container 로 plugin 설치 ----------------------------------
+# OS image 의 /usr/share/opensearch/plugins 가 emptyDir 로 덮이면 빌트인
+# plugin (security, alerting, async-search 등) 이 사라지므로:
+#   1) init 가 빌트인 plugin 을 shared emptyDir 로 복사
+#   2) /usr/share/opensearch/plugins → /shared 로 symlink
+#   3) opensearch-plugin install (file:// URL 사용 — 폐쇄망)
+#   4) main 컨테이너는 shared emptyDir 를 plugins 경로에 마운트
+
+extraVolumes:
+  # plugin .zip (ConfigMap)
+  - name: opensearch-prometheus-plugin
+    configMap:
+      name: opensearch-prometheus-plugin
+  # init / main 공유 plugins 디렉터리
+  - name: opensearch-plugins-shared
+    emptyDir: {}
+
+extraVolumeMounts:
+  # main OS 컨테이너 — init 가 채운 plugins 디렉터리를 그대로 사용
+  - name: opensearch-plugins-shared
+    mountPath: /usr/share/opensearch/plugins
+
+extraInitContainers:
+  - name: install-prometheus-exporter
+    image: opensearchproject/opensearch:2.19.1
+    imagePullPolicy: IfNotPresent
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        echo "[init] copying built-in plugins → shared volume"
+        # cp -a 는 시간/소유권 보존 시도 → emptyDir + fsgroup 환경에서 실패.
+        # cp -r 로 충분 (소유권은 fsgroup 가 자동 처리).
+        cp -r /usr/share/opensearch/plugins/. /shared-plugins/ 2>/dev/null || true
+        echo "[init] redirecting plugins dir to shared volume"
+        rm -rf /usr/share/opensearch/plugins
+        ln -s /shared-plugins /usr/share/opensearch/plugins
+        if [ -d /shared-plugins/prometheus-exporter ]; then
+          echo "[init] prometheus-exporter already installed — skip"
+        else
+          echo "[init] installing prometheus-exporter plugin..."
+          bin/opensearch-plugin install --batch \
+            file:///opt/plugin/prometheus-exporter-2.19.1.0.zip
+        fi
+        echo "[init] final plugins:"
+        ls -1 /shared-plugins
+    volumeMounts:
+      - name: opensearch-prometheus-plugin
+        mountPath: /opt/plugin
+        readOnly: true
+      - name: opensearch-plugins-shared
+        mountPath: /shared-plugins
+    resources:
+      requests: { cpu: "100m", memory: "256Mi" }
+      limits:   { cpu: "1000m", memory: "512Mi" }
+
+# --- 2. plugin 활성화 후 endpoint 노출 -------------------------------------
+# /_prometheus/metrics 는 OS REST 9200 포트에 자동 노출 — 추가 service 불필요.
+# ServiceMonitor 가 service/opensearch-lt-node:9200 을 path=/_prometheus/metrics 로 scrape.
+
+# --- 3. 부가 설정 ----------------------------------------------------------
+# (보안 plugin 비활성 — testbed 에서 admin:admin 없이 plugin 호출 가능 보장)
+# 기존 release 의 config 와 일치 (재선언 안 해도 --reuse-values 로 유지됨)

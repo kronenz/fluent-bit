@@ -1,0 +1,38 @@
+# OS plugin (aiven prometheus-exporter) endpoint scrape.
+#
+# Plugin 이 OS REST 9200 포트의 /_prometheus/metrics 에 metric 을 노출.
+# 기존 elasticsearch-exporter (sidecar) 는 더 이상 불필요 — scale 0 또는 삭제 권장:
+#   kubectl -n monitoring scale deploy opensearch-exporter --replicas=0
+#   (필요 시 dashboard 호환을 위해 유지하고 새 plugin 과 병행도 가능)
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: opensearch-plugin
+  namespace: monitoring
+  labels:
+    release: kps                 # kube-prometheus-stack 의 prometheus 가 selector
+    app: opensearch
+spec:
+  selector:
+    matchLabels:
+      # 실제 service 라벨 (helm chart 가 부여):
+      #   app.kubernetes.io/component: opensearch-lt-node
+      #   app.kubernetes.io/instance:  opensearch-lt
+      app.kubernetes.io/instance: opensearch-lt
+    matchExpressions:
+      # headless service (port 9200 도 노출하지만 endpoint 가 직접 pod IP 라
+      # ServiceMonitor 양쪽 다 scrape 시 중복 → 본 service (ClusterIP) 만 매칭)
+      - { key: service.kubernetes.io/headless, operator: DoesNotExist }
+  endpoints:
+    - port: http                 # OS service 의 9200 포트 이름
+      path: /_prometheus/metrics
+      interval: 30s
+      scrapeTimeout: 25s
+      # 보안 plugin 활성 운영에선 basicAuth 추가:
+      # basicAuth:
+      #   username: { name: opensearch-creds, key: username }
+      #   password: { name: opensearch-creds, key: password }
+  namespaceSelector:
+    matchNames:
+      - monitoring
