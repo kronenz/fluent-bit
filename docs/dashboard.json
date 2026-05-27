@@ -1,0 +1,981 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Intel E810-XXV 25G NIC RX Packet Drop Diagnostic Dashboard - 카운터 기반 원인 분류",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "id": 100,
+      "panels": [],
+      "title": "📊 Overview - RX Drop 개요",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "현재 RX drop 발생률 (pps)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "red", "value": 100}
+            ]
+          },
+          "unit": "pps"
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 1},
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_network_receive_drop_total{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[$__rate_interval]))",
+          "legendFormat": "RX Drops",
+          "refId": "A"
+        }
+      ],
+      "title": "RX Drop Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "전체 RX 패킷 대비 drop 비율. 0.001% 이상 주의, 0.01% 이상 위험",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "decimals": 6,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.001},
+              {"color": "red", "value": 0.01}
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 1},
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "100 * (sum(rate(node_network_receive_drop_total{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[$__rate_interval])) / sum(rate(node_network_receive_packets_total{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[$__rate_interval])))",
+          "legendFormat": "Drop %",
+          "refId": "A"
+        }
+      ],
+      "title": "RX Drop Ratio (%)",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "RX 처리량 (pps)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "unit": "pps"
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 1},
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_network_receive_packets_total{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[$__rate_interval]))",
+          "legendFormat": "RX pps",
+          "refId": "A"
+        }
+      ],
+      "title": "RX Throughput",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "RX 대역폭 (bps)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "unit": "bps"
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 1},
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_network_receive_bytes_total{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[$__rate_interval])) * 8",
+          "legendFormat": "RX bps",
+          "refId": "A"
+        }
+      ],
+      "title": "RX Bandwidth",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "시간에 따른 RX drop 추이",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "unit": "pps"
+        }
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 5},
+      "id": 5,
+      "options": {
+        "legend": {"calcs": ["mean", "max", "lastNotNull"], "displayMode": "table", "placement": "right", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "rate(node_network_receive_drop_total{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[$__rate_interval])",
+          "legendFormat": "{{instance}} - {{device}}",
+          "refId": "A"
+        }
+      ],
+      "title": "RX Drop Trend (per interface)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 13},
+      "id": 101,
+      "panels": [],
+      "title": "🔍 NIC Counter 분류 - 원인별 카운터",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "NIC 카운터 종합 - 동시에 움직이는 카운터로 원인 파악\n\n- missed: NIC가 PCIe로 못 올림 (IRQ/호스트 지연)\n- no_buffer: descriptor 부족 (ring/NAPI)\n- fifo: NIC 내부 FIFO overrun (PCIe/IRQ)\n- crc: 물리계층 오류 (광/케이블)\n- length: MTU 불일치\n- frame: 프레이밍 오류",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "unit": "pps"
+        }
+      },
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 14},
+      "id": 6,
+      "options": {
+        "legend": {"calcs": ["mean", "max", "lastNotNull"], "displayMode": "table", "placement": "right", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_ethtool_rx_missed_errors{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[$__rate_interval]))",
+          "legendFormat": "missed (IRQ/호스트지연)",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_ethtool_rx_no_buffer_count{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[$__rate_interval]))",
+          "legendFormat": "no_buffer (ring/NAPI)",
+          "refId": "B"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_network_receive_fifo_total{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[$__rate_interval]))",
+          "legendFormat": "fifo (PCIe/IRQ)",
+          "refId": "C"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_network_receive_crc_errors_total{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[$__rate_interval]))",
+          "legendFormat": "crc (물리계층)",
+          "refId": "D"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_network_receive_length_errors_total{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[$__rate_interval]))",
+          "legendFormat": "length (MTU)",
+          "refId": "E"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_network_receive_frame_errors_total{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[$__rate_interval]))",
+          "legendFormat": "frame (프레이밍)",
+          "refId": "F"
+        }
+      ],
+      "title": "RX Counter Breakdown - 원인 분류",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 24},
+      "id": 102,
+      "panels": [],
+      "title": "🎯 진단 매트릭스 - 패턴별 현재 상태",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "rx_missed_errors > 0 이면 IRQ affinity / RSS 분산 문제 의심",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 0.01},
+              {"color": "red", "value": 10}
+            ]
+          },
+          "unit": "pps"
+        }
+      },
+      "gridPos": {"h": 5, "w": 4, "x": 0, "y": 25},
+      "id": 7,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_ethtool_rx_missed_errors{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[5m]))",
+          "legendFormat": "IRQ 쏠림",
+          "refId": "A"
+        }
+      ],
+      "title": "🔥 IRQ/RSS 쏠림",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "rx_no_buffer + NAPI squeeze 동반 시 ring buffer 또는 NAPI budget 부족",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 0.01},
+              {"color": "red", "value": 10}
+            ]
+          },
+          "unit": "pps"
+        }
+      },
+      "gridPos": {"h": 5, "w": 4, "x": 4, "y": 25},
+      "id": 8,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_ethtool_rx_no_buffer_count{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[5m])) + sum(rate(node_softnet_times_squeezed_total{cluster=\"$cluster\", project=\"dataops\"}[5m]))",
+          "legendFormat": "NAPI/Ring 부족",
+          "refId": "A"
+        }
+      ],
+      "title": "📦 NAPI/Ring Buffer",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "rx_fifo_errors > 0 이면 NIC 내부 FIFO overrun (PCIe 대역폭/IRQ 지연)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 0.01},
+              {"color": "red", "value": 10}
+            ]
+          },
+          "unit": "pps"
+        }
+      },
+      "gridPos": {"h": 5, "w": 4, "x": 8, "y": 25},
+      "id": 9,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_network_receive_fifo_total{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[5m]))",
+          "legendFormat": "PCIe/FIFO",
+          "refId": "A"
+        }
+      ],
+      "title": "⚡ PCIe/IRQ 지연",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "rx_crc_errors > 0 이면 케이블/광모듈/SFP 등 물리계층 점검 필요",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 0.01},
+              {"color": "red", "value": 1}
+            ]
+          },
+          "unit": "pps"
+        }
+      },
+      "gridPos": {"h": 5, "w": 4, "x": 12, "y": 25},
+      "id": 10,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_network_receive_crc_errors_total{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[5m]))",
+          "legendFormat": "PHY/Cable",
+          "refId": "A"
+        }
+      ],
+      "title": "🔌 물리계층",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "UDP RcvbufErrors + TCP BacklogDrop. 앱이 recv()를 빨리 못 부르거나 소켓 버퍼 부족",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 0.01},
+              {"color": "red", "value": 10}
+            ]
+          },
+          "unit": "pps"
+        }
+      },
+      "gridPos": {"h": 5, "w": 4, "x": 16, "y": 25},
+      "id": 11,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_netstat_Udp_RcvbufErrors{cluster=\"$cluster\", project=\"dataops\"}[5m])) + sum(rate(node_netstat_TcpExt_TCPBacklogDrop{cluster=\"$cluster\", project=\"dataops\"}[5m]))",
+          "legendFormat": "Socket Buffer",
+          "refId": "A"
+        }
+      ],
+      "title": "🔄 소켓 버퍼/App",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "softnet backlog drop. RPS 사용 시 netdev_max_backlog 초과",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 0.01},
+              {"color": "red", "value": 10}
+            ]
+          },
+          "unit": "pps"
+        }
+      },
+      "gridPos": {"h": 5, "w": 4, "x": 20, "y": 25},
+      "id": 12,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_softnet_dropped_total{cluster=\"$cluster\", project=\"dataops\"}[5m]))",
+          "legendFormat": "Backlog",
+          "refId": "A"
+        }
+      ],
+      "title": "📥 RPS Backlog",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 30},
+      "id": 103,
+      "panels": [],
+      "title": "🧠 Kernel softirq / NAPI 상태",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "NAPI poll이 budget을 모두 사용하고 양보한 횟수.\n증가 = CPU가 패킷 처리를 못 따라감.\nnet.core.netdev_budget 또는 IRQ affinity 조정 필요",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "ops"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 31},
+      "id": 13,
+      "options": {
+        "legend": {"calcs": ["mean", "max", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_softnet_times_squeezed_total{cluster=\"$cluster\", project=\"dataops\"}[$__rate_interval]))",
+          "legendFormat": "NAPI Squeeze (CPU 부족)",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_softnet_dropped_total{cluster=\"$cluster\", project=\"dataops\"}[$__rate_interval]))",
+          "legendFormat": "Backlog Drop",
+          "refId": "B"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_softnet_processed_total{cluster=\"$cluster\", project=\"dataops\"}[$__rate_interval]))",
+          "legendFormat": "Processed",
+          "refId": "C"
+        }
+      ],
+      "title": "Softnet 상태 (NAPI / Backlog)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "CPU별 softirq 사용률. 특정 코어만 높으면 IRQ affinity 문제 (RSS 분산 실패)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "max": 1,
+          "min": 0,
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 31},
+      "id": 14,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "right", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "rate(node_cpu_seconds_total{cluster=\"$cluster\", project=\"dataops\", mode=\"softirq\"}[$__rate_interval])",
+          "legendFormat": "{{instance}} CPU{{cpu}}",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU별 softirq 사용률 (쏠림 확인)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "softirq 쏠림 정도 (변동계수). 1.0 이상 = 특정 코어 집중. IRQ affinity 재설정 필요",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.5},
+              {"color": "red", "value": 1.0}
+            ]
+          },
+          "unit": "none",
+          "decimals": 2
+        }
+      },
+      "gridPos": {"h": 4, "w": 12, "x": 0, "y": 39},
+      "id": 15,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "stddev by (instance) (rate(node_cpu_seconds_total{cluster=\"$cluster\", project=\"dataops\", mode=\"softirq\"}[5m])) / avg by (instance) (rate(node_cpu_seconds_total{cluster=\"$cluster\", project=\"dataops\", mode=\"softirq\"}[5m]))",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "title": "softirq 쏠림 지표 (CoV)",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "최대 CPU softirq 사용률 / 평균 softirq 사용률.\n3 이상이면 RSS 분산 실패",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 2},
+              {"color": "red", "value": 3}
+            ]
+          },
+          "unit": "none",
+          "decimals": 2
+        }
+      },
+      "gridPos": {"h": 4, "w": 12, "x": 12, "y": 39},
+      "id": 16,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "max by (instance) (rate(node_cpu_seconds_total{cluster=\"$cluster\", project=\"dataops\", mode=\"softirq\"}[5m])) / avg by (instance) (rate(node_cpu_seconds_total{cluster=\"$cluster\", project=\"dataops\", mode=\"softirq\"}[5m]))",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Max/Avg softirq 비율 (RSS 균등성)",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 43},
+      "id": 104,
+      "panels": [],
+      "title": "🌐 네트워크 스택 / 소켓 레벨 Drop",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "UDP 소켓 수신 버퍼 부족으로 인한 drop. 앱이 recv() 못 따라가거나 SO_RCVBUF 작음",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "ops"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 44},
+      "id": 17,
+      "options": {
+        "legend": {"calcs": ["mean", "max", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_netstat_Udp_RcvbufErrors{cluster=\"$cluster\", project=\"dataops\"}[$__rate_interval]))",
+          "legendFormat": "Udp_RcvbufErrors",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_netstat_Udp_InErrors{cluster=\"$cluster\", project=\"dataops\"}[$__rate_interval]))",
+          "legendFormat": "Udp_InErrors",
+          "refId": "B"
+        }
+      ],
+      "title": "UDP Drop (소켓/앱 레벨)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "TCP listen queue 및 backlog 큐 overflow.\nListenOverflows: accept() 못 따라감\nTCPBacklogDrop: socket backlog 부족\nPruneCalled: 메모리 부족으로 OOO 패킷 정리",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "ops"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 44},
+      "id": 18,
+      "options": {
+        "legend": {"calcs": ["mean", "max", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_netstat_TcpExt_ListenOverflows{cluster=\"$cluster\", project=\"dataops\"}[$__rate_interval]))",
+          "legendFormat": "ListenOverflows",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_netstat_TcpExt_ListenDrops{cluster=\"$cluster\", project=\"dataops\"}[$__rate_interval]))",
+          "legendFormat": "ListenDrops",
+          "refId": "B"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_netstat_TcpExt_TCPBacklogDrop{cluster=\"$cluster\", project=\"dataops\"}[$__rate_interval]))",
+          "legendFormat": "TCPBacklogDrop",
+          "refId": "C"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(node_netstat_TcpExt_PruneCalled{cluster=\"$cluster\", project=\"dataops\"}[$__rate_interval]))",
+          "legendFormat": "PruneCalled",
+          "refId": "D"
+        }
+      ],
+      "title": "TCP Drop (Listen/Backlog/Prune)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 52},
+      "id": 105,
+      "panels": [],
+      "title": "📡 RSS 큐 분포 (E810 RX Queue)",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "RX 큐별 패킷 처리량. 균등해야 정상. 특정 큐만 높으면 RSS 해시 불균형 또는 flow director 룰 영향",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "pps"
+        }
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 53},
+      "id": 19,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "right", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "rate(node_ethtool_rx_queue_packets{cluster=\"$cluster\", project=\"dataops\", device=~\"$iface\"}[$__rate_interval])",
+          "legendFormat": "{{device}} queue {{queue}}",
+          "refId": "A"
+        }
+      ],
+      "title": "RX 큐별 패킷 처리량",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 61},
+      "id": 106,
+      "panels": [],
+      "title": "📋 진단 가이드",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "",
+      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 62},
+      "id": 20,
+      "options": {
+        "code": {"language": "plaintext", "showLineNumbers": false, "showMiniMap": false},
+        "content": "## 🎯 RX Drop 진단 매트릭스\n\n| 증가 카운터 | 의심 원인 | 처방 |\n|---|---|---|\n| `rx_missed_errors` | NIC가 호스트로 못 넘김 (IRQ 지연) | IRQ affinity 재설정, `set_irq_affinity` 스크립트 사용 |\n| `rx_no_buffer_count` + NAPI squeeze | descriptor 부족 / NAPI budget 소진 | `ethtool -G rx 4096`, `net.core.netdev_budget=600` |\n| `rx_fifo_errors` | NIC 내부 FIFO overrun (PCIe/IRQ) | PCIe link 점검, IRQ coalescing 조정 |\n| `rx_crc_errors` | 물리계층 (광/케이블) | `ethtool -m` Rx power 확인, SFP/케이블 교체 |\n| `rx_length_errors` | MTU 불일치 | 양단 MTU 동일 확인 |\n| `Udp_RcvbufErrors` | 소켓 버퍼 부족 | `net.core.rmem_max` ↑, 앱 `SO_RCVBUF` 설정 |\n| `TcpExt_ListenOverflows` | accept() 못 따라감 | `net.core.somaxconn` ↑, 앱 accept thread ↑ |\n| `TcpExt_TCPBacklogDrop` | socket backlog 부족 | `net.ipv4.tcp_max_syn_backlog` ↑ |\n| `softnet_dropped` (col 2) | RPS backlog 넘침 | `net.core.netdev_max_backlog=8192` |\n| `softnet_times_squeezed` (col 3) | NAPI poll 양보 | `net.core.netdev_budget` ↑, CPU 추가 |\n| softirq CoV > 1.0 | 특정 CPU 쏠림 | irqbalance 비활성화, `set_irq_affinity` 적용 |\n\n## 🔧 E810 권장 튜닝\n\n```bash\n# 1. irqbalance 끄고 ice 전용 IRQ affinity 설정\nsystemctl stop irqbalance\n/usr/local/bin/set_irq_affinity <iface>\n\n# 2. RSS 큐를 NUMA 코어 수만큼\nethtool -L <iface> combined <N>\n\n# 3. Adaptive interrupt coalescing\nethtool -C <iface> adaptive-rx on adaptive-tx on\n\n# 4. NAPI budget 상향\nsysctl -w net.core.netdev_budget=600\nsysctl -w net.core.netdev_budget_usecs=8000\n\n# 5. 소켓 버퍼 상향\nsysctl -w net.core.rmem_max=33554432\nsysctl -w net.core.rmem_default=16777216\n\n# 6. backlog (RPS 사용 시)\nsysctl -w net.core.netdev_max_backlog=8192\n```\n\n## ⚠️ 주의\n\n- 모든 카운터가 0인데 `node_network_receive_drop_total`만 증가 → 커널 내부 drop\n  → `dropwatch -l kas` 또는 `perf record -e skb:kfree_skb`로 추적\n- `rx_crc_errors` 발생 시 ring buffer 튜닝 무의미 → 물리계층 점검 우선\n- ring buffer 무작정 키우면 bufferbloat로 latency 악화 가능",
+        "mode": "markdown"
+      },
+      "pluginVersion": "10.0.0",
+      "title": "진단 가이드 & 튜닝 레퍼런스",
+      "type": "text"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["network", "nic", "e810", "rx-drop", "dataops"],
+  "templating": {
+    "list": [
+      {
+        "current": {"selected": false, "text": "Prometheus", "value": "prometheus"},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Datasource",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {"selected": false, "text": "All", "value": "$__all"},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "definition": "label_values(node_network_up{project=\"dataops\"}, cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Cluster",
+        "multi": true,
+        "name": "cluster",
+        "options": [],
+        "query": {"query": "label_values(node_network_up{project=\"dataops\"}, cluster)", "refId": "StandardVariableQuery"},
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {"selected": false, "text": "All", "value": "$__all"},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "definition": "label_values(node_network_up{cluster=\"$cluster\", project=\"dataops\"}, instance)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Instance",
+        "multi": true,
+        "name": "instance",
+        "options": [],
+        "query": {"query": "label_values(node_network_up{cluster=\"$cluster\", project=\"dataops\"}, instance)", "refId": "StandardVariableQuery"},
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {"selected": false, "text": "All", "value": "$__all"},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "definition": "label_values(node_network_up{cluster=\"$cluster\", project=\"dataops\", instance=~\"$instance\", device!~\"lo|docker.*|veth.*|br-.*|cni.*|flannel.*|cali.*\"}, device)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Interface",
+        "multi": true,
+        "name": "iface",
+        "options": [],
+        "query": {"query": "label_values(node_network_up{cluster=\"$cluster\", project=\"dataops\", instance=~\"$instance\", device!~\"lo|docker.*|veth.*|br-.*|cni.*|flannel.*|cali.*\"}, device)", "refId": "StandardVariableQuery"},
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {"from": "now-3h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "NIC RX Packet Drop Diagnostic (E810-XXV)",
+  "uid": "nic-rx-drop-diag",
+  "version": 1,
+  "weekStart": ""
+}
