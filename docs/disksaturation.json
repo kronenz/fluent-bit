@@ -1,0 +1,1539 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {"type": "grafana", "uid": "-- Grafana --"},
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "NVMe Disk I/O Saturation 진단 - 노드/디스크/Pod 단위 드릴다운 대시보드",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "id": 100,
+      "panels": [],
+      "title": "Layer 0 - 대시보드 사용 가이드",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "대시보드 사용 방법 및 진단 절차",
+      "gridPos": {"h": 14, "w": 24, "x": 0, "y": 1},
+      "id": 1,
+      "options": {
+        "code": {"language": "markdown", "showLineNumbers": false, "showMiniMap": false},
+        "content": "## NVMe Disk I/O Saturation 진단 대시보드\n\n### 진단 절차\n\n**1단계 - Layer 1 (노드 디스크 개요)**: 어느 디스크에서 포화가 발생하는지 확인. `io_time` 사용률이 90% 이상이면 alert 임계점.\n\n**2단계 - Layer 2 (시간 패턴)**: 피크 발생 시점이 주기적인지(cron, 백업) vs 이벤트성인지(사용자 트래픽 burst) 판별.\n\n**3단계 - Layer 3 (Pod Top-N)**: 노드 변수로 대상 노드 선택 후, 어떤 Pod이 가장 많은 I/O를 일으키는지 식별. **가장 중요한 섹션**.\n\n**4단계 - Layer 4 (Pod 상세)**: `$pod` 변수로 특정 Pod 선택하여 시계열 패턴, 컨테이너별 분해, 라이프사이클(restart 등) 확인.\n\n**5단계 - Layer 5 (워크로드 분류)**: namespace/워크로드 종류별 합계로 어떤 팀/서비스가 원인인지 파악.\n\n**6단계 - Layer 6 (시스템 측면)**: 디스크가 정말 병목인지 (CPU iowait, dirty pages, PSI 등) 교차 검증.\n\n### 핵심 지표 해석\n\n| 지표 | 정상 | 경고 | 위험 |\n|---|---|---|---|\n| I/O Time Utilization | < 70% | 70-90% | > 90% (alert) |\n| Avg Queue Depth | < 1 | 1-5 | > 5 |\n| NVMe Read Latency | < 1ms | 1-10ms | > 10ms |\n| NVMe Write Latency | < 1ms | 1-10ms | > 10ms |\n| Avg I/O Size 4KB 근처 | random workload (DB, 메타데이터) | - | - |\n| Avg I/O Size 64KB+ | sequential (백업, 로그, ETL) | - | - |\n\n### 흔한 원인 패턴\n\n- **매일 특정 시간 피크**: CronJob, 백업 잡, 로그 로테이션\n- **Pod 시작 직후 피크**: initContainer, DB warmup, 캐시 로딩\n- **write 위주 + dirty page 증가**: DB checkpoint, fsync 폭주\n- **read 위주 + 작은 I/O 크기**: DB index scan, 메타데이터 스캔\n- **큰 sequential I/O**: 배치 ETL, 로그 collector, 백업\n- **여러 Pod 동시 피크**: 노드 스케줄링 쏠림 (AntiAffinity 미설정)\n- **CPU iowait 동반**: 디스크가 진짜 병목\n- **memory pressure 동반**: page reclaim 또는 swap\n\n### 메트릭 소스\n\n- **node_exporter**: `node_disk_*` (노드 레벨)\n- **cAdvisor (kubelet 내장)**: `container_fs_*`, `container_blkio_*` (Pod 레벨)\n- **kube-state-metrics**: `kube_pod_*` (메타데이터)\n\n환경에 따라 cAdvisor 메트릭 이름이 다를 수 있으므로 패널이 비어 보이면 `curl <kubelet>:10250/metrics/cadvisor | grep -i blkio` 로 실제 메트릭 이름 확인 필요.",
+        "mode": "markdown"
+      },
+      "pluginVersion": "10.0.0",
+      "title": "사용 가이드",
+      "type": "text"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 15},
+      "id": 101,
+      "panels": [],
+      "title": "Layer 1 - 노드 디스크 개요",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "현재 시점의 디스크 I/O Time 최댓값(%). 90% 이상이면 NodeDiskIOSaturation alert 조건과 일치. 이 값은 단순 IOPS나 처리량이 아닌, 디스크가 I/O 요청을 처리하느라 사용한 시간 비율로, NVMe 포화 여부의 가장 직접적인 지표.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 70},
+              {"color": "orange", "value": 85},
+              {"color": "red", "value": 90}
+            ]
+          },
+          "unit": "percent",
+          "max": 100,
+          "min": 0
+        }
+      },
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 16},
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "max(rate(node_disk_io_time_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval])) * 100",
+          "legendFormat": "Max I/O Util",
+          "refId": "A"
+        }
+      ],
+      "title": "Max I/O Utilization",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "평균 I/O 요청 큐 길이. weighted I/O time을 시간으로 나눈 값으로, 디스크에 동시에 대기 중인 요청 수를 의미. NVMe는 큐 깊이가 높아도 처리 가능하지만 1.0을 크게 초과하면 latency 증가의 신호. 5 이상이면 명백한 포화 상태.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "red", "value": 5}
+            ]
+          },
+          "unit": "short",
+          "decimals": 2
+        }
+      },
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 16},
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "max(rate(node_disk_io_time_weighted_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval]))",
+          "legendFormat": "Avg Queue Depth",
+          "refId": "A"
+        }
+      ],
+      "title": "Avg Queue Depth",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "평균 read latency(ms). read_time_seconds / read_count로 계산. NVMe SSD의 경우 일반적으로 1ms 미만이 정상. 10ms 이상이면 디스크 자체 문제 또는 큐가 가득찬 상태.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "red", "value": 10}
+            ]
+          },
+          "unit": "ms",
+          "decimals": 2
+        }
+      },
+      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 16},
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "(rate(node_disk_read_time_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval]) / rate(node_disk_reads_completed_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval])) * 1000",
+          "legendFormat": "Read Latency",
+          "refId": "A"
+        }
+      ],
+      "title": "Avg Read Latency",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "평균 write latency(ms). write_time_seconds / write_count로 계산. NVMe write는 보통 read보다 빠르거나 비슷한 수준. 10ms 이상이면 write back 큐 적체 또는 fsync 대기 의심.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "red", "value": 10}
+            ]
+          },
+          "unit": "ms",
+          "decimals": 2
+        }
+      },
+      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 16},
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "(rate(node_disk_write_time_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval]) / rate(node_disk_writes_completed_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval])) * 1000",
+          "legendFormat": "Write Latency",
+          "refId": "A"
+        }
+      ],
+      "title": "Avg Write Latency",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "디스크별 I/O Time Utilization(%) 시계열. 노드/디스크별로 어느 시점에 포화가 발생했는지 추적. 빨간 임계선(90%)을 넘는 구간이 alert 발생 구간. 여러 디스크 중 어느 디스크가 문제인지 한눈에 식별 가능.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "thresholdsStyle": {"mode": "line"}
+          },
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "transparent", "value": null},
+              {"color": "red", "value": 90}
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 21},
+      "id": 6,
+      "options": {
+        "legend": {"calcs": ["mean", "max", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "rate(node_disk_io_time_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval]) * 100",
+          "legendFormat": "{{instance}} - {{device}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Disk I/O Utilization (% over time)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "디스크별 평균 큐 길이(weighted I/O time rate) 시계열. 1.0 위쪽으로 지속적으로 머무르면 요청이 쌓이는 중. 짧은 spike는 정상, 지속 상승은 capacity 부족 신호.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "thresholdsStyle": {"mode": "line"}
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "transparent", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "red", "value": 5}
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 21},
+      "id": 7,
+      "options": {
+        "legend": {"calcs": ["mean", "max", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "rate(node_disk_io_time_weighted_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval])",
+          "legendFormat": "{{instance}} - {{device}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Avg Queue Depth (over time)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "디스크별 Read IOPS. 단위는 ops/s. 작은 random I/O(4KB)가 많으면 DB 인덱스 스캔/메타데이터 액세스 패턴. 큰 sequential read는 백업/스트리밍 워크로드.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "none"}
+          },
+          "unit": "iops"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 30},
+      "id": 8,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "rate(node_disk_reads_completed_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval])",
+          "legendFormat": "{{instance}} - {{device}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Read IOPS",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "디스크별 Write IOPS. Write가 폭주하면 DB checkpoint, 로그 flush, fsync 대량 호출 의심. CronJob 스케줄과 비교하여 주기성 확인 권장.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "none"}
+          },
+          "unit": "iops"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 30},
+      "id": 9,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "rate(node_disk_writes_completed_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval])",
+          "legendFormat": "{{instance}} - {{device}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Write IOPS",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "디스크별 Read Throughput(bytes/s). NVMe의 이론 최대 대역폭(PCIe Gen3 x4 = 약 4GB/s, Gen4 x4 = 약 8GB/s) 대비 어느 정도인지 비교. 한계 근처면 대역폭이 진짜 병목.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 38},
+      "id": 10,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "rate(node_disk_read_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval])",
+          "legendFormat": "{{instance}} - {{device}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Read Throughput",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "디스크별 Write Throughput(bytes/s). 큰 sequential write는 ETL/백업, 잦은 작은 write는 트랜잭션 로그 또는 메트릭 스토리지 의심.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 38},
+      "id": 11,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "rate(node_disk_written_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval])",
+          "legendFormat": "{{instance}} - {{device}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Write Throughput",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "평균 Read I/O 크기(KB) = read_bytes / read_count. 워크로드 성격 판별용. 4KB 근처면 random small I/O(DB, 메타데이터), 64KB+면 sequential(백업, ETL, 로그 collector).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "deckbytes"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 46},
+      "id": 12,
+      "options": {
+        "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "(rate(node_disk_read_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval]) / rate(node_disk_reads_completed_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval])) / 1024",
+          "legendFormat": "{{instance}} - {{device}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Avg Read I/O Size (Random vs Sequential 판별)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "평균 Write I/O 크기(KB) = written_bytes / write_count. 작으면 트랜잭션/로그 위주, 크면 배치/덤프 워크로드.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "deckbytes"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 46},
+      "id": 13,
+      "options": {
+        "legend": {"calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "(rate(node_disk_written_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval]) / rate(node_disk_writes_completed_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[$__rate_interval])) / 1024",
+          "legendFormat": "{{instance}} - {{device}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Avg Write I/O Size (Random vs Sequential 판별)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 54},
+      "id": 102,
+      "panels": [],
+      "title": "Layer 2 - 시간 패턴 분석 (주기성 vs 이벤트성)",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "I/O Utilization 히트맵. X축은 시간, Y축은 디스크 사용률 구간. 매일 같은 시간에 진한 색 띠가 보이면 주기적 워크로드(cron, 백업). 불규칙하게 burst가 발생하면 사용자 트래픽 또는 이벤트성.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+            "scaleDistribution": {"type": "linear"}
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 55},
+      "id": 14,
+      "options": {
+        "calculate": false,
+        "cellGap": 1,
+        "color": {
+          "exponent": 0.5,
+          "fill": "dark-orange",
+          "mode": "scheme",
+          "reverse": false,
+          "scale": "exponential",
+          "scheme": "Oranges",
+          "steps": 64
+        },
+        "exemplars": {"color": "rgba(255,0,255,0.7)"},
+        "filterValues": {"le": 1e-9},
+        "legend": {"show": true},
+        "rowsFrame": {"layout": "auto"},
+        "tooltip": {"show": true, "yHistogram": false},
+        "yAxis": {"axisPlacement": "left", "reverse": false, "unit": "percent"}
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "max(rate(node_disk_io_time_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[5m])) * 100",
+          "format": "time_series",
+          "legendFormat": "I/O Util",
+          "refId": "A"
+        }
+      ],
+      "title": "Time Heatmap - I/O Utilization 시간대 분포",
+      "type": "heatmap"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Peak vs Average 비교. 최근 1시간 최댓값과 평균값의 격차. peak/avg가 크면(예: 3배 이상) burst 성격이 강함 = 이벤트성/배치성. 비슷하면 지속적 부하.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 64},
+      "id": 15,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "max_over_time(rate(node_disk_io_time_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[5m])[1h:]) * 100",
+          "legendFormat": "Peak 1h - {{device}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "avg_over_time(rate(node_disk_io_time_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[5m])[1h:]) * 100",
+          "legendFormat": "Avg 1h - {{device}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Peak vs Average (1h Rolling Window)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Peak/Avg 비율. 1에 가까우면 일정한 부하, 2 이상이면 burst 성격, 5 이상이면 강한 이벤트성. 배치 잡, CronJob, 백업 등을 의심하는 지표.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 2},
+              {"color": "orange", "value": 5},
+              {"color": "red", "value": 10}
+            ]
+          },
+          "unit": "short",
+          "decimals": 2
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 64},
+      "id": 16,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "max_over_time(rate(node_disk_io_time_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[5m])[1h:]) / avg_over_time(rate(node_disk_io_time_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"$device\"}[5m])[1h:])",
+          "legendFormat": "{{instance}} - {{device}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Peak/Average Ratio (Burstiness)",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 72},
+      "id": 103,
+      "panels": [],
+      "title": "Layer 3 - Pod Top-N (어떤 Pod이 원인인가) - 가장 중요",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Top 10 Pod by Read Throughput. cAdvisor의 container_fs_reads_bytes_total 기반. 노드에서 가장 많이 읽는 Pod 순위. 정렬 가능. 의심 Pod 1차 후보.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "Bps"
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "color", "value": {"mode": "continuous-YlOrRd"}}]}
+        ]
+      },
+      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 73},
+      "id": 17,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+        "showHeader": true
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "topk(10, sum by (pod, namespace, instance) (rate(container_fs_reads_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", container!=\"\", container!=\"POD\"}[$__rate_interval])))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Pod - Read Throughput",
+      "transformations": [
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true}, "indexByName": {"namespace": 0, "pod": 1, "instance": 2, "Value": 3}, "renameByName": {"instance": "node", "Value": "Read bytes/s"}}}
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Top 10 Pod by Write Throughput. cAdvisor 기반. Write 위주 워크로드(DB, 로그 수집, 메트릭 스토리지) 식별. Read보다 일반적으로 더 자주 포화 원인.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "Bps"
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "color", "value": {"mode": "continuous-YlOrRd"}}]}
+        ]
+      },
+      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 73},
+      "id": 18,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+        "showHeader": true
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "topk(10, sum by (pod, namespace, instance) (rate(container_fs_writes_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", container!=\"\", container!=\"POD\"}[$__rate_interval])))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Pod - Write Throughput",
+      "transformations": [
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true}, "indexByName": {"namespace": 0, "pod": 1, "instance": 2, "Value": 3}, "renameByName": {"instance": "node", "Value": "Write bytes/s"}}}
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Top 10 Pod by Read IOPS. ops/s 단위. 처리량은 적어도 IOPS가 높으면 random I/O 워크로드 의심. DB, 인덱스 스캔 Pod 식별.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "iops"
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "color", "value": {"mode": "continuous-YlOrRd"}}]}
+        ]
+      },
+      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 83},
+      "id": 19,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+        "showHeader": true
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "topk(10, sum by (pod, namespace, instance) (rate(container_fs_reads_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", container!=\"\", container!=\"POD\"}[$__rate_interval])))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Pod - Read IOPS",
+      "transformations": [
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true}, "indexByName": {"namespace": 0, "pod": 1, "instance": 2, "Value": 3}, "renameByName": {"instance": "node", "Value": "Read ops/s"}}}
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Top 10 Pod by Write IOPS. ops/s. 잦은 작은 write가 많으면 트랜잭션 로그, fsync, append-only 로그 패턴 의심. Kafka, Prometheus TSDB, etcd 등이 흔한 후보.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "iops"
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "color", "value": {"mode": "continuous-YlOrRd"}}]}
+        ]
+      },
+      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 83},
+      "id": 20,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+        "showHeader": true
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "topk(10, sum by (pod, namespace, instance) (rate(container_fs_writes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", container!=\"\", container!=\"POD\"}[$__rate_interval])))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Pod - Write IOPS",
+      "transformations": [
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true}, "indexByName": {"namespace": 0, "pod": 1, "instance": 2, "Value": 3}, "renameByName": {"instance": "node", "Value": "Write ops/s"}}}
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Top 5 Pod의 디스크 I/O 합계(read+write bytes/s) 시계열. 피크 시점에 어떤 Pod이 동시에 튀었는지 시각적으로 확인. 여러 Pod이 같은 시점에 spike하면 노드 스케줄링 쏠림 또는 공통 트리거 의심.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "normal"}
+          },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 93},
+      "id": 21,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "topk(5, sum by (pod, namespace) (rate(container_fs_reads_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", container!=\"\", container!=\"POD\"}[$__rate_interval]) + rate(container_fs_writes_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", container!=\"\", container!=\"POD\"}[$__rate_interval])))",
+          "legendFormat": "{{namespace}}/{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 5 Pod - Total I/O over time (피크 동기성 확인)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "blkio cgroup 기반 Pod 블록 디바이스 I/O. container_fs_*는 컨테이너 내부 FS 활동을, container_blkio_*는 실제 블록 디바이스 I/O를 측정. NVMe 같은 블록 디바이스 포화 분석에는 blkio 쪽이 더 정확. 메트릭이 비어 보이면 cAdvisor 버전 또는 cgroup v2 환경 확인 필요.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 102},
+      "id": 22,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "right", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "topk(10, sum by (pod, namespace) (rate(container_blkio_device_usage_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\"}[$__rate_interval])))",
+          "legendFormat": "{{namespace}}/{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Pod - blkio (실제 블록 디바이스 I/O, cgroup 기반)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 111},
+      "id": 104,
+      "panels": [],
+      "title": "Layer 4 - Pod 상세 (변수로 선택한 Pod 분석)",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "$pod 변수로 선택한 Pod의 read/write 처리량 시계열. 컨테이너별로 분리. 어떤 컨테이너가 진짜 원인인지(sidecar vs main) 식별.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 112},
+      "id": 23,
+      "options": {
+        "legend": {"calcs": ["mean", "max", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (container) (rate(container_fs_reads_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", namespace=~\"$namespace\", pod=~\"$pod\", container!=\"\", container!=\"POD\"}[$__rate_interval]))",
+          "legendFormat": "read - {{container}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (container) (rate(container_fs_writes_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", namespace=~\"$namespace\", pod=~\"$pod\", container!=\"\", container!=\"POD\"}[$__rate_interval]))",
+          "legendFormat": "write - {{container}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Selected Pod - Read/Write Throughput by Container",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "$pod 변수로 선택한 Pod의 read/write IOPS 시계열. 컨테이너별. throughput과 IOPS를 비교해 워크로드 패턴 추정.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "iops"
+        }
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 112},
+      "id": 24,
+      "options": {
+        "legend": {"calcs": ["mean", "max", "lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (container) (rate(container_fs_reads_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", namespace=~\"$namespace\", pod=~\"$pod\", container!=\"\", container!=\"POD\"}[$__rate_interval]))",
+          "legendFormat": "read - {{container}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (container) (rate(container_fs_writes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", namespace=~\"$namespace\", pod=~\"$pod\", container!=\"\", container!=\"POD\"}[$__rate_interval]))",
+          "legendFormat": "write - {{container}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Selected Pod - Read/Write IOPS by Container",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "$pod 변수로 선택한 Pod의 메타데이터. kube-state-metrics 기반. 어떤 워크로드 종류인지(Deployment/StatefulSet/Job), 어느 노드, 언제 만들어졌는지, 재시작 횟수 등 라이프사이클 정보. 재시작이 잦으면 OOM/Crash 가능성도 점검.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        }
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 121},
+      "id": 25,
+      "options": {"cellHeight": "sm", "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true},
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "kube_pod_info{cluster=\"$cluster\", project=\"dataops\", node=~\"$node\", namespace=~\"$namespace\", pod=~\"$pod\"}",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Selected Pod - Metadata",
+      "transformations": [
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true, "Value": true, "job": true, "endpoint": true, "service": true, "container": true, "uid": true}, "renameByName": {}}}
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "$pod의 컨테이너별 재시작 횟수. 재시작이 잦으면 매번 컨테이너 startup 시 일시적 I/O 폭주 가능. 재시작 시점과 I/O 피크 시점을 비교하면 인과관계 파악.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "red", "value": 5}
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 121},
+      "id": 26,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (container) (kube_pod_container_status_restarts_total{cluster=\"$cluster\", project=\"dataops\", namespace=~\"$namespace\", pod=~\"$pod\"})",
+          "legendFormat": "{{container}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Selected Pod - Container Restart Count",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 127},
+      "id": 105,
+      "panels": [],
+      "title": "Layer 5 - 워크로드 분류 (Namespace / 종류별)",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Namespace별 디스크 I/O 합계(read+write). 어떤 팀/서비스가 노드 디스크의 주요 사용자인지 파악. 특정 namespace가 압도적이면 그 팀과 협의 필요.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "normal"}
+          },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": {"h": 9, "w": 16, "x": 0, "y": 128},
+      "id": 27,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "right", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (namespace) (rate(container_fs_reads_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", container!=\"\", container!=\"POD\"}[$__rate_interval]) + rate(container_fs_writes_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", container!=\"\", container!=\"POD\"}[$__rate_interval]))",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        }
+      ],
+      "title": "I/O by Namespace (Stacked)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "현재 시점 Namespace별 I/O 비율. 어느 namespace가 노드 디스크 부하의 몇 %를 차지하는지 한눈에. 30% 이상이면 dominant 사용자.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"hideFrom": {"legend": false, "tooltip": false, "viz": false}},
+          "mappings": [],
+          "unit": "Bps"
+        }
+      },
+      "gridPos": {"h": 9, "w": 8, "x": 16, "y": 128},
+      "id": 28,
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": {"displayMode": "table", "placement": "right", "showLegend": true, "values": ["value", "percent"]},
+        "pieType": "donut",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "tooltip": {"mode": "single", "sort": "none"}
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (namespace) (rate(container_fs_reads_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", container!=\"\", container!=\"POD\"}[5m]) + rate(container_fs_writes_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", container!=\"\", container!=\"POD\"}[5m]))",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Namespace I/O Share (현재)",
+      "type": "piechart"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "워크로드 컨트롤러 종류별 분류. StatefulSet은 보통 stateful(DB, queue) 워크로드로 영구 볼륨 I/O가 많고, Job/CronJob은 배치성 burst가 특징. 어느 종류가 dominant한지 확인.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "Bps"
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "color", "value": {"mode": "continuous-YlOrRd"}}]}
+        ]
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 137},
+      "id": 29,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+        "showHeader": true,
+        "sortBy": [{"desc": true, "displayName": "Value"}]
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "topk(20, sum by (pod, namespace, owner_kind) (kube_pod_owner{cluster=\"$cluster\", project=\"dataops\"} * on (namespace, pod) group_right(owner_kind) (sum by (namespace, pod) (rate(container_fs_reads_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", container!=\"\", container!=\"POD\"}[$__rate_interval]) + rate(container_fs_writes_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", container!=\"\", container!=\"POD\"}[$__rate_interval])))))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Pods with Owner Kind (Deployment/StatefulSet/Job/CronJob)",
+      "transformations": [
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true}, "indexByName": {"owner_kind": 0, "namespace": 1, "pod": 2, "Value": 3}, "renameByName": {"Value": "I/O bytes/s"}}}
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Job/CronJob 종류 Pod의 I/O. 배치성 워크로드가 burst의 원인인 경우 자주 등장. 발생 시각이 cron 스케줄과 일치하면 강력한 증거.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false
+          },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 137},
+      "id": 30,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (pod, namespace) ((kube_pod_owner{cluster=\"$cluster\", project=\"dataops\", owner_kind=~\"Job|CronJob\"} * on (namespace, pod) group_right(owner_kind) (rate(container_fs_reads_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", container!=\"\", container!=\"POD\"}[$__rate_interval]) + rate(container_fs_writes_bytes_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", container!=\"\", container!=\"POD\"}[$__rate_interval]))))",
+          "legendFormat": "{{namespace}}/{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Job/CronJob Pods I/O (배치성 워크로드)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 145},
+      "id": 106,
+      "panels": [],
+      "title": "Layer 6 - 시스템 측면 (가설 교차 검증)",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "CPU iowait 비율. 디스크 I/O 대기 때문에 CPU가 idle하는 시간. iowait가 동시에 증가하면 디스크가 진짜 병목임을 뒷받침. iowait가 낮은데 io_time이 높으면 비동기 I/O가 잘 처리되는 상태(NVMe의 정상적 특성).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "percentunit",
+          "max": 1
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 146},
+      "id": 31,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "avg by (instance) (rate(node_cpu_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", mode=\"iowait\"}[$__rate_interval]))",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU iowait (디스크 병목 교차 검증)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Dirty pages 메모리 양. dirty가 급증하면 writeback이 폭주하는 중. 보통 dirty_ratio(보통 20%) 도달 시 강제 writeback으로 I/O burst 발생. DB checkpoint, 대용량 write 직후에 흔히 보임.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "bytes"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 146},
+      "id": 32,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "node_memory_Dirty_bytes{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\"}",
+          "legendFormat": "Dirty - {{instance}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "node_memory_Writeback_bytes{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\"}",
+          "legendFormat": "Writeback - {{instance}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Dirty / Writeback Memory (write 폭주 진단)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "PSI (Pressure Stall Information) I/O. 노드의 I/O 압박 정도. some=일부 태스크가 I/O 대기, full=모든 태스크가 대기. full이 0보다 크면 시스템 전체가 디스크 대기 중. 가장 직접적인 포화 지표.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "percentunit",
+          "max": 1
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 154},
+      "id": 33,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "rate(node_pressure_io_waiting_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\"}[$__rate_interval])",
+          "legendFormat": "some - {{instance}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "rate(node_pressure_io_stalled_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\"}[$__rate_interval])",
+          "legendFormat": "full - {{instance}}",
+          "refId": "B"
+        }
+      ],
+      "title": "I/O Pressure Stall (PSI - 시스템 전체 I/O 압박)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "vmstat 페이지 입출력. pgpgin/pgpgout은 디스크에서 메모리로 또는 그 반대 방향으로의 페이지 이동량. swap 사용량 동반 시 page fault가 디스크 부하의 원인일 수 있음.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 154},
+      "id": 34,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "rate(node_vmstat_pgpgin{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\"}[$__rate_interval]) * 1024",
+          "legendFormat": "pgpgin - {{instance}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "rate(node_vmstat_pgpgout{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\"}[$__rate_interval]) * 1024",
+          "legendFormat": "pgpgout - {{instance}}",
+          "refId": "B"
+        }
+      ],
+      "title": "vmstat Page In/Out (page cache, swap 영향)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 162},
+      "id": 107,
+      "panels": [],
+      "title": "Layer 7 - 진단 가이드 및 다음 단계",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "각 시그널이 의심하는 원인과 대응 방안을 정리한 참조 카드",
+      "gridPos": {"h": 18, "w": 24, "x": 0, "y": 163},
+      "id": 35,
+      "options": {
+        "code": {"language": "markdown", "showLineNumbers": false, "showMiniMap": false},
+        "content": "## 진단 시그널 매트릭스\n\n### 시그널 조합으로 원인 추정\n\n| 시그널 조합 | 의심 원인 | 다음 단계 |\n|---|---|---|\n| I/O Util > 90% + Queue Depth > 5 + CPU iowait 증가 | 진짜 디스크 병목 | Top Pod 식별 후 워크로드 조정 |\n| I/O Util 높음 + iowait 낮음 + Latency 낮음 | NVMe 비동기 I/O 정상 처리 | 큰 문제 아님, 모니터링만 |\n| Write 위주 + Dirty pages 증가 | DB checkpoint, fsync 폭주 | DB 설정(`checkpoint_timeout`, `bgwriter`) 튜닝 |\n| 매일 같은 시간 피크 (heatmap에 띠) | CronJob, 백업 잡 | `kubectl get cronjobs -A`로 스케줄 확인 |\n| 여러 Pod 동시 spike | 노드 스케줄링 쏠림 | PodAntiAffinity, topologySpreadConstraints 설정 |\n| Job/CronJob Pod이 dominant | 배치 워크로드 | 스케줄 분산, resource quota 조정 |\n| StatefulSet Pod이 dominant | DB/Queue (정상) | PV에 더 빠른 스토리지, 또는 노드 분리 |\n| Write Latency 갑자기 증가 | NVMe 자체 또는 controller 이슈 | `nvme smart-log`, `dmesg` 확인 |\n| 작은 I/O (4KB) + 높은 IOPS | random workload (DB index scan 등) | 쿼리 최적화, 인덱스 점검 |\n| 큰 I/O (64KB+) + 높은 throughput | sequential (ETL, 백업) | 시간 분산, 처리 속도 제한 |\n| PSI full > 0 | 시스템 전체 stall | 긴급 대응 - 워크로드 격리 또는 노드 추가 |\n| Pod restart 잦음 | 컨테이너 startup I/O 폭주 | OOM/Crash 원인 해소가 우선 |\n\n### 진단 워크플로우\n\n```\n1. Alert 발생 → Layer 1에서 어느 디스크/노드인지 확인\n2. Layer 2 heatmap에서 주기성 여부 판단\n   - 주기적 → CronJob/백업 의심 → kubectl로 스케줄 확인\n   - 이벤트성 → Layer 3 Top-N 진행\n3. Layer 3 Top-N에서 의심 Pod 후보 3개 식별\n4. Layer 4에서 의심 Pod 상세 확인 (컨테이너별, 라이프사이클)\n5. Layer 5에서 namespace/owner_kind로 워크로드 종류 확인\n6. Layer 6 (iowait/dirty/PSI)에서 진짜 디스크 병목인지 교차 검증\n7. 원인 식별 후 대응\n```\n\n### 즉시 대응 옵션\n\n- **단기**: 의심 Pod의 resource quota 또는 I/O limit (`blkio.throttle`) 설정\n- **단기**: 배치 잡 스케줄 분산 (모두 새벽 2시 시작 → 시간대 분산)\n- **중기**: PodAntiAffinity로 high-I/O Pod 노드 분산\n- **중기**: StorageClass별 분리 (DB는 별도 NVMe, 로그는 다른 디스크)\n- **장기**: 노드 추가, 더 빠른 NVMe(Gen4 x4) 도입, 스토리지 계층화\n\n### 추가 조사가 필요한 경우\n\n- **프로세스 단위 정밀 분석**: `iotop`, `pidstat -d`, `biosnoop` (BPF)\n- **NVMe 자체 상태**: `nvme smart-log /dev/nvme0n1`, `nvme list`\n- **파일시스템 레벨**: `fatrace`, `inotifywait`로 어떤 파일에 액세스가 집중되는지\n- **쿼리/앱 레벨**: 해당 Pod의 application log, slow query log\n\n### 메트릭 미수집 시 점검\n\n- `container_blkio_*` 비어있음 → cAdvisor가 cgroup v2 환경에서 blkio 노출 안 함. `container_fs_*` 사용\n- `container_fs_*`도 비어있음 → `container!=\"\", container!=\"POD\"` 필터 제거 후 재확인\n- `kube_pod_owner` 비어있음 → kube-state-metrics 설치 및 scrape 확인\n- `node_pressure_*` 비어있음 → 커널 4.20+ 필요, node_exporter `--collector.pressure` 활성화 필요",
+        "mode": "markdown"
+      },
+      "pluginVersion": "10.0.0",
+      "title": "진단 가이드",
+      "type": "text"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["disk", "nvme", "io", "saturation", "dataops"],
+  "templating": {
+    "list": [
+      {
+        "current": {"selected": false, "text": "Prometheus", "value": "prometheus"},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Datasource",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {"selected": false, "text": "All", "value": "$__all"},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "definition": "label_values(node_uname_info{project=\"dataops\"}, cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Cluster",
+        "multi": true,
+        "name": "cluster",
+        "options": [],
+        "query": {"query": "label_values(node_uname_info{project=\"dataops\"}, cluster)", "refId": "StandardVariableQuery"},
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {"selected": false, "text": "All", "value": "$__all"},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "definition": "label_values(node_uname_info{cluster=\"$cluster\", project=\"dataops\"}, instance)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Node",
+        "multi": true,
+        "name": "node",
+        "options": [],
+        "query": {"query": "label_values(node_uname_info{cluster=\"$cluster\", project=\"dataops\"}, instance)", "refId": "StandardVariableQuery"},
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {"selected": false, "text": "All", "value": "$__all"},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "definition": "label_values(node_disk_io_time_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"nvme.*\"}, device)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Disk Device",
+        "multi": true,
+        "name": "device",
+        "options": [],
+        "query": {"query": "label_values(node_disk_io_time_seconds_total{cluster=\"$cluster\", project=\"dataops\", instance=~\"$node\", device=~\"nvme.*\"}, device)", "refId": "StandardVariableQuery"},
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {"selected": false, "text": "All", "value": "$__all"},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "definition": "label_values(kube_pod_info{cluster=\"$cluster\", project=\"dataops\", node=~\"$node\"}, namespace)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Namespace",
+        "multi": true,
+        "name": "namespace",
+        "options": [],
+        "query": {"query": "label_values(kube_pod_info{cluster=\"$cluster\", project=\"dataops\", node=~\"$node\"}, namespace)", "refId": "StandardVariableQuery"},
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {"selected": false, "text": "All", "value": "$__all"},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "definition": "label_values(kube_pod_info{cluster=\"$cluster\", project=\"dataops\", node=~\"$node\", namespace=~\"$namespace\"}, pod)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Pod",
+        "multi": true,
+        "name": "pod",
+        "options": [],
+        "query": {"query": "label_values(kube_pod_info{cluster=\"$cluster\", project=\"dataops\", node=~\"$node\", namespace=~\"$namespace\"}, pod)", "refId": "StandardVariableQuery"},
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {"from": "now-3h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "NVMe Disk I/O Saturation Diagnostic",
+  "uid": "nvme-disk-io-saturation-diag",
+  "version": 1,
+  "weekStart": ""
+}
