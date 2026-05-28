@@ -684,7 +684,7 @@
           "unit": "Bps"
         },
         "overrides": [
-          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "color", "value": {"mode": "continuous-YlOrRd"}}]}
+          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "color", "value": {"mode": "continuous-GrYlRd"}}]}
         ]
       },
       "gridPos": {"h": 10, "w": 12, "x": 0, "y": 73},
@@ -727,7 +727,7 @@
           "unit": "Bps"
         },
         "overrides": [
-          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "color", "value": {"mode": "continuous-YlOrRd"}}]}
+          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "color", "value": {"mode": "continuous-GrYlRd"}}]}
         ]
       },
       "gridPos": {"h": 10, "w": 12, "x": 12, "y": 73},
@@ -770,7 +770,7 @@
           "unit": "iops"
         },
         "overrides": [
-          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "color", "value": {"mode": "continuous-YlOrRd"}}]}
+          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "color", "value": {"mode": "continuous-GrYlRd"}}]}
         ]
       },
       "gridPos": {"h": 10, "w": 12, "x": 0, "y": 83},
@@ -813,7 +813,7 @@
           "unit": "iops"
         },
         "overrides": [
-          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "color", "value": {"mode": "continuous-YlOrRd"}}]}
+          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "color", "value": {"mode": "continuous-GrYlRd"}}]}
         ]
       },
       "gridPos": {"h": 10, "w": 12, "x": 12, "y": 83},
@@ -1167,7 +1167,7 @@
           "unit": "Bps"
         },
         "overrides": [
-          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "color", "value": {"mode": "continuous-YlOrRd"}}]}
+          {"matcher": {"id": "byName", "options": "Value"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}, {"id": "color", "value": {"mode": "continuous-GrYlRd"}}]}
         ]
       },
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 137},
