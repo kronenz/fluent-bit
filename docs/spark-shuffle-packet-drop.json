@@ -1,0 +1,2574 @@
+{
+  "title": "Spark Shuffle Packet Drop Trace — node·cilium·pod 상관",
+  "uid": "spark-pktdrop-trace",
+  "editable": true,
+  "schemaVersion": 38,
+  "version": 2,
+  "style": "dark",
+  "tags": [
+    "network",
+    "packet-drop",
+    "cilium",
+    "spark",
+    "dataops",
+    "k8s"
+  ],
+  "timezone": "browser",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "refresh": "30s",
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0,
+        "label": "Datasource"
+      },
+      {
+        "name": "cluster",
+        "label": "cluster",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info, cluster)",
+        "query": {
+          "query": "label_values(node_uname_info, cluster)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "icdataops-prd",
+          "value": "icdataops-prd"
+        },
+        "options": []
+      },
+      {
+        "name": "project",
+        "label": "project",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info{cluster=\"$cluster\"}, project)",
+        "query": {
+          "query": "label_values(node_uname_info{cluster=\"$cluster\"}, project)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "dataops",
+          "value": "dataops"
+        },
+        "options": []
+      },
+      {
+        "name": "nodename",
+        "label": "nodename",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\"}, nodename)",
+        "query": {
+          "query": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\"}, nodename)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "instance",
+        "label": "instance (node-exporter)",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_network_up{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}, instance)",
+        "query": {
+          "query": "label_values(node_network_up{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}, instance)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "namespace",
+        "label": "namespace",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\"}, namespace)",
+        "query": {
+          "query": "label_values(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\"}, namespace)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "pod",
+        "label": "pod",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\"}, pod)",
+        "query": {
+          "query": "label_values(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\"}, pod)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "type": "dashboard",
+        "name": "Annotations & Alerts",
+        "enable": true,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "iconColor": "rgba(0,211,255,1)",
+        "hide": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "🔎 Drop 요약 — 어느 계층에서 떨어지나 (배경색=임계)",
+      "id": 1,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Node NIC RX drop",
+      "description": "NIC 드라이버가 호스트 스택으로 올리지 못해 폐기한 수신 패킷의 초당 증가율. /proc/net/dev의 drop 카운터. 원인: RX ring descriptor 고갈, NAPI budget 소진, IRQ 처리 지연. shuffle 수신 폭주에 가장 먼저 반응한다.\\n임계: >1pps 주의(간헐 손실), >100pps 위험(재전송·지연 체감).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "Node NIC RX drop",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Node softnet backlog",
+      "description": "RPS/RFS 경로의 per-CPU backlog 큐(net.core.netdev_max_backlog)가 가득 차 폐기된 패킷. CPU가 NET_RX softirq를 못 따라간다는 신호.\\n임계: >0.1pps 주의, >10pps 위험.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_softnet_dropped_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}[$__rate_interval]))",
+          "legendFormat": "Node softnet backlog",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Cilium drop",
+      "description": "Cilium eBPF 데이터패스가 폐기한 패킷 합(모든 reason). CT/NAT 맵 포화·정책 거부·라우팅 실패 등 CNI 레벨 손실. 노드 NIC가 멀쩡한데 여기서 오르면 구성 문제.\\n임계: >1pps 주의, >100pps 위험.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(cilium_drop_count_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\"}[$__rate_interval]))",
+          "legendFormat": "Cilium drop",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Pod net RX drop",
+      "description": "cAdvisor가 본 컨테이너 veth 수신 drop. executor가 소켓 수신버퍼를 비우지 못하거나 CPU 스로틀될 때 발생.\\n임계: >0.1pps 주의, >10pps 위험.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]))",
+          "legendFormat": "Pod net RX drop",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "conntrack 사용률",
+      "description": "nf_conntrack 테이블 사용 엔트리/한계 비율. 100% 도달 시 신규 연결을 추적 못해 SYN/패킷 drop. shuffle은 단명 연결을 폭증시켜 빠르게 소진.\\n임계: 70% 주의, 90% 위험 → nf_conntrack_max↑ 또는 Cilium eBPF kube-proxy-replacement.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(node_nf_conntrack_entries{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}/node_nf_conntrack_entries_limit{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})*100",
+          "legendFormat": "conntrack 사용률",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "TCP retrans/s",
+      "description": "초당 TCP 재전송 세그먼트. 경로 어딘가의 drop을 송신측이 복구하는 2차 지표. 급증=하위 계층 손실/혼잡.\\n임계: >50 주의, >500 위험.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}[$__rate_interval]))",
+          "legendFormat": "TCP retrans/s",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 500
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "🖥️ Node Level — NIC & 커널 네트워크 스택 (node-exporter, 점선=임계)",
+      "id": 8,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "NIC RX/TX Drop (per node·iface)",
+      "description": "인터페이스별 송수신 drop율. RX drop은 '수신측이 처리 못함'(ring/NAPI/CPU), TX drop은 qdisc 큐(tx ring·BQL) 초과. shuffle처럼 다대다 수신이 몰리면 RX가 먼저 오른다. 어느 노드·NIC인지로 범위를 좁힌다.\\n임계선: 1pps(주의)/100pps(위험).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "RX {{nodename}}·{{device}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(node_network_transmit_drop_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "TX {{nodename}}·{{device}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "NIC errs / fifo (ring overrun)",
+      "description": "errs=수신 에러 총합, fifo=NIC 내부 FIFO/RX ring overrun으로 호스트가 받지 못한 패킷. fifo>0은 ring이 작거나 PCIe/IRQ 지연으로 디스크립터 회수가 늦다는 직접 증거다. 조치: ethtool -G rx 증대, interrupt coalescing 조정.\\n임계선: 0.1(주의)/1(위험).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(node_network_receive_errs_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "errs {{nodename}}·{{device}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(node_network_receive_fifo_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "fifo {{nodename}}·{{device}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Softnet — backlog drop / NAPI squeeze",
+      "description": "squeezed=NAPI poll 1회에 budget(net.core.netdev_budget, 기본 300 패킷)을 모두 소비하고도 처리 못 끝내 양보한 횟수 → CPU 처리량이 유입을 못 따라감. dropped=backlog 큐(netdev_max_backlog) 초과 폐기. squeezed↑면 budget·CPU 증설, dropped↑면 backlog 증대.\\n임계선(dropped): 0.1/10.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 15
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_softnet_dropped_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}[$__rate_interval]))",
+          "legendFormat": "dropped {{nodename}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}[$__rate_interval]))",
+          "legendFormat": "squeezed {{nodename}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Socket 큐 drop (UDP/TCP accept·backlog)",
+      "description": "Udp_RcvbufErrors=UDP 소켓 수신버퍼(SO_RCVBUF) 초과 폐기, ListenOverflows/Drops=accept 큐(somaxconn) 초과로 거절된 연결, TCPBacklogDrop=소켓 backlog 부족 폐기. 공통 의미는 '애플리케이션(executor)이 수신/accept를 못 따라감' — shuffle fetch 서버 측 과부하의 직접 신호.\\n조치: net.core.rmem_max·somaxconn·tcp_max_syn_backlog↑, executor 코어/스레드↑.\\n임계선: 0.1/5.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 15
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_netstat_Udp_RcvbufErrors{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}[$__rate_interval]))",
+          "legendFormat": "Udp_RcvbufErrors {{nodename}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_netstat_TcpExt_ListenOverflows{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}[$__rate_interval]))",
+          "legendFormat": "ListenOverflows {{nodename}}",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_netstat_TcpExt_ListenDrops{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}[$__rate_interval]))",
+          "legendFormat": "ListenDrops {{nodename}}",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_netstat_TcpExt_TCPBacklogDrop{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}[$__rate_interval]))",
+          "legendFormat": "TCPBacklogDrop {{nodename}}",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "TCP retransmit rate & ratio",
+      "description": "retrans ratio=재전송/전체 송신 세그먼트 비율. 0.5%↑면 경로 손실 유의, 1%↑면 혼잡제어 윈도우 축소로 처리량 급감. 절대 retrans/s와 함께 보고 shuffle 부하 구간과 시간 정렬하면 '부하 기인 drop'을 확증할 수 있다.\\n임계선(ratio): 0.005/0.01 — 패널 좌측은 retrans/s, 우측 ratio는 같은 축이라 임계는 ratio 기준 해석.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 23
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}[$__rate_interval]))",
+          "legendFormat": "retrans/s {{nodename}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}[$__rate_interval]))/clamp_min(sum by(nodename)(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}[$__rate_interval])),1)",
+          "legendFormat": "retrans ratio {{nodename}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.005
+              },
+              {
+                "color": "red",
+                "value": 0.01
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "conntrack 사용률 (%)",
+      "description": "노드별 conntrack 테이블 점유율. 리눅스는 추적 중인 모든 연결을 nf_conntrack에 보관하며, 한계 도달 시 'nf_conntrack: table full, dropping packet' 으로 신규 패킷을 버린다. shuffle의 수천 단명 TCP 연결이 빠르게 채운다.\\n임계선: 70%(주의)/90%(위험) → nf_conntrack_max·hashsize↑, tcp_timeout_* 단축, 또는 conntrack을 우회하는 eBPF 라우팅.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 23
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "node_nf_conntrack_entries{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}/node_nf_conntrack_entries_limit{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}*100",
+          "legendFormat": "{{nodename}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "CPU softirq % (패킷처리 병목)",
+      "description": "노드 전체 CPU 시간 중 softirq(대부분 NET_RX/NET_TX) 비율. 패킷 처리는 softirq에서 일어나므로 이 값이 높은 노드가 네트워크 병목. RSS가 IRQ를 소수 코어에 몰면 aggregate가 낮아도 단일 코어는 포화될 수 있으니 CPU별 패널(별도)과 함께 본다.\\n임계선: 10%(주의)/25%(위험) → IRQ affinity 분산, RPS/RFS, 큐 수 증대.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 31
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_cpu_seconds_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\",mode=\"softirq\"}[$__rate_interval]))/sum by(nodename)(rate(node_cpu_seconds_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}[$__rate_interval]))*100",
+          "legendFormat": "{{nodename}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 25
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "NIC throughput (RX/TX bps) — shuffle 부하",
+      "description": "노드 NIC 대역폭. 임계라기보다 'shuffle 부하 프록시'로 둔다. 이 곡선이 링크 용량(예: 10/25G) 80%에 닿는 구간과 위 drop/retrans 곡선이 겹치면 대역 포화 기인. 안 겹치면 상시 구성 문제(정책/맵/conntrack)로 판별.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 31
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_network_receive_bytes_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\",instance=~\"$instance\"}[$__rate_interval]))*8",
+          "legendFormat": "RX {{nodename}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_network_transmit_bytes_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\",instance=~\"$instance\"}[$__rate_interval]))*8",
+          "legendFormat": "TX {{nodename}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "🕸️ Cilium / eBPF 데이터패스 (cilium-agent, hubble)",
+      "id": 17,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 39
+      },
+      "panels": []
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "cilium_drop_count by reason",
+      "description": "eBPF 데이터패스가 패킷을 버린 사유별 분해. reason이 곧 원인 분류다 — 'CT: Map insertion failed'=conntrack 맵 가득, 'Policy denied'=NetworkPolicy 차단, 'No mapping for NAT'/'No route'=라우팅/마스커레이드, 'Invalid packet'=헤더 손상. 어떤 reason이 지배적인지가 1차 진단.\\n임계선: 1/10.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(reason)(rate(cilium_drop_count_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\"}[$__rate_interval]))",
+          "legendFormat": "{{reason}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "cilium drop by direction & node",
+      "description": "노드·방향별 drop. ingress drop은 수신 노드(shuffle fetch 서버)에서, egress drop은 송신 노드에서 발생 — 부하/구성 문제의 위치를 가른다.\\n임계선: 1/10.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(node,direction)(rate(cilium_drop_count_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\"}[$__rate_interval]))",
+          "legendFormat": "{{node}} {{direction}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "BPF map pressure (CT/NAT/LB 포화)",
+      "description": "각 eBPF 맵(ct_*, snat_*, lb_*, policy_*)의 사용률(0~1). node conntrack과 별개로 Cilium은 자체 BPF CT/NAT 맵을 쓴다. 0.85 넘으면 곧 insertion 실패→drop. shuffle 단명 연결이 ct·nat 맵을 빠르게 채운다.\\n임계선: 0.8(주의)/0.95(위험) → bpf-ct-global-tcp-max·bpf-nat-global-max↑.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 48
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by(map_name)(cilium_bpf_map_pressure{cluster=\"$cluster\",project=\"$project\"})",
+          "legendFormat": "{{map_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.8
+              },
+              {
+                "color": "red",
+                "value": 0.95
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "BPF map ops 실패 + datapath errors",
+      "description": "BPF 맵 연산 실패(outcome=fail)와 데이터패스 에러율. 맵 insert 실패는 위 map pressure 포화의 결과이자 drop의 직접 원인. 정상값은 0 — 0을 넘으면 즉시 조사.\\n임계선: >0(주의)/1(위험).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 48
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(map_name,operation)(rate(cilium_bpf_map_ops_total{cluster=\"$cluster\",project=\"$project\",outcome=\"fail\"}[$__rate_interval]))",
+          "legendFormat": "mapfail {{map_name}}·{{operation}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(error)(rate(cilium_datapath_errors_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]))",
+          "legendFormat": "datapath {{error}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.001
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "Endpoint regeneration (storm=순간 drop)",
+      "description": "endpoint(파드) 정책/BPF 재생성 빈도와 p99 소요시간. Spark executor가 대량 생성/소멸하면 regen이 몰려, 새 endpoint에 정책이 적용되기 전 구간에서 순간 drop·지연이 생긴다. p99가 수 초로 길어지면 정책 복잡도/agent CPU 점검.\\n임계선(p99): 2s/5s.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 56
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(cilium_endpoint_regenerations_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]))",
+          "legendFormat": "regen/s",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "histogram_quantile(0.99, sum by(le)(rate(cilium_endpoint_regeneration_time_stats_seconds_bucket{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval])))",
+          "legendFormat": "p99 regen time(s)",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 2
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "Hubble drop by reason/protocol (옵션)",
+      "description": "Hubble가 관측한 flow 레벨 drop을 사유·프로토콜로 세분(cilium_drop보다 L7/흐름 맥락 풍부). hubble.metrics에 'drop' 활성 필요 — 미활성이면 빈 패널이며 다른 패널에 영향 없음.\\n임계선: 1/10.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 56
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(reason,protocol)(rate(hubble_drop_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]))",
+          "legendFormat": "{{reason}} {{protocol}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "📦 Pod / Container Level (cAdvisor / kube-state-metrics)",
+      "id": 24,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 64
+      },
+      "panels": []
+    },
+    {
+      "id": 25,
+      "type": "timeseries",
+      "title": "Top10 Pod net drop (RX+TX)",
+      "description": "파드별 veth drop 상위 10. 드롭 많은 파드가 '수신을 못 따라가는 executor' 후보다. 아래 CPU throttle·throughput 패널의 동일 파드와 교차하면 근본원인(스로틀 vs 과부하)이 보인다.\\n임계선(파드당): 0.1/10.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 65
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk(10, sum by(namespace,pod)(rate(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]) + rate(container_network_transmit_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval])))",
+          "legendFormat": "{{namespace}}/{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 26,
+      "type": "timeseries",
+      "title": "Pod CPU CFS throttling ratio ★",
+      "description": "★핵심 상관 지표. CFS 쿼터로 스로틀된 주기 비율 = throttled_periods/총 periods. executor가 CPU limit에 닿으면 스케줄러가 강제로 런큐에서 빼며, 그 사이 소켓 수신버퍼를 drain하지 못해 RX drop을 유발한다. shuffle의 역직렬화/압축해제가 CPU 집약적이라 특히 취약. throttle↑와 pod drop↑가 동반되면 원인 확정.\\n임계선: 25%(주의)/50%(위험) → CPU limit 상향/제거, spark.executor.cores와 limit 정합.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 65
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk(10, sum by(namespace,pod)(rate(container_cpu_cfs_throttled_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval])) / clamp_min(sum by(namespace,pod)(rate(container_cpu_cfs_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval])),1))",
+          "legendFormat": "{{namespace}}/{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.25
+              },
+              {
+                "color": "red",
+                "value": 0.5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 27,
+      "type": "timeseries",
+      "title": "Top10 Pod net throughput (shuffle)",
+      "description": "트래픽 큰 파드 = shuffle write/read 주역 executor. drop 상위 파드와 throughput 상위 파드가 같으면 '그 executor가 자기 트래픽에 치임'(리소스 부족), 다르면 특정 수신 파드가 타 노드 트래픽에 치임(핫스팟). 임계 없음 — 분포 파악용.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 73
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk(10, sum by(namespace,pod)(rate(container_network_receive_bytes_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]) + rate(container_network_transmit_bytes_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]))*8)",
+          "legendFormat": "{{namespace}}/{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 28,
+      "type": "timeseries",
+      "title": "Pod memory working set vs OOMKilled",
+      "description": "working set이 limit에 근접하면 커널이 page reclaim에 진입하고, 초과 시 OOMKill로 컨테이너를 죽인다. OOMKill은 모든 연결을 RST로 끊어 재전송·drop을 동반한다. shuffle spill이 메모리를 밀어올리는 구간을 drop과 정렬해 본다.\\n조치: executor memory·spark.memory.fraction·spark.sql.shuffle.partitions(파티션 잘게) 조정.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 73
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk(10, sum by(namespace,pod)(container_memory_working_set_bytes{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}))",
+          "legendFormat": "{{namespace}}/{{pod}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(namespace,pod)(kube_pod_container_status_last_terminated_reason{cluster=\"$cluster\",project=\"$project\",namespace=~\"$namespace\",pod=~\"$pod\",reason=\"OOMKilled\"})",
+          "legendFormat": "OOMKilled {{namespace}}/{{pod}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "🔗 상관 분석 — 4계층 drop을 한 시간축에 (shuffle와 정렬)",
+      "id": 29,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 81
+      },
+      "panels": []
+    },
+    {
+      "id": 30,
+      "type": "timeseries",
+      "title": "멀티레이어 Drop 오버레이 (pps)",
+      "description": "네 계층 drop을 같은 축에. 어느 곡선이 먼저/같이 오르는지로 발생 계층을 국소화한다 — ①NIC=하드웨어/IRQ, ②softnet=커널 CPU, ③cilium=맵/정책, ④pod=executor. 보통 상류(①②)가 오르면 하류(④)도 따라 오르지만, ③/④만 단독이면 구성/리소스 문제다.\\n임계선: 1/100.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 82
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "① NIC RX drop",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_softnet_dropped_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}[$__rate_interval]))",
+          "legendFormat": "② softnet backlog",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(cilium_drop_count_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\"}[$__rate_interval]))",
+          "legendFormat": "③ cilium drop",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]))",
+          "legendFormat": "④ pod drop",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 31,
+      "type": "timeseries",
+      "title": "Shuffle 부하 vs 총 drop",
+      "description": "shuffle 송신 대역(좌)과 전 계층 총 drop을 한 축에 겹쳐 본다(drop은 가시성 위해 ×1e6 스케일). 두 곡선이 함께 오르면 '부하 기인'(스케일아웃·파티션·압축으로 대응), shuffle와 무관하게 drop이 상존하면 '구성 기인'(정책/맵/conntrack)이다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 91
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(container_network_transmit_bytes_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]))*8",
+          "legendFormat": "shuffle TX bps",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\",instance=~\"$instance\"}[$__rate_interval])) + sum(rate(cilium_drop_count_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\"}[$__rate_interval])) + sum(rate(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval])))*1e6",
+          "legendFormat": "총 drop (pps×1e6, 스케일맞춤)",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 32,
+      "type": "timeseries",
+      "title": "포화 동반 상승 (node conntrack vs cilium CT/NAT map)",
+      "description": "연결추적 테이블 포화의 두 출처(커널 nf_conntrack, Cilium BPF CT/NAT 맵)를 함께. 둘 중 하나라도 1.0에 근접하면 '연결추적 고갈'이 근본원인 — shuffle의 대량 단명 연결 특성과 직결된다. eBPF kube-proxy-replacement면 node conntrack은 낮고 BPF 맵이 주체.\\n임계선: 0.8/0.95.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 99
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(node_nf_conntrack_entries{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}/node_nf_conntrack_entries_limit{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+          "legendFormat": "node conntrack 사용률",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(cilium_bpf_map_pressure{cluster=\"$cluster\",project=\"$project\",map_name=~\".*ct.*|.*nat.*\"})",
+          "legendFormat": "cilium CT/NAT map pressure",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "lineInterpolation": "smooth",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.8
+              },
+              {
+                "color": "red",
+                "value": 0.95
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 33,
+      "type": "table",
+      "title": "Top talkers — node별 drop 합계(상위 15)",
+      "description": "노드별 (NIC+softnet) drop 합계 순위. 가장 심한 노드를 찍어 상단 변수 nodename에 넣고 cilium/pod Row로 드릴다운한다.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 99
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk(15, sum by(nodename)(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\",instance=~\"$instance\"}[$__rate_interval])) + sum by(nodename)(rate(node_softnet_dropped_total{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}[$__rate_interval])))",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Value",
+            "desc": true
+          }
+        ]
+      }
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "📋 진단 가이드 — 계층×증상 → 원인 → 조치",
+      "id": 34,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 108
+      },
+      "panels": []
+    },
+    {
+      "id": 35,
+      "type": "text",
+      "title": "진단 가이드 & 상관 판단 룰",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 22,
+        "w": 24,
+        "x": 0,
+        "y": 109
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## 🎯 Spark shuffle Packet Drop 진단 매트릭스\n추적 순서: **요약 stat 빨강 계층 → 해당 Row 드릴다운 → 상관 Row에서 shuffle와 시간정렬**. 각 패널 우상단 ⓘ에 공학적 해석, 점선/배경색은 임계.\n\n| 빨간 계층 / 증가 메트릭 | 임계 | 의심 원인 | 조치 |\n|---|---|---|---|\n| NIC RX drop + `fifo` | fifo>0.1 | NIC RX ring overrun | `ethtool -G <if> rx 4096`, IRQ coalescing |\n| NIC RX drop + softirq% 쏠림 | softirq>25% | NET_RX softirq 코어 쏠림(RSS 실패) | IRQ affinity, RPS/RFS, 큐 수↑ |\n| softnet `dropped` | >10pps | netdev_max_backlog 초과 | `net.core.netdev_max_backlog=8192` |\n| softnet `squeezed` | 지속↑ | NAPI budget 소진(CPU 부족) | `net.core.netdev_budget(_usecs)`↑, CPU↑ |\n| `Udp_RcvbufErrors`/`TCPBacklogDrop`/`ListenOverflows` | >5/s | executor recv/accept 못따라감 | `rmem_max`·`somaxconn`↑, shuffle 파티션↓, executor 코어↑ |\n| TCP retrans ratio | >1% | 경로 혼잡/하위 drop | 대역·MTU·NIC drop 점검, shuffle 압축 |\n| node conntrack 사용률 | >90% | conntrack 테이블 고갈 | `nf_conntrack_max`↑, eBPF kube-proxy-replacement |\n| cilium `CT: Map insertion failed` / map pressure | >0.95 | eBPF CT/NAT 맵 포화 | `bpf-ct-global-tcp-max`·`bpf-nat-global-max`↑ |\n| cilium `Policy denied` | >0 | NetworkPolicy가 shuffle 포트 차단 | executor 간 정책 허용 |\n| cilium endpoint regen p99 | >5s | executor 대량 스케일 regen storm | 동적 스케일 완화, 정책 단순화 |\n| **Pod CPU throttle + Pod drop** ★ | throttle>50% | executor CPU limit 과소→소켓 못비움 | CPU limit↑/제거, `spark.executor.cores`=limit |\n| Pod OOMKilled 동반 | >0 | shuffle spill 메모리 압박 | executor mem↑, `spark.sql.shuffle.partitions`↑ |\n\n## 🔍 상관 판단 룰\n- **shuffle bps↑ 구간에만** drop → **부하 기인**(스케일아웃/파티션/압축).\n- shuffle와 **무관히 상시** drop → **구성 기인**(정책/맵 크기/conntrack).\n- ①②(node)만 빨강 → 커널/NIC. ③(cilium) → 데이터패스 구성. ④(pod) → executor 리소스.\n\n> 전제 라벨: node-exporter=`nodename`+`instance`, cilium=`node`, cAdvisor=`node`+`namespace`+`pod`, 전역 `cluster`/`project`. 다르면 변수 쿼리/필터 일괄 치환(README).\n"
+      }
+    }
+  ],
+  "description": "Spark shuffle 패킷드롭 3계층 상관 추적. 패널별 임계선 + 공학적 해석 description."
+}
