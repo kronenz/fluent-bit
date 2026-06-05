@@ -1,0 +1,1783 @@
+{
+  "title": "L2 · csi-nfs / DSR / MTU Packet Drop Trace",
+  "uid": "pktdrop-l2-csi",
+  "editable": true,
+  "schemaVersion": 38,
+  "version": 1,
+  "style": "dark",
+  "tags": [
+    "cilium",
+    "csi-nfs",
+    "dataops",
+    "dsr",
+    "mtu",
+    "packet-drop",
+    "pktdrop"
+  ],
+  "timezone": "browser",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0,
+        "label": "Datasource"
+      },
+      {
+        "name": "cluster",
+        "label": "cluster",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info, cluster)",
+        "query": {
+          "query": "label_values(node_uname_info, cluster)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "icdataops-prd",
+          "value": "icdataops-prd"
+        },
+        "options": []
+      },
+      {
+        "name": "project",
+        "label": "project",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info{cluster=\"$cluster\"}, project)",
+        "query": {
+          "query": "label_values(node_uname_info{cluster=\"$cluster\"}, project)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "dataops",
+          "value": "dataops"
+        },
+        "options": []
+      },
+      {
+        "name": "nodename",
+        "label": "nodename (단일)",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\"}, nodename)",
+        "query": {
+          "query": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\"}, nodename)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "options": []
+      },
+      {
+        "name": "instance",
+        "label": "instance",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}, instance)",
+        "query": {
+          "query": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}, instance)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "namespace",
+        "label": "namespace (csi-nfs 지정)",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\"}, namespace)",
+        "query": {
+          "query": "label_values(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\"}, namespace)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "pod",
+        "label": "pod",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\"}, pod)",
+        "query": {
+          "query": "label_values(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\"}, pod)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "mtu_reason_regex",
+        "label": "MTU drop reason(정규식)",
+        "type": "textbox",
+        "query": ".*[Tt]oo.[Bb]ig.*|.*[Ff]rag.*|.*[Mm]tu.*",
+        "current": {
+          "text": ".*[Tt]oo.[Bb]ig.*|.*[Ff]rag.*|.*[Mm]tu.*",
+          "value": ".*[Tt]oo.[Bb]ig.*|.*[Ff]rag.*|.*[Mm]tu.*"
+        },
+        "options": [
+          {
+            "text": ".*[Tt]oo.[Bb]ig.*|.*[Ff]rag.*|.*[Mm]tu.*",
+            "value": ".*[Tt]oo.[Bb]ig.*|.*[Ff]rag.*|.*[Mm]tu.*",
+            "selected": true
+          }
+        ]
+      },
+      {
+        "name": "dsr_reason_regex",
+        "label": "DSR/NAT drop reason(정규식)",
+        "type": "textbox",
+        "query": ".*NAT.*|.*[Bb]ackend.*|.*[Ss]ervice.*|.*[Rr]oute.*",
+        "current": {
+          "text": ".*NAT.*|.*[Bb]ackend.*|.*[Ss]ervice.*|.*[Rr]oute.*",
+          "value": ".*NAT.*|.*[Bb]ackend.*|.*[Ss]ervice.*|.*[Rr]oute.*"
+        },
+        "options": [
+          {
+            "text": ".*NAT.*|.*[Bb]ackend.*|.*[Ss]ervice.*|.*[Rr]oute.*",
+            "value": ".*NAT.*|.*[Bb]ackend.*|.*[Ss]ervice.*|.*[Rr]oute.*",
+            "selected": true
+          }
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "type": "dashboard",
+        "name": "Annotations & Alerts",
+        "enable": true,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "iconColor": "rgba(0,211,255,1)",
+        "hide": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "🔎 판정 요약 — DSR/MTU 라인 vs backlog/CPU 라인 (배경색=임계)",
+      "id": 1,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Cilium MTU/frag drop",
+      "description": "MTU/단편화 관련 reason의 cilium drop(정규식 변수 $mtu_reason_regex). >0이면 **DSR 옵션 오버헤드/PMTU 문제** 강력 의심. csi-nfs 대형 패킷 + DSR의 전형.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(cilium_drop_count_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",reason=~\"$mtu_reason_regex\"}[$__rate_interval]))",
+          "legendFormat": "Cilium MTU/frag drop",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "decimals": 3,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "IP FragFails (node)",
+      "description": "DF 세트로 단편화 못해 폐기된 패킷(=MTU 부족 직접 증거). NFS 풀사이즈 세그먼트가 DSR/터널 MTU 못 넘을 때.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_netstat_Ip_FragFails{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+          "legendFormat": "IP FragFails (node)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "decimals": 3,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Cilium NAT/backend drop",
+      "description": "NAT 마스커레이드 매핑 없음·service backend 없음·route 실패 등(정규식 $dsr_reason_regex). DSR/LB 경로 또는 egress SNAT 문제.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(cilium_drop_count_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",reason=~\"$dsr_reason_regex\"}[$__rate_interval]))",
+          "legendFormat": "Cilium NAT/backend drop",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "decimals": 3,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "LB/NAT/SNAT map pressure",
+      "description": "DSR=LB맵, egress=SNAT/NAT맵 사용. 포화면 매핑 실패→drop.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(cilium_bpf_map_pressure{cluster=\"$cluster\",project=\"$project\",map_name=~\".*lb.*|.*nat.*|.*snat.*\"})",
+          "legendFormat": "LB/NAT/SNAT map pressure",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.8
+              },
+              {
+                "color": "red",
+                "value": 0.95
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "csi-nfs pod veth RX drop",
+      "description": "선택 namespace(csi-nfs 지정)의 파드 veth RX drop. 위 MTU/NAT가 0인데 이게 높으면 → backlog/CPU 라인.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]))",
+          "legendFormat": "csi-nfs pod veth RX drop",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "decimals": 3,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "csi-nfs pod CPU throttle %",
+      "description": "csi-nfs 파드 throttle. NFS 처리 중 CPU 부족이면 drop의 backlog 라인.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(sum by(namespace,pod)(rate(container_cpu_cfs_throttled_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]))/clamp_min(sum by(namespace,pod)(rate(container_cpu_cfs_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval])),1))*100",
+          "legendFormat": "csi-nfs pod CPU throttle %",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 25
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "max"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "🧭 Cilium drop 사유 — DSR/MTU 판별 (node-level)",
+      "id": 8,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "cilium_drop by reason (전체)",
+      "description": "노드 데이터패스 drop 사유 전체. **'Packet too big'/'Fragmentation needed'=MTU/DSR**, 'No mapping for NAT'/'backend'=LB/SNAT, 'CT: Map insertion failed'=맵포화. (node 단위라 namespace 귀속은 아래 Hubble)\\n임계선:1/10.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 7
+      },
+      "maxDataPoints": 600,
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(reason)(rate(cilium_drop_count_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\"}[$__rate_interval]))",
+          "legendFormat": "{{reason}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "MTU/DSR 사유만 강조",
+      "description": "정규식 변수로 MTU/DSR 관련 reason만 추림. 여기 뭔가 뜨면 DSR/MTU 라인 확정 → MTU 정합·dispatch 모드·rsize/wsize↓.\\n임계선:0.1/1.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 7
+      },
+      "maxDataPoints": 600,
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(reason)(rate(cilium_drop_count_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",reason=~\"$mtu_reason_regex\"}[$__rate_interval]))",
+          "legendFormat": "MTU {{reason}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(reason)(rate(cilium_drop_count_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",reason=~\"$dsr_reason_regex\"}[$__rate_interval]))",
+          "legendFormat": "DSR/NAT {{reason}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Hubble drop by reason/protocol (namespace 귀속, 옵션)",
+      "description": "Hubble는 flow 단위라 **source/destination namespace 귀속**이 가능(cilium_drop은 불가). csi-nfs 파드에 귀속된 drop을 보려면 hubble.metrics에 drop + sourceContext/destinationContext=namespace 활성 필요. 미활성이면 빈 패널.\\n임계선:0.1/1.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 15
+      },
+      "maxDataPoints": 600,
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(reason,protocol)(rate(hubble_drop_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]))",
+          "legendFormat": "{{reason}} {{protocol}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "🧩 MTU / Fragmentation (node-exporter, IP 스택)",
+      "id": 12,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "panels": []
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "IP FragFails / ReasmFails (DF drop·재조립 실패)",
+      "description": "**FragFails=단편화 필요했으나 DF로 폐기**(=MTU 부족 직접 증거, DSR 오버헤드의 핵심 증상). ReasmFails=수신측 재조립 실패. NFS 대형 I/O + 작은 경로 MTU에서 급증.\\n임계선:0.1/1.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "maxDataPoints": 600,
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_netstat_Ip_FragFails{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+          "legendFormat": "FragFails {{nodename}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_netstat_Ip_ReasmFails{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+          "legendFormat": "ReasmFails {{nodename}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Fragmentation 발생량 (FragCreates/OKs)",
+      "description": "단편화가 *얼마나* 일어나는지. 높으면 경로 MTU가 NFS 패킷보다 작아 매 패킷 쪼개는 중 = 오버헤드·drop 위험. MTU 정합 또는 rsize/wsize↓ 신호.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "maxDataPoints": 600,
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_netstat_Ip_FragCreates{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+          "legendFormat": "FragCreates {{nodename}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_netstat_Ip_FragOKs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+          "legendFormat": "FragOKs {{nodename}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "ICMP frag-needed (PMTU 신호)",
+      "description": "ICMP type3(dest unreachable, frag-needed code4 포함) 송수신. PMTU 발견이 동작 중인지/막혔는지 단서. DSR로 MTU 줄었는데 ICMP가 막히면(블랙홀) NFS가 계속 큰 패킷 보내 drop.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "maxDataPoints": 600,
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_netstat_IcmpMsg_OutType3{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+          "legendFormat": "ICMP unreach out {{nodename}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(nodename)(rate(node_netstat_IcmpMsg_InType3{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+          "legendFormat": "ICMP unreach in {{nodename}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "🔀 DSR / LB / NAT / conntrack",
+      "id": 16,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "panels": []
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "BPF map pressure (lb/nat/snat/ct)",
+      "description": "DSR=LB맵, egress 외부NFS=SNAT/NAT맵, 연결추적=CT맵. 0.85↑ 포화면 매핑 실패→drop. 외부 NFS면 SNAT맵, 내부 Service면 LB맵 주시.\\n임계선:0.8/0.95.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 41
+      },
+      "maxDataPoints": 600,
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by(map_name)(cilium_bpf_map_pressure{cluster=\"$cluster\",project=\"$project\",map_name=~\".*lb.*|.*nat.*|.*snat.*|.*ct.*\"})",
+          "legendFormat": "{{map_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.8
+              },
+              {
+                "color": "red",
+                "value": 0.95
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "cilium NAT/backend/route drop by reason",
+      "description": "DSR/LB/SNAT 경로 drop 사유. 'No mapping for NAT masquerade'=SNAT맵/포트고갈(외부 NFS egress), 'Service backend not found'=LB(내부 Service).\\n임계선:0.1/1.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 41
+      },
+      "maxDataPoints": 600,
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(reason)(rate(cilium_drop_count_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",reason=~\"$dsr_reason_regex\"}[$__rate_interval]))",
+          "legendFormat": "{{reason}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "node conntrack 사용률 (egress 외부 NFS)",
+      "description": "외부 NFS면 노드 conntrack/SNAT가 연결 추적. 포화면 신규 연결 drop. (eBPF kube-proxy-replacement면 BPF맵이 주체 — 위 패널).\\n임계선:70/90.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 49
+      },
+      "maxDataPoints": 600,
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(node_nf_conntrack_entries{cluster=\"$cluster\",project=\"$project\"}/node_nf_conntrack_entries_limit{cluster=\"$cluster\",project=\"$project\"}) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}*100",
+          "legendFormat": "{{nodename}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "📦 csi-nfs 파드 / NFS 버스트 (interface별 — netkit/veth 확인)",
+      "id": 20,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 57
+      },
+      "panels": []
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "csi-nfs pod veth drop RX/TX (by pod)",
+      "description": "선택 namespace(csi-nfs) 파드 drop. RX 지배=수신측(backlog/CPU/MTU), TX=qdisc.\\n임계선:0.1/10.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 58
+      },
+      "maxDataPoints": 600,
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk(8, sum by(namespace,pod)(rate(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval])))",
+          "legendFormat": "RX {{namespace}}/{{pod}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk(8, sum by(namespace,pod)(rate(container_network_transmit_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval])))",
+          "legendFormat": "TX {{namespace}}/{{pod}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "interface별 drop (eth/netkit/net1 디바이스 식별)",
+      "description": "drop이 어느 디바이스(eth0=veth, netkit 전환 시 다른 이름, net1=multus 보조NIC)에서 나는지. **netkit 사용 중이면 디바이스명이 바뀌어** 여기로 구분 가능. NFS 전용 보조 NIC가 있으면 그쪽 확인.\\n임계선:0.1/10.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 58
+      },
+      "maxDataPoints": 600,
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by(pod,interface)(rate(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]))",
+          "legendFormat": "{{pod}} {{interface}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "csi-nfs RX throughput vs throttle (버스트 상관)",
+      "description": "NFS RX 버스트(bps)와 throttle를 겹쳐 봄. 버스트 피크에서 drop이 나면 backlog/CPU 라인(MTU 아님). throttle은 스케일 맞춤.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 66
+      },
+      "maxDataPoints": 600,
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(container_network_receive_bytes_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]))*8",
+          "legendFormat": "RX bps",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(sum by(namespace,pod)(rate(container_cpu_cfs_throttled_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]))/clamp_min(sum by(namespace,pod)(rate(container_cpu_cfs_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval])),1))*1e9",
+          "legendFormat": "throttle%×1e7(스케일)",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "📋 판별 가이드 — reason/지표 → 원인 → 조치",
+      "id": 24,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 74
+      },
+      "panels": []
+    },
+    {
+      "id": 25,
+      "type": "text",
+      "title": "csi-nfs drop 판별 매트릭스",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 75
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## 🎯 무엇이 보이면 무엇이 원인인가\n\n| 보이는 신호 | 원인 라인 | 조치 |\n|---|---|---|\n| `Packet too big`/`Fragmentation needed` (cilium) **또는** IP **FragFails**↑ | **DSR/터널 MTU 부족** + NFS 대형 패킷 | DSR dispatch=option/hybrid·MTU 정합(`--mtu`), NFS `rsize,wsize`↓(예 256k), `tcp_mtu_probing=1`, ICMP frag-needed 통과 보장(블랙홀 금지) |\n| `No mapping for NAT masquerade` / SNAT map pressure↑ | **egress SNAT 포트/맵 고갈**(외부 NFS) | `bpf-nat-global-max`↑, masquerade 포트범위↑, 연결 수↓ |\n| `Service backend not found` / LB map pressure↑ | **내부 NFS Service(DSR/LB)** 경로 | backend/endpoint 상태, LB맵 크기 |\n| MTU/NAT 다 0 인데 pod veth RX drop↑ + throttle↑ | **backlog/CPU 라인**(NFS 버스트) | node-net-tuning(backlog/rmem_max), csi-nfs CPU limit↑, GRO 점검 |\n| interface별 drop이 특정 디바이스(netkit/net1) 집중 | 디바이스/CNI 경로 | 해당 datapath(netkit 모드/multus) 점검 |\n| node conntrack↑ | 외부 NFS 연결추적 고갈 | nf_conntrack_max↑ 또는 eBPF 우회 |\n\n## 🔍 DSR vs 아닌지 빠른 판정\n1. **FragFails / 'Packet too big' > 0** → DSR/MTU 거의 확정. `cilium monitor --type drop` / `hubble observe --verdict DROPPED -n <csi-nfs>` 로 reason 확인.\n2. 둘 다 0인데 veth RX drop↑ → **MTU 아님**. backlog/CPU(throttle 상관 패널) 라인.\n3. **netkit**은 원인보단 완화책 — veth 오버헤드↓. 단 전환 시 drop 카운팅 디바이스가 바뀌니 'interface별 drop'으로 확인.\n\n> ⚠️ reason 문자열은 Cilium 버전마다 다름. 상단 `mtu_reason_regex`/`dsr_reason_regex` 변수를\n> 실제 `cilium monitor --type drop` 출력의 reason에 맞게 조정하세요. cilium_drop은 node 단위(namespace 없음) →\n> csi-nfs 귀속은 Hubble 필요.\n"
+      }
+    }
+  ],
+  "description": "csi-nfs 파드 drop의 DSR/MTU vs backlog/CPU 라인 판별. cilium drop reason(MTU/NAT 정규식 변수)·IP FragFails·BPF맵·conntrack·interface별 drop·NFS버스트 상관.",
+  "links": [
+    {
+      "type": "dashboards",
+      "title": "Packet Drop",
+      "tags": [
+        "pktdrop"
+      ],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link"
+    },
+    {
+      "type": "link",
+      "title": "↑ L1 Node",
+      "url": "/d/pktdrop-l1-node?${__url_time_range}&var-cluster=${var-cluster:queryparam}&var-project=${var-project:queryparam}&var-nodename=${var-nodename:queryparam}",
+      "keepTime": true,
+      "includeVars": true,
+      "targetBlank": false,
+      "icon": "arrow-up"
+    },
+    {
+      "type": "link",
+      "title": "↑↑ L0 Fleet",
+      "url": "/d/pktdrop-l0-fleet?${__url_time_range}&var-cluster=${var-cluster:queryparam}&var-project=${var-project:queryparam}",
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "arrow-up"
+    }
+  ]
+}

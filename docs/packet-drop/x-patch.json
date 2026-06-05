@@ -1,0 +1,1574 @@
+{
+  "title": "Patch · Spark Drop — 패치 전/후 비교 (Excel 참고용)",
+  "uid": "pktdrop-x-patch",
+  "editable": true,
+  "schemaVersion": 38,
+  "version": 1,
+  "style": "dark",
+  "tags": [
+    "dataops",
+    "packet-drop",
+    "patch-compare",
+    "pktdrop",
+    "spark"
+  ],
+  "timezone": "browser",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "refresh": "",
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0,
+        "label": "Datasource"
+      },
+      {
+        "name": "cluster",
+        "label": "cluster",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info, cluster)",
+        "query": {
+          "query": "label_values(node_uname_info, cluster)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "icdataops-prd",
+          "value": "icdataops-prd"
+        },
+        "options": []
+      },
+      {
+        "name": "project",
+        "label": "project",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info{cluster=\"$cluster\"}, project)",
+        "query": {
+          "query": "label_values(node_uname_info{cluster=\"$cluster\"}, project)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "dataops",
+          "value": "dataops"
+        },
+        "options": []
+      },
+      {
+        "name": "nodename",
+        "label": "nodename (단일)",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\"}, nodename)",
+        "query": {
+          "query": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\"}, nodename)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "options": []
+      },
+      {
+        "name": "instance",
+        "label": "instance (node-exporter)",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}, instance)",
+        "query": {
+          "query": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}, instance)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "device",
+        "label": "device",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_network_up{cluster=\"$cluster\",project=\"$project\"}, device)",
+        "query": {
+          "query": "label_values(node_network_up{cluster=\"$cluster\",project=\"$project\"}, device)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": false,
+        "regex": "/^bond\\d+$/",
+        "current": {
+          "text": [
+            "bond0",
+            "bond1"
+          ],
+          "value": [
+            "bond0",
+            "bond1"
+          ],
+          "selected": true
+        },
+        "options": []
+      },
+      {
+        "name": "namespace",
+        "label": "namespace",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\"}, namespace)",
+        "query": {
+          "query": "label_values(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\"}, namespace)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "pod",
+        "label": "pod",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\"}, pod)",
+        "query": {
+          "query": "label_values(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\"}, pod)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "type": "dashboard",
+        "name": "Annotations & Alerts",
+        "enable": true,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "iconColor": "rgba(0,211,255,1)",
+        "hide": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "📋 사용법",
+      "id": 1,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "text",
+      "title": "패치 전/후 비교 방법",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**워크플로**: ① 상단 타임픽커를 **패치 전 구간**으로 지정 → 아래 수치를 엑셀에 복사 → ② **패치 후 구간**으로 지정 → 다시 복사 → ③ 엑셀에서 변화량(Δ)·변화율 계산.\n- 모든 수치는 **선택한 시간대 전체 집계**(`increase[$__range]`). 구간을 바꾸면 그 구간 기준으로 갱신.\n- ★ **drop 비율(%) = drop÷패킷** 은 *구간 길이와 무관*하므로 패치 전/후 윈도우 길이가 달라도 공정 비교 가능(권장 비교 지표). 카운트(개수)는 구간 길이에 비례하니 같은 길이로 잡으면 직접 비교.\n- 파드별 표는 행을 그대로 드래그→복사해 엑셀에 붙여넣기. 상단 nodename/namespace/pod 변수로 대상 좁히기."
+      }
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "🎯 핵심 수치 — 선택 시간대 집계 (Pod veth)",
+      "id": 3,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "panels": []
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "RX 패킷 총수",
+      "description": "선택 구간 동안 파드들이 수신한 총 패킷 수. drop 비율의 분모.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(increase(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range]))",
+          "legendFormat": "RX 패킷 총수",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "RX drop 카운트",
+      "description": "선택 구간 총 RX veth drop 개수. 구간 길이에 비례 → 같은 길이로 전/후 비교.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(increase(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range]))",
+          "legendFormat": "RX drop 카운트",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 1000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "★ RX drop 비율 %",
+      "description": "★패치 전/후 비교 핵심 지표. drop÷수신패킷. 구간 길이 무관 → 윈도우가 달라도 공정 비교. 0.001%↑ 주의, 0.01%↑ 위험.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(increase(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range])) / clamp_min(sum(increase(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range])),1) * 100",
+          "legendFormat": "★ RX drop 비율 %",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 6,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.001
+              },
+              {
+                "color": "red",
+                "value": 0.01
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "RX 평균 drop pps",
+      "description": "선택 구간 평균 drop율(=총 drop÷구간초). 구간 길이 무관.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(increase(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range])) / $__range_s",
+          "legendFormat": "RX 평균 drop pps",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "decimals": 3,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "TX 패킷 총수",
+      "description": "선택 구간 파드 송신 총 패킷 수.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 13
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(increase(container_network_transmit_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range]))",
+          "legendFormat": "TX 패킷 총수",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "TX drop 카운트",
+      "description": "선택 구간 총 TX veth drop(qdisc 넘침) 개수.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 13
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(increase(container_network_transmit_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range]))",
+          "legendFormat": "TX drop 카운트",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 1000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "TX drop 비율 %",
+      "description": "TX drop÷송신패킷. 송신측 qdisc 포화 지표.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 13
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(increase(container_network_transmit_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range])) / clamp_min(sum(increase(container_network_transmit_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range])),1) * 100",
+          "legendFormat": "TX drop 비율 %",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 6,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.001
+              },
+              {
+                "color": "red",
+                "value": 0.01
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "pod CPU throttle % (구간)",
+      "description": "선택 구간 throttle된 CFS 주기 비율. veth drop과 동반 변화 확인용(체인 검증). 25%↑ 주의, 50%↑ 위험.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 13
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(increase(container_cpu_cfs_throttled_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range])) / clamp_min(sum(increase(container_cpu_cfs_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range])),1) * 100",
+          "legendFormat": "pod CPU throttle % (구간)",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 25
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "🖥️ 노드 NIC 교차검증 (bond, 선택 시간대)",
+      "id": 12,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "panels": []
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "node NIC RX drop 카운트",
+      "description": "선택 구간 노드 bond NIC RX drop 개수(nodename·device 필터). pod veth와 별개로 NIC 레벨에서도 떨어지는지 교차확인.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 19
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(increase(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__range]) * on(instance) group_left() node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+          "legendFormat": "node NIC RX drop 카운트",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 1000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "node NIC RX drop 비율 %",
+      "description": "노드 NIC drop÷수신패킷. pod 비율과 비교해 어느 계층이 주된지 판별.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 19
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(increase(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__range]) * on(instance) group_left() node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}) / clamp_min(sum(increase(node_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__range]) * on(instance) group_left() node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}),1) * 100",
+          "legendFormat": "node NIC RX drop 비율 %",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 6,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.001
+              },
+              {
+                "color": "red",
+                "value": 0.01
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "stat",
+      "title": "node 평균 CPU 사용률 %",
+      "description": "선택 구간 노드 평균 CPU 사용률. throttle 동반 상승 맥락.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 19
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(1 - sum(increase(node_cpu_seconds_total{cluster=\"$cluster\",project=\"$project\",mode=\"idle\"}[$__range]) * on(instance) group_left() node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}) / clamp_min(sum(increase(node_cpu_seconds_total{cluster=\"$cluster\",project=\"$project\"}[$__range]) * on(instance) group_left() node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}),1)) * 100",
+          "legendFormat": "node 평균 CPU 사용률 %",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": "stat",
+      "title": "node 평균 CPU steal %",
+      "description": "선택 구간 평균 steal. 오버커밋이면 patch와 무관히 throttle 유발.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 19
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(increase(node_cpu_seconds_total{cluster=\"$cluster\",project=\"$project\",mode=\"steal\"}[$__range]) * on(instance) group_left() node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}) / clamp_min(sum(increase(node_cpu_seconds_total{cluster=\"$cluster\",project=\"$project\"}[$__range]) * on(instance) group_left() node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}),1) * 100",
+          "legendFormat": "node 평균 CPU steal %",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "📊 파드별 상세 — 행 복사 → 엑셀 (선택 시간대)",
+      "id": 17,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "panels": []
+    },
+    {
+      "id": 18,
+      "type": "table",
+      "title": "파드별 RX/TX 패킷·drop·비율·throttle (선택 구간 집계)",
+      "description": "행을 드래그 복사해 엑셀에 붙여넣기. 패치 전 구간에서 한 번, 패치 후 구간에서 한 번 복사해 시트 2개로 비교. drop% 내림차순.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "format": "table",
+          "instant": true,
+          "expr": "sum by(namespace,pod)(increase(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range]))"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "format": "table",
+          "instant": true,
+          "expr": "sum by(namespace,pod)(increase(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range]))"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "C",
+          "format": "table",
+          "instant": true,
+          "expr": "sum by(namespace,pod)(increase(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range])) / clamp_min(sum by(namespace,pod)(increase(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range])),1) * 100"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "D",
+          "format": "table",
+          "instant": true,
+          "expr": "sum by(namespace,pod)(increase(container_network_transmit_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range]))"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "E",
+          "format": "table",
+          "instant": true,
+          "expr": "sum by(namespace,pod)(increase(container_cpu_cfs_throttled_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range])) / clamp_min(sum by(namespace,pod)(increase(container_cpu_cfs_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__range])),1) * 100"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "namespace": "namespace",
+              "pod": "pod",
+              "Value #A": "RX패킷",
+              "Value #B": "RX drop",
+              "Value #C": "RX drop%",
+              "Value #D": "TX drop",
+              "Value #E": "throttle%"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "RX drop%"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 6
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.001
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.01
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "throttle%"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 25
+                    },
+                    {
+                      "color": "red",
+                      "value": 50
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "RX drop%",
+            "desc": true
+          }
+        ]
+      }
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "📈 시각 확인 (구간이 정상상태인지 — 스파이크/추세 확인)",
+      "id": 19,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "panels": []
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "RX drop pps (시간)",
+      "description": "선택 구간 내 drop이 균일한지/스파이크인지 확인. 평균 수치가 대표성 있는지 판단.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 37
+      },
+      "maxDataPoints": 600,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]))",
+          "legendFormat": "RX drop pps",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "RX drop 비율 % (시간)",
+      "description": "drop 비율의 시간 추이. 패치 시점 전후로 레벨이 바뀌는지 눈으로 확인.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 37
+      },
+      "maxDataPoints": 600,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval])) / clamp_min(sum(rate(container_network_receive_packets_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval])),1) * 100",
+          "legendFormat": "RX drop%",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.001
+              },
+              {
+                "color": "red",
+                "value": 0.01
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "pod CPU throttle % (시간)",
+      "description": "throttle 추이. drop 비율과 같이 변하면 체인 확정.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 37
+      },
+      "maxDataPoints": 600,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(sum by(namespace,pod)(rate(container_cpu_cfs_throttled_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval])) / clamp_min(sum by(namespace,pod)(rate(container_cpu_cfs_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval])),1))*100",
+          "legendFormat": "throttle% max",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 25
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    }
+  ],
+  "description": "패치 전/후 비교용. 타임픽커로 구간 지정→수치 집계(increase[$__range]). drop 비율 중심, 파드별 표는 엑셀 복사용.",
+  "links": [
+    {
+      "type": "dashboards",
+      "title": "Packet Drop",
+      "tags": [
+        "pktdrop"
+      ],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link"
+    },
+    {
+      "type": "link",
+      "title": "↑ L1 Node",
+      "url": "/d/pktdrop-l1-node?${__url_time_range}&var-cluster=${var-cluster:queryparam}&var-project=${var-project:queryparam}&var-nodename=${var-nodename:queryparam}",
+      "keepTime": true,
+      "includeVars": true,
+      "targetBlank": false,
+      "icon": "arrow-up"
+    },
+    {
+      "type": "link",
+      "title": "↑↑ L0 Fleet",
+      "url": "/d/pktdrop-l0-fleet?${__url_time_range}&var-cluster=${var-cluster:queryparam}&var-project=${var-project:queryparam}",
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "arrow-up"
+    }
+  ]
+}
