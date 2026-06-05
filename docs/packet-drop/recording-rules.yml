@@ -1,0 +1,26 @@
+# Packet Drop fleet overview 저부하 백킹 — per-node/namespace/pod drop 집계를 사전계산.
+# (PromLabs/Prometheus: recording rule로 비싼 집계를 미리 구워 부하↓·쿼리↑.)
+# 적용: Prometheus rule_files 에 추가(또는 PrometheusRule CR). 라벨(node/nodename, cluster/project)은 환경에 맞게.
+# 적용 후 L0 패널의 raw topk 식을 아래 record 이름으로 교체하면 instant.
+groups:
+  - name: packet-drop-fleet
+    interval: 30s
+    rules:
+      # node-exporter 계열 (instance→nodename 조인)
+      - record: nodename:net_rx_drop:sum_rate5m
+        expr: sum by (cluster, project, nodename) (rate(node_network_receive_drop_total[5m]) * on(instance) group_left(nodename) node_uname_info)
+      - record: nodename:softnet_drop:sum_rate5m
+        expr: sum by (cluster, project, nodename) (rate(node_softnet_dropped_total[5m]) * on(instance) group_left(nodename) node_uname_info)
+      - record: nodename:net_rx_drop_ratio:5m
+        expr: |
+          sum by (cluster, project, nodename) (rate(node_network_receive_drop_total[5m]) * on(instance) group_left(nodename) node_uname_info)
+          / clamp_min(sum by (cluster, project, nodename) (rate(node_network_receive_packets_total[5m]) * on(instance) group_left(nodename) node_uname_info), 1)
+      # cAdvisor 계열 (node / namespace,pod 라벨)
+      - record: node:pod_veth_rx_drop:sum_rate5m
+        expr: sum by (cluster, project, node) (rate(container_network_receive_packets_dropped_total[5m]))
+      - record: namespace_pod:veth_rx_drop:sum_rate5m
+        expr: sum by (cluster, project, namespace, pod) (rate(container_network_receive_packets_dropped_total[5m]))
+      - record: namespace_pod:cpu_throttle_ratio:5m
+        expr: |
+          sum by (cluster, project, namespace, pod) (rate(container_cpu_cfs_throttled_periods_total[5m]))
+          / clamp_min(sum by (cluster, project, namespace, pod) (rate(container_cpu_cfs_periods_total[5m])), 1)

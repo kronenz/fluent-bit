@@ -1,0 +1,365 @@
+{
+  "title": "L3 · Packet Drop Guide & Verdict",
+  "uid": "pktdrop-l3-guide",
+  "editable": true,
+  "schemaVersion": 38,
+  "version": 1,
+  "style": "dark",
+  "tags": [
+    "pktdrop"
+  ],
+  "timezone": "browser",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "refresh": "",
+  "graphTooltip": 1,
+  "links": [
+    {
+      "type": "dashboards",
+      "title": "Packet Drop",
+      "tags": [
+        "pktdrop"
+      ],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link"
+    },
+    {
+      "type": "link",
+      "title": "↑ L1 Node",
+      "url": "/d/pktdrop-l1-node?${__url_time_range}&var-cluster=${cluster}&var-project=${project}&var-nodename=${nodename}",
+      "keepTime": true,
+      "includeVars": true,
+      "targetBlank": false,
+      "icon": "arrow-up"
+    },
+    {
+      "type": "link",
+      "title": "↑↑ L0 Fleet",
+      "url": "/d/pktdrop-l0-fleet?${__url_time_range}&var-cluster=${cluster}&var-project=${project}",
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "arrow-up"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0,
+        "label": "Datasource"
+      },
+      {
+        "name": "cluster",
+        "label": "cluster",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info, cluster)",
+        "query": {
+          "query": "label_values(node_uname_info, cluster)",
+          "refId": "x"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "icdataops-prd",
+          "value": "icdataops-prd"
+        },
+        "options": []
+      },
+      {
+        "name": "project",
+        "label": "project",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info{cluster=\"$cluster\"}, project)",
+        "query": {
+          "query": "label_values(node_uname_info{cluster=\"$cluster\"}, project)",
+          "refId": "x"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "dataops",
+          "value": "dataops"
+        },
+        "options": []
+      },
+      {
+        "name": "nodename",
+        "label": "nodename (단일)",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\"}, nodename)",
+        "query": {
+          "query": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\"}, nodename)",
+          "refId": "x"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "options": []
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "type": "dashboard",
+        "name": "Annotations & Alerts",
+        "enable": true,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "iconColor": "rgba(0,211,255,1)",
+        "hide": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "🧭 원인 추정 (참조)",
+      "id": 29,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 27,
+      "type": "stat",
+      "title": "🧭 추정 원인 (top severity)",
+      "description": "각 계층 drop 신호를 자기 임계값으로 정규화한 severity = 현재값/임계값. **>1 이면 임계 초과**, 값이 클수록 원인일 확률↑. 여러 계층이 동시에 빨개도 가장 높은 것이 1차 용의자. PromQL 한 번으로 NIC/커널/cilium/pod 전 계층을 비교한다.\\nseverity는 단위 무관 비교용(예: 1.4=임계의 1.4배). 각 원인 라벨 끝에 1차 조치 힌트 포함.\\n**선택한 시간범위(start~end)의 peak** 기준(max_over_time[$__range]). '지금' 값이 아니라 범위 전체에서 가장 나빴던 값.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk(1, label_replace(max_over_time((sum(rate(node_network_receive_fifo_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})/1)[$__range:1m]), \"cause\", \"① NIC ring overrun (fifo) → ethtool -G rx↑\", \"__name__\", \".*\") or label_replace(max_over_time((sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})/100)[$__range:1m]), \"cause\", \"① NIC RX drop (IRQ/ring)\", \"__name__\", \".*\") or label_replace(max_over_time((max((node_nf_conntrack_entries{cluster=\"$cluster\",project=\"$project\"}/node_nf_conntrack_entries_limit{cluster=\"$cluster\",project=\"$project\"}) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})/0.9)[$__range:1m]), \"cause\", \"① conntrack 고갈(node) → nf_conntrack_max↑\", \"__name__\", \".*\") or label_replace(max_over_time((sum(rate(node_softnet_dropped_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})/10)[$__range:1m]), \"cause\", \"② softnet backlog → netdev_max_backlog↑\", \"__name__\", \".*\") or label_replace(max_over_time((max(sum by(nodename)(rate(node_cpu_seconds_total{cluster=\"$cluster\",project=\"$project\",mode=\"softirq\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})/sum by(nodename)(rate(node_cpu_seconds_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})*100)/25)[$__range:1m]), \"cause\", \"② softirq 포화 → IRQ affinity/RPS\", \"__name__\", \".*\") or label_replace(max_over_time(((sum(rate(node_netstat_Udp_RcvbufErrors{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})+sum(rate(node_netstat_TcpExt_TCPBacklogDrop{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})+sum(rate(node_netstat_TcpExt_ListenOverflows{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))/5)[$__range:1m]), \"cause\", \"② socket 큐 (executor recv 부족) → rmem_max/somaxconn↑\", \"__name__\", \".*\") or label_replace(max_over_time(((sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})/clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}),1))/0.01)[$__range:1m]), \"cause\", \"경로 혼잡 (TCP retrans ratio)\", \"__name__\", \".*\") or label_replace(max_over_time((sum(rate(cilium_drop_count_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",reason!~\"$cilium_drop_exclude_reason\"}[$__rate_interval]))/100)[$__range:1m]), \"cause\", \"③ cilium datapath drop\", \"__name__\", \".*\") or label_replace(max_over_time((max(cilium_bpf_map_pressure{cluster=\"$cluster\",project=\"$project\",map_name=~\".*ct.*|.*nat.*\"})/0.95)[$__range:1m]), \"cause\", \"③ cilium CT/NAT 맵 포화 → bpf-ct/nat-global-max↑\", \"__name__\", \".*\") or label_replace(max_over_time((sum(rate(cilium_drop_count_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",reason!~\"$cilium_drop_exclude_reason\",reason=~\".*[Pp]olicy.*\"}[$__rate_interval]))/10)[$__range:1m]), \"cause\", \"③ cilium Policy denied → 정책 허용\", \"__name__\", \".*\") or label_replace(max_over_time((sum(rate(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]))/10)[$__range:1m]), \"cause\", \"④ pod veth drop\", \"__name__\", \".*\") or label_replace(max_over_time((max(sum by(namespace,pod)(rate(container_cpu_cfs_throttled_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]))/clamp_min(sum by(namespace,pod)(rate(container_cpu_cfs_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval])),1))/0.5)[$__range:1m]), \"cause\", \"④ pod CPU throttle → limit↑\", \"__name__\", \".*\"))",
+          "legendFormat": "{{cause}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      }
+    },
+    {
+      "id": 28,
+      "type": "table",
+      "title": "📊 원인 스코어보드 (severity 내림차순)",
+      "description": "각 계층 drop 신호를 자기 임계값으로 정규화한 severity = 현재값/임계값. **>1 이면 임계 초과**, 값이 클수록 원인일 확률↑. 여러 계층이 동시에 빨개도 가장 높은 것이 1차 용의자. PromQL 한 번으로 NIC/커널/cilium/pod 전 계층을 비교한다.\\nseverity는 단위 무관 비교용(예: 1.4=임계의 1.4배). 각 원인 라벨 끝에 1차 조치 힌트 포함.\\n**선택한 시간범위(start~end)의 peak** 기준(max_over_time[$__range]). '지금' 값이 아니라 범위 전체에서 가장 나빴던 값.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 8,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace(max_over_time((sum(rate(node_network_receive_fifo_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})/1)[$__range:1m]), \"cause\", \"① NIC ring overrun (fifo) → ethtool -G rx↑\", \"__name__\", \".*\") or label_replace(max_over_time((sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})/100)[$__range:1m]), \"cause\", \"① NIC RX drop (IRQ/ring)\", \"__name__\", \".*\") or label_replace(max_over_time((max((node_nf_conntrack_entries{cluster=\"$cluster\",project=\"$project\"}/node_nf_conntrack_entries_limit{cluster=\"$cluster\",project=\"$project\"}) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})/0.9)[$__range:1m]), \"cause\", \"① conntrack 고갈(node) → nf_conntrack_max↑\", \"__name__\", \".*\") or label_replace(max_over_time((sum(rate(node_softnet_dropped_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})/10)[$__range:1m]), \"cause\", \"② softnet backlog → netdev_max_backlog↑\", \"__name__\", \".*\") or label_replace(max_over_time((max(sum by(nodename)(rate(node_cpu_seconds_total{cluster=\"$cluster\",project=\"$project\",mode=\"softirq\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})/sum by(nodename)(rate(node_cpu_seconds_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})*100)/25)[$__range:1m]), \"cause\", \"② softirq 포화 → IRQ affinity/RPS\", \"__name__\", \".*\") or label_replace(max_over_time(((sum(rate(node_netstat_Udp_RcvbufErrors{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})+sum(rate(node_netstat_TcpExt_TCPBacklogDrop{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})+sum(rate(node_netstat_TcpExt_ListenOverflows{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))/5)[$__range:1m]), \"cause\", \"② socket 큐 (executor recv 부족) → rmem_max/somaxconn↑\", \"__name__\", \".*\") or label_replace(max_over_time(((sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})/clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}),1))/0.01)[$__range:1m]), \"cause\", \"경로 혼잡 (TCP retrans ratio)\", \"__name__\", \".*\") or label_replace(max_over_time((sum(rate(cilium_drop_count_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",reason!~\"$cilium_drop_exclude_reason\"}[$__rate_interval]))/100)[$__range:1m]), \"cause\", \"③ cilium datapath drop\", \"__name__\", \".*\") or label_replace(max_over_time((max(cilium_bpf_map_pressure{cluster=\"$cluster\",project=\"$project\",map_name=~\".*ct.*|.*nat.*\"})/0.95)[$__range:1m]), \"cause\", \"③ cilium CT/NAT 맵 포화 → bpf-ct/nat-global-max↑\", \"__name__\", \".*\") or label_replace(max_over_time((sum(rate(cilium_drop_count_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",reason!~\"$cilium_drop_exclude_reason\",reason=~\".*[Pp]olicy.*\"}[$__rate_interval]))/10)[$__range:1m]), \"cause\", \"③ cilium Policy denied → 정책 허용\", \"__name__\", \".*\") or label_replace(max_over_time((sum(rate(container_network_receive_packets_dropped_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]))/10)[$__range:1m]), \"cause\", \"④ pod veth drop\", \"__name__\", \".*\") or label_replace(max_over_time((max(sum by(namespace,pod)(rate(container_cpu_cfs_throttled_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval]))/clamp_min(sum by(namespace,pod)(rate(container_cpu_cfs_periods_total{cluster=\"$cluster\",project=\"$project\",node=~\"$nodename\",namespace=~\"$namespace\",pod=~\"$pod\"}[$__rate_interval])),1))/0.5)[$__range:1m]), \"cause\", \"④ pod CPU throttle → limit↑\", \"__name__\", \".*\")",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 3,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "color-background",
+              "mode": "gradient"
+            },
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "cause"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 520
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Value",
+            "desc": true
+          }
+        ],
+        "cellHeight": "sm"
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "cause": "원인(계층·조치)",
+              "Value": "severity"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "📋 진단 가이드",
+      "id": 30,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "panels": []
+    },
+    {
+      "id": 31,
+      "type": "text",
+      "title": "진단 매트릭스 & 판정 룰",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 16,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## 🎯 Packet Drop 진단 매트릭스 (요약 — 상세는 각 L2)\n| 신호 | 원인 | 조치 | 상세 |\n|---|---|---|---|\n| NIC RX drop + fifo | NIC ring overrun | ethtool -G rx↑, IRQ/RPS | L2 Layers |\n| softnet dropped/squeezed | 커널 backlog/CPU | netdev_max_backlog·budget↑ | L2 Layers |\n| socket 큐(Udp_Rcvbuf/Backlog) | executor recv 부족 | rmem_max·somaxconn↑ | L2 Layers |\n| 'Packet too big'/FragFails | DSR/MTU | dispatch=hybrid·MTU 정합·rsize↓ | L2 csi |\n| 맵 pressure | cilium CT/NAT 포화 | bpf-ct/nat-global-max↑ | L2 csi |\n| **Pod throttle + drop** | executor CPU limit 과소 | limit↑/IRQ·RPS | L2 Layers |\n| hostNet 파드 drop=node iface | host netns 공유(허상) | 노드 인터페이스/커널 튜닝 | L2 hostNet |\n\n## 🔍 판정 룰\n- hostNetwork 파드(csi-nfs·node-exporter) drop은 **노드 인터페이스 drop 반영** → 파드 아닌 노드 조치.\n- shuffle bps↑ 구간에만 drop=부하 / 상시=구성.\n- 단일 노드 기준(전 노드는 L0 topk).\n"
+      }
+    }
+  ],
+  "description": "진단 매트릭스 + 자동 원인 추정 참조."
+}
