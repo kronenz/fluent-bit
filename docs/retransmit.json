@@ -1,0 +1,623 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "메트릭 소스 (node_exporter / netstat collector 포함)",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.4.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" },
+    { "type": "panel", "id": "timeseries", "name": "Time series", "version": "" },
+    { "type": "panel", "id": "stat", "name": "Stat", "version": "" },
+    { "type": "panel", "id": "text", "name": "Text", "version": "" },
+    { "type": "panel", "id": "state-timeline", "name": "State timeline", "version": "" }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "① Retransmit Spike",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "enable": true,
+        "iconColor": "super-light-purple",
+        "hide": false,
+        "target": {
+          "expr": "(rate(node_netstat_Tcp_RetransSegs{cluster=\"icdataops-prd\"}[1m]) / clamp_min(rate(node_netstat_Tcp_OutSegs{cluster=\"icdataops-prd\"}[1m]),1)) > 0.02",
+          "refId": "RetransAnno"
+        },
+        "useValueForTime": false,
+        "iconSize": 14,
+        "tagKeys": "instance",
+        "textFormat": "Retrans ratio > 2% — 인과 시작점(①)"
+      },
+      {
+        "name": "③ RX Drop Onset",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "enable": true,
+        "iconColor": "red",
+        "hide": false,
+        "target": {
+          "expr": "rate(node_network_receive_drop_total{cluster=\"icdataops-prd\"}[1m]) > 0",
+          "refId": "DropAnno"
+        },
+        "tagKeys": "instance,device",
+        "textFormat": "RX drop 발생(③) — 인과 사슬의 최종 결과"
+      }
+    ]
+  },
+  "description": "특정 빅데이터 서비스의 AIStor(storage-cluster) 접근 시 발생하는 TCP 재전송 집중이 NAPI squeeze 및 RX drop으로 이어지는 시간순 인과관계(①→②→③)를 입증하기 위한 대시보드. 모든 시계열 패널은 공유 crosshair/tooltip 및 동일 시간축으로 정렬되어 패널 간 선후 상관관계를 한 화면에서 검증할 수 있도록 구성됨.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "tags": [],
+      "targetBlank": true,
+      "title": "Topology / 인과 메커니즘 설명",
+      "type": "link",
+      "url": "#"
+    }
+  ],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "text",
+      "title": "인과 가설 · 검증 관점",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "options": {
+        "mode": "markdown",
+        "content": "## 📈 인과 사슬 검증: ① TCP Retransmit → ② NAPI Squeeze → ③ RX Drop\n**가설(해석 A):** 특정 빅데이터 서비스의 `storage-cluster`(AIStor) 집중 접근 → flow 집중에 의한 지연/지터 → **조기 재전송(①)** → 중복 트래픽 누적 → **NAPI budget 소진/squeeze(②)** → ring overflow → **RX Drop(③)**.  \n**검증 방법:** 모든 패널은 *동일 시간축 + 공유 crosshair(Shared crosshair)* 로 정렬됨. 마우스를 한 패널에 올리면 전 패널에 동일 시점 수직선이 표시되어 **①→②→③의 선후관계**를 눈으로 확인 가능. 보라색/빨강 annotation이 ①·③ 발생 시점을 자동 표기.  \n`icdataops-prd` = DataOps(수신·드롭 측) · `storage-cluster` = AIStor S3(재전송 유발 hotspot 측)"
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "① Retrans Ratio (icdataops-prd)",
+      "description": "재전송 세그먼트 / 전체 송신 세그먼트 비율. 인과 사슬의 1차 트리거 지표.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 4 },
+      "id": 1,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.01 },
+              { "color": "red", "value": 0.02 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "textMode": "value_and_name",
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"icdataops-prd\"}[$__rate_interval])) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"icdataops-prd\"}[$__rate_interval])),1)",
+          "legendFormat": "retrans ratio",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "② softnet time_squeeze /s",
+      "description": "NAPI poll budget 소진 횟수(초당). 재전송 누적으로 인한 처리 압박의 중간 지표.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 4 },
+      "id": 2,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "decimals": 1,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "orange", "value": 10 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background_solid", "graphMode": "area", "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(rate(node_softnet_times_squeezed_total{cluster=\"icdataops-prd\"}[$__rate_interval]))",
+          "legendFormat": "squeeze/s",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "③ RX Drop /s (icdataops-prd)",
+      "description": "수신 ring overflow로 폐기된 패킷(초당). 인과 사슬의 최종 결과 지표.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 4 },
+      "id": 3,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "decimals": 1,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 50 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background_solid", "graphMode": "area", "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(rate(node_network_receive_drop_total{cluster=\"icdataops-prd\"}[$__rate_interval]))",
+          "legendFormat": "rx_drop/s",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Spurious 의심도 (DSACK/Retrans)",
+      "description": "DSACK 수신 비율이 높을수록 '필요 없던 재전송(spurious)'일 가능성↑ → 해석 A(지연/지터 기반 조기 재전송) 근거.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 4 },
+      "id": 4,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit", "decimals": 1,
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 0.2 },
+            { "color": "purple", "value": 0.4 }
+          ] }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background_solid", "graphMode": "area", "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(rate(node_netstat_TcpExt_TCPDSACKRecv{cluster=\"icdataops-prd\"}[$__rate_interval])) / clamp_min(sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"icdataops-prd\"}[$__rate_interval])),1)",
+          "legendFormat": "dsack/retrans",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "collapsed": false,
+      "type": "row",
+      "title": "인과 사슬 순차 패널 (위 → 아래 = 시간 선후 관계)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 90,
+      "panels": []
+    },
+
+    {
+      "type": "timeseries",
+      "title": "① TCP Retransmit — 트리거 (icdataops-prd → storage-cluster 접근)",
+      "description": "재전송 세그먼트율과 재전송 비율. 인과 사슬의 시작. annotation(보라)이 임계 초과 시점을 표시.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 10 },
+      "id": 10,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2,
+            "fillOpacity": 18, "gradientMode": "opacity", "spanNulls": false,
+            "showPoints": "never", "pointSize": 5,
+            "axisPlacement": "auto", "axisLabel": "", "scaleDistribution": { "type": "linear" }
+          },
+          "color": { "mode": "palette-classic" },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "retrans ratio" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "unit", "value": "percentunit" },
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "super-light-purple" } },
+              { "id": "custom.fillOpacity", "value": 0 },
+              { "id": "custom.lineWidth", "value": 3 }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max", "lastNotNull"] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum by (instance) (rate(node_netstat_Tcp_RetransSegs{cluster=\"icdataops-prd\"}[$__rate_interval]))",
+          "legendFormat": "retrans seg/s · {{instance}}",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"icdataops-prd\"}[$__rate_interval])) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"icdataops-prd\"}[$__rate_interval])),1)",
+          "legendFormat": "retrans ratio",
+          "refId": "B"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "② softnet time_squeeze — 처리 압박 누적 (icdataops-prd)",
+      "description": "NAPI poll budget 소진 횟수율. ①의 재전송 트래픽이 누적되며 증가. ①보다 약간 후행해야 가설 성립.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 17 },
+      "id": 11,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2,
+            "fillOpacity": 22, "gradientMode": "opacity", "showPoints": "never",
+            "axisPlacement": "auto"
+          },
+          "color": { "mode": "fixed", "fixedColor": "orange" },
+          "unit": "ops"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "processed/s (backlog)" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } },
+              { "id": "custom.axisPlacement", "value": "right" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max", "lastNotNull"] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum by (instance) (rate(node_softnet_times_squeezed_total{cluster=\"icdataops-prd\"}[$__rate_interval]))",
+          "legendFormat": "squeeze/s · {{instance}}",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum by (instance) (rate(node_softnet_dropped_total{cluster=\"icdataops-prd\"}[$__rate_interval]))",
+          "legendFormat": "softnet dropped/s · {{instance}}",
+          "refId": "B"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "③ RX Drop — 최종 결과 (icdataops-prd NIC ring overflow)",
+      "description": "수신 인터페이스에서 폐기된 패킷율. annotation(빨강)이 발생 시점 표기. ①·②보다 후행해야 인과 가설이 확인됨.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 24 },
+      "id": 12,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars", "lineWidth": 1, "fillOpacity": 70,
+            "gradientMode": "hue", "showPoints": "never", "barAlignment": 0
+          },
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "unit": "pps"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "rx_fifo (missed)/s" },
+            "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "dark-red" } } ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max", "lastNotNull"] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum by (instance, device) (rate(node_network_receive_drop_total{cluster=\"icdataops-prd\"}[$__rate_interval]))",
+          "legendFormat": "rx_drop/s · {{instance}}/{{device}}",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum by (instance, device) (rate(node_network_receive_fifo_total{cluster=\"icdataops-prd\"}[$__rate_interval]))",
+          "legendFormat": "rx_fifo (missed)/s · {{instance}}/{{device}}",
+          "refId": "B"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "🔗 인과 사슬 정규화 오버레이 (①·②·③ 한 축에서 선후 비교)",
+      "description": "세 지표를 0~1로 정규화하여 한 그래프에 겹쳐 그림. 곡선의 상승 시점이 ①→②→③ 순으로 어긋나는지(lag)를 한눈에 검증하는 핵심 패널.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 9, "w": 16, "x": 0, "y": 31 },
+      "id": 13,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2.5,
+            "fillOpacity": 10, "gradientMode": "opacity", "showPoints": "never"
+          },
+          "color": { "mode": "palette-classic" },
+          "unit": "percentunit", "min": 0, "max": 1
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "① retrans (norm)" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "super-light-purple" } } ] },
+          { "matcher": { "id": "byName", "options": "② squeeze (norm)" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } } ] },
+          { "matcher": { "id": "byName", "options": "③ rx_drop (norm)" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }, { "id": "custom.lineWidth", "value": 3 } ] }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": [] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "(sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"icdataops-prd\"}[$__rate_interval]))) / clamp_min(max_over_time((sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"icdataops-prd\"}[$__rate_interval])))[6h:]),1)",
+          "legendFormat": "① retrans (norm)",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "(sum(rate(node_softnet_times_squeezed_total{cluster=\"icdataops-prd\"}[$__rate_interval]))) / clamp_min(max_over_time((sum(rate(node_softnet_times_squeezed_total{cluster=\"icdataops-prd\"}[$__rate_interval])))[6h:]),1)",
+          "legendFormat": "② squeeze (norm)",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "(sum(rate(node_network_receive_drop_total{cluster=\"icdataops-prd\"}[$__rate_interval]))) / clamp_min(max_over_time((sum(rate(node_network_receive_drop_total{cluster=\"icdataops-prd\"}[$__rate_interval])))[6h:]),1)",
+          "legendFormat": "③ rx_drop (norm)",
+          "refId": "C"
+        }
+      ]
+    },
+
+    {
+      "type": "state-timeline",
+      "title": "🚦 인과 단계 상태 타임라인 (①/②/③ 활성 구간)",
+      "description": "각 단계가 임계치를 넘은 구간을 색 띠로 표시. 띠가 ①→②→③ 순으로 켜지는 계단식 패턴이면 인과 가설을 강하게 뒷받침.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 31 },
+      "id": 14,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "fillOpacity": 80, "lineWidth": 0 },
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "transparent", "value": null },
+            { "color": "semi-dark-orange", "value": 1 }
+          ] },
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "idle", "color": "transparent" } } },
+            { "type": "value", "options": { "1": { "text": "active" } } }
+          ]
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "① retrans" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "super-light-purple" } } ] },
+          { "matcher": { "id": "byName", "options": "③ rx_drop" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } } ] }
+        ]
+      },
+      "options": {
+        "mergeValues": true,
+        "showValue": "never",
+        "alignValue": "left",
+        "rowHeight": 0.85,
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "clamp_max((sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"icdataops-prd\"}[$__rate_interval])) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"icdataops-prd\"}[$__rate_interval])),1)) > bool 0.02, 1)",
+          "legendFormat": "① retrans",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "clamp_max(sum(rate(node_softnet_times_squeezed_total{cluster=\"icdataops-prd\"}[$__rate_interval])) > bool 1, 1)",
+          "legendFormat": "② squeeze",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "clamp_max(sum(rate(node_network_receive_drop_total{cluster=\"icdataops-prd\"}[$__rate_interval])) > bool 0, 1)",
+          "legendFormat": "③ rx_drop",
+          "refId": "C"
+        }
+      ]
+    },
+
+    {
+      "collapsed": false,
+      "type": "row",
+      "title": "AIStor 측 근거 (storage-cluster) — flow 집중 hotspot 입증",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
+      "id": 91,
+      "panels": []
+    },
+
+    {
+      "type": "timeseries",
+      "title": "AIStor 노드별 인입 트래픽 — 특정 노드 집중 여부 (storage-cluster)",
+      "description": "노드별 수신 대역폭. 한 노드(aistor-01)에 트래픽이 수렴하는지 확인. icdataops-prd의 retrans 급증과 시간적으로 정렬되는지 crosshair로 비교.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 41 },
+      "id": 20,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 1.5, "fillOpacity": 12, "stacking": { "mode": "none" }, "showPoints": "never" },
+          "color": { "mode": "palette-classic" },
+          "unit": "bps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["max", "lastNotNull"] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum by (instance) (rate(node_network_receive_bytes_total{cluster=\"storage-cluster\"}[$__rate_interval]) * 8)",
+          "legendFormat": "{{instance}} rx",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "AIStor 노드 간 트래픽 불균형 비율 (max/avg)",
+      "description": "최대 노드 트래픽 / 평균. 1에 가까우면 균형, 크게 벗어나면 특정 노드 집중. retrans 발생 구간과 겹치면 'flow 집중 → 재전송' 가설 강화.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 41 },
+      "id": 21,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2.5, "fillOpacity": 20, "gradientMode": "opacity", "showPoints": "never", "thresholdsStyle": { "mode": "dashed" } },
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "unit": "none", "decimals": 2,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 1.5 },
+            { "color": "red", "value": 2.5 }
+          ] }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "single" },
+        "legend": { "displayMode": "list", "placement": "bottom", "calcs": ["max"] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "max(rate(node_network_receive_bytes_total{cluster=\"storage-cluster\"}[$__rate_interval])) / clamp_min(avg(rate(node_network_receive_bytes_total{cluster=\"storage-cluster\"}[$__rate_interval])),1)",
+          "legendFormat": "imbalance (max/avg)",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "collapsed": true,
+      "type": "row",
+      "title": "노드 드릴다운 (instance 변수 선택 시)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 49 },
+      "id": 92,
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "선택 노드 RX ring 상세 ($rx_node)",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 50 },
+          "id": 30,
+          "fieldConfig": {
+            "defaults": {
+              "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 12, "showPoints": "never" },
+              "color": { "mode": "palette-classic" }, "unit": "pps"
+            }
+          },
+          "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["max","lastNotNull"] } },
+          "targets": [
+            { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "rate(node_network_receive_drop_total{cluster=\"icdataops-prd\", instance=~\"$rx_node\"}[$__rate_interval])", "legendFormat": "rx_drop · {{device}}", "refId": "A" },
+            { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "rate(node_softnet_times_squeezed_total{cluster=\"icdataops-prd\", instance=~\"$rx_node\"}[$__rate_interval])", "legendFormat": "squeeze · {{cpu}}", "refId": "B" }
+          ]
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["network", "tcp-retransmit", "packet-drop", "aistor", "dataops", "causality"],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "label": "Datasource"
+      },
+      {
+        "name": "rx_node",
+        "type": "query",
+        "label": "DataOps 노드 (드릴다운)",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "definition": "label_values(node_network_receive_drop_total{cluster=\"icdataops-prd\"}, instance)",
+        "query": { "qryType": 1, "query": "label_values(node_network_receive_drop_total{cluster=\"icdataops-prd\"}, instance)", "refId": "var" },
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "refresh": 2,
+        "sort": 1,
+        "current": { "selected": true, "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {
+    "refresh_intervals": ["10s", "30s", "1m", "5m"],
+    "time_options": ["1h", "6h", "12h", "24h", "2d", "7d"]
+  },
+  "timezone": "browser",
+  "title": "TCP Retrans → Squeeze → RX Drop 인과 분석 · DataOps↔AIStor",
+  "uid": "retrans-drop-causality",
+  "version": 1,
+  "weekStart": ""
+}
