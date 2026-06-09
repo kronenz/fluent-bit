@@ -1,0 +1,2441 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0,211,255,1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "enable": false,
+        "expr": "(sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)) > 0.02",
+        "hide": false,
+        "iconColor": "purple",
+        "name": "① retrans>2%",
+        "step": "60s",
+        "titleFormat": "retrans ratio > 2%"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "enable": false,
+        "expr": "(sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))) > 0",
+        "hide": false,
+        "iconColor": "red",
+        "name": "③ rx_drop>0",
+        "step": "60s",
+        "titleFormat": "rx drop 발생"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "enable": false,
+        "expr": "(max(sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\",device!~\"lo|cali.*|lxc.*|veth.*|docker.*|br.*|cni.*|tunl.*|nodelocaldns\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$aistor_cluster\"}))) / clamp_min(avg(sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\",device!~\"lo|cali.*|lxc.*|veth.*|docker.*|br.*|cni.*|tunl.*|nodelocaldns\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$aistor_cluster\"}))),1)) > 2",
+        "hide": false,
+        "iconColor": "orange",
+        "name": "AIStor 불균형>2",
+        "step": "60s",
+        "titleFormat": "AIStor 인입 불균형 > 2x"
+      }
+    ]
+  },
+  "description": "Retrans(①)→softnet squeeze(②)→RX drop(③) 시간순 인과 입증. RX=$cluster/$nodename(icdataops-prd), AIStor=$aistor_cluster(storage-cluster).",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": 42,
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "pktdrop"
+      ],
+      "targetBlank": false,
+      "title": "Packet Drop",
+      "type": "dashboards",
+      "url": ""
+    },
+    {
+      "icon": "arrow-up",
+      "keepTime": true,
+      "targetBlank": false,
+      "title": "↑ L1 Node",
+      "type": "link",
+      "url": "/d/pktdrop-l1-node?${__url_time_range}&var-cluster=${cluster}&var-project=${project}&var-nodename=${nodename}"
+    },
+    {
+      "icon": "arrow-up",
+      "keepTime": true,
+      "targetBlank": false,
+      "title": "↑↑ L0 Fleet",
+      "type": "link",
+      "url": "/d/pktdrop-l0-fleet?${__url_time_range}&var-cluster=${cluster}&var-project=${project}"
+    }
+  ],
+  "panels": [
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "## Retrans → Squeeze → Drop 인과 분석\n**채택 가설(해석 A)**: 대역폭 포화가 아니라, 특정 서비스 flow가 **AIStor 특정 노드로 집중**되어 처리 지연/지터 → **조기·spurious 재전송(①)** → 중복 트래픽 누적 → **NAPI budget 소진/softnet squeeze(②)** → RX ring overflow → **RX Drop(③)**. drop이 재전송을 다시 부르는 악순환(spiral).\n\n**검증 순서**: 시간축에서 ①이 가장 먼저, ②가 그다음, ③이 마지막에 오르면 가설 지지. *시차(lag)* 패널에서 `$lag`(초)로 ①을 shift 했을 때 ③과 겹치는 지점이 경험적 lead time.\n\n**드릴다운**: L0 Fleet → 노드 클릭 → L1 Node Hub → 상단 `🔗 Retrans 인과`(이 대시보드). **라벨**: RX·드롭 측 `$cluster/$nodename`(icdataops-prd) · AIStor hotspot `$aistor_cluster`(storage-cluster). 색: ①=🟣 · ②=🟠 · ③=🔴.",
+        "mode": "markdown"
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "title": "📖 가설 & 검증법",
+      "type": "text"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 2,
+      "panels": [],
+      "title": "🔗 인과 한눈에 — ①→②→③ 동시 관찰 (shared crosshair)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "1차 트리거: TCP 재전송 비율(RetransSegs/OutSegs)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "purple",
+            "mode": "fixed"
+          },
+          "decimals": 4,
+          "mappings": [],
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 0,
+        "y": 6
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)",
+          "instant": false,
+          "legendFormat": "① retrans ratio",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "① retrans ratio",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "2차: NAPI poll budget 소진(time_squeezed rate)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "orange",
+            "mode": "fixed"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 4,
+        "y": 6
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+          "instant": false,
+          "legendFormat": "② softnet squeeze",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "② softnet squeeze",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "최종 결과: NIC RX drop rate",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "red",
+            "mode": "fixed"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "pps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 8,
+        "y": 6
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+          "instant": false,
+          "legendFormat": "③ RX drop",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "③ RX drop",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "단위가 다른 세 신호를 구간 최대로 정규화해 선후 비교. ①이 먼저 오르면 가설 지지.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "① retrans ratio"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "② squeeze"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "③ rx drop"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "id": 6,
+      "interval": "$interval",
+      "maxDataPoints": 600,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)) / (scalar(max_over_time((sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1))[$__range:1m])) + 0.0000001)",
+          "legendFormat": "① retrans ratio",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum(rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))) / (scalar(max_over_time((sum(rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})))[$__range:1m])) + 0.0000001)",
+          "legendFormat": "② squeeze",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))) / (scalar(max_over_time((sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})))[$__range:1m])) + 0.0000001)",
+          "legendFormat": "③ rx drop",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "정규화 오버레이 ①②③ (0–1)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "교차상관 근사: offset으로 ①(retrans)을 `$lag`초 앞당겨 ③과 겹친다. 점선이 빨강과 가장 잘 포개지는 `$lag`이 ①→③ lead time.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "① retrans (raw)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "① retrans (−$lag shift)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "super-light-purple",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "③ rx drop"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 0,
+        "y": 13
+      },
+      "id": 7,
+      "interval": "$interval",
+      "maxDataPoints": 600,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)) / (scalar(max_over_time((sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1))[$__range:1m])) + 0.0000001)",
+          "legendFormat": "① retrans (raw)",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval] offset $lag) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval] offset $lag) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)) / (scalar(max_over_time((sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval] offset $lag) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval] offset $lag) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1))[$__range:1m])) + 0.0000001)",
+          "legendFormat": "① retrans (−$lag shift)",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))) / (scalar(max_over_time((sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})))[$__range:1m])) + 0.0000001)",
+          "legendFormat": "③ rx drop",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "⏱️ 시차(lag) 정량화 — ①을 $lag shift vs ③",
+      "type": "timeseries"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 13
+      },
+      "id": 8,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "### ①→③ lead time\n# `$lag`\n위 패널에서 보라 점선(−$lag)이 빨강과 가장 잘 겹치도록 `$lag`을 조절.",
+        "mode": "markdown"
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "title": "가정 lead time",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "CurrEstab — flow 집중 시 동반 증가 경향",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 13
+      },
+      "id": 9,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(node_netstat_Tcp_CurrEstab{cluster=\"$cluster\",project=\"$project\"} * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+          "instant": false,
+          "legendFormat": "현재 TCP 연결수",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "현재 TCP 연결수",
+      "type": "stat"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 17
+      },
+      "id": 10,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "- **①→②→③** 순서면 가설 지지. 동시·역순이면 재검토.\n- ③(빨강)이 보라 점선과 겹치면 ①이 `$lag`초 앞서 ③을 유발.\n- spurious 근거 + AIStor 집중 동반 시 신뢰도↑.",
+        "mode": "markdown"
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "title": "ℹ️ 해석 가이드",
+      "type": "text"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "id": 11,
+      "panels": [],
+      "title": "① TCP Retransmit — 1차 트리거 (🟣 보라)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "RetransSegs/OutSegs. 2%(노랑)·5%(빨강) 임계.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "decimals": 4,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "yellow",
+                "value": 0.02
+              },
+              {
+                "color": "red",
+                "value": 0.05
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "retrans ratio"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "id": 12,
+      "interval": "$interval",
+      "maxDataPoints": 600,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)",
+          "legendFormat": "retrans ratio",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "① retrans ratio 추세",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "SpuriousRTOs·DSACKRecv·LostRetransmit 동반 상승 = 지연/지터 기인 재전송(대역폭 포화 배제).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "id": 13,
+      "interval": "$interval",
+      "maxDataPoints": 600,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_netstat_TcpExt_TCPSpuriousRTOs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+          "legendFormat": "SpuriousRTOs",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_netstat_TcpExt_TCPDSACKRecv{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+          "legendFormat": "DSACKRecv",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_netstat_TcpExt_TCPLostRetransmit{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+          "legendFormat": "LostRetransmit",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "Spurious 재전송 근거",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 30
+      },
+      "id": 14,
+      "panels": [],
+      "title": "② softnet time_squeeze — NAPI budget 소진 (🟠 주황)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "time_squeezed(주황) 상승에 softnet drop이 따라오면 budget 소진→backlog drop.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "time_squeezed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "softnet drop"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 31
+      },
+      "id": 15,
+      "interval": "$interval",
+      "maxDataPoints": 600,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+          "legendFormat": "time_squeezed",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_softnet_dropped_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+          "legendFormat": "softnet drop",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "② squeeze / softnet drop",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "backlog_len 적체 + processed 처리량.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 31
+      },
+      "id": 16,
+      "interval": "$interval",
+      "maxDataPoints": 600,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(node_softnet_backlog_len{cluster=\"$cluster\",project=\"$project\"} * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+          "legendFormat": "backlog_len (max)",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(node_softnet_processed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+          "legendFormat": "processed",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "backlog / processed",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 39
+      },
+      "id": 17,
+      "panels": [],
+      "title": "③ RX Drop — 최종 결과 (🔴 빨강)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "device별 NIC RX drop ({{nodename}}·{{device}}). $instance/$device로 한정.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          },
+          "unit": "pps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "id": 18,
+      "interval": "$interval",
+      "maxDataPoints": 600,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+          "legendFormat": "RX {{nodename}}·{{device}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "③ RX drop by device",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "receive_fifo = ring overflow 직접 신호 ({{nodename}}·{{device}}). drop과 동반 확인.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "pps"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "fifo {{nodename}}·{{device}}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "id": 19,
+      "interval": "$interval",
+      "maxDataPoints": 600,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(node_network_receive_fifo_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+          "legendFormat": "fifo {{nodename}}·{{device}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "RX fifo / ring overflow",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      },
+      "id": 20,
+      "panels": [],
+      "title": "🔥 AIStor flow 집중 — root trigger 근거 (storage-cluster)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "AIStor 노드별 수신 bps({{nodename}}). 특정 노드 쏠림=flow 집중=1차 트리거 근거.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 49
+      },
+      "id": 21,
+      "interval": "$interval",
+      "maxDataPoints": 600,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk(10, sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\",device!~\"lo|cali.*|lxc.*|veth.*|docker.*|br.*|cni.*|tunl.*|nodelocaldns\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$aistor_cluster\"})))",
+          "legendFormat": "{{nodename}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "노드별 인입 대역폭 (top 10)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "노드별 인입 최대/평균. 1.0=균등, ≥2.0=집중 의심.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "yellow",
+                "value": 1.5
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 12,
+        "y": 49
+      },
+      "id": 22,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\",device!~\"lo|cali.*|lxc.*|veth.*|docker.*|br.*|cni.*|tunl.*|nodelocaldns\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$aistor_cluster\"}))) / clamp_min(avg(sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\",device!~\"lo|cali.*|lxc.*|veth.*|docker.*|br.*|cni.*|tunl.*|nodelocaldns\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$aistor_cluster\"}))), 1)",
+          "instant": false,
+          "legendFormat": "불균형 비율 (max/avg)",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "불균형 비율 (max/avg)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "상위 AIStor 노드. 행 클릭 → 해당 노드 L1.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "links": [
+            {
+              "targetBlank": false,
+              "title": "드릴다운 → L1 Node (storage-cluster)",
+              "url": "/d/pktdrop-l1-node?${__url_time_range}&var-cluster=$aistor_cluster&var-project=${project}&var-nodename=${__data.fields.nodename}"
+            }
+          ],
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "nodename"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "노드"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "인입 bps"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bps"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-GrYlRd"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 49
+      },
+      "id": 23,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "인입 bps"
+          }
+        ]
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk(10, sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\",device!~\"lo|cali.*|lxc.*|veth.*|docker.*|br.*|cni.*|tunl.*|nodelocaldns\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$aistor_cluster\"})))",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (nodename) (node_netstat_Tcp_CurrEstab{cluster=\"$aistor_cluster\"} * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$aistor_cluster\"}))",
+          "format": "table",
+          "instant": true,
+          "refId": "B"
+        }
+      ],
+      "title": "🔝 Top hot node (인입 bps · 연결수)",
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "nodename",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time 1": true,
+              "Time 2": true
+            },
+            "renameByName": {
+              "Value #A": "인입 bps",
+              "Value #B": "연결수"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 57
+      },
+      "id": 24,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "AIStor/MinIO 메트릭 수집 시 노드별 요청 분포로 flow 집중을 직접 입증. 실제 메트릭명 확인 후 패널 추가:\n- `minio_s3_requests_total` by server/node → 요청 불균형 · `minio_inter_node_traffic_*` → placeholder.",
+        "mode": "markdown"
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "title": "🧩 AIStor 자체 메트릭 (TODO)",
+      "type": "text"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 60
+      },
+      "id": 28,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "CPU별 time_squeezed. 특정 CPU 쏠림이면 RPS/RSS·IRQ affinity 대상.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 12,
+                "lineWidth": 2,
+                "showPoints": "never",
+                "spanNulls": false,
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "unit": "ops"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 61
+          },
+          "id": 25,
+          "interval": "$interval",
+          "maxDataPoints": 600,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "topk(8, sum by (cpu) (rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})))",
+              "legendFormat": "cpu {{cpu}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "per-CPU squeeze (선택 노드, top 8)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "CPU별 softnet drop.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 12,
+                "lineWidth": 2,
+                "showPoints": "never",
+                "spanNulls": false,
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "unit": "ops"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 61
+          },
+          "id": 26,
+          "interval": "$interval",
+          "maxDataPoints": 600,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "topk(8, sum by (cpu) (rate(node_softnet_dropped_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})))",
+              "legendFormat": "cpu {{cpu}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "per-CPU softnet drop (선택 노드, top 8)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "ring overflow(fifo)와 drop의 device별 상관.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "fillOpacity": 12,
+                "lineWidth": 2,
+                "showPoints": "never",
+                "spanNulls": false,
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "unit": "pps"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 69
+          },
+          "id": 27,
+          "interval": "$interval",
+          "maxDataPoints": 600,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+              "legendFormat": "drop {{nodename}}·{{device}}",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "rate(node_network_receive_fifo_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+              "legendFormat": "fifo {{nodename}}·{{device}}",
+              "range": true,
+              "refId": "B"
+            }
+          ],
+          "title": "device별 RX drop vs fifo (선택 노드)",
+          "type": "timeseries"
+        }
+      ],
+      "title": "🔎 선택 노드 상세 — ring/queue/CPU (열어야 쿼리)",
+      "type": "row"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 61
+      },
+      "id": 29,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "**드릴다운**: 상단 `Packet Drop ▾`(묶음) · `↑ L1` · `↑↑ L0`. AIStor Top 테이블 행 클릭 → 해당 노드 L1.\n\n**알림 예시(선택)**: ① retrans ratio > 2% 5분 지속 **AND** ③ rx_drop > 0 동시 → 발화. 규칙은 README §알림 규칙 예시.",
+        "mode": "markdown"
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "title": "🧭 nav & 알림",
+      "type": "text"
+    }
+  ],
+  "preload": false,
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": [
+    "pktdrop"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "label": "Datasource",
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "text": "rwr",
+          "value": "rwr"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info, cluster)",
+        "includeAll": false,
+        "label": "cluster (RX/drop)",
+        "name": "cluster",
+        "options": [],
+        "query": {
+          "query": "label_values(node_uname_info, cluster)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "rwr",
+          "value": "rwr"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info{cluster=\"$cluster\"}, project)",
+        "includeAll": false,
+        "label": "project",
+        "name": "project",
+        "options": [],
+        "query": {
+          "query": "label_values(node_uname_info{cluster=\"$cluster\"}, project)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "rwr-md-0-2dt85-2c22v",
+          "value": "rwr-md-0-2dt85-2c22v"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\"}, nodename)",
+        "includeAll": false,
+        "label": "nodename (단일, =rx_node)",
+        "name": "nodename",
+        "options": [],
+        "query": {
+          "query": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\"}, nodename)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}, instance)",
+        "includeAll": true,
+        "label": "instance (node-exporter)",
+        "multi": true,
+        "name": "instance",
+        "options": [],
+        "query": {
+          "query": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}, instance)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": [
+            "bond0"
+          ],
+          "value": [
+            "bond0"
+          ]
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_network_up{cluster=\"$cluster\",project=\"$project\"}, device)",
+        "includeAll": false,
+        "label": "device",
+        "multi": true,
+        "name": "device",
+        "options": [],
+        "query": {
+          "query": "label_values(node_network_up{cluster=\"$cluster\",project=\"$project\"}, device)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "/^bond\\d+$/",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "rwr",
+          "value": "rwr"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_uname_info, cluster)",
+        "includeAll": false,
+        "label": "AIStor cluster",
+        "name": "aistor_cluster",
+        "options": [],
+        "query": {
+          "query": "label_values(node_uname_info, cluster)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "10s",
+          "value": "10s"
+        },
+        "includeAll": false,
+        "label": "lag(시차 shift)",
+        "name": "lag",
+        "options": [
+          {
+            "selected": false,
+            "text": "5s",
+            "value": "5s"
+          },
+          {
+            "selected": true,
+            "text": "10s",
+            "value": "10s"
+          },
+          {
+            "selected": false,
+            "text": "15s",
+            "value": "15s"
+          },
+          {
+            "selected": false,
+            "text": "30s",
+            "value": "30s"
+          },
+          {
+            "selected": false,
+            "text": "60s",
+            "value": "60s"
+          },
+          {
+            "selected": false,
+            "text": "120s",
+            "value": "120s"
+          }
+        ],
+        "query": "5s,10s,15s,30s,60s,120s",
+        "type": "custom"
+      },
+      {
+        "auto": true,
+        "auto_count": 600,
+        "auto_min": "30s",
+        "current": {
+          "text": "$__auto",
+          "value": "$__auto"
+        },
+        "label": "resample",
+        "name": "interval",
+        "options": [
+          {
+            "selected": false,
+            "text": "30s",
+            "value": "30s"
+          },
+          {
+            "selected": false,
+            "text": "1m",
+            "value": "1m"
+          },
+          {
+            "selected": false,
+            "text": "5m",
+            "value": "5m"
+          },
+          {
+            "selected": false,
+            "text": "10m",
+            "value": "10m"
+          }
+        ],
+        "query": "30s,1m,5m,10m",
+        "type": "interval"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "Asia/Seoul",
+  "title": "L2 · Retrans→Squeeze→Drop 인과 분석",
+  "uid": "pktdrop-l2-causality",
+  "version": 2
+}
