@@ -37,7 +37,7 @@
     "enable": false,
     "hide": false,
     "iconColor": "purple",
-    "expr": "(sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)) > bool 0.02 == 1",
+    "expr": "(sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)) > 0.02",
     "step": "60s",
     "titleFormat": "retrans ratio > 2%"
    },
@@ -50,7 +50,7 @@
     "enable": false,
     "hide": false,
     "iconColor": "red",
-    "expr": "(sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))) > bool 0 == 1",
+    "expr": "(sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))) > 0",
     "step": "60s",
     "titleFormat": "rx drop 발생"
    },
@@ -63,7 +63,7 @@
     "enable": false,
     "hide": false,
     "iconColor": "orange",
-    "expr": "(max(sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) node_uname_info{cluster=\"$aistor_cluster\"})) / clamp_min(avg(sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) node_uname_info{cluster=\"$aistor_cluster\"})),1)) > bool 2 == 1",
+    "expr": "(max(sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\",device!~\"lo|cali.*|lxc.*|veth.*|docker.*|br.*|cni.*|tunl.*|nodelocaldns\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$aistor_cluster\"}))) / clamp_min(avg(sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\",device!~\"lo|cali.*|lxc.*|veth.*|docker.*|br.*|cni.*|tunl.*|nodelocaldns\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$aistor_cluster\"}))),1)) > 2",
     "step": "60s",
     "titleFormat": "AIStor 인입 불균형 > 2x"
    }
@@ -84,91 +84,149 @@
    },
    {
     "name": "cluster",
+    "label": "cluster (RX/drop)",
     "type": "query",
     "datasource": {
      "type": "prometheus",
      "uid": "${datasource}"
     },
-    "query": "label_values(node_uname_info, cluster)",
-    "refresh": 1,
+    "definition": "label_values(node_uname_info, cluster)",
+    "query": {
+     "query": "label_values(node_uname_info, cluster)",
+     "refId": "StandardVariableQuery"
+    },
+    "refresh": 2,
+    "sort": 1,
     "multi": false,
     "includeAll": false,
-    "label": "RX cluster",
-    "sort": 1,
     "current": {
      "text": "icdataops-prd",
      "value": "icdataops-prd"
-    }
+    },
+    "options": []
    },
    {
     "name": "project",
+    "label": "project",
     "type": "query",
     "datasource": {
      "type": "prometheus",
      "uid": "${datasource}"
     },
-    "query": "label_values(node_uname_info{cluster=\"$cluster\"}, project)",
+    "definition": "label_values(node_uname_info{cluster=\"$cluster\"}, project)",
+    "query": {
+     "query": "label_values(node_uname_info{cluster=\"$cluster\"}, project)",
+     "refId": "StandardVariableQuery"
+    },
     "refresh": 2,
+    "sort": 1,
     "multi": false,
     "includeAll": false,
-    "label": "project",
-    "sort": 1
+    "current": {
+     "text": "dataops",
+     "value": "dataops"
+    },
+    "options": []
    },
    {
     "name": "nodename",
+    "label": "nodename (단일, =rx_node)",
     "type": "query",
     "datasource": {
      "type": "prometheus",
      "uid": "${datasource}"
     },
-    "query": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\"}, nodename)",
+    "definition": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\"}, nodename)",
+    "query": {
+     "query": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\"}, nodename)",
+     "refId": "StandardVariableQuery"
+    },
     "refresh": 2,
+    "sort": 1,
     "multi": false,
     "includeAll": false,
-    "label": "RX node ($rx_node)",
-    "sort": 1
+    "current": {
+     "text": "",
+     "value": ""
+    },
+    "options": []
+   },
+   {
+    "name": "instance",
+    "label": "instance (node-exporter)",
+    "type": "query",
+    "datasource": {
+     "type": "prometheus",
+     "uid": "${datasource}"
+    },
+    "definition": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}, instance)",
+    "query": {
+     "query": "label_values(node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}, instance)",
+     "refId": "StandardVariableQuery"
+    },
+    "refresh": 2,
+    "sort": 1,
+    "multi": true,
+    "includeAll": true,
+    "current": {
+     "text": "All",
+     "value": "$__all"
+    },
+    "options": []
    },
    {
     "name": "device",
+    "label": "device",
     "type": "query",
     "datasource": {
      "type": "prometheus",
      "uid": "${datasource}"
     },
-    "query": "label_values(node_network_receive_drop_total{cluster=\"$cluster\"}, device)",
+    "definition": "label_values(node_network_up{cluster=\"$cluster\",project=\"$project\"}, device)",
+    "query": {
+     "query": "label_values(node_network_up{cluster=\"$cluster\",project=\"$project\"}, device)",
+     "refId": "StandardVariableQuery"
+    },
     "refresh": 2,
-    "multi": true,
-    "includeAll": true,
-    "allValue": ".*",
-    "label": "device(NIC)",
     "sort": 1,
-    "regex": "/^(bond|eth|ens|eno|enp)/",
+    "multi": true,
+    "includeAll": false,
     "current": {
      "text": [
-      "All"
+      "bond0",
+      "bond1"
      ],
      "value": [
-      "$__all"
-     ]
-    }
+      "bond0",
+      "bond1"
+     ],
+     "selected": true
+    },
+    "options": [],
+    "regex": "/^bond\\d+$/"
    },
    {
     "name": "aistor_cluster",
+    "label": "AIStor cluster",
     "type": "query",
     "datasource": {
      "type": "prometheus",
      "uid": "${datasource}"
     },
-    "query": "label_values(node_uname_info, cluster)",
-    "refresh": 1,
+    "definition": "label_values(node_uname_info, cluster)",
+    "query": {
+     "query": "label_values(node_uname_info, cluster)",
+     "refId": "StandardVariableQuery"
+    },
+    "refresh": 2,
+    "sort": 1,
     "multi": false,
     "includeAll": false,
-    "label": "AIStor cluster",
-    "sort": 1,
     "current": {
      "text": "storage-cluster",
      "value": "storage-cluster"
-    }
+    },
+    "options": []
    },
    {
     "name": "lag",
@@ -271,20 +329,20 @@
    "url": ""
   },
   {
-   "title": "↑ L1 Node",
    "type": "link",
-   "icon": "arrow",
-   "url": "/d/pktdrop-l1-node?${__url_time_range}&var-cluster=${cluster}&var-project=${project}&var-nodename=${nodename}",
+   "title": "↑ L1 Node",
+   "icon": "arrow-up",
    "keepTime": true,
-   "targetBlank": false
+   "targetBlank": false,
+   "url": "/d/pktdrop-l1-node?${__url_time_range}&var-cluster=${cluster}&var-project=${project}&var-nodename=${nodename}"
   },
   {
-   "title": "↑↑ L0 Fleet",
    "type": "link",
-   "icon": "arrow",
-   "url": "/d/pktdrop-l0-fleet?${__url_time_range}&var-cluster=${cluster}&var-project=${project}",
+   "title": "↑↑ L0 Fleet",
+   "icon": "arrow-up",
    "keepTime": true,
-   "targetBlank": false
+   "targetBlank": false,
+   "url": "/d/pktdrop-l0-fleet?${__url_time_range}&var-cluster=${cluster}&var-project=${project}"
   }
  ],
  "panels": [
@@ -300,7 +358,7 @@
    },
    "options": {
     "mode": "markdown",
-    "content": "## Retrans → Squeeze → Drop 인과 분석\n**채택 가설(해석 A)**: 대역폭 포화가 아니라, 특정 서비스 flow가 **AIStor 특정 노드로 집중**되어 처리 지연/지터 → **조기·spurious 재전송(①)** → 중복 트래픽 누적 → **NAPI budget 소진/softnet squeeze(②)** → RX ring overflow → **RX Drop(③)**. drop이 재전송을 다시 부르는 악순환(spiral).\n\n**검증 순서**: 시간축에서 ①이 가장 먼저, ②가 그다음, ③이 마지막에 오르면 가설 지지. 아래 *인과 시차* 패널에서 `$lag`(초)를 조절해 **①(retrans)을 shift 했을 때 ③(rx drop)과 겹치는 지점**이 경험적 lead time.\n\n**라벨**: RX·드롭 측 `cluster=icdataops-prd`(변수 `$cluster`/`$nodename`) · AIStor hotspot 측 `cluster=storage-cluster`(`$aistor_cluster`). 색: ①=🟣보라 · ②=🟠주황 · ③=🔴빨강. 메트릭명이 환경과 다르면 README §메트릭 매핑 테이블에서 일괄 조정."
+    "content": "## Retrans → Squeeze → Drop 인과 분석\n**채택 가설(해석 A)**: 대역폭 포화가 아니라, 특정 서비스 flow가 **AIStor 특정 노드로 집중**되어 처리 지연/지터 → **조기·spurious 재전송(①)** → 중복 트래픽 누적 → **NAPI budget 소진/softnet squeeze(②)** → RX ring overflow → **RX Drop(③)**. drop이 재전송을 다시 부르는 악순환(spiral).\n\n**검증 순서**: 시간축에서 ①이 가장 먼저, ②가 그다음, ③이 마지막에 오르면 가설 지지. *시차(lag)* 패널에서 `$lag`(초)로 ①을 shift 했을 때 ③과 겹치는 지점이 경험적 lead time.\n\n**드릴다운**: L0 Fleet → 노드 클릭 → L1 Node Hub → 상단 `🔗 Retrans 인과`(이 대시보드). **라벨**: RX·드롭 측 `$cluster/$nodename`(icdataops-prd) · AIStor hotspot `$aistor_cluster`(storage-cluster). 색: ①=🟣 · ②=🟠 · ③=🔴."
    }
   },
   {
@@ -319,7 +377,7 @@
    "id": 3,
    "type": "stat",
    "title": "① retrans ratio",
-   "description": "1차 트리거: TCP 재전송 비율 (RetransSegs/OutSegs)",
+   "description": "1차 트리거: TCP 재전송 비율(RetransSegs/OutSegs)",
    "datasource": {
     "type": "prometheus",
     "uid": "${datasource}"
@@ -336,7 +394,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)",
+     "expr": "sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)",
      "legendFormat": "① retrans ratio",
      "refId": "A",
      "range": true,
@@ -372,7 +430,7 @@
    "id": 4,
    "type": "stat",
    "title": "② softnet squeeze",
-   "description": "2차: NAPI poll budget 소진 (time_squeezed rate)",
+   "description": "2차: NAPI poll budget 소진(time_squeezed rate)",
    "datasource": {
     "type": "prometheus",
     "uid": "${datasource}"
@@ -389,7 +447,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "sum(rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+     "expr": "sum(rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
      "legendFormat": "② softnet squeeze",
      "refId": "A",
      "range": true,
@@ -442,7 +500,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+     "expr": "sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
      "legendFormat": "③ RX drop",
      "refId": "A",
      "range": true,
@@ -478,7 +536,7 @@
    "id": 6,
    "type": "timeseries",
    "title": "정규화 오버레이 ①②③ (0–1)",
-   "description": "단위가 다른 세 신호를 구간 최대로 정규화해 시간 선후를 비교. ①이 먼저 오르는지 확인 = 가설 지지.",
+   "description": "단위가 다른 세 신호를 구간 최대로 정규화해 선후 비교. ①이 먼저 오르면 가설 지지.",
    "datasource": {
     "type": "prometheus",
     "uid": "${datasource}"
@@ -497,7 +555,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "(sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)) / clamp_min(scalar(max_over_time((sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1))[$__range:])), 0.0000001)",
+     "expr": "(sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)) / clamp_min(scalar(max_over_time((sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1))[$__range:1m])), 0.0000001)",
      "legendFormat": "① retrans ratio",
      "refId": "A",
      "range": true
@@ -507,7 +565,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "(sum(rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))) / clamp_min(scalar(max_over_time((sum(rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})))[$__range:])), 0.0000001)",
+     "expr": "(sum(rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))) / clamp_min(scalar(max_over_time((sum(rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})))[$__range:1m])), 0.0000001)",
      "legendFormat": "② squeeze",
      "refId": "B",
      "range": true
@@ -517,7 +575,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "(sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))) / clamp_min(scalar(max_over_time((sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})))[$__range:])), 0.0000001)",
+     "expr": "(sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))) / clamp_min(scalar(max_over_time((sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})))[$__range:1m])), 0.0000001)",
      "legendFormat": "③ rx drop",
      "refId": "C",
      "range": true
@@ -608,8 +666,8 @@
   {
    "id": 7,
    "type": "timeseries",
-   "title": "⏱️ 시차(lag) 정량화 — ①을 $lag 만큼 shift vs ③",
-   "description": "교차상관 근사: Prometheus offset으로 ①(retrans)을 `$lag`초 앞당겨 ③(rx drop)과 겹친다. shift한 보라 점선이 빨강과 가장 잘 포개지는 `$lag`이 ①→③ 경험적 lead time.",
+   "title": "⏱️ 시차(lag) 정량화 — ①을 $lag shift vs ③",
+   "description": "교차상관 근사: offset으로 ①(retrans)을 `$lag`초 앞당겨 ③과 겹친다. 점선이 빨강과 가장 잘 포개지는 `$lag`이 ①→③ lead time.",
    "datasource": {
     "type": "prometheus",
     "uid": "${datasource}"
@@ -628,7 +686,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "(sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)) / clamp_min(scalar(max_over_time((sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1))[$__range:])), 0.0000001)",
+     "expr": "(sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)) / clamp_min(scalar(max_over_time((sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1))[$__range:1m])), 0.0000001)",
      "legendFormat": "① retrans (raw)",
      "refId": "A",
      "range": true
@@ -638,7 +696,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "(sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval] offset $lag) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval] offset $lag) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)) / clamp_min(scalar(max_over_time((sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval] offset $lag) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval] offset $lag) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1))[$__range:])), 0.0000001)",
+     "expr": "(sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval] offset $lag) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval] offset $lag) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)) / clamp_min(scalar(max_over_time((sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval] offset $lag) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval] offset $lag) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1))[$__range:1m])), 0.0000001)",
      "legendFormat": "① retrans (−$lag shift)",
      "refId": "B",
      "range": true
@@ -648,7 +706,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "(sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))) / clamp_min(scalar(max_over_time((sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})))[$__range:])), 0.0000001)",
+     "expr": "(sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))) / clamp_min(scalar(max_over_time((sum(rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})))[$__range:1m])), 0.0000001)",
      "legendFormat": "③ rx drop",
      "refId": "C",
      "range": true
@@ -747,7 +805,7 @@
    }
   },
   {
-   "id": 9,
+   "id": 8,
    "type": "text",
    "title": "가정 lead time",
    "gridPos": {
@@ -758,11 +816,11 @@
    },
    "options": {
     "mode": "markdown",
-    "content": "### ①→③ lead time\n# `$lag` 초\n위 패널에서 보라 점선(−$lag)이 빨강과 가장 잘 겹치도록 `$lag`을 조절하세요."
+    "content": "### ①→③ lead time\n# `$lag`\n위 패널에서 보라 점선(−$lag)이 빨강과 가장 잘 겹치도록 `$lag`을 조절."
    }
   },
   {
-   "id": 10,
+   "id": 9,
    "type": "stat",
    "title": "현재 TCP 연결수",
    "description": "CurrEstab — flow 집중 시 동반 증가 경향",
@@ -782,7 +840,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "sum((node_netstat_Tcp_CurrEstab{cluster=\"$cluster\",project=\"$project\"}) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+     "expr": "sum(node_netstat_Tcp_CurrEstab{cluster=\"$cluster\",project=\"$project\"} * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
      "legendFormat": "현재 TCP 연결수",
      "refId": "A",
      "range": true,
@@ -815,7 +873,7 @@
    }
   },
   {
-   "id": 11,
+   "id": 10,
    "type": "text",
    "title": "ℹ️ 해석 가이드",
    "gridPos": {
@@ -826,11 +884,11 @@
    },
    "options": {
     "mode": "markdown",
-    "content": "- **순서가 ①→②→③** 이면 가설 지지. 동시·역순이면 재검토(대역폭 포화/외부 요인 가능).\n- ③(빨강)이 보라 점선과 겹치면 ①이 `$lag`초 앞서 ③을 유발했다는 시각 근거.\n- spurious 근거(아래 ① 섹션)와 AIStor 집중(맨 아래)이 동반되면 신뢰도↑."
+    "content": "- **①→②→③** 순서면 가설 지지. 동시·역순이면 재검토.\n- ③(빨강)이 보라 점선과 겹치면 ①이 `$lag`초 앞서 ③을 유발.\n- spurious 근거 + AIStor 집중 동반 시 신뢰도↑."
    }
   },
   {
-   "id": 12,
+   "id": 11,
    "type": "row",
    "title": "① TCP Retransmit — 1차 트리거 (🟣 보라)",
    "collapsed": false,
@@ -842,10 +900,10 @@
    }
   },
   {
-   "id": 13,
+   "id": 12,
    "type": "timeseries",
    "title": "① retrans ratio 추세",
-   "description": "RetransSegs/OutSegs. 2% 초과(노랑)·5% 초과(빨강) 임계.",
+   "description": "RetransSegs/OutSegs. 2%(노랑)·5%(빨강) 임계.",
    "datasource": {
     "type": "prometheus",
     "uid": "${datasource}"
@@ -864,7 +922,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)",
+     "expr": "sum(rate(node_netstat_Tcp_RetransSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})) / clamp_min(sum(rate(node_netstat_Tcp_OutSegs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})), 1)",
      "legendFormat": "retrans ratio",
      "refId": "A",
      "range": true
@@ -941,10 +999,10 @@
    }
   },
   {
-   "id": 14,
+   "id": 13,
    "type": "timeseries",
    "title": "Spurious 재전송 근거",
-   "description": "조기/불필요 재전송 신호. SpuriousRTOs·DSACKRecv·LostRetransmit이 함께 오르면 대역폭 포화가 아니라 지연/지터에 의한 spurious retransmission 가설 지지.",
+   "description": "SpuriousRTOs·DSACKRecv·LostRetransmit 동반 상승 = 지연/지터 기인 재전송(대역폭 포화 배제).",
    "datasource": {
     "type": "prometheus",
     "uid": "${datasource}"
@@ -963,7 +1021,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "sum(rate(node_netstat_TcpExt_TCPSpuriousRTOs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+     "expr": "sum(rate(node_netstat_TcpExt_TCPSpuriousRTOs{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
      "legendFormat": "SpuriousRTOs",
      "refId": "A",
      "range": true
@@ -973,7 +1031,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "sum(rate(node_netstat_TcpExt_TCPDSACKRecv{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+     "expr": "sum(rate(node_netstat_TcpExt_TCPDSACKRecv{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
      "legendFormat": "DSACKRecv",
      "refId": "B",
      "range": true
@@ -983,7 +1041,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "sum(rate(node_netstat_TcpExt_TCPLostRetransmit{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+     "expr": "sum(rate(node_netstat_TcpExt_TCPLostRetransmit{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
      "legendFormat": "LostRetransmit",
      "refId": "C",
      "range": true
@@ -1026,7 +1084,7 @@
    }
   },
   {
-   "id": 15,
+   "id": 14,
    "type": "row",
    "title": "② softnet time_squeeze — NAPI budget 소진 (🟠 주황)",
    "collapsed": false,
@@ -1038,10 +1096,10 @@
    }
   },
   {
-   "id": 16,
+   "id": 15,
    "type": "timeseries",
-   "title": "② squeeze / softnet drop 추세",
-   "description": "time_squeezed(주황)가 오르며 softnet drop이 따라오면 NAPI budget 소진→backlog drop.",
+   "title": "② squeeze / softnet drop",
+   "description": "time_squeezed(주황) 상승에 softnet drop이 따라오면 budget 소진→backlog drop.",
    "datasource": {
     "type": "prometheus",
     "uid": "${datasource}"
@@ -1060,7 +1118,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "sum(rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+     "expr": "sum(rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
      "legendFormat": "time_squeezed",
      "refId": "A",
      "range": true
@@ -1070,7 +1128,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "sum(rate(node_softnet_dropped_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+     "expr": "sum(rate(node_softnet_dropped_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
      "legendFormat": "softnet drop",
      "refId": "B",
      "range": true
@@ -1144,10 +1202,10 @@
    }
   },
   {
-   "id": 17,
+   "id": 16,
    "type": "timeseries",
    "title": "backlog / processed",
-   "description": "backlog_len 적체 + processed 처리량. processed 대비 squeeze 비율이 핵심.",
+   "description": "backlog_len 적체 + processed 처리량.",
    "datasource": {
     "type": "prometheus",
     "uid": "${datasource}"
@@ -1166,7 +1224,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "max(node_softnet_backlog_len{cluster=\"$cluster\",project=\"$project\"} * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+     "expr": "max(node_softnet_backlog_len{cluster=\"$cluster\",project=\"$project\"} * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
      "legendFormat": "backlog_len (max)",
      "refId": "A",
      "range": true
@@ -1176,7 +1234,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "sum(rate(node_softnet_processed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+     "expr": "sum(rate(node_softnet_processed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
      "legendFormat": "processed",
      "refId": "B",
      "range": true
@@ -1219,7 +1277,7 @@
    }
   },
   {
-   "id": 18,
+   "id": 17,
    "type": "row",
    "title": "③ RX Drop — 최종 결과 (🔴 빨강)",
    "collapsed": false,
@@ -1231,10 +1289,10 @@
    }
   },
   {
-   "id": 19,
+   "id": 18,
    "type": "timeseries",
    "title": "③ RX drop by device",
-   "description": "device별 NIC RX drop. $device 변수로 NIC 한정.",
+   "description": "device별 NIC RX drop ({{nodename}}·{{device}}). $instance/$device로 한정.",
    "datasource": {
     "type": "prometheus",
     "uid": "${datasource}"
@@ -1253,8 +1311,8 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
-     "legendFormat": "RX drop {{device}}",
+     "expr": "rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+     "legendFormat": "RX {{nodename}}·{{device}}",
      "refId": "A",
      "range": true
     }
@@ -1313,10 +1371,10 @@
    }
   },
   {
-   "id": 20,
+   "id": 19,
    "type": "timeseries",
    "title": "RX fifo / ring overflow",
-   "description": "receive_fifo = ring overflow 직접 신호. drop과 동반 상승 확인.",
+   "description": "receive_fifo = ring overflow 직접 신호 ({{nodename}}·{{device}}). drop과 동반 확인.",
    "datasource": {
     "type": "prometheus",
     "uid": "${datasource}"
@@ -1335,8 +1393,8 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "sum(rate(node_network_receive_fifo_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left() topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
-     "legendFormat": "rx fifo",
+     "expr": "rate(node_network_receive_fifo_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+     "legendFormat": "fifo {{nodename}}·{{device}}",
      "refId": "A",
      "range": true
     }
@@ -1362,7 +1420,7 @@
      {
       "matcher": {
        "id": "byName",
-       "options": "rx fifo"
+       "options": "fifo {{nodename}}·{{device}}"
       },
       "properties": [
        {
@@ -1394,7 +1452,7 @@
    }
   },
   {
-   "id": 21,
+   "id": 20,
    "type": "row",
    "title": "🔥 AIStor flow 집중 — root trigger 근거 (storage-cluster)",
    "collapsed": false,
@@ -1406,10 +1464,10 @@
    }
   },
   {
-   "id": 22,
+   "id": 21,
    "type": "timeseries",
    "title": "노드별 인입 대역폭 (top 10)",
-   "description": "AIStor 노드별 수신 bps. 특정 노드로 쏠리면 flow 집중 = 1차 트리거 근거.",
+   "description": "AIStor 노드별 수신 bps({{nodename}}). 특정 노드 쏠림=flow 집중=1차 트리거 근거.",
    "datasource": {
     "type": "prometheus",
     "uid": "${datasource}"
@@ -1428,7 +1486,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "topk(10, sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) node_uname_info{cluster=\"$aistor_cluster\"}))",
+     "expr": "topk(10, sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\",device!~\"lo|cali.*|lxc.*|veth.*|docker.*|br.*|cni.*|tunl.*|nodelocaldns\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$aistor_cluster\"})))",
      "legendFormat": "{{nodename}}",
      "refId": "A",
      "range": true
@@ -1471,10 +1529,10 @@
    }
   },
   {
-   "id": 23,
+   "id": 22,
    "type": "stat",
    "title": "불균형 비율 (max/avg)",
-   "description": "노드별 인입의 최대/평균. 1.0=완전균등, ≥2.0=집중 의심.",
+   "description": "노드별 인입 최대/평균. 1.0=균등, ≥2.0=집중 의심.",
    "datasource": {
     "type": "prometheus",
     "uid": "${datasource}"
@@ -1491,7 +1549,7 @@
       "type": "prometheus",
       "uid": "${datasource}"
      },
-     "expr": "max(sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) node_uname_info{cluster=\"$aistor_cluster\"})) / clamp_min(avg(sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) node_uname_info{cluster=\"$aistor_cluster\"})), 1)",
+     "expr": "max(sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\",device!~\"lo|cali.*|lxc.*|veth.*|docker.*|br.*|cni.*|tunl.*|nodelocaldns\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$aistor_cluster\"}))) / clamp_min(avg(sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\",device!~\"lo|cali.*|lxc.*|veth.*|docker.*|br.*|cni.*|tunl.*|nodelocaldns\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$aistor_cluster\"}))), 1)",
      "legendFormat": "불균형 비율 (max/avg)",
      "refId": "A",
      "range": true,
@@ -1540,10 +1598,10 @@
    }
   },
   {
-   "id": 24,
+   "id": 23,
    "type": "table",
    "title": "🔝 Top hot node (인입 bps · 연결수)",
-   "description": "상위 AIStor 노드. 행 클릭 → 해당 노드 L1. (연결수 = CurrEstab)",
+   "description": "상위 AIStor 노드. 행 클릭 → 해당 노드 L1.",
    "datasource": {
     "type": "prometheus",
     "uid": "${datasource}"
@@ -1563,8 +1621,7 @@
      "refId": "A",
      "format": "table",
      "instant": true,
-     "expr": "topk(10, sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) node_uname_info{cluster=\"$aistor_cluster\"}))",
-     "legendFormat": ""
+     "expr": "topk(10, sum by (nodename) (rate(node_network_receive_bytes_total{cluster=\"$aistor_cluster\",device!~\"lo|cali.*|lxc.*|veth.*|docker.*|br.*|cni.*|tunl.*|nodelocaldns\"}[$__rate_interval]) * 8 * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$aistor_cluster\"})))"
     },
     {
      "datasource": {
@@ -1574,8 +1631,7 @@
      "refId": "B",
      "format": "table",
      "instant": true,
-     "expr": "sum by (nodename) (node_netstat_Tcp_CurrEstab{cluster=\"$aistor_cluster\"} * on(instance) group_left(nodename) node_uname_info{cluster=\"$aistor_cluster\"})",
-     "legendFormat": ""
+     "expr": "sum by (nodename) (node_netstat_Tcp_CurrEstab{cluster=\"$aistor_cluster\"} * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$aistor_cluster\"}))"
     }
    ],
    "transformations": [
@@ -1595,8 +1651,7 @@
       },
       "renameByName": {
        "Value #A": "인입 bps",
-       "Value #B": "연결수",
-       "nodename": "노드"
+       "Value #B": "연결수"
       }
      }
     }
@@ -1615,6 +1670,18 @@
      }
     },
     "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "nodename"
+      },
+      "properties": [
+       {
+        "id": "displayName",
+        "value": "노드"
+       }
+      ]
+     },
      {
       "matcher": {
        "id": "byName",
@@ -1652,7 +1719,7 @@
    }
   },
   {
-   "id": 25,
+   "id": 24,
    "type": "text",
    "title": "🧩 AIStor 자체 메트릭 (TODO)",
    "gridPos": {
@@ -1663,11 +1730,11 @@
    },
    "options": {
     "mode": "markdown",
-    "content": "AIStor/MinIO 메트릭이 수집되면 노드별 요청 분포로 flow 집중을 직접 입증 가능. **메트릭명 확인 후 연결**:\n- `minio_s3_requests_total` (또는 AIStor 동등) by node/server → 노드별 요청 불균형\n- `minio_inter_node_traffic_*`, `minio_node_*` → placeholder. README §메트릭 매핑에 실제명 기입 후 패널 추가."
+    "content": "AIStor/MinIO 메트릭 수집 시 노드별 요청 분포로 flow 집중을 직접 입증. 실제 메트릭명 확인 후 패널 추가:\n- `minio_s3_requests_total` by server/node → 요청 불균형 · `minio_inter_node_traffic_*` → placeholder."
    }
   },
   {
-   "id": 29,
+   "id": 28,
    "type": "row",
    "title": "🔎 선택 노드 상세 — ring/queue/CPU (열어야 쿼리)",
    "collapsed": true,
@@ -1679,10 +1746,10 @@
    },
    "panels": [
     {
-     "id": 26,
+     "id": 25,
      "type": "timeseries",
      "title": "per-CPU squeeze (선택 노드, top 8)",
-     "description": "CPU별 time_squeezed. 특정 CPU에 RPS/RSS 쏠림이면 큐 분산 튜닝 대상.",
+     "description": "CPU별 time_squeezed. 특정 CPU 쏠림이면 RPS/RSS·IRQ affinity 대상.",
      "datasource": {
       "type": "prometheus",
       "uid": "${datasource}"
@@ -1701,7 +1768,72 @@
         "type": "prometheus",
         "uid": "${datasource}"
        },
-       "expr": "topk(8, rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(cpu) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
+       "expr": "topk(8, sum by (cpu) (rate(node_softnet_times_squeezed_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})))",
+       "legendFormat": "cpu {{cpu}}",
+       "refId": "A",
+       "range": true
+      }
+     ],
+     "fieldConfig": {
+      "defaults": {
+       "unit": "ops",
+       "color": {
+        "mode": "palette-classic"
+       },
+       "custom": {
+        "drawStyle": "line",
+        "lineWidth": 2,
+        "fillOpacity": 12,
+        "showPoints": "never",
+        "spanNulls": false,
+        "thresholdsStyle": {
+         "mode": "off"
+        }
+       }
+      },
+      "overrides": []
+     },
+     "options": {
+      "legend": {
+       "displayMode": "table",
+       "placement": "right",
+       "calcs": [
+        "mean",
+        "max",
+        "lastNotNull"
+       ],
+       "showLegend": true
+      },
+      "tooltip": {
+       "mode": "multi",
+       "sort": "desc"
+      }
+     }
+    },
+    {
+     "id": 26,
+     "type": "timeseries",
+     "title": "per-CPU softnet drop (선택 노드, top 8)",
+     "description": "CPU별 softnet drop.",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "gridPos": {
+      "h": 8,
+      "w": 12,
+      "x": 12,
+      "y": 61
+     },
+     "maxDataPoints": 600,
+     "interval": "$interval",
+     "targets": [
+      {
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "expr": "topk(8, sum by (cpu) (rate(node_softnet_dropped_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})))",
        "legendFormat": "cpu {{cpu}}",
        "refId": "A",
        "range": true
@@ -1746,71 +1878,6 @@
     {
      "id": 27,
      "type": "timeseries",
-     "title": "per-CPU softnet drop (선택 노드)",
-     "description": "CPU별 softnet drop.",
-     "datasource": {
-      "type": "prometheus",
-      "uid": "${datasource}"
-     },
-     "gridPos": {
-      "h": 8,
-      "w": 12,
-      "x": 12,
-      "y": 61
-     },
-     "maxDataPoints": 600,
-     "interval": "$interval",
-     "targets": [
-      {
-       "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-       },
-       "expr": "topk(8, rate(node_softnet_dropped_total{cluster=\"$cluster\",project=\"$project\"}[$__rate_interval]) * on(instance) group_left(cpu) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"}))",
-       "legendFormat": "cpu {{cpu}}",
-       "refId": "A",
-       "range": true
-      }
-     ],
-     "fieldConfig": {
-      "defaults": {
-       "unit": "ops",
-       "color": {
-        "mode": "palette-classic"
-       },
-       "custom": {
-        "drawStyle": "line",
-        "lineWidth": 2,
-        "fillOpacity": 12,
-        "showPoints": "never",
-        "spanNulls": false,
-        "thresholdsStyle": {
-         "mode": "off"
-        }
-       }
-      },
-      "overrides": []
-     },
-     "options": {
-      "legend": {
-       "displayMode": "table",
-       "placement": "right",
-       "calcs": [
-        "mean",
-        "max",
-        "lastNotNull"
-       ],
-       "showLegend": true
-      },
-      "tooltip": {
-       "mode": "multi",
-       "sort": "desc"
-      }
-     }
-    },
-    {
-     "id": 28,
-     "type": "timeseries",
      "title": "device별 RX drop vs fifo (선택 노드)",
      "description": "ring overflow(fifo)와 drop의 device별 상관.",
      "datasource": {
@@ -1831,8 +1898,8 @@
         "type": "prometheus",
         "uid": "${datasource}"
        },
-       "expr": "rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
-       "legendFormat": "drop {{device}}",
+       "expr": "rate(node_network_receive_drop_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+       "legendFormat": "drop {{nodename}}·{{device}}",
        "refId": "A",
        "range": true
       },
@@ -1841,8 +1908,8 @@
         "type": "prometheus",
         "uid": "${datasource}"
        },
-       "expr": "rate(node_network_receive_fifo_total{cluster=\"$cluster\",project=\"$project\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
-       "legendFormat": "fifo {{device}}",
+       "expr": "rate(node_network_receive_fifo_total{cluster=\"$cluster\",project=\"$project\",instance=~\"$instance\",device=~\"$device\"}[$__rate_interval]) * on(instance) group_left(nodename) topk by(instance)(1, node_uname_info{cluster=\"$cluster\",project=\"$project\",nodename=~\"$nodename\"})",
+       "legendFormat": "fifo {{nodename}}·{{device}}",
        "refId": "B",
        "range": true
       }
@@ -1886,7 +1953,7 @@
    ]
   },
   {
-   "id": 30,
+   "id": 29,
    "type": "text",
    "title": "🧭 nav & 알림",
    "gridPos": {
@@ -1897,9 +1964,9 @@
    },
    "options": {
     "mode": "markdown",
-    "content": "**드릴다운**: 상단 `Packet Drop ▾`(묶음 이동) · `↑ L1`(노드 허브) · `↑↑ L0`(fleet). AIStor Top 테이블 행 클릭 → 해당 노드 L1.\n\n**알림 예시(Grafana alerting, 선택)**: ① retrans ratio > 2% 가 5분 지속 **AND** ③ rx_drop > 0 동시 만족 시 발화. 규칙 YAML은 README §알림 규칙 예시 참조."
+    "content": "**드릴다운**: 상단 `Packet Drop ▾`(묶음) · `↑ L1` · `↑↑ L0`. AIStor Top 테이블 행 클릭 → 해당 노드 L1.\n\n**알림 예시(선택)**: ① retrans ratio > 2% 5분 지속 **AND** ③ rx_drop > 0 동시 → 발화. 규칙은 README §알림 규칙 예시."
    }
   }
  ],
- "description": "Retrans(①)→softnet squeeze(②)→RX drop(③) 시간순 인과를 데이터로 입증. RX=$cluster/$nodename(icdataops-prd), AIStor hotspot=$aistor_cluster(storage-cluster)."
+ "description": "Retrans(①)→softnet squeeze(②)→RX drop(③) 시간순 인과 입증. RX=$cluster/$nodename(icdataops-prd), AIStor=$aistor_cluster(storage-cluster)."
 }
