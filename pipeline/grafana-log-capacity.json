@@ -1,0 +1,1198 @@
+{
+ "uid": "log-capacity",
+ "title": "Log Capacity · OpenSearch 적재 용량 산출",
+ "tags": [
+  "logging",
+  "capacity"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "editable": true,
+ "graphTooltip": 0,
+ "time": {
+  "from": "now-24h",
+  "to": "now"
+ },
+ "refresh": "1m",
+ "timezone": "",
+ "templating": {
+  "list": [
+   {
+    "name": "datasource",
+    "type": "datasource",
+    "query": "prometheus",
+    "current": {
+     "text": "Prometheus",
+     "value": "prometheus"
+    },
+    "hide": 0,
+    "label": "Datasource"
+   },
+   {
+    "name": "os_cluster",
+    "type": "query",
+    "datasource": {
+     "type": "prometheus",
+     "uid": "${datasource}"
+    },
+    "definition": "label_values(opensearch_cluster_status, cluster)",
+    "query": {
+     "query": "label_values(opensearch_cluster_status, cluster)",
+     "refId": "StandardVariableQuery"
+    },
+    "refresh": 2,
+    "sort": 1,
+    "multi": false,
+    "includeAll": false,
+    "current": {
+     "text": "rwr",
+     "value": "rwr"
+    },
+    "options": []
+   },
+   {
+    "name": "prod_nodes",
+    "type": "textbox",
+    "label": "prod 노드수",
+    "query": "50",
+    "current": {
+     "text": "50",
+     "value": "50"
+    },
+    "options": [
+     {
+      "text": "50",
+      "value": "50",
+      "selected": true
+     }
+    ]
+   },
+   {
+    "name": "mb_per_node_day",
+    "type": "textbox",
+    "label": "노드당 MB/일(systemd)",
+    "query": "300",
+    "current": {
+     "text": "300",
+     "value": "300"
+    },
+    "options": [
+     {
+      "text": "300",
+      "value": "300",
+      "selected": true
+     }
+    ]
+   },
+   {
+    "name": "expansion",
+    "type": "textbox",
+    "label": "팽창계수(disk/raw)",
+    "query": "1.1",
+    "current": {
+     "text": "1.1",
+     "value": "1.1"
+    },
+    "options": [
+     {
+      "text": "1.1",
+      "value": "1.1",
+      "selected": true
+     }
+    ]
+   },
+   {
+    "name": "replicas",
+    "type": "textbox",
+    "label": "복제수",
+    "query": "1",
+    "current": {
+     "text": "1",
+     "value": "1"
+    },
+    "options": [
+     {
+      "text": "1",
+      "value": "1",
+      "selected": true
+     }
+    ]
+   },
+   {
+    "name": "retention_days",
+    "type": "textbox",
+    "label": "로컬 보존(일)",
+    "query": "7",
+    "current": {
+     "text": "7",
+     "value": "7"
+    },
+    "options": [
+     {
+      "text": "7",
+      "value": "7",
+      "selected": true
+     }
+    ]
+   },
+   {
+    "name": "headroom_pct",
+    "type": "textbox",
+    "label": "로컬 여유(%)",
+    "query": "25",
+    "current": {
+     "text": "25",
+     "value": "25"
+    },
+    "options": [
+     {
+      "text": "25",
+      "value": "25",
+      "selected": true
+     }
+    ]
+   },
+   {
+    "name": "snap_retention_days",
+    "type": "textbox",
+    "label": "S3 스냅샷 보존(일)",
+    "query": "30",
+    "current": {
+     "text": "30",
+     "value": "30"
+    },
+    "options": [
+     {
+      "text": "30",
+      "value": "30",
+      "selected": true
+     }
+    ]
+   },
+   {
+    "name": "snap_overhead_pct",
+    "type": "textbox",
+    "label": "스냅샷 오버헤드(%)",
+    "query": "10",
+    "current": {
+     "text": "10",
+     "value": "10"
+    },
+    "options": [
+     {
+      "text": "10",
+      "value": "10",
+      "selected": true
+     }
+    ]
+   }
+  ]
+ },
+ "links": [],
+ "panels": [
+  {
+   "id": 1,
+   "type": "text",
+   "title": "📖 로그 적재 용량 산출 — 방법론",
+   "gridPos": {
+    "h": 7,
+    "w": 24,
+    "x": 0,
+    "y": 0
+   },
+   "options": {
+    "mode": "markdown",
+    "content": "## 목적: OpenSearch 인덱스가 시간당/일별 얼마나 늘고, 로컬 스토리지·S3 스냅샷 용량이 얼마나 필요한가\n**테스트 환경은 워크로드가 없어 prod 볼륨을 직접 못 잰다.** 그래서 *환경 무관 상수*는 테스트에서 구하고, *볼륨*은 파라미터로 투영한다.\n\n**핵심 공식**\n- 일 raw 로그 = `노드수 × 노드당_MB/일`  (systemd만 수집 → 노드수·시스템 활동에 비례)\n- 일 인덱스(프라이머리) = `일 raw × 팽창계수`  — *팽창계수 = OpenSearch 디스크 ÷ raw bytes* (보통 0.6~1.2, best_compression이면 ↓). **이 계수는 로그 포맷만 같으면 환경 무관 → 테스트에서 실측**.\n- 일 디스크(복제 포함) = `일 프라이머리 × (1 + 복제수)`\n- **로컬 스토리지(정상상태)** = `일 디스크 × 보존일수 × (1+여유%)`\n- **S3 스냅샷(정상상태)** = `일 프라이머리 × 스냅샷보존일수 × (1+오버헤드%)`  (스냅샷은 *프라이머리만*, 복제 제외)\n\n**테스트(무워크로드)→프로덕션 다리놓기**\n1. 테스트에서 **팽창계수**(아래 라이브 패널)와 파이프라인 정확성 확보.\n2. **노드당_MB/일**은 (a)대표 prod 노드 1대 측정 또는 (b)prod에 fluent-bit 켜는 즉시 아래 *라이브 일 증가*가 실측치를 줌.\n3. 이 대시보드는 **self-calibrating**: 로그가 흐르면 `opensearch_indices_store_size_bytes`의 실제 증가로 자동 산출, 무워크로드면 위 변수로 what-if 투영.\n\n→ **위 변수**(노드수·노드당MB·팽창·복제·보존·스냅샷보존)를 조정해 prod 용량을 즉시 산출."
+   }
+  },
+  {
+   "id": 2,
+   "type": "row",
+   "title": "① 파라메트릭 투영 (변수 기반 — 워크로드 없어도 산출)",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 7
+   }
+  },
+  {
+   "id": 3,
+   "type": "stat",
+   "title": "일 raw 로그",
+   "description": "노드수 × 노드당 MB/일",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 0,
+    "y": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "expr": "vector((${prod_nodes} * ${mb_per_node_day} * 1048576))",
+     "legendFormat": "일 raw 로그",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "decbytes",
+     "decimals": 2,
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "blue"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none",
+    "justifyMode": "center",
+    "textMode": "value_and_name",
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    }
+   }
+  },
+  {
+   "id": 4,
+   "type": "stat",
+   "title": "일 인덱스(프라이머리)",
+   "description": "raw × 팽창계수",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 6,
+    "y": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "expr": "vector((${prod_nodes} * ${mb_per_node_day} * 1048576) * ${expansion})",
+     "legendFormat": "일 인덱스(프라이머리)",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "decbytes",
+     "decimals": 2,
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "purple"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none",
+    "justifyMode": "center",
+    "textMode": "value_and_name",
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    }
+   }
+  },
+  {
+   "id": 5,
+   "type": "stat",
+   "title": "일 디스크(복제 포함)",
+   "description": "프라이머리 ×(1+복제)",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 12,
+    "y": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "expr": "vector((${prod_nodes} * ${mb_per_node_day} * 1048576) * ${expansion} * (1 + ${replicas}))",
+     "legendFormat": "일 디스크(복제 포함)",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "decbytes",
+     "decimals": 2,
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "orange"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none",
+    "justifyMode": "center",
+    "textMode": "value_and_name",
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    }
+   }
+  },
+  {
+   "id": 6,
+   "type": "stat",
+   "title": "시간당 디스크 증가",
+   "description": "일 디스크 ÷ 24",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 18,
+    "y": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "expr": "vector((${prod_nodes} * ${mb_per_node_day} * 1048576) * ${expansion} * (1 + ${replicas})/24)",
+     "legendFormat": "시간당 디스크 증가",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "decbytes",
+     "decimals": 2,
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "orange"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none",
+    "justifyMode": "center",
+    "textMode": "value_and_name",
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    }
+   }
+  },
+  {
+   "id": 7,
+   "type": "stat",
+   "title": "🗄️ 로컬 스토리지 필요(정상상태)",
+   "description": "일디스크×보존일×(1+여유). 보존 ${retention_days}일",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 6,
+    "w": 12,
+    "x": 0,
+    "y": 12
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "expr": "vector((${prod_nodes} * ${mb_per_node_day} * 1048576) * ${expansion} * (1 + ${replicas}) * ${retention_days} * (1 + ${headroom_pct}/100))",
+     "legendFormat": "🗄️ 로컬 스토리지 필요(정상상태)",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "decbytes",
+     "decimals": 2,
+     "color": {
+      "mode": "thresholds"
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 100000000000.0
+       },
+       {
+        "color": "red",
+        "value": 500000000000.0
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none",
+    "justifyMode": "center",
+    "textMode": "value_and_name",
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    }
+   }
+  },
+  {
+   "id": 8,
+   "type": "stat",
+   "title": "☁️ S3 스냅샷 필요(정상상태)",
+   "description": "일프라이머리×스냅보존×(1+오버헤드). 보존 ${snap_retention_days}일",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 6,
+    "w": 12,
+    "x": 12,
+    "y": 12
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "expr": "vector((${prod_nodes} * ${mb_per_node_day} * 1048576) * ${expansion} * ${snap_retention_days} * (1 + ${snap_overhead_pct}/100))",
+     "legendFormat": "☁️ S3 스냅샷 필요(정상상태)",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "decbytes",
+     "decimals": 2,
+     "color": {
+      "mode": "thresholds"
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 200000000000.0
+       },
+       {
+        "color": "red",
+        "value": 1000000000000.0
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none",
+    "justifyMode": "center",
+    "textMode": "value_and_name",
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    }
+   }
+  },
+  {
+   "id": 9,
+   "type": "text",
+   "title": "입력 변수 요약",
+   "gridPos": {
+    "h": 3,
+    "w": 24,
+    "x": 0,
+    "y": 18
+   },
+   "options": {
+    "mode": "markdown",
+    "content": "노드수=`${prod_nodes}` · 노드당=`${mb_per_node_day}` MB/일 · 팽창계수=`${expansion}` · 복제=`${replicas}` · 로컬보존=`${retention_days}`일(여유 `${headroom_pct}`%) · S3보존=`${snap_retention_days}`일(오버헤드 `${snap_overhead_pct}`%)"
+   }
+  },
+  {
+   "id": 10,
+   "type": "row",
+   "title": "② 라이브 실측 (OpenSearch 메트릭 — 로그 흐르면 자동)",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 21
+   }
+  },
+  {
+   "id": 11,
+   "type": "stat",
+   "title": "현재 인덱스 총 store",
+   "description": "opensearch_indices_store_size_bytes",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 0,
+    "y": 22
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "expr": "max(opensearch_indices_store_size_bytes{cluster=\"$os_cluster\"})",
+     "legendFormat": "현재 인덱스 총 store",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "decbytes",
+     "decimals": 2,
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "green"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none",
+    "justifyMode": "center",
+    "textMode": "value_and_name",
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    }
+   }
+  },
+  {
+   "id": 12,
+   "type": "stat",
+   "title": "라이브 일 증가(최근1h×24)",
+   "description": "최근 1시간 증가 ×24 투영",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 6,
+    "y": 22
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "expr": "max(delta(opensearch_indices_store_size_bytes{cluster=\"$os_cluster\"}[1h]))*24",
+     "legendFormat": "라이브 일 증가(최근1h×24)",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "decbytes",
+     "decimals": 2,
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "purple"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none",
+    "justifyMode": "center",
+    "textMode": "value_and_name",
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    }
+   }
+  },
+  {
+   "id": 13,
+   "type": "stat",
+   "title": "총 문서수",
+   "description": "opensearch_index_doc_number",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 12,
+    "y": 22
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "expr": "sum(opensearch_index_doc_number{cluster=\"$os_cluster\"})",
+     "legendFormat": "총 문서수",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "decimals": 0,
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "blue"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none",
+    "justifyMode": "center",
+    "textMode": "value_and_name",
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    }
+   }
+  },
+  {
+   "id": 14,
+   "type": "stat",
+   "title": "실측 팽창계수(disk/문서·근사)",
+   "description": "store ÷ docs (bytes/doc)",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 18,
+    "y": 22
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "expr": "max(opensearch_indices_store_size_bytes{cluster=\"$os_cluster\"}) / clamp_min(sum(opensearch_index_doc_number{cluster=\"$os_cluster\"}),1)",
+     "legendFormat": "실측 팽창계수(disk/문서·근사)",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "decbytes",
+     "decimals": 2,
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "purple"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none",
+    "justifyMode": "center",
+    "textMode": "value_and_name",
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    }
+   }
+  },
+  {
+   "id": 15,
+   "type": "timeseries",
+   "title": "인덱스 store 크기 추이(실측)",
+   "description": "로그 적재에 따른 실제 디스크 증가. 기울기=일 증가율.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 0,
+    "y": 26
+   },
+   "maxDataPoints": 600,
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "expr": "max(opensearch_indices_store_size_bytes{cluster=\"$os_cluster\"})",
+     "legendFormat": "index store",
+     "refId": "A",
+     "range": true
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "decbytes",
+     "color": {
+      "mode": "palette-classic"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 15,
+      "showPoints": "never"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "mean",
+      "max",
+      "lastNotNull"
+     ],
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 16,
+   "type": "timeseries",
+   "title": "일별 증가율(delta 1d)",
+   "description": "24h 윈도 인덱스 증가량. 정상상태 일 적재량.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 12,
+    "y": 26
+   },
+   "maxDataPoints": 600,
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "expr": "max(delta(opensearch_indices_store_size_bytes{cluster=\"$os_cluster\"}[1d]))",
+     "legendFormat": "daily growth",
+     "refId": "A",
+     "range": true
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "decbytes",
+     "color": {
+      "mode": "palette-classic"
+     },
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 2,
+      "fillOpacity": 15,
+      "showPoints": "never"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "mean",
+      "max",
+      "lastNotNull"
+     ],
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 17,
+   "type": "table",
+   "title": "인덱스별 store 크기 (systemd-* 등)",
+   "description": "일별 인덱스(logstash) 크기 — 보존정책·S3 산정 기준.",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 24,
+    "x": 0,
+    "y": 34
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "refId": "A",
+     "format": "table",
+     "instant": true,
+     "expr": "topk(30, opensearch_index_store_size_bytes{cluster=\"$os_cluster\"})"
+    }
+   ],
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "excludeByName": {
+       "Time": true,
+       "job": true,
+       "endpoint": true,
+       "service": true,
+       "container": true,
+       "namespace": true,
+       "pod": true,
+       "instance": true,
+       "cluster": true,
+       "nodeid": true,
+       "node": true,
+       "__name__": true
+      },
+      "renameByName": {
+       "index": "인덱스",
+       "Value": "store(bytes)"
+      }
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "align": "auto",
+      "filterable": true
+     }
+    },
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "store(bytes)"
+      },
+      "properties": [
+       {
+        "id": "unit",
+        "value": "decbytes"
+       },
+       {
+        "id": "custom.cellOptions",
+        "value": {
+         "type": "gauge"
+        }
+       },
+       {
+        "id": "color",
+        "value": {
+         "mode": "continuous-GrYlRd"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "store(bytes)",
+      "desc": true
+     }
+    ]
+   }
+  },
+  {
+   "id": 18,
+   "type": "row",
+   "title": "③ fluent-bit 인입(있으면) — raw rate / 팽창계수 실측",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 42
+   }
+  },
+  {
+   "id": 19,
+   "type": "stat",
+   "title": "fluent-bit 인입 rate",
+   "description": "output proc bytes/s (OpenSearch로 전송)",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 8,
+    "x": 0,
+    "y": 43
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "expr": "sum(rate(fluentbit_output_proc_bytes_total[$__rate_interval]))",
+     "legendFormat": "fluent-bit 인입 rate",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "Bps",
+     "decimals": 2,
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "blue"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none",
+    "justifyMode": "center",
+    "textMode": "value_and_name",
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    }
+   }
+  },
+  {
+   "id": 20,
+   "type": "stat",
+   "title": "일 raw(인입 기반)",
+   "description": "인입 rate ×86400",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 8,
+    "x": 8,
+    "y": 43
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "expr": "sum(rate(fluentbit_output_proc_bytes_total[$__rate_interval]))*86400",
+     "legendFormat": "일 raw(인입 기반)",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "decbytes",
+     "decimals": 2,
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "blue"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none",
+    "justifyMode": "center",
+    "textMode": "value_and_name",
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    }
+   }
+  },
+  {
+   "id": 21,
+   "type": "stat",
+   "title": "실측 팽창계수",
+   "description": "일 인덱스증가 ÷ 일 인입raw",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 8,
+    "x": 16,
+    "y": 43
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${datasource}"
+     },
+     "expr": "(max(delta(opensearch_indices_store_size_bytes{cluster=\"$os_cluster\"}[1h]))*24) / clamp_min(sum(rate(fluentbit_output_proc_bytes_total[$__rate_interval]))*86400,1)",
+     "legendFormat": "실측 팽창계수",
+     "refId": "A",
+     "instant": true,
+     "range": false
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "none",
+     "decimals": 2,
+     "color": {
+      "mode": "fixed",
+      "fixedColor": "purple"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "colorMode": "value",
+    "graphMode": "none",
+    "justifyMode": "center",
+    "textMode": "value_and_name",
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    }
+   }
+  }
+ ],
+ "description": "OpenSearch 로그 적재 용량 산출 — 라이브(opensearch/fluentbit 메트릭) + 파라메트릭(prod 투영). 로컬 스토리지·S3 스냅샷."
+}

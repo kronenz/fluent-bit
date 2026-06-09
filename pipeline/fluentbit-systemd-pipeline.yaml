@@ -1,0 +1,101 @@
+# systemd(journald) → OpenSearch 수집 파이프라인 (fluentbit.fluent.io/v1alpha2)
+# Talos(rwr)엔 journald 없음 → 검증용. 프로덕션(systemd 호스트)에서 실수집.
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFluentBitConfig
+metadata:
+  name: systemd-to-opensearch
+  labels: { fluentbit.fluent.io/enabled: "true" }
+spec:
+  service:
+    httpServer: true
+    httpListen: 0.0.0.0          # 메트릭 2020 노출
+    parsersFile: parsers.conf
+  inputSelector:
+    matchLabels: { pipeline: systemd }
+  parserSelector:
+    matchLabels: { pipeline: systemd }
+  filterSelector:
+    matchLabels: { pipeline: systemd }
+  outputSelector:
+    matchLabels: { pipeline: systemd }
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterInput
+metadata:
+  name: systemd
+  labels: { fluentbit.fluent.io/enabled: "true", pipeline: systemd }
+spec:
+  systemd:
+    tag: host.*
+    path: /var/log/journal
+    db: /fluent-bit/tail/systemd.db
+    dbSync: Normal
+    stripUnderscores: "on"
+    # 핵심 시스템 유닛만(노이즈↓). 프로덕션 유닛명에 맞게 조정.
+    systemdFilter:
+      - _SYSTEMD_UNIT=kubelet.service
+      - _SYSTEMD_UNIT=containerd.service
+      - _SYSTEMD_UNIT=docker.service
+      - _SYSTEMD_UNIT=sshd.service
+      - _SYSTEMD_UNIT=kernel
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterParser
+metadata:
+  name: klog
+  labels: { fluentbit.fluent.io/enabled: "true", pipeline: systemd }
+spec:
+  regex:
+    regex: '^(?<severity>[IWEF])(?<klogtime>\d{4} \d{2}:\d{2}:\d{2}\.\d+)\s+(?<tid>\d+)\s+(?<source>[^:]+:\d+)\]\s+(?<klogmsg>.*)$'
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  name: systemd-enrich
+  labels: { fluentbit.fluent.io/enabled: "true", pipeline: systemd }
+spec:
+  match: host.*
+  filters:
+    - modify:
+        rules:
+          - add: { cluster: rwr }
+          - add: { log_source: systemd }
+    - parser:
+        keyName: MESSAGE
+        parser: klog
+        reserveData: true
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterOutput
+metadata:
+  name: opensearch
+  labels: { fluentbit.fluent.io/enabled: "true", pipeline: systemd }
+spec:
+  match: host.*
+  opensearch:
+    host: opensearch-cluster-master.logging.svc
+    port: 9200
+    logstashFormat: true
+    logstashPrefix: systemd          # → 인덱스 systemd-YYYY.MM.DD (일별)
+    suppressTypeName: true           # OpenSearch 2.x 필수
+    generateID: true
+    traceError: true
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBit
+metadata:
+  name: fluent-bit
+  namespace: logging
+  labels: { app.kubernetes.io/name: fluent-bit }
+spec:
+  image: fluent/fluent-bit:3.1.9
+  fluentBitConfigName: systemd-to-opensearch
+  metricsPort: 2020
+  positionDB:
+    hostPath: { path: /var/lib/fluent-bit/ }
+  resources:
+    requests: { cpu: 20m, memory: 64Mi }
+    limits: { memory: 200Mi }
+  tolerations:
+    - operator: Exists
