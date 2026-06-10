@@ -1,0 +1,628 @@
+{
+ "uid": "k8slogs-l1-workload",
+ "title": "K8s Logs L1 · 워크로드 통계",
+ "tags": [
+  "logging",
+  "k8slogs"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "editable": true,
+ "graphTooltip": 1,
+ "time": {
+  "from": "now-1h",
+  "to": "now"
+ },
+ "refresh": "1m",
+ "timezone": "",
+ "links": [
+  {
+   "type": "dashboards",
+   "title": "K8s Logs 계층",
+   "tags": [
+    "k8slogs"
+   ],
+   "asDropdown": false,
+   "keepTime": true,
+   "includeVars": true,
+   "icon": "external link",
+   "targetBlank": false
+  },
+  {
+   "type": "link",
+   "title": "Log Capacity (적재 용량)",
+   "url": "/d/log-capacity",
+   "icon": "external link",
+   "targetBlank": false
+  }
+ ],
+ "templating": {
+  "list": [
+   {
+    "name": "datasource",
+    "label": "Datasource",
+    "type": "datasource",
+    "query": "grafana-opensearch-datasource",
+    "current": {
+     "text": "OpenSearch-logs",
+     "value": "os-logs"
+    },
+    "hide": 0
+   },
+   {
+    "name": "namespace",
+    "label": "Namespace",
+    "type": "query",
+    "datasource": {
+     "type": "grafana-opensearch-datasource",
+     "uid": "${datasource}"
+    },
+    "definition": "{\"find\": \"terms\", \"field\": \"kubernetes.namespace_name.keyword\", \"size\": 100}",
+    "query": "{\"find\": \"terms\", \"field\": \"kubernetes.namespace_name.keyword\", \"size\": 100}",
+    "refresh": 2,
+    "sort": 1,
+    "multi": true,
+    "includeAll": true,
+    "allValue": "*",
+    "hide": 0,
+    "current": {
+     "text": "All",
+     "value": "$__all"
+    },
+    "options": []
+   },
+   {
+    "name": "workload_kind",
+    "label": "워크로드 종류",
+    "type": "query",
+    "datasource": {
+     "type": "grafana-opensearch-datasource",
+     "uid": "${datasource}"
+    },
+    "definition": "{\"find\": \"terms\", \"field\": \"kubernetes.workload_kind.keyword\", \"size\": 100, \"query\": \"kubernetes.namespace_name.keyword:($namespace)\"}",
+    "query": "{\"find\": \"terms\", \"field\": \"kubernetes.workload_kind.keyword\", \"size\": 100, \"query\": \"kubernetes.namespace_name.keyword:($namespace)\"}",
+    "refresh": 2,
+    "sort": 1,
+    "multi": true,
+    "includeAll": true,
+    "allValue": "*",
+    "hide": 0,
+    "current": {
+     "text": "All",
+     "value": "$__all"
+    },
+    "options": []
+   }
+  ]
+ },
+ "panels": [
+  {
+   "type": "text",
+   "title": "사용 가이드",
+   "gridPos": {
+    "h": 3,
+    "w": 24,
+    "x": 0,
+    "y": 0
+   },
+   "options": {
+    "mode": "markdown",
+    "content": "워크로드(Deployment/StatefulSet/DaemonSet 등) 단위 통계. 표의 워크로드 행이나 시계열 시리즈를 클릭하면 namespace, 종류, 워크로드 이름과 시간범위가 L2 상세로 전달된다. \"에러 의심\"은 stderr 또는 error/fail/panic 패턴 매치 기준이며, 워크로드별 비중이 평소와 다르면 해당 워크로드를 클릭해 L2에서 원본을 확인한다."
+   },
+   "transparent": false,
+   "id": 1
+  },
+  {
+   "type": "stat",
+   "title": "총 로그 수",
+   "description": "선택한 namespace/워크로드 종류 필터 기준 로그 건수.",
+   "datasource": {
+    "type": "grafana-opensearch-datasource",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 12,
+    "x": 0,
+    "y": 3
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-opensearch-datasource",
+      "uid": "${datasource}"
+     },
+     "query": "kubernetes.namespace_name.keyword:($namespace) AND (kubernetes.workload_kind.keyword:($workload_kind))",
+     "queryType": "lucene",
+     "timeField": "@timestamp",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "count"
+      }
+     ],
+     "bucketAggs": [
+      {
+       "id": "9",
+       "type": "date_histogram",
+       "field": "@timestamp",
+       "settings": {
+        "interval": "auto",
+        "min_doc_count": "0",
+        "trimEdges": "0"
+       }
+      }
+     ]
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "sum"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "area",
+    "orientation": "auto",
+    "textMode": "auto",
+    "justifyMode": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "color": {
+      "mode": "palette-classic"
+     }
+    },
+    "overrides": []
+   },
+   "id": 2
+  },
+  {
+   "type": "stat",
+   "title": "에러 의심 로그 수",
+   "description": "필터 범위 내 stderr 또는 error/fail/panic 패턴 매치 건수.",
+   "datasource": {
+    "type": "grafana-opensearch-datasource",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 12,
+    "x": 12,
+    "y": 3
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-opensearch-datasource",
+      "uid": "${datasource}"
+     },
+     "query": "kubernetes.namespace_name.keyword:($namespace) AND (kubernetes.workload_kind.keyword:($workload_kind)) AND (stream:stderr OR level:(ERROR OR error OR FATAL OR fatal) OR log:(*error* OR *fail* OR *panic*))",
+     "queryType": "lucene",
+     "timeField": "@timestamp",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "count"
+      }
+     ],
+     "bucketAggs": [
+      {
+       "id": "9",
+       "type": "date_histogram",
+       "field": "@timestamp",
+       "settings": {
+        "interval": "auto",
+        "min_doc_count": "0",
+        "trimEdges": "0"
+       }
+      }
+     ]
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "sum"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "area",
+    "orientation": "auto",
+    "textMode": "auto",
+    "justifyMode": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "color": {
+      "mode": "palette-classic"
+     }
+    },
+    "overrides": []
+   },
+   "id": 3
+  },
+  {
+   "type": "timeseries",
+   "title": "로그 추이 — 워크로드별 (클릭→L2)",
+   "description": "워크로드 이름별 발생량 Top 10. 시리즈 클릭 시 해당 워크로드로 L2를 연다.",
+   "datasource": {
+    "type": "grafana-opensearch-datasource",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 9,
+    "w": 12,
+    "x": 0,
+    "y": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-opensearch-datasource",
+      "uid": "${datasource}"
+     },
+     "query": "kubernetes.namespace_name.keyword:($namespace) AND (kubernetes.workload_kind.keyword:($workload_kind))",
+     "queryType": "lucene",
+     "timeField": "@timestamp",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "count"
+      }
+     ],
+     "bucketAggs": [
+      {
+       "id": "8",
+       "type": "terms",
+       "field": "kubernetes.workload_name.keyword",
+       "settings": {
+        "size": "10",
+        "order": "desc",
+        "orderBy": "_count",
+        "min_doc_count": "1"
+       }
+      },
+      {
+       "id": "9",
+       "type": "date_histogram",
+       "field": "@timestamp",
+       "settings": {
+        "interval": "auto",
+        "min_doc_count": "0",
+        "trimEdges": "0"
+       }
+      }
+     ]
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "sum"
+     ],
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "drawStyle": "bars",
+      "fillOpacity": 60,
+      "stacking": {
+       "mode": "normal",
+       "group": "A"
+      },
+      "lineWidth": 0,
+      "pointSize": 3
+     },
+     "color": {
+      "mode": "palette-classic"
+     },
+     "links": [
+      {
+       "title": "L2 상세 조회로 드릴다운",
+       "url": "/d/k8slogs-l2-detail?${namespace:queryparam}&${workload_kind:queryparam}&var-workload=${__field.labels[\"kubernetes.workload_name.keyword\"]}&${__url_time_range}"
+      }
+     ]
+    },
+    "overrides": []
+   },
+   "id": 4
+  },
+  {
+   "type": "timeseries",
+   "title": "로그 추이 — 워크로드 종류별",
+   "description": "Deployment/StatefulSet/DaemonSet 등 종류별 발생량 추이.",
+   "datasource": {
+    "type": "grafana-opensearch-datasource",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 9,
+    "w": 12,
+    "x": 12,
+    "y": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-opensearch-datasource",
+      "uid": "${datasource}"
+     },
+     "query": "kubernetes.namespace_name.keyword:($namespace) AND (kubernetes.workload_kind.keyword:($workload_kind))",
+     "queryType": "lucene",
+     "timeField": "@timestamp",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "count"
+      }
+     ],
+     "bucketAggs": [
+      {
+       "id": "8",
+       "type": "terms",
+       "field": "kubernetes.workload_kind.keyword",
+       "settings": {
+        "size": "10",
+        "order": "desc",
+        "orderBy": "_count",
+        "min_doc_count": "1"
+       }
+      },
+      {
+       "id": "9",
+       "type": "date_histogram",
+       "field": "@timestamp",
+       "settings": {
+        "interval": "auto",
+        "min_doc_count": "0",
+        "trimEdges": "0"
+       }
+      }
+     ]
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "sum"
+     ],
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "drawStyle": "bars",
+      "fillOpacity": 60,
+      "stacking": {
+       "mode": "normal",
+       "group": "A"
+      },
+      "lineWidth": 0,
+      "pointSize": 3
+     },
+     "color": {
+      "mode": "palette-classic"
+     }
+    },
+    "overrides": []
+   },
+   "id": 5
+  },
+  {
+   "type": "table",
+   "title": "워크로드별 로그 (클릭→L2)",
+   "description": "종류+워크로드 이름별 건수 Top 20. 행 클릭 시 kind/workload가 L2로 전달된다.",
+   "datasource": {
+    "type": "grafana-opensearch-datasource",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 10,
+    "w": 14,
+    "x": 0,
+    "y": 16
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-opensearch-datasource",
+      "uid": "${datasource}"
+     },
+     "query": "kubernetes.namespace_name.keyword:($namespace) AND (kubernetes.workload_kind.keyword:($workload_kind))",
+     "queryType": "lucene",
+     "timeField": "@timestamp",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "count"
+      }
+     ],
+     "bucketAggs": [
+      {
+       "id": "10",
+       "type": "terms",
+       "field": "kubernetes.workload_kind.keyword",
+       "settings": {
+        "size": "20",
+        "order": "desc",
+        "orderBy": "_count",
+        "min_doc_count": "1"
+       }
+      },
+      {
+       "id": "11",
+       "type": "terms",
+       "field": "kubernetes.workload_name.keyword",
+       "settings": {
+        "size": "20",
+        "order": "desc",
+        "orderBy": "_count",
+        "min_doc_count": "1"
+       }
+      }
+     ]
+    }
+   ],
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "건수",
+      "desc": true
+     }
+    ]
+   },
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "renameByName": {
+       "kubernetes.workload_kind.keyword": "kind",
+       "kubernetes.workload_name.keyword": "workload",
+       "Count": "건수"
+      }
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "align": "auto"
+     },
+     "links": [
+      {
+       "title": "L2 상세 조회로 드릴다운",
+       "url": "/d/k8slogs-l2-detail?${namespace:queryparam}&var-workload_kind=${__data.fields.kind}&var-workload=${__data.fields.workload}&${__url_time_range}"
+      }
+     ]
+    },
+    "overrides": []
+   },
+   "id": 6
+  },
+  {
+   "type": "table",
+   "title": "에러 의심 — 워크로드별 (클릭→L2)",
+   "description": "에러 의심 로그가 많은 워크로드 Top 10. 행 클릭 시 L2로 드릴다운.",
+   "datasource": {
+    "type": "grafana-opensearch-datasource",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 10,
+    "w": 10,
+    "x": 14,
+    "y": 16
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-opensearch-datasource",
+      "uid": "${datasource}"
+     },
+     "query": "kubernetes.namespace_name.keyword:($namespace) AND (kubernetes.workload_kind.keyword:($workload_kind)) AND (stream:stderr OR level:(ERROR OR error OR FATAL OR fatal) OR log:(*error* OR *fail* OR *panic*))",
+     "queryType": "lucene",
+     "timeField": "@timestamp",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "count"
+      }
+     ],
+     "bucketAggs": [
+      {
+       "id": "10",
+       "type": "terms",
+       "field": "kubernetes.workload_kind.keyword",
+       "settings": {
+        "size": "10",
+        "order": "desc",
+        "orderBy": "_count",
+        "min_doc_count": "1"
+       }
+      },
+      {
+       "id": "11",
+       "type": "terms",
+       "field": "kubernetes.workload_name.keyword",
+       "settings": {
+        "size": "10",
+        "order": "desc",
+        "orderBy": "_count",
+        "min_doc_count": "1"
+       }
+      }
+     ]
+    }
+   ],
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "건수",
+      "desc": true
+     }
+    ]
+   },
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "renameByName": {
+       "kubernetes.workload_kind.keyword": "kind",
+       "kubernetes.workload_name.keyword": "workload",
+       "Count": "건수"
+      }
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "align": "auto"
+     },
+     "links": [
+      {
+       "title": "L2 상세 조회로 드릴다운",
+       "url": "/d/k8slogs-l2-detail?${namespace:queryparam}&var-workload_kind=${__data.fields.kind}&var-workload=${__data.fields.workload}&${__url_time_range}"
+      }
+     ]
+    },
+    "overrides": []
+   },
+   "id": 7
+  }
+ ]
+}

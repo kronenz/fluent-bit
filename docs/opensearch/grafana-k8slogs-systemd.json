@@ -1,0 +1,692 @@
+{
+ "uid": "k8slogs-systemd",
+ "title": "K8s Logs systemd · 호스트 로그",
+ "tags": [
+  "logging",
+  "k8slogs"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "editable": true,
+ "graphTooltip": 1,
+ "time": {
+  "from": "now-1h",
+  "to": "now"
+ },
+ "refresh": "1m",
+ "timezone": "",
+ "links": [
+  {
+   "type": "dashboards",
+   "title": "K8s Logs 계층",
+   "tags": [
+    "k8slogs"
+   ],
+   "asDropdown": false,
+   "keepTime": true,
+   "includeVars": true,
+   "icon": "external link",
+   "targetBlank": false
+  },
+  {
+   "type": "link",
+   "title": "Log Capacity (적재 용량)",
+   "url": "/d/log-capacity",
+   "icon": "external link",
+   "targetBlank": false
+  }
+ ],
+ "templating": {
+  "list": [
+   {
+    "name": "datasource",
+    "label": "Datasource",
+    "type": "datasource",
+    "query": "grafana-opensearch-datasource",
+    "current": {
+     "text": "OpenSearch-systemd",
+     "value": "os-logs-systemd"
+    },
+    "hide": 0
+   },
+   {
+    "name": "host",
+    "label": "Host",
+    "type": "query",
+    "datasource": {
+     "type": "grafana-opensearch-datasource",
+     "uid": "${datasource}"
+    },
+    "definition": "{\"find\": \"terms\", \"field\": \"HOSTNAME.keyword\", \"size\": 100}",
+    "query": "{\"find\": \"terms\", \"field\": \"HOSTNAME.keyword\", \"size\": 100}",
+    "refresh": 2,
+    "sort": 1,
+    "multi": true,
+    "includeAll": true,
+    "allValue": "*",
+    "hide": 0,
+    "current": {
+     "text": "All",
+     "value": "$__all"
+    },
+    "options": []
+   },
+   {
+    "name": "unit",
+    "label": "systemd 유닛",
+    "type": "query",
+    "datasource": {
+     "type": "grafana-opensearch-datasource",
+     "uid": "${datasource}"
+    },
+    "definition": "{\"find\": \"terms\", \"field\": \"SYSTEMD_UNIT.keyword\", \"size\": 100, \"query\": \"HOSTNAME.keyword:($host)\"}",
+    "query": "{\"find\": \"terms\", \"field\": \"SYSTEMD_UNIT.keyword\", \"size\": 100, \"query\": \"HOSTNAME.keyword:($host)\"}",
+    "refresh": 2,
+    "sort": 1,
+    "multi": true,
+    "includeAll": true,
+    "allValue": "*",
+    "hide": 0,
+    "current": {
+     "text": "All",
+     "value": "$__all"
+    },
+    "options": []
+   },
+   {
+    "name": "severity",
+    "label": "Severity(I/W/E/F)",
+    "type": "query",
+    "datasource": {
+     "type": "grafana-opensearch-datasource",
+     "uid": "${datasource}"
+    },
+    "definition": "{\"find\": \"terms\", \"field\": \"severity.keyword\", \"size\": 100}",
+    "query": "{\"find\": \"terms\", \"field\": \"severity.keyword\", \"size\": 100}",
+    "refresh": 2,
+    "sort": 1,
+    "multi": true,
+    "includeAll": true,
+    "allValue": "*) OR (NOT _exists_:severity",
+    "hide": 0,
+    "description": "klog 파서 산출. All이면 severity 없는 로그도 포함.",
+    "current": {
+     "text": "All",
+     "value": "$__all"
+    },
+    "options": []
+   },
+   {
+    "name": "keyword",
+    "label": "키워드(lucene, 비우지 말 것·기본 *)",
+    "type": "textbox",
+    "query": "*",
+    "current": {
+     "text": "*",
+     "value": "*"
+    },
+    "description": "lucene 문법 자유 입력. 예: *timeout*, log:*panic*. 빈 값이면 쿼리가 깨진다.",
+    "options": [
+     {
+      "text": "*",
+      "value": "*",
+      "selected": true
+     }
+    ],
+    "hide": 0
+   }
+  ]
+ },
+ "panels": [
+  {
+   "type": "text",
+   "title": "사용 가이드",
+   "gridPos": {
+    "h": 6,
+    "w": 24,
+    "x": 0,
+    "y": 0
+   },
+   "options": {
+    "mode": "markdown",
+    "content": "**수집 범위**: 각 노드 journald에서 fluent-bit systemd 입력의 `systemdFilter`로 지정한 유닛(kubelet, containerd, docker, sshd, kernel 등)만 수집한다. 인덱스는 `systemd-YYYY.MM.DD`(일별, ISM 보존 정책 적용)로 컨테이너 로그와 분리되어 있어 데이터소스도 별도(OpenSearch-systemd)다.\n\n- **static pod(kube-apiserver, controller-manager, scheduler, etcd 등)는 여기에 없다** — journald가 아니라 컨테이너 로그로 수집되므로 K8s Logs L0~L2에서 워크로드 종류=Node로 조회한다.\n- **severity**: klog 형식(I/W/E/F)에서 파싱된 값. **PRIORITY**: journald 우선순위(0=emerg ~ 7=debug). 둘 다 없는 로그도 있다(severity=All로 포함됨).\n- 대시보드가 비어 있으면: 시간범위 확대 → 그래도 없으면 fluent-bit systemd 입력 동작과 인덱스 적재(`_cat/indices/systemd-*`)를 확인한다.\n- **컨테이너 로그 연계**: 호스트x유닛 표의 행을 클릭하면 \"이 노드의 파드 로그(L2)\" 링크로 같은 노드에서 같은 시간대에 파드들이 남긴 로그를 볼 수 있다. kubelet/kernel 에러(OOM, 마운트 실패 등)의 영향 파드를 찾을 때 사용한다.\n- 새 유닛 수집이 필요하면 fluent-bit ClusterInput(systemd)의 `systemdFilter`에 `_SYSTEMD_UNIT=<unit>.service`를 추가한다."
+   },
+   "transparent": false,
+   "id": 1
+  },
+  {
+   "type": "stat",
+   "title": "총 로그 수",
+   "description": "선택 필터 기준 systemd 로그 건수.",
+   "datasource": {
+    "type": "grafana-opensearch-datasource",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 8,
+    "x": 0,
+    "y": 6
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-opensearch-datasource",
+      "uid": "${datasource}"
+     },
+     "query": "HOSTNAME.keyword:($host) AND (SYSTEMD_UNIT.keyword:($unit)) AND (severity:($severity)) AND (${keyword:raw})",
+     "queryType": "lucene",
+     "timeField": "@timestamp",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "count"
+      }
+     ],
+     "bucketAggs": [
+      {
+       "id": "9",
+       "type": "date_histogram",
+       "field": "@timestamp",
+       "settings": {
+        "interval": "auto",
+        "min_doc_count": "0",
+        "trimEdges": "0"
+       }
+      }
+     ]
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "sum"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "area",
+    "orientation": "auto",
+    "textMode": "auto",
+    "justifyMode": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "color": {
+      "mode": "palette-classic"
+     }
+    },
+    "overrides": []
+   },
+   "id": 2
+  },
+  {
+   "type": "stat",
+   "title": "에러·경고 수 (E/W 또는 PRIORITY<=3)",
+   "description": "klog severity E/W 또는 journald PRIORITY 0~3(err 이상) 매치 건수.",
+   "datasource": {
+    "type": "grafana-opensearch-datasource",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 8,
+    "x": 8,
+    "y": 6
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-opensearch-datasource",
+      "uid": "${datasource}"
+     },
+     "query": "HOSTNAME.keyword:($host) AND (SYSTEMD_UNIT.keyword:($unit)) AND (severity:($severity)) AND (${keyword:raw}) AND (severity:(E OR W) OR PRIORITY:(0 OR 1 OR 2 OR 3))",
+     "queryType": "lucene",
+     "timeField": "@timestamp",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "count"
+      }
+     ],
+     "bucketAggs": [
+      {
+       "id": "9",
+       "type": "date_histogram",
+       "field": "@timestamp",
+       "settings": {
+        "interval": "auto",
+        "min_doc_count": "0",
+        "trimEdges": "0"
+       }
+      }
+     ]
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "sum"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "area",
+    "orientation": "auto",
+    "textMode": "auto",
+    "justifyMode": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "color": {
+      "mode": "palette-classic"
+     }
+    },
+    "overrides": []
+   },
+   "id": 3
+  },
+  {
+   "type": "stat",
+   "title": "수집 호스트 수",
+   "description": "로그를 보낸 고유 호스트 수(버킷별 최대, 근사). 노드 수와 다르면 수집 누락 의심.",
+   "datasource": {
+    "type": "grafana-opensearch-datasource",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 4,
+    "w": 8,
+    "x": 16,
+    "y": 6
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-opensearch-datasource",
+      "uid": "${datasource}"
+     },
+     "query": "HOSTNAME.keyword:($host) AND (SYSTEMD_UNIT.keyword:($unit)) AND (severity:($severity)) AND (${keyword:raw})",
+     "queryType": "lucene",
+     "timeField": "@timestamp",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "cardinality",
+       "field": "HOSTNAME.keyword"
+      }
+     ],
+     "bucketAggs": [
+      {
+       "id": "9",
+       "type": "date_histogram",
+       "field": "@timestamp",
+       "settings": {
+        "interval": "auto",
+        "min_doc_count": "0",
+        "trimEdges": "0"
+       }
+      }
+     ]
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "max"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "area",
+    "orientation": "auto",
+    "textMode": "auto",
+    "justifyMode": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "color": {
+      "mode": "palette-classic"
+     }
+    },
+    "overrides": []
+   },
+   "id": 4
+  },
+  {
+   "type": "timeseries",
+   "title": "로그 추이 — 유닛별",
+   "description": "systemd 유닛별 발생량 추이. 특정 유닛 급증은 해당 데몬 이상 신호.",
+   "datasource": {
+    "type": "grafana-opensearch-datasource",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 9,
+    "w": 12,
+    "x": 0,
+    "y": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-opensearch-datasource",
+      "uid": "${datasource}"
+     },
+     "query": "HOSTNAME.keyword:($host) AND (SYSTEMD_UNIT.keyword:($unit)) AND (severity:($severity)) AND (${keyword:raw})",
+     "queryType": "lucene",
+     "timeField": "@timestamp",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "count"
+      }
+     ],
+     "bucketAggs": [
+      {
+       "id": "8",
+       "type": "terms",
+       "field": "SYSTEMD_UNIT.keyword",
+       "settings": {
+        "size": "10",
+        "order": "desc",
+        "orderBy": "_count",
+        "min_doc_count": "1"
+       }
+      },
+      {
+       "id": "9",
+       "type": "date_histogram",
+       "field": "@timestamp",
+       "settings": {
+        "interval": "auto",
+        "min_doc_count": "0",
+        "trimEdges": "0"
+       }
+      }
+     ]
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "sum"
+     ],
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "drawStyle": "bars",
+      "fillOpacity": 60,
+      "stacking": {
+       "mode": "normal",
+       "group": "A"
+      },
+      "lineWidth": 0,
+      "pointSize": 3
+     },
+     "color": {
+      "mode": "palette-classic"
+     }
+    },
+    "overrides": []
+   },
+   "id": 5
+  },
+  {
+   "type": "timeseries",
+   "title": "로그 추이 — 호스트별",
+   "description": "호스트별 발생량 추이. 특정 노드 편중 여부 확인용.",
+   "datasource": {
+    "type": "grafana-opensearch-datasource",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 9,
+    "w": 12,
+    "x": 12,
+    "y": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-opensearch-datasource",
+      "uid": "${datasource}"
+     },
+     "query": "HOSTNAME.keyword:($host) AND (SYSTEMD_UNIT.keyword:($unit)) AND (severity:($severity)) AND (${keyword:raw})",
+     "queryType": "lucene",
+     "timeField": "@timestamp",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "count"
+      }
+     ],
+     "bucketAggs": [
+      {
+       "id": "8",
+       "type": "terms",
+       "field": "HOSTNAME.keyword",
+       "settings": {
+        "size": "10",
+        "order": "desc",
+        "orderBy": "_count",
+        "min_doc_count": "1"
+       }
+      },
+      {
+       "id": "9",
+       "type": "date_histogram",
+       "field": "@timestamp",
+       "settings": {
+        "interval": "auto",
+        "min_doc_count": "0",
+        "trimEdges": "0"
+       }
+      }
+     ]
+    }
+   ],
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "sum"
+     ],
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "drawStyle": "bars",
+      "fillOpacity": 60,
+      "stacking": {
+       "mode": "normal",
+       "group": "A"
+      },
+      "lineWidth": 0,
+      "pointSize": 3
+     },
+     "color": {
+      "mode": "palette-classic"
+     }
+    },
+    "overrides": []
+   },
+   "id": 6
+  },
+  {
+   "type": "table",
+   "title": "호스트 x 유닛별 로그 (클릭: 호스트 좁히기 / 파드 로그)",
+   "description": "호스트+유닛 조합별 건수 Top 20. 행 클릭 시 호스트로 좁히거나, 같은 노드의 파드 로그(L2)로 교차 이동한다.",
+   "datasource": {
+    "type": "grafana-opensearch-datasource",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 24,
+    "x": 0,
+    "y": 19
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-opensearch-datasource",
+      "uid": "${datasource}"
+     },
+     "query": "HOSTNAME.keyword:($host) AND (SYSTEMD_UNIT.keyword:($unit)) AND (severity:($severity)) AND (${keyword:raw})",
+     "queryType": "lucene",
+     "timeField": "@timestamp",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "count"
+      }
+     ],
+     "bucketAggs": [
+      {
+       "id": "10",
+       "type": "terms",
+       "field": "HOSTNAME.keyword",
+       "settings": {
+        "size": "20",
+        "order": "desc",
+        "orderBy": "_count",
+        "min_doc_count": "1"
+       }
+      },
+      {
+       "id": "11",
+       "type": "terms",
+       "field": "SYSTEMD_UNIT.keyword",
+       "settings": {
+        "size": "20",
+        "order": "desc",
+        "orderBy": "_count",
+        "min_doc_count": "1"
+       }
+      }
+     ]
+    }
+   ],
+   "options": {
+    "showHeader": true,
+    "sortBy": [
+     {
+      "displayName": "건수",
+      "desc": true
+     }
+    ]
+   },
+   "transformations": [
+    {
+     "id": "organize",
+     "options": {
+      "renameByName": {
+       "HOSTNAME.keyword": "host",
+       "SYSTEMD_UNIT.keyword": "unit",
+       "Count": "건수"
+      }
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "align": "auto"
+     },
+     "links": [
+      {
+       "title": "이 호스트로 좁히기",
+       "url": "/d/k8slogs-systemd?var-host=${__data.fields.host}&${__url_time_range}"
+      },
+      {
+       "title": "이 노드의 파드 로그(L2)",
+       "url": "/d/k8slogs-l2-detail?var-node=${__data.fields.host}&${__url_time_range}"
+      }
+     ]
+    },
+    "overrides": []
+   },
+   "id": 7
+  },
+  {
+   "type": "logs",
+   "title": "로그 원본 (키워드: $keyword)",
+   "description": "필터+키워드 매치 원본 최신 500건. MESSAGE가 본문, severity가 레벨로 표시된다.",
+   "datasource": {
+    "type": "grafana-opensearch-datasource",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "h": 13,
+    "w": 24,
+    "x": 0,
+    "y": 27
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-opensearch-datasource",
+      "uid": "${datasource}"
+     },
+     "query": "HOSTNAME.keyword:($host) AND (SYSTEMD_UNIT.keyword:($unit)) AND (severity:($severity)) AND (${keyword:raw})",
+     "queryType": "lucene",
+     "timeField": "@timestamp",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "logs",
+       "settings": {
+        "limit": "500"
+       }
+      }
+     ],
+     "bucketAggs": []
+    }
+   ],
+   "options": {
+    "showTime": true,
+    "showLabels": false,
+    "showCommonLabels": false,
+    "wrapLogMessage": true,
+    "prettifyLogMessage": false,
+    "enableLogDetails": true,
+    "dedupStrategy": "none",
+    "sortOrder": "Descending"
+   },
+   "id": 8
+  }
+ ]
+}
