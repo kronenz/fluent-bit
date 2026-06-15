@@ -1,0 +1,1014 @@
+{
+  "uid": "k8slogs2-l2",
+  "title": "K8s Logs v2 L2 · 로그 상세 조회",
+  "description": "필터 조합으로 로그 원본을 조회하는 최하위 드릴다운",
+  "tags": [
+    "k8slogs",
+    "logs"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "links": [
+    {
+      "title": "L0 개요",
+      "type": "link",
+      "url": "/d/k8slogs2-l0",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false
+    },
+    {
+      "title": "L1 워크로드",
+      "type": "link",
+      "url": "/d/k8slogs2-l1",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false
+    },
+    {
+      "title": "L2 상세",
+      "type": "link",
+      "url": "/d/k8slogs2-l2",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false
+    },
+    {
+      "title": "systemd",
+      "type": "link",
+      "url": "/d/k8slogs2-systemd",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "targetBlank": false,
+      "asDropdown": false
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "데이터소스",
+        "type": "datasource",
+        "query": "grafana-opensearch-datasource",
+        "current": {},
+        "regex": "/^OpenSearch-logs$/",
+        "hide": 0,
+        "refresh": 1
+      },
+      {
+        "name": "namespace",
+        "label": "네임스페이스",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-opensearch-datasource",
+          "uid": "${datasource}"
+        },
+        "query": "{\"find\": \"terms\", \"field\": \"kubernetes.namespace_name.keyword\", \"size\": 100}",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [],
+        "sort": 1,
+        "hide": 0
+      },
+      {
+        "name": "workload_kind",
+        "label": "워크로드 종류",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-opensearch-datasource",
+          "uid": "${datasource}"
+        },
+        "query": "{\"find\": \"terms\", \"field\": \"kubernetes.workload_kind.keyword\", \"size\": 100, \"query\": \"kubernetes.namespace_name.keyword:($namespace)\"}",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [],
+        "sort": 1,
+        "hide": 0
+      },
+      {
+        "name": "workload",
+        "label": "워크로드",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-opensearch-datasource",
+          "uid": "${datasource}"
+        },
+        "query": "{\"find\": \"terms\", \"field\": \"kubernetes.workload_name.keyword\", \"size\": 100, \"query\": \"kubernetes.namespace_name.keyword:($namespace) AND kubernetes.workload_kind.keyword:($workload_kind)\"}",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [],
+        "sort": 1,
+        "hide": 0
+      },
+      {
+        "name": "pod",
+        "label": "파드",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-opensearch-datasource",
+          "uid": "${datasource}"
+        },
+        "query": "{\"find\": \"terms\", \"field\": \"kubernetes.pod_name.keyword\", \"size\": 100, \"query\": \"kubernetes.namespace_name.keyword:($namespace) AND kubernetes.workload_name.keyword:($workload)\"}",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [],
+        "sort": 1,
+        "hide": 0
+      },
+      {
+        "name": "container",
+        "label": "컨테이너",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-opensearch-datasource",
+          "uid": "${datasource}"
+        },
+        "query": "{\"find\": \"terms\", \"field\": \"kubernetes.container_name.keyword\", \"size\": 100, \"query\": \"kubernetes.namespace_name.keyword:($namespace) AND kubernetes.pod_name.keyword:($pod)\"}",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [],
+        "sort": 1,
+        "hide": 0
+      },
+      {
+        "name": "node",
+        "label": "노드",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-opensearch-datasource",
+          "uid": "${datasource}"
+        },
+        "query": "{\"find\": \"terms\", \"field\": \"kubernetes.host.keyword\", \"size\": 100}",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [],
+        "sort": 1,
+        "hide": 0
+      },
+      {
+        "name": "level",
+        "label": "레벨",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-opensearch-datasource",
+          "uid": "${datasource}"
+        },
+        "query": "{\"find\": \"terms\", \"field\": \"level.keyword\", \"size\": 100, \"query\": \"kubernetes.namespace_name.keyword:($namespace)\"}",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [],
+        "sort": 1,
+        "hide": 0
+      },
+      {
+        "name": "keyword",
+        "label": "키워드(lucene)",
+        "type": "textbox",
+        "query": "*",
+        "current": {
+          "selected": false,
+          "text": "*",
+          "value": "*"
+        },
+        "hide": 0,
+        "options": [
+          {
+            "selected": true,
+            "text": "*",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 201,
+      "type": "text",
+      "title": "",
+      "transparent": true,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## 📋 K8s Logs — L2 로그 상세 조회\n필터를 조합해 **로그 원본을 직접 조회**하는 최하위 드릴다운입니다. L0/L1에서 클릭해 들어오면 변수들이 자동 세팅됩니다.\n\n**키워드 변수는 lucene 문법**: `\"connection refused\"` (구문), `log:*timeout*` (와일드카드), `NOT level:info` (제외), `log:(oom OR kill*)` (OR)\n- 로그 볼륨 바차트에서 빨강(err) 구간 확인 → 그 시간대로 줌 → 아래 원본에서 행 펼치기(▶)로 필드 확인\n- Top 파드/노드 표에서 **파드 클릭=파드 필터 적용**, **노드 클릭=systemd 호스트 로그**로 점프"
+      }
+    },
+    {
+      "id": 202,
+      "type": "stat",
+      "title": "매치 로그",
+      "description": "현재 필터 조합과 일치하는 로그 건수.",
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 6,
+        "h": 3
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "hide": false,
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "query": "kubernetes.namespace_name.keyword:($namespace) AND (kubernetes.workload_kind.keyword:($workload_kind)) AND (kubernetes.workload_name.keyword:($workload)) AND (kubernetes.pod_name.keyword:($pod)) AND (kubernetes.container_name.keyword:($container)) AND (kubernetes.host.keyword:($node)) AND (level:($level)) AND (${keyword:raw})",
+          "queryType": "lucene",
+          "timeField": "@timestamp",
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "9",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "value",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 203,
+      "type": "stat",
+      "title": "매치 에러",
+      "description": "현재 필터 + 에러 레벨 건수.",
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 4,
+        "w": 6,
+        "h": 3
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "hide": false,
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "query": "kubernetes.namespace_name.keyword:($namespace) AND (kubernetes.workload_kind.keyword:($workload_kind)) AND (kubernetes.workload_name.keyword:($workload)) AND (kubernetes.pod_name.keyword:($pod)) AND (kubernetes.container_name.keyword:($container)) AND (kubernetes.host.keyword:($node)) AND (level:($level)) AND (${keyword:raw}) AND ((level:(err* OR ERR* OR fatal OR FATAL OR crit*) OR log:(error OR failed OR failure OR exception OR fatal OR panic OR traceback)))",
+          "queryType": "lucene",
+          "timeField": "@timestamp",
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "9",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "value",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 204,
+      "type": "stat",
+      "title": "파드",
+      "description": "필터와 일치하는 파드 수.",
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 6,
+        "h": 3
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "hide": false,
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "query": "kubernetes.namespace_name.keyword:($namespace) AND (kubernetes.workload_kind.keyword:($workload_kind)) AND (kubernetes.workload_name.keyword:($workload)) AND (kubernetes.pod_name.keyword:($pod)) AND (kubernetes.container_name.keyword:($container)) AND (kubernetes.host.keyword:($node)) AND (level:($level)) AND (${keyword:raw})",
+          "queryType": "lucene",
+          "timeField": "@timestamp",
+          "metrics": [
+            {
+              "id": "1",
+              "type": "cardinality",
+              "field": "kubernetes.pod_name.keyword"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "9",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "1y",
+                "min_doc_count": "0"
+              }
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "graphMode": "none",
+        "colorMode": "value",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 205,
+      "type": "stat",
+      "title": "컨테이너",
+      "description": "필터와 일치하는 컨테이너 수.",
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 4,
+        "w": 6,
+        "h": 3
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "hide": false,
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "query": "kubernetes.namespace_name.keyword:($namespace) AND (kubernetes.workload_kind.keyword:($workload_kind)) AND (kubernetes.workload_name.keyword:($workload)) AND (kubernetes.pod_name.keyword:($pod)) AND (kubernetes.container_name.keyword:($container)) AND (kubernetes.host.keyword:($node)) AND (level:($level)) AND (${keyword:raw})",
+          "queryType": "lucene",
+          "timeField": "@timestamp",
+          "metrics": [
+            {
+              "id": "1",
+              "type": "cardinality",
+              "field": "kubernetes.container_name.keyword"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "9",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "1y",
+                "min_doc_count": "0"
+              }
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "teal"
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "graphMode": "none",
+        "colorMode": "value",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 206,
+      "type": "timeseries",
+      "title": "로그 볼륨 — 레벨별 (err=빨강·warn=주황·info=초록)",
+      "description": "현재 필터의 시간별 로그량을 레벨 색으로 표시(stacked bars). 빨간 구간으로 줌인 후 아래 원본 확인.",
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "hide": false,
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "query": "kubernetes.namespace_name.keyword:($namespace) AND (kubernetes.workload_kind.keyword:($workload_kind)) AND (kubernetes.workload_name.keyword:($workload)) AND (kubernetes.pod_name.keyword:($pod)) AND (kubernetes.container_name.keyword:($container)) AND (kubernetes.host.keyword:($node)) AND (level:($level)) AND (${keyword:raw})",
+          "queryType": "lucene",
+          "timeField": "@timestamp",
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "8",
+              "type": "terms",
+              "field": "level.keyword",
+              "settings": {
+                "size": "8",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            },
+            {
+              "id": "9",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 35,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "pointSize": 4,
+            "barAlignment": 0,
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisGridShow": true
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "(?i).*(err|fatal|crit).*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "(?i).*warn.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "(?i).*info.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 207,
+      "type": "logs",
+      "title": "로그 원본 (키워드: $keyword)",
+      "description": "필터 조합과 일치하는 원본 로그 최대 500건(최신순). 행 펼치기(▶)로 k8s 메타필드 전체 확인. luceneQueryType=logs 명시(플러그인 2.27/2.33 호환).",
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 24,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "hide": false,
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "query": "kubernetes.namespace_name.keyword:($namespace) AND (kubernetes.workload_kind.keyword:($workload_kind)) AND (kubernetes.workload_name.keyword:($workload)) AND (kubernetes.pod_name.keyword:($pod)) AND (kubernetes.container_name.keyword:($container)) AND (kubernetes.host.keyword:($node)) AND (level:($level)) AND (${keyword:raw})",
+          "queryType": "lucene",
+          "timeField": "@timestamp",
+          "metrics": [
+            {
+              "id": "1",
+              "type": "logs",
+              "settings": {
+                "limit": "500"
+              }
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0"
+              }
+            }
+          ],
+          "luceneQueryType": "logs"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "id": 208,
+      "type": "table",
+      "title": "Top 파드 (클릭: 파드 필터 적용)",
+      "description": "현재 필터 내 로그량 상위 파드. 파드명을 클릭하면 이 대시보드의 pod 변수에 적용됩니다.",
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "hide": false,
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "query": "kubernetes.namespace_name.keyword:($namespace) AND (kubernetes.workload_kind.keyword:($workload_kind)) AND (kubernetes.workload_name.keyword:($workload)) AND (kubernetes.pod_name.keyword:($pod)) AND (kubernetes.container_name.keyword:($container)) AND (kubernetes.host.keyword:($node)) AND (level:($level)) AND (${keyword:raw})",
+          "queryType": "lucene",
+          "timeField": "@timestamp",
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "8",
+              "type": "terms",
+              "field": "kubernetes.pod_name.keyword",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pod"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "이 파드로 좁히기",
+                    "url": "/d/k8slogs2-l2?${namespace:queryparam}&var-pod=${__data.fields.pod}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "건수"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-BlPu"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "건수",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "kubernetes.pod_name.keyword": "pod",
+              "Count": "건수"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 209,
+      "type": "table",
+      "title": "Top 노드 (클릭: systemd 호스트 로그)",
+      "description": "현재 필터 내 로그량 상위 노드. 노드명 클릭 시 해당 호스트의 systemd 대시보드로 점프 — 컨테이너 문제가 노드(kubelet/containerd) 문제인지 교차 확인.",
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "hide": false,
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "query": "kubernetes.namespace_name.keyword:($namespace) AND (kubernetes.workload_kind.keyword:($workload_kind)) AND (kubernetes.workload_name.keyword:($workload)) AND (kubernetes.pod_name.keyword:($pod)) AND (kubernetes.container_name.keyword:($container)) AND (kubernetes.host.keyword:($node)) AND (level:($level)) AND (${keyword:raw})",
+          "queryType": "lucene",
+          "timeField": "@timestamp",
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "8",
+              "type": "terms",
+              "field": "kubernetes.host.keyword",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "node"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "systemd 호스트 로그",
+                    "url": "/d/k8slogs2-systemd?var-host=${__data.fields.node}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "건수"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-BlPu"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "건수",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "kubernetes.host.keyword": "node",
+              "Count": "건수"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
