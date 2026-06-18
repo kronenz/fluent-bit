@@ -46,6 +46,8 @@ Kubernetes 기반 빅데이터 서비스팀 클러스터에서 Fluent Bit으로 
 | [07-snapshot-guide.md](./07-snapshot-guide.md) | OpenSearch 스냅샷 적용 가이드 (SM 자동화 포함) |
 | [08-dashboards-ui-guide.md](./08-dashboards-ui-guide.md) | **Dashboards UI 기반 ISM + Snapshot (MinIO S3) 설정 가이드** |
 | [09-airgapped-plugin-install.md](./09-airgapped-plugin-install.md) | **폐쇄망 환경 repository-s3 플러그인 설치 가이드** |
+| [10-sm-snapshot-retention-guide.md](./10-sm-snapshot-retention-guide.md) | S3 스냅샷 보관기간 관리 (SM 정책 가이드) |
+| [11-ism-rollover-guide.md](./11-ism-rollover-guide.md) | **ISM Rollover 기반 Date + Size Rolling 가이드** |
 
 ## 적용 템플릿 파일
 
