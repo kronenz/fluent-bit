@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Confluence 프리뷰 — fluent-bit → OpenSearch 파이프라인 (흐름·상호작용·클러스터)</title>
+<style>
+  :root{
+    --ink:#172B4D; --sub:#42526E; --faint:#6B778C; --link:#0052CC;
+    --line:#DFE1E6; --bg:#F4F5F7; --panel:#FFFFFF;
+    --info:#DEEBFF; --infoB:#0052CC; --warn:#FFFAE6; --warnB:#FF8B00; --note:#EAE6FF; --noteB:#5243AA;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:14px;line-height:1.6}
+  .topbar{background:#fff;border-bottom:1px solid var(--line);padding:9px 24px;font-size:12px;color:var(--faint);
+    display:flex;align-items:center;gap:8px}
+  .topbar .dot{width:18px;height:18px;border-radius:4px;background:linear-gradient(135deg,#2684FF,#0052CC);
+    display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px}
+  .topbar b{color:var(--sub)}
+  .page{max-width:1180px;margin:24px auto;background:var(--panel);border:1px solid var(--line);
+    border-radius:4px;padding:40px 48px 56px;box-shadow:0 1px 2px rgba(9,30,66,.08)}
+  .crumbs{font-size:12px;color:var(--faint);margin-bottom:12px}
+  .crumbs a{color:var(--link);text-decoration:none}
+  h1.title{font-size:29px;font-weight:600;line-height:1.2;margin:0 0 6px;letter-spacing:-.003em}
+  .byline{font-size:12px;color:var(--faint);border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:22px}
+  .byline .av{display:inline-block;width:20px;height:20px;border-radius:50%;background:#FF991F;color:#fff;
+    text-align:center;line-height:20px;font-size:11px;font-weight:700;margin-right:6px;vertical-align:middle}
+  blockquote.lead{border-left:3px solid #C1C7D0;margin:0 0 24px;padding:4px 0 4px 16px;color:var(--sub);font-size:13.5px}
+  h2{font-size:20px;font-weight:600;margin:34px 0 8px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  h3{font-size:16px;font-weight:600;margin:22px 0 6px;color:var(--ink)}
+  p{margin:8px 0}
+  code{font-family:"SFMono-Regular",Consolas,Menlo,monospace;font-size:12.5px;
+    background:#F4F5F7;border:1px solid #DFE1E6;border-radius:3px;padding:1px 4px;color:#403294}
+  pre{background:#F4F5F7;border:1px solid #DFE1E6;border-radius:4px;padding:12px 14px;overflow:auto;font-size:12.5px;
+    font-family:"SFMono-Regular",Consolas,monospace;line-height:1.5;color:#172B4D}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+  th{background:#F4F5F7;font-weight:600;color:var(--sub)}
+  .panel{border-radius:4px;padding:13px 16px;margin:16px 0;font-size:13px;display:flex;gap:12px}
+  .panel .ic{flex:none;width:18px;height:18px;border-radius:50%;color:#fff;font-weight:700;font-size:12px;
+    display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .panel.info{background:var(--info)} .panel.info .ic{background:var(--infoB)}
+  .panel.warn{background:var(--warn)} .panel.warn .ic{background:var(--warnB)}
+  .panel.note{background:var(--note)} .panel.note .ic{background:var(--noteB)}
+  .macro{border:1px solid var(--line);border-radius:4px;margin:14px 0;overflow:hidden}
+  .macro .mhd{background:#F4F5F7;border-bottom:1px solid var(--line);padding:7px 14px;font-size:12px;color:var(--faint);
+    display:flex;align-items:center;gap:8px}
+  .macro .mhd .g{width:16px;height:16px;border-radius:3px;background:#F15B2A;color:#fff;font-weight:700;font-size:10px;
+    display:inline-flex;align-items:center;justify-content:center}
+  .macro .mbody{padding:10px;background:#fff;overflow:auto}
+  svg{display:block;margin:0 auto;max-width:100%;height:auto;
+    font-family:-apple-system,"Segoe UI",Arial,sans-serif}
+  .files{font-size:12.5px;color:var(--sub);background:#F4F5F7;border:1px solid var(--line);border-radius:4px;
+    padding:12px 16px;margin:20px 0}
+  .files code{background:#fff}
+  ul{margin:8px 0;padding-left:22px} li{margin:4px 0}
+  em{color:var(--faint)}
+</style>
+</head>
+<body>
+  <div class="topbar"><span class="dot">C</span> Confluence &rsaquo; <b>Observability</b> &rsaquo; <b>로깅</b>
+    &nbsp;·&nbsp; <em>import 후 실제 렌더 모습 (프리뷰)</em></div>
+
+  <div class="page">
+    <div class="crumbs"><a href="#">Observability</a> / <a href="#">로깅</a> / fluent-bit 파이프라인 최적화</div>
+    <h1 class="title">fluent-bit → OpenSearch 로그 파이프라인 — 흐름 · 상호작용 · 클러스터</h1>
+    <div class="byline"><span class="av">B</span>작성자 · 2026-06-18 · 읽기 6분 · 라벨: <code>fluent-bit</code> <code>opensearch</code> <code>observability</code></div>
+
+    <blockquote class="lead">200노드(Spark·Trino·Airflow·Postgres·Monitoring)에서 fluent-bit(DaemonSet)이 CRI 컨테이너 로그를
+      수집·버퍼·가공해 OpenSearch <b>5노드(master+coord+data 일체형)</b>로 적재하는 전체 흐름과
+      컴포넌트 간 상호작용(메타조회·버스트 흡수·역압·샤드 라우팅)을 한 장에.</blockquote>
+
+    <h2>1. 아키텍처 — 데이터 흐름과 상호작용</h2>
+    <div class="panel info"><span class="ic">i</span><span><b>Gliffy Diagram</b> 매크로로 렌더된 모습. 편집: 매크로 삽입 → Gliffy → <b>Import</b> → <code>fluent-bit-pipeline.gliffy</code>.</span></div>
+
+    <div class="macro">
+      <div class="mhd"><span class="g">G</span> Gliffy Diagram — <b>fluent-bit-to-opensearch-pipeline</b></div>
+      <div class="mbody">
+        <svg viewBox="0 0 1400 1000" width="1400" role="img" aria-label="fluent-bit to opensearch pipeline">
+          <defs>
+            <marker id="aG" markerWidth="10" markerHeight="10" refX="7.5" refY="3" orient="auto"><path d="M0,0 L7.5,3 L0,6 z" fill="#5E6C84"/></marker>
+            <marker id="aGreen" markerWidth="10" markerHeight="10" refX="7.5" refY="3" orient="auto"><path d="M0,0 L7.5,3 L0,6 z" fill="#138B7C"/></marker>
+            <marker id="aRed" markerWidth="10" markerHeight="10" refX="7.5" refY="3" orient="auto"><path d="M0,0 L7.5,3 L0,6 z" fill="#DE350B"/></marker>
+            <marker id="aBlue" markerWidth="11" markerHeight="11" refX="8" refY="3.3" orient="auto"><path d="M0,0 L8,3.3 L0,6.6 z" fill="#0052CC"/></marker>
+            <marker id="aGreenS" markerWidth="9" markerHeight="9" refX="2" refY="3" orient="auto"><path d="M7.5,0 L0,3 L7.5,6 z" fill="#138B7C"/></marker>
+            <linearGradient id="gNode" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F1F2F6"/></linearGradient>
+            <linearGradient id="gOS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F2F9FE"/><stop offset="1" stop-color="#E2F1FC"/></linearGradient>
+            <linearGradient id="gTeal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D6F5EE"/><stop offset="1" stop-color="#BDEEE2"/></linearGradient>
+            <linearGradient id="gPurple" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EEE6FB"/><stop offset="1" stop-color="#E2D5F7"/></linearGradient>
+            <linearGradient id="gAmber" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFEFD1"/><stop offset="1" stop-color="#FFE2B0"/></linearGradient>
+            <linearGradient id="gCoord" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2F8FD0"/><stop offset="1" stop-color="#1C6FB0"/></linearGradient>
+            <filter id="ds" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="1.5" stdDeviation="2.4" flood-color="#091E42" flood-opacity="0.16"/></filter>
+          </defs>
+
+          <!-- title -->
+          <text x="700" y="30" text-anchor="middle" font-size="20" font-weight="700" fill="#091E42">fluent-bit → OpenSearch 로그 파이프라인 · 흐름과 상호작용</text>
+          <text x="700" y="52" text-anchor="middle" font-size="12.5" fill="#6B778C">200노드 · 일 수백 GB · master+coord+data 일체형 5노드 OpenSearch</text>
+
+          <!-- ============ NODE (per-node ×200) ============ -->
+          <rect x="22" y="76" width="846" height="612" rx="14" fill="url(#gNode)" stroke="#5E6C84" stroke-width="1.6" stroke-dasharray="2,0" filter="url(#ds)"/>
+          <rect x="40" y="64" width="150" height="26" rx="13" fill="#5E6C84"/><text x="115" y="82" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">PER-NODE ×200</text>
+
+          <!-- workloads -->
+          <text x="120" y="120" text-anchor="middle" font-size="12" font-weight="600" fill="#42526E">Workloads (Pods)</text>
+          <g font-size="11" filter="url(#ds)">
+            <rect x="44" y="132" width="150" height="40" rx="7" fill="#FFEBE6" stroke="#DE350B"/><text x="56" y="151" font-weight="700" fill="#172B4D">Spark</text><text x="56" y="165" font-size="9.5" fill="#6B778C">executor stdout/stderr</text>
+            <rect x="44" y="178" width="150" height="40" rx="7" fill="#FFF0E6" stroke="#D9730D"/><text x="56" y="197" font-weight="700" fill="#172B4D">Trino</text><text x="56" y="211" font-size="9.5" fill="#6B778C">JVM 로그</text>
+            <rect x="44" y="224" width="150" height="40" rx="7" fill="#E6FCFA" stroke="#138B7C"/><text x="56" y="243" font-weight="700" fill="#172B4D">Airflow</text><text x="56" y="257" font-size="9.5" fill="#6B778C">python traceback</text>
+            <rect x="44" y="270" width="150" height="40" rx="7" fill="#DEEBFF" stroke="#2D6BB8"/><text x="56" y="289" font-weight="700" fill="#172B4D">Postgres</text><text x="56" y="303" font-size="9.5" fill="#6B778C">multiline</text>
+            <rect x="44" y="316" width="150" height="40" rx="7" fill="#EAE6FF" stroke="#5243AA"/><text x="56" y="335" font-weight="700" fill="#172B4D">Monitoring</text><text x="56" y="349" font-size="9.5" fill="#6B778C">klog/JSON</text>
+          </g>
+
+          <!-- CRI log stack -->
+          <g filter="url(#ds)">
+            <rect x="232" y="214" width="96" height="118" rx="6" fill="#E1E4EA" stroke="#6B778C"/>
+            <rect x="226" y="208" width="96" height="118" rx="6" fill="#EBECF0" stroke="#6B778C"/>
+            <rect x="220" y="202" width="96" height="118" rx="6" fill="#F4F5F7" stroke="#6B778C"/>
+          </g>
+          <text x="268" y="252" text-anchor="middle" font-size="10.5" fill="#42526E">/var/log/</text>
+          <text x="268" y="268" text-anchor="middle" font-size="10.5" fill="#42526E">containers</text>
+          <text x="268" y="284" text-anchor="middle" font-size="10.5" font-weight="700" fill="#172B4D">*.log (CRI)</text>
+
+          <!-- arrows workloads -> CRI -->
+          <g stroke="#5E6C84" stroke-width="1.6" fill="none" marker-end="url(#aG)" opacity="0.85">
+            <path d="M194,152 C210,160 210,250 218,256"/>
+            <path d="M194,198 C208,205 210,255 218,262"/>
+            <path d="M194,244 L218,262"/>
+            <path d="M194,290 C208,285 210,272 218,268"/>
+            <path d="M194,336 C210,326 210,285 218,274"/>
+          </g>
+
+          <!-- fluent-bit subsystem -->
+          <rect x="372" y="120" width="424" height="500" rx="12" fill="#FFFFFF" stroke="#5E6C84" stroke-width="1.6" stroke-dasharray="7,6" filter="url(#ds)"/>
+          <text x="584" y="140" text-anchor="middle" font-size="13" font-weight="700" fill="#5E6C84">fluent-bit (DaemonSet pod)</text>
+
+          <!-- INPUT -->
+          <rect x="392" y="152" width="300" height="52" rx="8" fill="url(#gTeal)" stroke="#138B7C" stroke-width="1.6" filter="url(#ds)"/>
+          <text x="408" y="174" font-size="12" font-weight="700" fill="#0E5F54">INPUT · tail</text>
+          <text x="408" y="191" font-size="10" fill="#42526E">CRI multiline 재조립 · offset DB · storage.type filesystem</text>
+
+          <!-- FS buffer cylinder -->
+          <g filter="url(#ds)">
+            <path d="M704,158 a36,9 0 0 1 72,0 v54 a36,9 0 0 1 -72,0 z" fill="url(#gTeal)" stroke="#138B7C" stroke-width="1.6"/>
+            <ellipse cx="740" cy="158" rx="36" ry="9" fill="#EAFBF6" stroke="#138B7C" stroke-width="1.6"/>
+          </g>
+          <text x="740" y="186" text-anchor="middle" font-size="10" font-weight="700" fill="#0E5F54">FS Buffer</text>
+          <text x="740" y="200" text-anchor="middle" font-size="8.5" fill="#42526E">flb-storage</text>
+          <g stroke="#138B7C" stroke-width="1.6" fill="none">
+            <path d="M692,170 L702,170" marker-end="url(#aGreen)"/>
+            <path d="M702,192 L692,192" marker-end="url(#aGreen)"/>
+          </g>
+          <text x="660" y="146" text-anchor="middle" font-size="8.5" fill="#138B7C">spill / drain</text>
+
+          <!-- FILTER a kubernetes -->
+          <rect x="392" y="224" width="300" height="48" rx="8" fill="url(#gPurple)" stroke="#7A52C4" stroke-width="1.6" filter="url(#ds)"/>
+          <text x="408" y="244" font-size="12" font-weight="700" fill="#4F378A">FILTER a · kubernetes (enrich)</text>
+          <text x="408" y="260" font-size="9.5" fill="#42526E">mergeLog · keepLog off · k8sLoggingParser off</text>
+
+          <!-- kubelet + apiserver ghost -->
+          <rect x="708" y="226" width="78" height="44" rx="7" fill="#F4F5F7" stroke="#2D6BB8" stroke-width="1.6" filter="url(#ds)"/>
+          <text x="747" y="245" text-anchor="middle" font-size="10" font-weight="700" fill="#2D6BB8">kubelet</text>
+          <text x="747" y="259" text-anchor="middle" font-size="9" fill="#42526E">:10250</text>
+          <g stroke="#138B7C" stroke-width="1.8" fill="none"><path d="M692,242 L706,242" marker-end="url(#aGreen)"/><path d="M706,254 L692,254" marker-start="url(#aGreenS)"/></g>
+          <text x="700" y="290" text-anchor="middle" font-size="9" font-weight="700" fill="#138B7C">② metadata (local)</text>
+          <rect x="704" y="296" width="86" height="26" rx="5" fill="#FFFFFF" stroke="#C1C7D0" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.7"/>
+          <text x="747" y="313" text-anchor="middle" font-size="8.5" fill="#97A0AF">kube-apiserver</text>
+          <path d="M692,266 L702,300" stroke="#DE350B" stroke-width="1.3" stroke-dasharray="4,3" fill="none" opacity="0.6"/>
+          <text x="664" y="312" font-size="8.5" font-weight="700" fill="#DE350B">✗ offloaded</text>
+
+          <!-- FILTER b/c/d -->
+          <rect x="392" y="288" width="300" height="40" rx="8" fill="url(#gPurple)" stroke="#7A52C4" stroke-width="1.6" filter="url(#ds)"/>
+          <text x="408" y="313" font-size="11.5" font-weight="600" fill="#4F378A">FILTER b · multiline <tspan fill="#42526E" font-weight="400" font-size="9.5">(java/python 스택트레이스)</tspan></text>
+          <rect x="392" y="338" width="300" height="40" rx="8" fill="url(#gPurple)" stroke="#7A52C4" stroke-width="1.6" filter="url(#ds)"/>
+          <text x="408" y="363" font-size="11.5" font-weight="600" fill="#4F378A">FILTER c · throttle <tspan fill="#42526E" font-weight="400" font-size="9.5">(Spark 폭주 캡 · 드롭)</tspan></text>
+          <rect x="392" y="388" width="300" height="40" rx="8" fill="url(#gPurple)" stroke="#7A52C4" stroke-width="1.6" filter="url(#ds)"/>
+          <text x="408" y="413" font-size="11.5" font-weight="600" fill="#4F378A">FILTER d · trim <tspan fill="#42526E" font-weight="400" font-size="9.5">(노이즈/고용량 필드 드롭)</tspan></text>
+
+          <!-- OUTPUT -->
+          <rect x="392" y="442" width="300" height="54" rx="8" fill="url(#gAmber)" stroke="#D9962A" stroke-width="1.6" filter="url(#ds)"/>
+          <text x="408" y="464" font-size="12" font-weight="700" fill="#8A5A12">OUTPUT · opensearch</text>
+          <text x="408" y="481" font-size="9.5" fill="#42526E">bulk · generateID · suppress_type_name · logstash 일배치</text>
+
+          <!-- internal vertical arrows -->
+          <g stroke="#5E6C84" stroke-width="1.8" fill="none" marker-end="url(#aG)">
+            <path d="M328,261 L388,200"/>
+            <path d="M542,204 L542,222"/>
+            <path d="M542,272 L542,286"/>
+            <path d="M542,328 L542,336"/>
+            <path d="M542,378 L542,386"/>
+            <path d="M542,428 L542,440"/>
+          </g>
+
+          <!-- backpressure feedback -->
+          <path d="M392,470 C352,470 352,180 388,178" stroke="#DE350B" stroke-width="1.8" fill="none" stroke-dasharray="6,5" marker-end="url(#aRed)"/>
+          <text x="360" y="330" font-size="9" font-weight="700" fill="#DE350B" transform="rotate(-90 360 330)">backpressure: 429/timeout → retry → buffer → input pause</text>
+
+          <!-- numbered optimization badges -->
+          <g font-size="11" font-weight="700">
+            <circle cx="778" cy="150" r="11" fill="#138B7C"/><text x="778" y="154" text-anchor="middle" fill="#fff">1</text>
+            <circle cx="700" cy="226" r="11" fill="#138B7C"/><text x="700" y="230" text-anchor="middle" fill="#fff">2</text>
+            <circle cx="380" cy="308" r="11" fill="#7A52C4"/><text x="380" y="312" text-anchor="middle" fill="#fff">3</text>
+            <circle cx="380" cy="408" r="11" fill="#7A52C4"/><text x="380" y="412" text-anchor="middle" fill="#fff">4</text>
+            <circle cx="380" cy="469" r="11" fill="#D9962A"/><text x="380" y="473" text-anchor="middle" fill="#fff">5</text>
+          </g>
+
+          <!-- ============ bulk to OpenSearch (×200) ============ -->
+          <g fill="none">
+            <path d="M700,490 C820,500 850,250 912,196" stroke="#C7D6E8" stroke-width="6" opacity="0.5"/>
+            <path d="M698,478 C820,488 850,235 912,182" stroke="#C7D6E8" stroke-width="6" opacity="0.7"/>
+            <path d="M694,466 C820,476 850,220 910,168" stroke="#0052CC" stroke-width="2.4" marker-end="url(#aBlue)"/>
+          </g>
+          <text x="820" y="430" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0052CC">bulk index ×200 nodes</text>
+          <text x="820" y="446" text-anchor="middle" font-size="9" fill="#6B778C">generateID로 재시도 중복 방지 ⑤</text>
+
+          <!-- ============ OPENSEARCH CLUSTER ============ -->
+          <rect x="912" y="92" width="466" height="612" rx="14" fill="url(#gOS)" stroke="#2F8FD0" stroke-width="1.6" filter="url(#ds)"/>
+          <text x="1145" y="84" text-anchor="middle" font-size="13" font-weight="700" fill="#1C6FB0">OpenSearch 5-node cluster · master+coord+data 일체형</text>
+
+          <!-- coordinating layer -->
+          <rect x="932" y="136" width="426" height="46" rx="9" fill="url(#gCoord)" stroke="#1C6FB0" filter="url(#ds)"/>
+          <text x="1145" y="159" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Coordinating layer — bulk 수신 · 문서 라우팅</text>
+          <text x="1145" y="174" text-anchor="middle" font-size="9" fill="#D6EAF8">앞단에서 받아 각 data 노드 샤드로 분산 (write pool 완화)</text>
+
+          <!-- fan-out arrows coord -> nodes -->
+          <g stroke="#2F8FD0" stroke-width="1.5" fill="none" marker-end="url(#aG)" opacity="0.55">
+            <path d="M1000,182 L1000,206"/><path d="M1145,182 L1145,206"/><path d="M1290,182 L1290,206"/>
+            <path d="M1060,182 L1010,290"/><path d="M1230,182 L1280,290"/>
+          </g>
+          <text x="1145" y="197" text-anchor="middle" font-size="8.5" fill="#1C6FB0">fan-out to data shards</text>
+
+          <!-- 5 node cards (M/C/D + shards) -->
+          <!-- node template helper drawn inline -->
+          <g font-size="10">
+            <!-- node 1 -->
+            <rect x="932" y="208" width="426" height="74" rx="8" fill="#FFFFFF" stroke="#2F8FD0" stroke-width="1.4" filter="url(#ds)"/>
+            <text x="948" y="228" font-weight="700" fill="#172B4D">os-node-1</text>
+            <rect x="1022" y="216" width="20" height="16" rx="3" fill="#FF7452"/><text x="1032" y="228" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">M</text>
+            <rect x="1046" y="216" width="20" height="16" rx="3" fill="#2F8FD0"/><text x="1056" y="228" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">C</text>
+            <rect x="1070" y="216" width="20" height="16" rx="3" fill="#36B37E"/><text x="1080" y="228" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">D</text>
+            <text x="1342" y="228" text-anchor="end" font-size="9" fill="#6B778C">96c · 1TB · NVMe</text>
+            <g>
+              <rect x="948" y="244" width="22" height="22" rx="3" fill="#36B37E"/><text x="959" y="259" text-anchor="middle" font-size="9" fill="#fff">P0</text>
+              <rect x="976" y="244" width="22" height="22" rx="3" fill="#FFFFFF" stroke="#36B37E"/><text x="987" y="259" text-anchor="middle" font-size="9" fill="#36B37E">R4</text>
+              <text x="1012" y="260" font-size="9" fill="#6B778C">… k8s-2026.06.18</text>
+            </g>
+            <!-- node 2 -->
+            <rect x="932" y="294" width="426" height="74" rx="8" fill="#FFFFFF" stroke="#2F8FD0" stroke-width="1.4" filter="url(#ds)"/>
+            <text x="948" y="314" font-weight="700" fill="#172B4D">os-node-2</text>
+            <rect x="1022" y="302" width="20" height="16" rx="3" fill="#C1C7D0"/><text x="1032" y="314" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">M</text>
+            <rect x="1046" y="302" width="20" height="16" rx="3" fill="#2F8FD0"/><text x="1056" y="314" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">C</text>
+            <rect x="1070" y="302" width="20" height="16" rx="3" fill="#36B37E"/><text x="1080" y="314" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">D</text>
+            <text x="1342" y="314" text-anchor="end" font-size="9" fill="#6B778C">96c · 1TB · NVMe</text>
+            <g>
+              <rect x="948" y="330" width="22" height="22" rx="3" fill="#36B37E"/><text x="959" y="345" text-anchor="middle" font-size="9" fill="#fff">P1</text>
+              <rect x="976" y="330" width="22" height="22" rx="3" fill="#FFFFFF" stroke="#36B37E"/><text x="987" y="345" text-anchor="middle" font-size="9" fill="#36B37E">R0</text>
+            </g>
+            <!-- node 3 -->
+            <rect x="932" y="380" width="426" height="74" rx="8" fill="#FFFFFF" stroke="#2F8FD0" stroke-width="1.4" filter="url(#ds)"/>
+            <text x="948" y="400" font-weight="700" fill="#172B4D">os-node-3</text>
+            <rect x="1022" y="388" width="20" height="16" rx="3" fill="#C1C7D0"/><text x="1032" y="400" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">M</text>
+            <rect x="1046" y="388" width="20" height="16" rx="3" fill="#2F8FD0"/><text x="1056" y="400" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">C</text>
+            <rect x="1070" y="388" width="20" height="16" rx="3" fill="#36B37E"/><text x="1080" y="400" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">D</text>
+            <text x="1342" y="400" text-anchor="end" font-size="9" fill="#6B778C">96c · 1TB · NVMe</text>
+            <g>
+              <rect x="948" y="416" width="22" height="22" rx="3" fill="#36B37E"/><text x="959" y="431" text-anchor="middle" font-size="9" fill="#fff">P2</text>
+              <rect x="976" y="416" width="22" height="22" rx="3" fill="#FFFFFF" stroke="#36B37E"/><text x="987" y="431" text-anchor="middle" font-size="9" fill="#36B37E">R1</text>
+            </g>
+            <!-- node 4 -->
+            <rect x="932" y="466" width="426" height="74" rx="8" fill="#FFFFFF" stroke="#2F8FD0" stroke-width="1.4" filter="url(#ds)"/>
+            <text x="948" y="486" font-weight="700" fill="#172B4D">os-node-4</text>
+            <rect x="1022" y="474" width="20" height="16" rx="3" fill="#C1C7D0"/><text x="1032" y="486" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">M</text>
+            <rect x="1046" y="474" width="20" height="16" rx="3" fill="#2F8FD0"/><text x="1056" y="486" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">C</text>
+            <rect x="1070" y="474" width="20" height="16" rx="3" fill="#36B37E"/><text x="1080" y="486" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">D</text>
+            <text x="1342" y="486" text-anchor="end" font-size="9" fill="#6B778C">96c · 1TB · NVMe</text>
+            <g>
+              <rect x="948" y="502" width="22" height="22" rx="3" fill="#36B37E"/><text x="959" y="517" text-anchor="middle" font-size="9" fill="#fff">P3</text>
+              <rect x="976" y="502" width="22" height="22" rx="3" fill="#FFFFFF" stroke="#36B37E"/><text x="987" y="517" text-anchor="middle" font-size="9" fill="#36B37E">R2</text>
+            </g>
+            <!-- node 5 -->
+            <rect x="932" y="552" width="426" height="74" rx="8" fill="#FFFFFF" stroke="#2F8FD0" stroke-width="1.4" filter="url(#ds)"/>
+            <text x="948" y="572" font-weight="700" fill="#172B4D">os-node-5</text>
+            <rect x="1022" y="560" width="20" height="16" rx="3" fill="#C1C7D0"/><text x="1032" y="572" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">M</text>
+            <rect x="1046" y="560" width="20" height="16" rx="3" fill="#2F8FD0"/><text x="1056" y="572" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">C</text>
+            <rect x="1070" y="560" width="20" height="16" rx="3" fill="#36B37E"/><text x="1080" y="572" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">D</text>
+            <text x="1342" y="572" text-anchor="end" font-size="9" fill="#6B778C">96c · 1TB · NVMe</text>
+            <g>
+              <rect x="948" y="588" width="22" height="22" rx="3" fill="#36B37E"/><text x="959" y="603" text-anchor="middle" font-size="9" fill="#fff">P4</text>
+              <rect x="976" y="588" width="22" height="22" rx="3" fill="#FFFFFF" stroke="#36B37E"/><text x="987" y="603" text-anchor="middle" font-size="9" fill="#36B37E">R3</text>
+            </g>
+          </g>
+
+          <!-- index + shard legend -->
+          <rect x="932" y="638" width="426" height="50" rx="8" fill="#F2F9FE" stroke="#2F8FD0" stroke-width="1.2"/>
+          <text x="948" y="658" font-size="10.5" font-weight="700" fill="#1C6FB0">Index: k8s-YYYY.MM.DD · primaries 5 · replica 1 · ISM rollover</text>
+          <rect x="948" y="666" width="14" height="14" rx="2" fill="#36B37E"/><text x="968" y="677" font-size="9.5" fill="#42526E">Primary</text>
+          <rect x="1024" y="666" width="14" height="14" rx="2" fill="#FFFFFF" stroke="#36B37E"/><text x="1044" y="677" font-size="9.5" fill="#42526E">Replica</text>
+          <rect x="1110" y="666" width="14" height="14" rx="2" fill="#FF7452"/><text x="1130" y="677" font-size="9.5" fill="#42526E">Master</text>
+          <rect x="1186" y="666" width="14" height="14" rx="2" fill="#2F8FD0"/><text x="1206" y="677" font-size="9.5" fill="#42526E">Coord</text>
+
+          <!-- ============ BOTTOM LEGEND / OPTIMIZATIONS ============ -->
+          <rect x="22" y="712" width="1356" height="120" rx="12" fill="#FFFBF0" stroke="#C9A227" stroke-width="1.3"/>
+          <text x="44" y="738" font-size="13" font-weight="700" fill="#5F4B00">핵심 최적화 — 어디서 작동하는가</text>
+          <g font-size="11.5" fill="#5F4B00">
+            <circle cx="50" cy="762" r="10" fill="#138B7C"/><text x="50" y="766" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">1</text><text x="68" y="766">filesystem 버퍼 — 버스트를 디스크로 흡수(역압·유실 방지)</text>
+            <circle cx="50" cy="788" r="10" fill="#138B7C"/><text x="50" y="792" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">2</text><text x="68" y="792">useKubelet — 메타조회 apiserver→로컬 kubelet(200노드 부하 소거)</text>
+            <circle cx="50" cy="814" r="10" fill="#7A52C4"/><text x="50" y="818" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">3</text><text x="68" y="818">multiline — java/python 스택트레이스를 1 doc로(폭증 차단)</text>
+            <circle cx="740" cy="762" r="10" fill="#7A52C4"/><text x="740" y="766" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">4</text><text x="758" y="766">trim/throttle — 노이즈·고용량 필드 제거(총량↓·샤드 둔화)</text>
+            <circle cx="740" cy="788" r="10" fill="#D9962A"/><text x="740" y="792" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">5</text><text x="758" y="792">generateID — 타임아웃 재시도 시 중복 색인 방지(멱등)</text>
+            <text x="758" y="818" fill="#DE350B" font-weight="700">— — backpressure(붉은 점선): OpenSearch 포화 → 역압이 버퍼로 흡수됨</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <h2>2. 흐름 요약 (좌 → 우)</h2>
+    <table>
+      <tr><th>구간</th><th>상호작용</th><th>핵심</th></tr>
+      <tr><td>Workloads → CRI 로그</td><td>각 Pod stdout/stderr → <code>/var/log/containers/*.log</code></td><td>CRI 포맷(partial 라인)</td></tr>
+      <tr><td>CRI → INPUT(tail)</td><td>tail + <b>filesystem 버퍼</b>로 흡수, CRI multiline 재조립</td><td>① 버스트 흡수</td></tr>
+      <tr><td>kubernetes 필터 ⇄ kubelet</td><td><b>로컬 kubelet :10250</b>에서 메타 조회(apiserver 우회)</td><td>② apiserver 부하 소거</td></tr>
+      <tr><td>multiline/throttle/trim</td><td>스택트레이스 그룹화 · 폭주 캡 · 노이즈/필드 드롭</td><td>③④ doc·총량 감소</td></tr>
+      <tr><td>OUTPUT → Coord</td><td>bulk index(<b>generateID</b>) ×200노드 → coordinating layer 수신</td><td>⑤ 멱등</td></tr>
+      <tr><td>Coord → Data 샤드</td><td>coord가 문서를 각 data 노드 primary/replica 샤드로 라우팅</td><td>write pool 분산</td></tr>
+      <tr><td>역압(backpressure)</td><td>포화 시 429/timeout → 재시도 → 버퍼 적재 → input pause</td><td>유실 대신 흡수</td></tr>
+    </table>
+
+    <h2>3. 주의 / 함정 (실측 기반)</h2>
+    <div class="panel warn"><span class="ic">!</span><span><b>Buffer_Size ≠ 배치/호출 크기</b> — OpenSearch <b>응답</b> 읽는 버퍼. 줄여도 호출 안 늘고, 너무 작으면 <code>could not flush</code>. 크게/<code>False</code> 권장.</span></div>
+    <div class="panel warn"><span class="ic">!</span><span><b>keepLog:false 사각지대</b> — JSON 로그가 <code>log</code>를 잃어 <code>log:error</code> 검색서 누락 → 에러탐지를 <code>msg</code>/구조화 필드까지 확장.</span></div>
+    <div class="panel note"><span class="ic">i</span><span><b>mandatory 필터에 level/severity 금지</b> — 구조화 로그에만 존재 → 평문(klog/postgres)이 0건으로 사라짐.</span></div>
+
+    <div class="files">
+      📎 <b>첨부 / 가져오기 파일</b><br>
+      • <code>fluent-bit-pipeline.gliffy</code> — Gliffy Import용 (이 다이어그램)<br>
+      • <code>fluent-bit-optimization.confluence.md</code> — 문서 본문(붙여넣기용)<br>
+      • <code>fluent-bit-pipeline-preview.html</code> — 본 렌더 프리뷰
+    </div>
+    <p><em>출처: fluent-bit container log pipeline 설계 논의 · airgap-obs-testbed · 2026-06-18</em></p>
+  </div>
+</body>
+</html>
