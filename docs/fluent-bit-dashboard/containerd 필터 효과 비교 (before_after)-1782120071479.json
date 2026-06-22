@@ -1,0 +1,1285 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "ClusterFilter kubernetes-zz-containerd의 정제 효과를 OpenSearch 문서로 before/after 비교.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": 2,
+  "links": [
+    {
+      "icon": "external link",
+      "targetBlank": false,
+      "title": "fluent-bit 수집 메트릭 (Prometheus)",
+      "type": "link",
+      "url": "/d/fluentbit-collection?${__url_time_range}"
+    }
+  ],
+  "panels": [
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "**데이터 출처**: OpenSearch `kubernetes-*`(datasource OpenSearch-logs). ClusterFilter `kubernetes-zz-containerd`가 추가한 마커 `containerd_filtered`로 필터 통과 문서를 식별한다.\n\n- **after(필터 통과)** = `containerd_filtered:true` — grep `log \\S`(빈줄 제거) + grep Exclude(containerd 내부 노이즈)를 통과해 저장된 문서.\n- **before(필터 이전)** = `NOT containerd_filtered:true` — 필터 배포 이전에 들어온 문서. 시간 범위를 필터 배포 시점 전후로 잡아 비교한다.\n- `logtag`(=cri_logtag) P=partial / F=full, `log_source`, `stream` 분포로 정제 효과 확인.\n\n**드릴다운**: 표/막대의 namespace·container를 클릭하면 K8s 로그 상세(k8slogs2-l2)로 이동, 상단 링크로 [fluentbit-collection](/d/fluentbit-collection) 수집 메트릭으로 이동.",
+        "mode": "markdown"
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "title": "containerd 필터 효과 비교 (before / after)",
+      "type": "text"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 2,
+      "panels": [],
+      "title": "개요 — 필터 통과(after) vs 전체",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 6
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "9",
+              "settings": {
+                "interval": "1y",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "query": "containerd_filtered:true",
+          "queryType": "lucene",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "after — 필터 통과 문서",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "orange",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 6
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "9",
+              "settings": {
+                "interval": "1y",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "query": "NOT containerd_filtered:true",
+          "queryType": "lucene",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "before — 마커 없는 문서",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 6
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "9",
+              "settings": {
+                "interval": "1y",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "query": "*",
+          "queryType": "lucene",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "전체 kubernetes 문서",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "purple",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 6
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "9",
+              "settings": {
+                "interval": "1y",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "query": "logtag.keyword:P",
+          "queryType": "lucene",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "partial(P) 조각 문서",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "id": 7,
+      "panels": [],
+      "title": "CRI 메타 분포 (logtag / log_source / stream)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 11
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "field": "logtag.keyword",
+              "id": "8",
+              "settings": {
+                "min_doc_count": "1",
+                "order": "desc",
+                "orderBy": "_count",
+                "size": "5"
+              },
+              "type": "terms"
+            }
+          ],
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "query": "*",
+          "queryType": "lucene",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "logtag 분포 (F=full / P=partial)",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 11
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "field": "log_source.keyword",
+              "id": "8",
+              "settings": {
+                "min_doc_count": "1",
+                "order": "desc",
+                "orderBy": "_count",
+                "size": "10"
+              },
+              "type": "terms"
+            }
+          ],
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "query": "*",
+          "queryType": "lucene",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "log_source 분포",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 11
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "field": "stream.keyword",
+              "id": "8",
+              "settings": {
+                "min_doc_count": "1",
+                "order": "desc",
+                "orderBy": "_count",
+                "size": "5"
+              },
+              "type": "terms"
+            }
+          ],
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "query": "*",
+          "queryType": "lucene",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "stream 분포 (stdout / stderr)",
+      "type": "piechart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "id": 11,
+      "panels": [],
+      "title": "after vs before 추이 비교",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "필터 배포 시점에 after 곡선이 켜지고 before가 0으로 수렴하면 적용 성공.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "9",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0"
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "query": "containerd_filtered:true",
+          "queryType": "lucene",
+          "refId": "A",
+          "timeField": "@timestamp"
+        },
+        {
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "9",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0"
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "query": "NOT containerd_filtered:true",
+          "queryType": "lucene",
+          "refId": "B",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "문서 유입 추이 — after(필터 통과) vs before",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "id": 13,
+      "panels": [],
+      "title": "문서 볼륨 — 네임스페이스 / 컨테이너 (드릴다운)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "links": [
+            {
+              "title": "K8s 로그 상세(L2)로 드릴다운",
+              "url": "/d/k8slogs2-l2?var-namespace=${__data.fields[\"kubernetes.namespace_name.keyword\"]}&${__url_time_range}"
+            }
+          ],
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 29
+      },
+      "id": 14,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "field": "kubernetes.namespace_name.keyword",
+              "id": "8",
+              "settings": {
+                "min_doc_count": "1",
+                "order": "desc",
+                "orderBy": "_count",
+                "size": "20"
+              },
+              "type": "terms"
+            }
+          ],
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            },
+            {
+              "field": "kubernetes.container_name.keyword",
+              "id": "2",
+              "type": "cardinality"
+            }
+          ],
+          "query": "*",
+          "queryType": "lucene",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "네임스페이스별 문서 수 (이름 클릭→L2)",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Count": "문서수",
+              "Unique Count": "컨테이너수",
+              "kubernetes.namespace_name.keyword": "namespace"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "links": [
+            {
+              "title": "L2",
+              "url": "/d/k8slogs2-l2?var-container=${__data.fields[\"kubernetes.container_name.keyword\"]}&${__url_time_range}"
+            }
+          ],
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 29
+      },
+      "id": 15,
+      "options": {
+        "displayMode": "gradient",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "field": "kubernetes.container_name.keyword",
+              "id": "8",
+              "settings": {
+                "min_doc_count": "1",
+                "order": "desc",
+                "orderBy": "_count",
+                "size": "15"
+              },
+              "type": "terms"
+            }
+          ],
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "query": "*",
+          "queryType": "lucene",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "Top 15 컨테이너 문서 수 (클릭→L2)",
+      "type": "bargauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 37
+      },
+      "id": 16,
+      "panels": [],
+      "title": "정제 효과 추정 + 노이즈 샘플",
+      "type": "row"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 38
+      },
+      "id": 17,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "OpenSearch에는 **저장된(=kept) 문서만** 남으므로 drop된 양은 직접 셀 수 없다. drop 실측치는 fluentbit-collection 대시보드의 `fluentbit_filter_drop_records_total` (filter dropped rps)로 본다. 여기서는 **kept 분포**(아래 표/차트)와 partial(P) 비율로 정제 품질을 간접 평가한다.\n\n오른쪽 로그는 grep Exclude 대상 패턴(`Start streaming server` 등)을 **after에서 검색**한 것 — 0건이면 노이즈 제외가 정상 동작.",
+        "mode": "markdown"
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "title": "drop 추정 안내",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 8,
+        "y": 38
+      },
+      "id": 18,
+      "options": {
+        "dedupStrategy": "none",
+        "enableInfiniteScrolling": false,
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0"
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "luceneQueryType": "logs",
+          "metrics": [
+            {
+              "id": "1",
+              "settings": {
+                "limit": "500"
+              },
+              "type": "logs"
+            }
+          ],
+          "query": "containerd_filtered:true AND log:(\"Start streaming server\" OR \"Finish piping\" OR \"superfluous response\")",
+          "queryType": "lucene",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "Exclude 대상 노이즈 잔존 확인 (after에서 0건이어야 정상)",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      },
+      "id": 19,
+      "panels": [],
+      "title": "필터 통과 원본 로그 (after)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 47
+      },
+      "id": 20,
+      "options": {
+        "dedupStrategy": "none",
+        "enableInfiniteScrolling": false,
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0"
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "${datasource}"
+          },
+          "luceneQueryType": "logs",
+          "metrics": [
+            {
+              "id": "1",
+              "settings": {
+                "limit": "500"
+              },
+              "type": "logs"
+            }
+          ],
+          "query": "containerd_filtered:true",
+          "queryType": "lucene",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "title": "필터 통과 로그 원본 (containerd_filtered:true)",
+      "type": "logs"
+    }
+  ],
+  "preload": false,
+  "refresh": "",
+  "schemaVersion": 41,
+  "tags": [
+    "fluent-bit",
+    "logging",
+    "containerd",
+    "opensearch"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "OpenSearch-logs",
+          "value": "os-logs"
+        },
+        "label": "데이터소스",
+        "name": "datasource",
+        "options": [],
+        "query": "grafana-opensearch-datasource",
+        "refresh": 1,
+        "regex": "/^OpenSearch-logs$/",
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "Asia/Seoul",
+  "title": "containerd 필터 효과 비교 (before/after)",
+  "uid": "containerd-filter-compare",
+  "version": 1
+}
