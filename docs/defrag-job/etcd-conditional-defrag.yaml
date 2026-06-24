@@ -1,0 +1,128 @@
+# =============================================================================
+# etcd 조건부 defrag — 단일 적용 YAML 세트 (etcd-defrag 도구 / 전용 etcd 노드)
+# 정본 가이드: docs/confluence/etcd-conditional-defrag-job-tool.md
+#
+# 전제: etcd = k8s 비참여 전용 노드(kubespray etcd.service). Pod는 워커에서 돌고
+#       etcd 노드 IP:2379에 네트워크로 접속, 인증서는 Secret으로 주입.
+#
+# ── 적용 전 치환할 placeholder (클러스터별로 1회) ───────────────────────────────
+#   <NEXUS>           : Nexus docker 저장소 (예: nexus.example.com:8082/dataops)
+#   <CLUSTER>         : icdataops-dev | icdataops-prd
+#   <ETCD_ENDPOINTS>  : https://10.x.x.1:2379,https://10.x.x.2:2379,... (전 멤버)
+#   <SCHEDULE>        : dev "0 * * * *"(매시) | prd "0 */6 * * *"(6h)
+#   <CMD_TIMEOUT>     : dev 60s | prd 120s
+#   <ACTIVE_DEADLINE> : dev 1800 | prd 3600
+#   <ETCD_CIDR_x>     : etcd 노드 /32 (NetworkPolicy egress 허용 대상)
+#   QUOTA(8589934592=8Gi)는 dev 쿼터가 다르면 --etcd-storage-quota-bytes만 수정.
+#
+# ── Secret(인증서)은 이 파일에 없음 — 평문 커밋 금지. 아래로 별도 생성: ───────────
+#   etcd 노드에서 ca.pem / admin-<node>.pem / admin-<node>-key.pem 복사 후
+#   kubectl -n etcd-maintenance create secret generic etcd-client-certs \
+#     --from-file=ca.pem=ca.pem \
+#     --from-file=client.pem=admin-<node>.pem \
+#     --from-file=client-key.pem=admin-<node>-key.pem
+#   (GitOps면 SealedSecrets/ExternalSecrets로 암호화 보관)
+#
+# 적용: 대상 클러스터 kubeconfig로  kubectl apply -f etcd-conditional-defrag.yaml
+#       (Secret은 위 명령으로 먼저 생성)
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: etcd-maintenance
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: etcd-defrag
+  namespace: etcd-maintenance
+automountServiceAccountToken: false        # k8s API 미사용 → 토큰 비마운트(최소 권한)
+# NOTE: 이 Job은 etcd에만 직접 TLS로 붙고 k8s API를 호출하지 않으므로
+#       Role/RoleBinding이 불필요합니다. 자격증명은 오직 etcd-client-certs Secret.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: etcd-defrag-egress
+  namespace: etcd-maintenance
+spec:
+  podSelector:
+    matchLabels: { app: etcd-conditional-defrag }
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock: { cidr: <ETCD_CIDR_1> }   # 예: 10.10.20.11/32
+        - ipBlock: { cidr: <ETCD_CIDR_2> }
+        - ipBlock: { cidr: <ETCD_CIDR_3> }
+        # prd는 etcd 5대까지 추가(또는 etcd 서브넷 1개 CIDR로 대체)
+      ports:
+        - { protocol: TCP, port: 2379 }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: etcd-conditional-defrag
+  namespace: etcd-maintenance
+  labels: { app: etcd-conditional-defrag, cluster: <CLUSTER> }
+spec:
+  schedule: "<SCHEDULE>"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: <ACTIVE_DEADLINE>
+      template:
+        metadata:
+          labels: { app: etcd-conditional-defrag }
+        spec:
+          serviceAccountName: etcd-defrag
+          automountServiceAccountToken: false
+          restartPolicy: Never
+          securityContext:                   # restricted 준수 + Secret(0440) 그룹 읽기
+            runAsNonRoot: true
+            runAsUser: 65532                  # 이미지 기본 user와 일치(ko distroless)
+            runAsGroup: 65532
+            fsGroup: 65532
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: defrag
+              image: <NEXUS>/etcd-defrag:v0.41.0
+              # command 미지정 — 이미지 ENTRYPOINT(/ko-app/etcd-defrag) 사용
+              args:
+                - "--endpoints=<ETCD_ENDPOINTS>"
+                - "--cluster"
+                - "--cacert=/etc/etcd-certs/ca.pem"
+                - "--cert=/etc/etcd-certs/client.pem"
+                - "--key=/etc/etcd-certs/client-key.pem"
+                - "--etcd-storage-quota-bytes=8589934592"   # 8Gi — dbQuota 출처(필수!)
+                - "--defrag-rule=(dbSizeInUse*2 < dbSize && dbSize > dbQuota/2 && dbSizeInUse > 800*1024*1024) || dbSize > dbQuota*80/100"
+                - "--compaction=false"
+                - "--move-leader"
+                - "--wait-between-defrags=30s"
+                - "--auto-disalarm"
+                - "--command-timeout=<CMD_TIMEOUT>"
+                # 최초 검증 시 아래 한 줄 추가 → 평가만(실제 defrag 안 함):
+                # - "--dry-run"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              volumeMounts:
+                - { name: certs, mountPath: /etc/etcd-certs, readOnly: true }
+                - { name: tmp,   mountPath: /tmp }
+              resources:
+                requests: { cpu: "50m", memory: "64Mi" }
+                limits:   { cpu: "500m", memory: "256Mi" }
+          volumes:
+            - name: certs
+              secret:
+                secretName: etcd-client-certs
+                defaultMode: 0440
+            - name: tmp
+              emptyDir: {}
