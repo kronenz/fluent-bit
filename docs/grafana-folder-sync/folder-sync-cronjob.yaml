@@ -1,0 +1,186 @@
+# Grafana 폴더 기준 org 동기화 — org1 의 특정 폴더(+모든 중첩 하위폴더)를 대상 org 들에 동일 복제.
+#
+# 동작:
+#   1) org1 에서 SYNC_FOLDER 폴더를 찾고 하위 폴더 트리를 재귀 수집 (nested folders API)
+#   2) 트리 안의 대시보드 전수 조회 → 대상 org 에 같은 폴더 계층(uid/제목/부모 동일)을 만들고 upsert
+#   3) 내용이 같으면 skip (멱등 — Grafana version 불필요 증가 방지)
+#   4) VAR_DEFAULTS 가 있으면 org 별 변수 기본값(current)만 치환, 없으면 완전 동일 복제
+#
+# 수동 즉시 실행:
+#   kubectl -n monitoring create job folder-sync-now --from=cronjob/grafana-folder-sync
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-sync-auth
+  namespace: monitoring
+  labels: {app: grafana-folder-sync}
+type: Opaque
+stringData:
+  # Grafana server-admin 계정 (basic auth). org 전환(X-Grafana-Org-Id)이 필요하므로
+  # org 종속인 service account 토큰은 사용 불가 — 반드시 server-admin id/password.
+  # ⚠ obs 랩에 적용할 때는 password 를 해당 환경 값으로 바꿀 것.
+  username: admin
+  password: admin123!
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-folder-sync-script
+  namespace: monitoring
+  labels: {app: grafana-folder-sync}
+data:
+  sync.py: |
+    import base64, json, os, sys, urllib.parse, urllib.request, urllib.error
+
+    URL = os.environ["GRAFANA_URL"].rstrip("/")
+    AUTH = "Basic " + base64.b64encode(
+        f"{os.environ['GF_ADMIN_USER']}:{os.environ['GF_ADMIN_PASS']}".encode()).decode()
+    FOLDER = os.environ.get("SYNC_FOLDER", "platform")
+    ORGS = [int(x) for x in os.environ.get("TARGET_ORGS", "").split(",") if x.strip()]
+    # 예: {"2": {"namespace": ["dataops"]}} — org별 변수 current 치환. 비우면 완전 동일 복제.
+    VAR_DEFAULTS = json.loads(os.environ.get("VAR_DEFAULTS", "{}"))
+
+    def api(org, method, path, body=None):
+        req = urllib.request.Request(URL + path, method=method,
+            data=None if body is None else json.dumps(body).encode())
+        req.add_header("Authorization", AUTH)
+        req.add_header("Content-Type", "application/json")
+        req.add_header("X-Grafana-Org-Id", str(org))
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return r.status, json.loads(r.read() or b"{}")
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read() or b"{}")
+
+    def normalized(d):
+        d = dict(d)
+        for k in ("id", "version"):
+            d.pop(k, None)
+        return json.dumps(d, sort_keys=True)
+
+    assert ORGS, "TARGET_ORGS 비어있음"
+
+    # ---- 1) 루트 폴더 확인 + 하위 폴더 트리 BFS 수집 (부모 먼저 순서 보장) ----
+    code, tops = api(1, "GET", "/api/folders?limit=1000")
+    assert code == 200, f"org1 folders 조회 실패: {code}"
+    root = next((f for f in tops if f["title"] == FOLDER), None)
+    assert root, f"org1 에 '{FOLDER}' 폴더 없음 (최상위 기준)"
+
+    tree = [{"uid": root["uid"], "title": root["title"], "parentUid": None}]
+    queue = [root["uid"]]
+    while queue:
+        p = queue.pop(0)
+        code, children = api(1, "GET", f"/api/folders?parentUid={urllib.parse.quote(p)}&limit=1000")
+        if code != 200:
+            break  # nested folders 미지원 버전이면 루트만으로 동작
+        for c in children:
+            tree.append({"uid": c["uid"], "title": c["title"], "parentUid": p})
+            queue.append(c["uid"])
+    folder_uids = {f["uid"] for f in tree}
+
+    # ---- 2) 트리 안의 대시보드 전수 조회 ----
+    code, hits = api(1, "GET", "/api/search?type=dash-db&limit=5000")
+    assert code == 200, f"org1 search 실패: {code} {hits}"
+    src = [h for h in hits if h.get("folderUid") in folder_uids]
+    print(f"source: org1 '{FOLDER}' 트리 — 폴더 {len(tree)}개 / 대시보드 {len(src)}개 → orgs {ORGS}")
+
+    def ensure_tree(org):
+        """대상 org 에 같은 폴더 계층 보장 (부모 먼저). 이미 있으면 제목/부모를 맞춘다."""
+        for f in tree:
+            code, cur = api(org, "GET", "/api/folders/" + urllib.parse.quote(f["uid"]))
+            if code != 200:
+                body = {"uid": f["uid"], "title": f["title"]}
+                if f["parentUid"]:
+                    body["parentUid"] = f["parentUid"]
+                code, res = api(org, "POST", "/api/folders", body)
+                if code != 200:
+                    print(f"WARN org{org} folder '{f['title']}' 생성 실패: {code} {res}")
+                continue
+            if cur.get("title") != f["title"]:
+                api(org, "PUT", "/api/folders/" + f["uid"],
+                    {"title": f["title"], "overwrite": True})
+            if (cur.get("parentUid") or None) != f["parentUid"]:
+                api(org, "POST", f"/api/folders/{f['uid']}/move",
+                    {"parentUid": f["parentUid"]})
+
+    synced = skipped = failed = 0
+    for org in ORGS:
+        ensure_tree(org)
+
+    for h in src:
+        code, full = api(1, "GET", "/api/dashboards/uid/" + urllib.parse.quote(h["uid"]))
+        if code != 200:
+            print(f"FAIL get org1 {h['uid']}: {code}"); failed += 1; continue
+        dash = full["dashboard"]; dash.pop("id", None)
+        fuid = full["meta"].get("folderUid", "")
+
+        for org in ORGS:
+            d = json.loads(json.dumps(dash))
+            for var, cur in VAR_DEFAULTS.get(str(org), {}).items():
+                for v in d.get("templating", {}).get("list", []):
+                    if v.get("name") == var:
+                        v["current"] = {"selected": True, "text": cur, "value": cur}
+
+            code, cur = api(org, "GET", "/api/dashboards/uid/" + urllib.parse.quote(d["uid"]))
+            if code == 200 and cur.get("meta", {}).get("provisioned"):
+                print(f"SKIP org{org} {d['uid']}: provisioned(파일 관리) — API로 덮을 수 없음")
+                failed += 1; continue
+            if code == 200 and normalized(cur["dashboard"]) == normalized(d) \
+               and cur.get("meta", {}).get("folderUid", "") == fuid:
+                skipped += 1; continue
+
+            body = {"dashboard": d, "overwrite": True,
+                    "message": f"folder-sync from org1/{FOLDER}"}
+            if fuid:
+                body["folderUid"] = fuid
+            code, res = api(org, "POST", "/api/dashboards/db", body)
+            if code == 200:
+                synced += 1; print(f"org{org} {d['uid']}: synced")
+            else:
+                failed += 1; print(f"FAIL org{org} {d['uid']}: {code} {res}")
+
+    print(f"done: synced={synced} skipped={skipped} failed={failed}")
+    sys.exit(1 if failed else 0)
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: grafana-folder-sync
+  namespace: monitoring
+  labels: {app: grafana-folder-sync}
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels: {app: grafana-folder-sync}
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: sync
+              image: docker.io/library/python:3.12-alpine
+              command: ["python3", "/scripts/sync.py"]
+              env:
+                - name: GRAFANA_URL
+                  value: http://kps-grafana.monitoring.svc
+                - name: GF_ADMIN_USER
+                  valueFrom: {secretKeyRef: {name: grafana-sync-auth, key: username}}
+                - name: GF_ADMIN_PASS
+                  valueFrom: {secretKeyRef: {name: grafana-sync-auth, key: password}}
+                - name: SYNC_FOLDER
+                  value: "platform"          # org1 에서 동기화할 폴더 제목
+                - name: TARGET_ORGS
+                  value: "2,3,4,5,6"
+                - name: VAR_DEFAULTS
+                  value: "{}"                # 완전 동일 복제. org별 변수 치환 예시는 README 참고
+              volumeMounts:
+                - {name: script, mountPath: /scripts, readOnly: true}
+          volumes:
+            - name: script
+              configMap: {name: grafana-folder-sync-script}
