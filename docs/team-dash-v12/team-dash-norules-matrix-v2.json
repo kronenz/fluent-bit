@@ -1,0 +1,899 @@
+{
+  "uid": "team-dash-norules-matrix-v2",
+  "title": "[비교] 팀·서비스 자원 매트릭스 · 레코딩 룰 미사용 (v2)",
+  "tags": [
+    "team-dash"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 0,
+  "refresh": "30s",
+  "editable": true,
+  "description": "team-dash-matrix 의 룰 미사용 판. 값 동일, 쿼리·하드코딩 양이 다르다.",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "links": [
+    {
+      "type": "dashboards",
+      "title": "자원 현황",
+      "tags": [
+        "team-dash"
+      ],
+      "asDropdown": false,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    },
+    {
+      "type": "dashboards",
+      "title": "다른 시각화",
+      "tags": [
+        "team-dash-alt"
+      ],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    },
+    {
+      "type": "dashboards",
+      "title": "목업 재현",
+      "tags": [
+        "team-dash-mock"
+      ],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0
+      },
+      {
+        "name": "cluster",
+        "label": "Cluster",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "query": "label_values(yunikorn_queue_resource, cluster)",
+          "refId": "cluster"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "obs",
+          "value": "obs"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "marcusolsson-dynamictext-panel",
+      "title": "배분 · 사용 현황   —   원본 배분표 구조 그대로 · 열 = 서비스, 행 = 자원 항목",
+      "description": "레코딩 룰 미참조 판 — 계산은 인라인 PromQL, 메타데이터·계획값은 패널 JS 하드코딩. 값은 team-dash-matrix 와 동일해야 한다. 원본 배분표 값(Spark/Trino/Pod/보장)은 출처 메트릭이 없어 JS 상수다.",
+      "gridPos": {
+        "h": 29,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "labquota",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "labused",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "memquota",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"},\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "memused",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"},\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "pods",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"pods\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"},\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "overflow",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "clamp_min(\n  (# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))\n  - on (cluster, svc) group_left()\n  (# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n)),\n  0\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "limit",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"max\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "pendingv",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"pending\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "cap",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace(max by (cluster) (yunikorn_queue_resource{cluster=\"$cluster\", queue=\"root\", resource=\"vcore\", state=\"max\"} / 1000), \"svc\", \"root\", \"\", \"\")",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "s3",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (cluster, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(\n  max by (cluster, bucket) (minio_cluster_usage_buckets_total_bytes{cluster=\"$cluster\", bucket=~\"ic-.*\"}),\n  \"svc\", \"platform\", \"bucket\", \"ic-platform\"),\n  \"svc\", \"fdc\",      \"bucket\", \"ic-fdc\"),\n  \"svc\", \"fdc\",      \"bucket\", \"ic-lfdc\"),\n  \"svc\", \"tttm\",     \"bucket\", \"ic-tttm\"),\n  \"svc\", \"pluto\",    \"bucket\", \"ic-pluto\")\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "s3team",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace(sum(max by (bucket) (minio_cluster_usage_buckets_total_bytes{cluster=\"$cluster\", bucket=~\"ic-bmc|ic-ees|ic-ias|ic-mes|ic-nfa|ic-pnt|ic-sep|ic-smartbig|ic-tas|ic-tidx|ic-tsv|ic-wfbm|ic-wt\"})), \"svc\", \"smartbig\", \"\", \"\")",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        }
+      ],
+      "options": {
+        "content": "{{{matrix}}}",
+        "defaultContent": "데이터 없음 — 쿼리 결과가 비었거나 패널 JS 가 실행되지 않았습니다.\n\n이 문구조차 안 보이면 플러그인 문제일 가능성이 높습니다: marcusolsson-dynamictext-panel 은 6.2.0(Grafana >=11)을 쓸 것 — 6.2.3/6.3.0 은 Grafana >=12.3 을 요구해 12.x 에서 로드되지 않는다.",
+        "editors": [
+          "styles"
+        ],
+        "renderMode": "data",
+        "helpers": "\n/* queue:info 대용 — 출처 메트릭이 없어 배분표에서 옮겨 적은 값.\n   ⚠ 손으로 고치지 말 것: norules_lib.INFO(Python) 이 정본이고 여기는 생성물이다. */\nconst INFO = {\n  \"platform\": {\n    \"service\": \"PLATFORM\",\n    \"service_ko\": \"플랫폼 운영 관리\",\n    \"team\": \"공통 영역\",\n    \"ldap\": \"platform\",\n    \"ns_app\": \"app-platform\",\n    \"ns_sql\": \"sql-platform\",\n    \"sql_engine\": \"O\",\n    \"catalog\": \"all\",\n    \"bucket\": \"ic-platform\",\n    \"workload\": \"플랫폼 공유\"\n  },\n  \"fdc\": {\n    \"service\": \"FDC\",\n    \"service_ko\": \"FDC 서비스\",\n    \"team\": \"AI/Data Platform\",\n    \"ldap\": \"fdc\",\n    \"ns_app\": \"app-fdc\",\n    \"ns_sql\": \"-\",\n    \"sql_engine\": \"X\",\n    \"catalog\": \"\",\n    \"bucket\": \"fdc, ic-lfdc, ic-m…\",\n    \"workload\": \"lfd/fdc\"\n  },\n  \"smartbig\": {\n    \"service\": \"SMARTBIG\",\n    \"service_ko\": \"Smart Big 서비스\",\n    \"team\": \"품질 지능화\",\n    \"ldap\": \"smartbig\",\n    \"ns_app\": \"app-smartbig\",\n    \"ns_sql\": \"sql-smartbig\",\n    \"sql_engine\": \"O\",\n    \"catalog\": \"icberg, icnfa, smartbig, tas, pntchp\",\n    \"bucket\": \"smartbig, ic-ees, ic-s…\",\n    \"workload\": \"canal/oed/wfbm/ti…\"\n  },\n  \"yms\": {\n    \"service\": \"YMS\",\n    \"service_ko\": \"Smart YMS 서비스\",\n    \"team\": \"품질 지능화\",\n    \"ldap\": \"yms\",\n    \"ns_app\": \"app-yms\",\n    \"ns_sql\": \"-\",\n    \"sql_engine\": \"O\",\n    \"catalog\": \"(SMARTBIG 과 병합)\",\n    \"bucket\": \"ic-bmc, ic-wt, i…\",\n    \"workload\": \"omc/tsv/wt/pnt/tas…\"\n  },\n  \"tttm\": {\n    \"service\": \"TTTM\",\n    \"service_ko\": \"-\",\n    \"team\": \"EES/MDM/IPA\",\n    \"ldap\": \"tttm\",\n    \"ns_app\": \"app-tttm\",\n    \"ns_sql\": \"sql-tttm\",\n    \"sql_engine\": \"O\",\n    \"catalog\": \"icberg\",\n    \"bucket\": \"ic-tttm\",\n    \"workload\": \"tttm\"\n  },\n  \"pluto\": {\n    \"service\": \"PLUTO\",\n    \"service_ko\": \"-\",\n    \"team\": \"장비 지능화\",\n    \"ldap\": \"pluto\",\n    \"ns_app\": \"app-pluto\",\n    \"ns_sql\": \"sql-pluto\",\n    \"sql_engine\": \"O\",\n    \"catalog\": \"icberg\",\n    \"bucket\": \"ic-pluto\",\n    \"workload\": \"pluto\"\n  }\n};\n\n/* queue:plan_* 4종. 병합셀(fdc·yms 의 trino/pods)은 null 이어야 한다.\n   ⚠ 생성물 — norules_lib.PLAN 이 정본. */\nconst PLAN = {\n  \"platform\": {\n    \"spark\": 0,\n    \"trino\": 30,\n    \"pods\": 6,\n    \"guar\": 230\n  },\n  \"fdc\": {\n    \"spark\": 2900,\n    \"trino\": null,\n    \"pods\": null,\n    \"guar\": 2900\n  },\n  \"smartbig\": {\n    \"spark\": 1000,\n    \"trino\": 2350,\n    \"pods\": 80,\n    \"guar\": 3350\n  },\n  \"yms\": {\n    \"spark\": 1400,\n    \"trino\": null,\n    \"pods\": null,\n    \"guar\": 1400\n  },\n  \"tttm\": {\n    \"spark\": 100,\n    \"trino\": 590,\n    \"pods\": 20,\n    \"guar\": 690\n  },\n  \"pluto\": {\n    \"spark\": 1100,\n    \"trino\": 1170,\n    \"pods\": 40,\n    \"guar\": 2270\n  }\n};\n\nconst SRC = {\n  /* 하드코딩 — 출처 메트릭 없음 (INFO / PLAN / SHARED_POOL / DOC_RATIO) */\n  \"LDAP\":\"doc\", \"Bucket 구성\":\"doc\", \"SQL Engine\":\"doc\", \"Trino Catalog\":\"doc\",\n  \"Schedule Queue\":\"doc\", \"워크로드 분류\":\"doc\",\n  \"APACHE SPARK vCores\":\"doc\", \"Trino vCores\":\"doc\", \"Pod 수\":\"doc\",\n  \"보장자원 GUARANTEED\":\"doc\", \"공용자원\":\"doc\", \"비율\":\"doc\",\n  \"전체 비중\":\"doc\",            /* 문서 보장자원만으로 계산 → 입력이 전부 하드코딩 */\n  /* 원본 표에 행은 있으나 값이 비어 있는 항목 */\n  \"app 서비스\":\"na\", \"Trino 활용방안\":\"na\", \"Trino 리소스 제어\":\"na\",\n  /* PromQL 실측 */\n  \"한계\":\"live\", \"CPU 사용\":\"live\", \"대기\":\"live\", \"Memory 사용\":\"live\",\n  \"S3 사용\":\"live\", \"공용 차용\":\"live\", \"실행 파드\":\"live\",\n  \"상태\":\"live\",                /* 실측 사용 ÷ 실측 보장 — 문서 보장 기준이 아니다 */\n};\nconst SRC_LBL = {doc:\"문서\", live:\"실측\", na:\"미기재\"};\nfunction tagSrc(html){\n  return html.replace(/<tr([^>]*)><td class=\"(mx-lab[^\"]*)\">([\\s\\S]*?)<\\/td>/g,\n    function(m, attrs, cls, inner){\n      /* 라벨 키 = 단위 보조문구(.mx-u)를 뺀 순수 텍스트 */\n      const key = inner.replace(/<span class=\"mx-u\">[\\s\\S]*?<\\/span>/g, '')\n                       .replace(/<[^>]*>/g, '').trim();\n      const s = SRC[key];\n      if (!s) return m;   /* 미등록 라벨은 배지 없이 통과 — 누락이 눈에 띄도록 */\n      const a = attrs.indexOf('class=\"') >= 0\n        ? attrs.replace('class=\"', 'class=\"mx-r-' + s + ' ')\n        : attrs + ' class=\"mx-r-' + s + '\"';\n      return '<tr' + a + '><td class=\"' + cls + '\">'\n           + '<span class=\"src ' + s + '\">' + SRC_LBL[s] + '</span>' + inner + '</td>';\n    });\n}\nconst SRC_LEGEND = \"<div class=\\\"srcleg\\\"><span class=\\\"it\\\"><span class=\\\"src doc\\\">\\ubb38\\uc11c</span> <b>\\ud558\\ub4dc\\ucf54\\ub529</b> \\u2014 \\uc6d0\\ubcf8 \\ubc30\\ubd84\\ud45c(<code>team-dashboard.md</code>) \\uc804\\uc0ac\\uac12. \\ucd9c\\ucc98 \\uba54\\ud2b8\\ub9ad\\uc774 \\uc5c6\\uc5b4 \\uc0ac\\ub78c\\uc774 \\uc62e\\uaca8 \\uc801\\uc5c8\\ub2e4. \\uc870\\ud68c \\uc2dc\\uc810\\uacfc \\ubb34\\uad00\\ud558\\uac8c \\ud56d\\uc0c1 \\uac19\\uc740 \\uac12\\uc774\\uba70, \\uc2e4\\uc81c \\ud074\\ub7ec\\uc2a4\\ud130 \\uc124\\uc815\\uacfc \\uc5b4\\uae0b\\ub098 \\uc788\\uc5b4\\ub3c4 \\ud654\\uba74\\uc740 \\uadf8\\ub300\\ub85c\\ub2e4.</span><span class=\\\"it\\\"><span class=\\\"src live\\\">\\uc2e4\\uce21</span> <b>PromQL \\uc870\\ud68c\\uac12</b> \\u2014 <code>yunikorn_queue_resource</code> / <code>yunikorn_queue_app</code> / <code>minio_cluster_usage_buckets_total_bytes</code> \\ub97c \\ub300\\uc2dc\\ubcf4\\ub4dc \\uc2dc\\uac04\\ubc94\\uc704\\ub85c \\uc870\\ud68c\\ud574 \\uacc4\\uc0b0. <span class=\\\"src na\\\">\\ubbf8\\uae30\\uc7ac</span> \\ub294 \\uc6d0\\ubcf8 \\ud45c\\uc5d0 \\ud589\\ub9cc \\uc788\\uace0 \\uac12\\uc774 \\ube44\\uc5b4 \\uc788\\ub294 \\ud56d\\ubaa9\\uc774\\ub2e4.</span><span class=\\\"it\\\">\\u26a0 <b>\\ubb38\\uc11c \\ubcf4\\uc7a5\\uc790\\uc6d0\\uacfc \\uc2e4\\uce21 \\ubcf4\\uc7a5(guaranteed)\\uc740 \\uc11c\\ub85c \\ub2e4\\ub978 \\uc218\\ub2e4.</b> \\ubb38\\uc11c\\ub294 \\ubc30\\ubd84 \\uacc4\\ud68d(\\ud569 10,840 vCores), \\uc2e4\\uce21\\uc740 \\uc774 \\ub7a9 YuniKorn \\ud050\\uc5d0 \\uc2e4\\uc81c\\ub85c \\uac78\\ub9b0 \\uac12\\uc774\\ub2e4 \\u2014 \\uc0ac\\uc6a9\\ub960\\u00b7\\uc0c1\\ud0dc \\ud310\\uc815\\uc740 \\uc804\\ubd80 <b>\\uc2e4\\uce21</b> \\uae30\\uc900\\uc774\\ub2e4.</span></div>\";\n\n/* Business Text v6 실행 규약 (소스 실측):\n     - 이 코드는 new Function('context', code) 로 실행된다 → 변수명은 context.\n     - **반환값은 렌더에 쓰이지 않는다.** 실제 렌더는 content(Handlebars) 가 한다.\n       → 여기서는 handlebars helper 를 등록하고, content 에서 {{{matrix}}} 로 부른다.\n     - renderMode='data' 일 때 panelData.series 에 전 refId 프레임이 들어온다.\n     - 최종 HTML 은 DOMPurify(USE_PROFILES:{html:true}) 를 통과한다\n       → table/td/colspan/class/style 은 살아남고 script/on* 은 제거된다. */\n/* ── 플러그인 API 호환 shim (버전 차이로 조용히 빈 패널이 되는 걸 막는다) ──\n   Business Text v6 : new Function('context', code) → context.{handlebars, panelData}\n   구버전(v4/v5)     : handlebars / panelData / data 가 **개별 변수**로 들어온다.\n   폐쇄망처럼 미러된 구버전이 깔리면 `context` 가 없어 ReferenceError 로 죽고,\n   helper 가 등록되지 않아 패널이 **에러 없이 텅** 빈다.\n   typeof 가드라 없는 식별자를 참조해도 안전하다. */\nvar __BTCTX = (typeof context !== 'undefined' && context) ? context : {};\nvar __BTH = __BTCTX.handlebars || (typeof handlebars !== 'undefined' ? handlebars : null);\nvar __BTS = (__BTCTX.panelData && __BTCTX.panelData.series)\n         || (typeof panelData !== 'undefined' && panelData && panelData.series)\n         || (typeof data !== 'undefined' && data && data.series) || [];\n\n/* bt_prelude.js — Business Text 패널 공용 JS 프리앰블.\n   각 변형 생성기가 자기 렌더 코드 앞에 이 파일을 통째로 붙인다.\n\n   ── Business Text v6 실행 규약 (소스 실측) ─────────────────────────────\n   - 이 코드는 new Function('context', code) 로 실행된다 → 변수명은 context.\n   - **반환값은 렌더에 쓰이지 않는다.** 실제 렌더는 content(Handlebars) 가 한다.\n     → helper 를 등록하고 content 에서 {{{이름}}} 으로 부른다.\n   - renderMode='data' 일 때 context.panelData.series 에 전 refId 프레임이 들어온다.\n\n   ── 살아남는 것 / 죽는 것 (배포된 번들에서 확인) ───────────────────────\n     textUtil.sanitize = DOMPurify.sanitize(h, {USE_PROFILES:{html:true},\n                                                FORBID_TAGS:[\"form\",\"input\"]})\n     살아남음 : table/td/colspan, div, span, button, class, style(inline),\n                data-*, flexbox, position:absolute, repeating-linear-gradient\n     죽음     : <svg> 전체(html 프로파일에 svg 없음), <script>, on* 핸들러\n   → 도형은 전부 CSS 로 그린다. SVG 를 쓰면 조용히 사라진다.\n\n   ── CSS 작성 규칙 (지키지 않으면 패널이 통째로 투명해진다) ─────────────\n   1. options.styles 에 :root{} 를 쓰지 말 것 — 문서 전역으로 새어 다른 패널을 망친다.\n   2. color-mix()/var() 로 **목업 토큰**을 참조하지 말 것. --panel 같은 건 Grafana 에\n      없어서 값이 unresolvable 이 되고, 그러면 그 선언 전체가 무효화된다.\n      (배경과 테두리가 둘 다 color-mix 면 타일이 완전 투명해져 \"빈 패널\" 로 보인다)\n      → 리터럴 rgba() 를 쓰거나, var() 는 반드시 폴백과 함께: var(--x, rgba(...))\n   3. 인라인 커스텀 프로퍼티(style=\"--tc:#2a78d6\")는 통과한다 — 팀 색은 이 방식으로 넘긴다. */\n\n/* Grafana Vector/배열 양쪽 호환 */\nfunction arr(f) {\n  return (f && f.values && f.values.toArray) ? f.values.toArray() : (f ? f.values : []);\n}\n\n/* refId 프레임 → { <keyLabel 값>: {라벨..., __v: 값} }\n\n   ⚠ 프레임 형태가 두 가지다 (실측):\n     (a) time_series — 시리즈마다 프레임 1개, **라벨이 값 필드(field.labels)에** 붙는다.\n         /api/ds/query 백엔드 직접 호출로 확인한 모양이 이것.\n     (b) table — 라벨이 컬럼으로 펼쳐진 프레임 1개.\n         format:\"table\" 은 Prometheus **프론트엔드** 데이터소스가 적용하므로\n         패널 안에서는 이쪽이 올 수 있다.\n   렌더 없이 어느 쪽인지 확정할 수 없어 **둘 다 처리**한다. */\n/* 큐 식별 정규화 — 환경마다 queue 라벨 모양이 다르다:\n     root.platform  ·  platform  ·  root.app.app-platform  ·  root.sql.sql-platform\n   전부 서비스 키 `platform` 으로 접는다. **여기 한 곳에서** 접어야 INFO/PLAN 조회가\n   환경과 무관해진다(룰 판은 queue 경로를, 무룰 판은 svc 를 보내는데 둘 다 여기서 수렴). */\nfunction svcKey(q) {\n  return String(q == null ? \"\" : q).replace(/^.*\\./, \"\").replace(/^(app|sql)-/, \"\");\n}\n\nfunction collectBy(series, refId, keyLabel) {\n  const key = keyLabel || \"svc\";\n  /* 큐/서비스 축만 정규화한다 — team 같은 라벨은 값을 그대로 써야 한다 */\n  const norm = (key === \"queue\" || key === \"svc\") ? svcKey : (x => x);\n  const out = {};\n  series.filter(s => s.refId === refId).forEach(f => {\n    const names = (f.fields || []).map(x => x.name);\n\n    if (names.indexOf(key) >= 0) {                    /* (b) table 형태 */\n      const cols = {};\n      names.forEach((n, i) => { cols[n] = arr(f.fields[i]); });\n      let vn = names.find(n => n === \"Value\" || n.indexOf(\"Value\") === 0);\n      if (!vn) vn = names.find(n => n !== \"Time\" && f.fields[names.indexOf(n)].type === \"number\");\n      (cols[key] || []).forEach((k0, r) => {\n        const k = norm(k0);\n        const rec = out[k] || (out[k] = {});\n        names.forEach(n => { if (n !== \"Time\") rec[n] = cols[n][r]; });\n        if (vn) rec.__v = cols[vn][r];\n      });\n      return;\n    }\n\n    /* (a) time_series 형태 — 라벨이 값 필드에 */\n    const vf = (f.fields || []).find(x => x.type === \"number\")\n            || (f.fields || [])[(f.fields || []).length - 1];\n    const lab = (vf && vf.labels) || {};\n    if (lab[key] == null) return;\n    const k = norm(lab[key]);\n    const rec = out[k] || (out[k] = {});\n    Object.keys(lab).forEach(k => { rec[k] = lab[k]; });\n    const vs = arr(vf);\n    rec.__v = vs.length ? vs[vs.length - 1] : null;\n  });\n  return out;\n}\n/* 무룰/네이티브 판은 `svc`, 룰 판은 `queue` 를 보낸다 — 있는 쪽을 쓴다 */\nfunction collect(series, refId) {\n  const a = collectBy(series, refId, \"svc\");\n  return Object.keys(a).length ? a : collectBy(series, refId, \"queue\");\n}\n\n/* {키: 레코드} → {키: 값} */\nfunction val(m) { const o = {}; Object.keys(m).forEach(k => { o[k] = m[k].__v; }); return o; }\n\n/* 라벨 없는 스칼라 (cluster:shared_pool_vcores 등) */\nfunction scalarOf(series, refId) {\n  const f = series.filter(s => s.refId === refId)[0];\n  if (!f) return null;\n  const vf = (f.fields || []).find(x => x.type === \"number\")\n          || (f.fields || [])[(f.fields || []).length - 1];\n  const vs = arr(vf);\n  return (vs && vs.length) ? vs[vs.length - 1] : null;\n}\n\n/* ── 서식 ──────────────────────────────────────────────────────────── */\nconst fmt = (v, d) => (v == null || isNaN(v)) ? \"—\"\n  : Number(v).toLocaleString(\"ko-KR\", { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });\nconst pct = (a, b) => (b && a != null && !isNaN(a)) ? a / b * 100 : null;\nconst esc = (s) => String(s == null ? \"\" : s)\n  .replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\").replace(/\"/g, \"&quot;\");\n\n/* ── 상태 판정 ─────────────────────────────────────────────────────────\n   임계는 목업과 동일: 75 주의 / 90 임박 / 100 초과.\n\n   ⚠ \"관측 없음\"과 \"0%\" 를 반드시 구분한다.\n   현재 6개 큐 중 4개는 queue:used_* 시리즈가 **아예 없다**(0 이 아니라 부재).\n   zero-fill 로 0 을 채워 넣고 그냥 그리면 \"여유(초록)\" 로 렌더되는데, 이건\n   유휴가 아니라 미관측이다 — 관측 못 하는 큐를 건강하다고 단언하게 된다.\n   그래서 값이 null 이면 별도 'none' 상태로 회색 처리한다. */\nfunction stat(p) {\n  if (p == null || isNaN(p)) return [\"none\", \"관측 없음\"];\n  if (p >= 100) return [\"crit\", \"초과\"];\n  if (p >= 90)  return [\"ser\", \"임박\"];\n  if (p >= 75)  return [\"warn\", \"주의\"];\n  return [\"ok\", \"여유\"];\n}\n\n/* ── 빈 패널 진단 ──────────────────────────────────────────────────────\n   쿼리는 통과했는데 화면이 비는 경우가 이 패널의 대표 실패 모드다.\n   헤드리스 브라우저를 못 띄우는 환경이라 API 검증으로는 절대 안 잡힌다.\n   → 렌더할 게 없으면 프레임 구조를 화면에 출력해 원인을 눈으로 볼 수 있게 한다.\n   각 변형은 데이터가 비면 반드시 bail(...) 후 return 할 것. */\nfunction bail(H, helperName, S, why) {\n  const dump = (S || []).map(s => {\n    const names = (s.fields || []).map(f => f.name).join(\"/\");\n    return esc(s.refId) + \"[\" + names + \"]\";\n  }).join(\" · \");\n  H.registerHelper(helperName, () => new H.SafeString(\n    '<div style=\"padding:14px;line-height:1.7;font-size:12px;opacity:.8\">'\n    + '<b>데이터 없음</b> — ' + esc(why) + '<br>'\n    + 'frames=' + (S || []).length + '<br>'\n    + (dump || '(프레임 없음)')\n    + '</div>'));\n}\n\n/* 팔레트·서비스 키·팀 순서 — dashlib.prelude() 가 정본(TEAM_COLORS/TEAMS/QUEUES)에서 채운다.\n   여기 리터럴로 두면 팀이 늘 때 이 사본만 조용히 옛 값으로 남는다(실제로 그랬다). */\nconst COLORS = {\"공통 영역\": \"#6b7280\", \"AI/Data Platform\": \"#2a78d6\", \"품질 지능화\": \"#eb6834\", \"EES/MDM/IPA\": \"#1baf7a\", \"장비 지능화\": \"#eda100\"};\nconst ORDER = [\"platform\", \"fdc\", \"smartbig\", \"yms\", \"tttm\", \"pluto\"];\nconst TEAM_ORDER = [\"공통 영역\", \"AI/Data Platform\", \"품질 지능화\", \"EES/MDM/IPA\", \"장비 지능화\"];\n\nconst H = __BTH;\nconst S = __BTS;\n\n\n/* 원본 배분표(team-dashboard.jpg / .md)의 '전체리소스 Total(vCores)' 열.\n   메트릭 출처가 없다 — 엑셀에만 있는 문서값이라 여기 상수로 둔다(룰 판·룰미사용 판 공통).\n   ⚠ app/sql 은 서비스 열 합과 어긋난다(문서 자체의 불일치):\n        app  6,768 vs 열 합 6,500 (Δ268)   ·   sql 4,240 vs 열 합 4,140 (Δ100)\n   그래서 표에서는 '문서값 (합계)' 형태로 **둘 다** 보여주고 어긋나면 표시한다. */\nconst PLAN_TOTAL = {spark:6768, trino:4240, guar:10840, shared:3384};\n\n/* 원본 배분표의 '비율' 행 — **팀 단위 병합 셀**이다(PLATFORM+FDC, SMARTBIG+YMS).\n   ⚠ 이 비율의 분모는 표의 어느 합계와도 맞지 않는다(역산 시 약 13,530; 네 팀 합이 정확히 80.00%).\n   그래서 문서값 그대로 싣되, 계산이 분명한 '전체 비중(보장 기준)' 행을 따로 둔다. */\nconst DOC_RATIO = {total:\"100.00%\", pairs:[[\"platform\",\"fdc\",\"23%\"],\n                                           [\"smartbig\",\"yms\",\"35.10%\"]],\n                   single:{\"tttm\":\"5.10%\", \"pluto\":\"16.80%\"}};\n\n/* refId 별 프레임을 큐 기준 레코드로 정규화.\n\n   ★ 예전엔 이 자리에 arr/collect/val 사본이 있었다 — prelude 정본보다 **뒤에** 선언돼\n     정본을 덮어썼고, 그래서 bt_prelude.js 에 넣은 큐 키 정규화(svcKey)가 이 판만\n     비껴갔다(운영 환경 2단 큐에서 조용히 빈 값). 지금은 prelude 것을 그대로 쓴다. */\n\nconst S = __BTS;\nconst meta = INFO;\n/* collect() 는 queue 라벨도 레코드에 넣어줬다 — 하드코딩 표엔 없으니 키에서 채운다 */\nObject.keys(meta).forEach(q => { meta[q].queue = q; });\nconst spark = {}, trino = {}, planpods = {}, guar = {};\nObject.keys(PLAN).forEach(q => { spark[q] = PLAN[q].spark; trino[q] = PLAN[q].trino;\n                                 planpods[q] = PLAN[q].pods; guar[q] = PLAN[q].guar; });\nconst lq = val(collect(S,\"labquota\")), lu = val(collect(S,\"labused\"));\nconst mq = val(collect(S,\"memquota\")), mu = val(collect(S,\"memused\"));\nconst pods = val(collect(S,\"pods\")), ovf = val(collect(S,\"overflow\"));\n/* state=max(한계) · state=pending(대기) — 보장/사용만 보면 OverCommit 이 안 보인다 */\nconst lim = val(collect(S,\"limit\")), pend = val(collect(S,\"pendingv\"));\nconst s3 = val(collect(S,\"s3\"));          /* MinIO 버킷 사용량(큐로 귀속되는 것) */\n/* 팀 단위로만 귀속되는 버킷(품질 지능화 13개). collect() 가 queue 키라\n   쿼리에서 대표 큐(root.smartbig) 라벨을 붙여 보낸다. */\nconst s3shared = val(collect(S,\"s3team\"))[\"smartbig\"];\nconst capM = val(collect(S,\"cap\"));\nconst capacity = Object.keys(capM).length ? capM[Object.keys(capM)[0]] : null;\n\nconst queues = ORDER.filter(q => meta[q]);\nif (!queues.length) {\n  H.registerHelper('matrix', () => new H.SafeString(\n    '<div style=\"padding:16px;opacity:.7\">데이터 없음 — info 프레임에서 queue 를 찾지 못했습니다.<br>'\n    + 'frames=' + S.length + ' · refIds=' + S.map(s=>s.refId).join(\",\") + '<br>'\n    + 'info fields=' + JSON.stringify((S.filter(s=>s.refId===\"info\")[0]||{fields:[]}).fields.map(f=>f.name))\n    + '</div>'));\n  return;\n}\n\n/* 팀 밴드: 연속된 같은 팀을 colspan 으로 묶는다 (이미지의 상단 색 띠) */\nconst bands = [];\nqueues.forEach(q => {\n  const t = meta[q].team;\n  if (bands.length && bands[bands.length-1].team === t) bands[bands.length-1].span++;\n  else bands.push({team:t, span:1});\n});\n\nconst fmt = (v,d)=> v==null||isNaN(v) ? \"—\" : Number(v).toLocaleString(\"ko-KR\",{minimumFractionDigits:d||0,maximumFractionDigits:d||0});\nconst pct = (a,b)=> (b && !isNaN(a)) ? a/b*100 : null;\nfunction stat(p){ if(p==null) return [\"\",\"—\"];\n  if(p>=100) return [\"crit\",\"초과\"]; if(p>=90) return [\"ser\",\"임박\"];\n  if(p>=75) return [\"warn\",\"주의\"]; return [\"ok\",\"여유\"]; }\n\n/* 값 + % + 진행막대를 한 셀에 (이미지의 CPU/Memory/S3 사용 행) */\nfunction useCell(used, quota, dec, unit){\n  const p = pct(used, quota);\n  if (used == null) return '<td class=\"mx-c mx-dim\">—</td>';\n  const [cls] = stat(p);\n  const w = Math.min(100, p==null?0:p);\n  const ovr = p!=null && p>100 ? Math.min(100, p-100) : 0;\n  return '<td class=\"mx-c\">'\n    + '<div class=\"mx-uv\"><span class=\"mx-n\">'+fmt(used,dec)+'</span>'\n    + '<span class=\"mx-p\">'+(p==null?\"—\":p.toFixed(0)+\"%\")+'</span></div>'\n    + '<div class=\"mx-bar\"><i class=\"'+cls+'\" style=\"width:'+w+'%\"></i>'\n    + (ovr? '<b style=\"width:'+ovr+'%\"></b>':'') + '</div></td>';\n}\n\nconst totGuar = queues.reduce((a,q)=> a + (guar[q]||0), 0);\nlet h = '';\n\n/* ── 헤더: 팀 밴드 + 서비스 ── */\nh += '<table class=\"mx\"><thead>';\nh += '<tr><th class=\"mx-h mx-lab\">팀</th><th class=\"mx-h mx-tot\">전체리소스</th>';\nbands.forEach(b => { h += '<th class=\"mx-team\" colspan=\"'+b.span+'\" style=\"background:'+(COLORS[b.team]||\"#8a93a3\")+'\">'+b.team+'</th>'; });\nh += '</tr><tr><th class=\"mx-h mx-lab\">서비스</th><th class=\"mx-h mx-tot\">Total<br><span class=\"mx-u\">vCores</span></th>';\nqueues.forEach(q => { const m=meta[q];\n  h += '<th class=\"mx-svc\" style=\"border-bottom:3px solid '+(COLORS[m.team]||\"#8a93a3\")+'\">'\n     + '<div class=\"mx-svc-id\">'+m.service+'</div>'\n     + (m.service_ko && m.service_ko!==\"-\" ? '<div class=\"mx-svc-ko\">'+m.service_ko+'</div>' : '')\n     + '</th>'; });\nh += '</tr></thead><tbody>';\n\n/* ── 구성 정보 행 ── (두 번째 셀은 항상 '전체리소스' 열 — 구성행에선 비운다) */\nconst TOT_EMPTY = '<td class=\"mx-c mx-tot mx-dim\">—</td>';\nconst rowTag = (label, key) => {\n  let r = '<tr><td class=\"mx-lab\">'+label+'</td>'+TOT_EMPTY;\n  queues.forEach(q => { r += '<td class=\"mx-c\"><code class=\"mx-tag\">'+(meta[q][key]||\"—\")+'</code></td>'; });\n  return r + '</tr>';\n};\n/* ★ 행 순서는 원본 배분표(team-dashboard.md)를 그대로 따른다.\n     LDAP → Bucket 구성 → SQL Engine → Trino Catalog\n     → app 서비스 · Trino 활용방안 · Trino 리소스 제어 (원본에서 값이 비어 있는 행)\n     → Schedule Queue → 워크로드 분류\n   예전엔 Bucket 구성과 Schedule Queue 가 뒤바뀌어 있었다. */\nconst txtRow = (lbl, key, mergeSY) => {\n  let r = '<tr><td class=\"mx-lab\">'+lbl+'</td>'+TOT_EMPTY;\n  for (let i=0;i<queues.length;i++){\n    const q=queues[i];\n    /* 원본에서 SMARTBIG+YMS 가 한 셀인 항목은 colspan 으로 재현한다 */\n    if (mergeSY && q===\"smartbig\" && queues[i+1]===\"yms\"){\n      r += '<td class=\"mx-c mx-txt mx-merge\" colspan=\"2\">'+(meta[q][key]||\"—\")\n         + '<div class=\"mx-note\">SMARTBIG + YMS 공통</div></td>'; i++;\n    } else {\n      const v = meta[q][key];\n      r += '<td class=\"mx-c mx-txt\">'+(v ? v : '<span class=\"mx-dim\">—</span>')+'</td>';\n    }\n  }\n  return r+'</tr>';\n};\nh += rowTag(\"LDAP\",\"ldap\");\nh += txtRow(\"Bucket 구성\",\"bucket\");\nh += '<tr><td class=\"mx-lab\">SQL Engine</td>'+TOT_EMPTY;\nqueues.forEach(q => { const v=meta[q].sql_engine;\n  h += '<td class=\"mx-c\"><b class=\"'+(v===\"O\"?\"mx-o\":\"mx-x\")+'\">'+v+'</b></td>'; });\nh += '</tr>';\nh += txtRow(\"Trino Catalog\",\"catalog\", true);   /* 원본에서 SMARTBIG+YMS 병합 */\n/* 원본에 행은 있으나 값이 전부 비어 있는 항목 — 표 구조를 그대로 재현하되 '미기재'로 명시 */\n['app 서비스','Trino 활용방안','Trino 리소스 제어'].forEach(lbl => {\n  h += '<tr><td class=\"mx-lab mx-dim\">'+lbl+'</td>'+TOT_EMPTY\n     + '<td class=\"mx-c mx-dim mx-merge\" colspan=\"'+queues.length+'\">원본 배분표 미기재</td></tr>';\n});\nh += rowTag(\"Schedule Queue\",\"queue\");\nh += txtRow(\"워크로드 분류\",\"workload\");\n\n/* ── 배분 계획값 (섹션 머리 + 병합 셀) ── */\n/* 전체리소스 셀: 문서값을 보여주되 서비스 열의 합과 다르면 (합계 …) 를 덧붙인다.\n   원본 배분표의 app/sql Total 이 열 합과 안 맞아서(Δ268/Δ100) 어느 한쪽만 쓰면 거짓말이 된다. */\nfunction totCell(docVal, map, dec){\n  const sum = queues.reduce((a,q)=> a + (map[q]||0), 0);\n  let s = '<td class=\"mx-c mx-num mx-tot\">'+(docVal==null?fmt(sum,dec):fmt(docVal));\n  if (docVal!=null && Math.round(docVal)!==Math.round(sum))\n    s += '<div class=\"mx-note mx-warn2\">합계 '+fmt(sum)+'</div>';\n  return s+'</td>';\n}\nh += '<tr class=\"mx-sec\"><td class=\"mx-lab\">APACHE SPARK vCores</td>'+totCell(PLAN_TOTAL.spark, spark);\nqueues.forEach(q => { h += '<td class=\"mx-c mx-num\">'+fmt(spark[q])+'</td>'; });\nh += '</tr>';\n\n/* Trino·Pod 은 SMARTBIG+YMS 가 원본 표에서 병합 셀 → colspan 으로 재현 */\nfunction mergedRow(label, map, note, docTotal, xForNull){\n  let r = '<tr><td class=\"mx-lab\">'+label+'</td>'\n        + (docTotal===undefined ? TOT_EMPTY : totCell(docTotal, map));\n  for (let i=0;i<queues.length;i++){\n    const q=queues[i];\n    if (q===\"smartbig\" && queues[i+1]===\"yms\"){\n      r += '<td class=\"mx-c mx-num mx-merge\" colspan=\"2\">'+fmt(map[q])\n         + '<div class=\"mx-note\">'+note+'</div></td>'; i++;\n    } else if (map[q]==null){\n      /* 원본 표는 Trino vCores 칸에만 'X'(SQL 엔진 없음)를 적는다. Pod 수의 빈칸은 미기재라 —. */\n      r += '<td class=\"mx-c mx-num\">'\n         + (xForNull && meta[q].sql_engine===\"X\" ? '<b class=\"mx-x\">X</b>' : \"—\")+'</td>';\n    } else r += '<td class=\"mx-c mx-num\">'+fmt(map[q])+'</td>';\n  }\n  return r+'</tr>';\n}\nh += mergedRow(\"Trino vCores\", trino, \"SMARTBIG + YMS 공통\", PLAN_TOTAL.trino, true);\nh += mergedRow(\"Pod 수\", planpods, \"SMARTBIG + YMS 공통\");\n\nh += '<tr class=\"mx-sec\"><td class=\"mx-lab\">보장자원 GUARANTEED</td>'+totCell(PLAN_TOTAL.guar, guar);\nqueues.forEach(q => { h += '<td class=\"mx-c mx-num\">'+fmt(guar[q])+'</td>'; });\nh += '</tr>';\n/* 공용자원 — 팀에 귀속되지 않는 공유 풀. 원본 표에서 전 열 병합 셀이라 colspan 으로 재현 */\nh += '<tr><td class=\"mx-lab\">공용자원 <span class=\"mx-u\">shared</span></td>'\n   + '<td class=\"mx-c mx-num mx-tot\">'+fmt(PLAN_TOTAL.shared)+'</td>'\n   + '<td class=\"mx-c mx-num mx-merge\" colspan=\"'+queues.length+'\">'\n   + '<span class=\"mx-dim\">전 팀 공용 (팀 미귀속) · OverCommit 여유분</span></td></tr>';\n\n/* ── 실측 사용 행 (값 + % + 막대) ── */\n/* ── 여기부터는 원본 배분표에 없는 랩 실측/설정 값 ──\n   한계 LIMIT (state=max): 버스트 상한. 합이 클러스터 용량을 넘는 만큼이 OverCommit. */\nh += '<tr class=\"mx-sec\"><td class=\"mx-lab\">한계 <span class=\"mx-u\">max · 랩</span></td>';\n(function(){\n  const sum = queues.reduce((a,q)=> a + (lim[q]||0), 0);\n  const ratio = capacity ? sum/capacity*100 : null;\n  h += '<td class=\"mx-c mx-num mx-tot\">'+fmt(sum,2)\n     + (ratio!=null ? '<div class=\"mx-note '+(ratio>100?'mx-warn2':'')+'\">용량 '+fmt(capacity,2)\n        +' · '+ratio.toFixed(0)+'%</div>' : '')+'</td>';\n})();\nqueues.forEach(q => { h += '<td class=\"mx-c mx-num\">'+(lim[q]==null?\"—\":fmt(lim[q],2))+'</td>'; });\nh += '</tr>';\nh += '<tr><td class=\"mx-lab\">CPU 사용 <span class=\"mx-u\">cores</span></td>'+totCell(null, lu, 2);\nqueues.forEach(q => { h += useCell(lu[q], lq[q], 2); });\nh += '</tr>';\n/* 대기 PENDING (state=pending) — 자원이 모자라 못 뜬 요구량. 0 과 '관측 없음'을 구분한다. */\nh += '<tr><td class=\"mx-lab\">대기 <span class=\"mx-u\">pending cores</span></td>'+totCell(null, pend, 2);\nqueues.forEach(q => { const v=pend[q];\n  h += '<td class=\"mx-c mx-num'+(v>0?\" mx-ovf\":\"\")+'\">'+(v==null?\"—\":fmt(v,2))+'</td>'; });\nh += '</tr>';\nh += '<tr><td class=\"mx-lab\">Memory 사용 <span class=\"mx-u\">GiB</span></td>'+TOT_EMPTY;\nqueues.forEach(q => { const u=mu[q]!=null?mu[q]/1073741824:null, k=mq[q]!=null?mq[q]/1073741824:null;\n  h += useCell(u, k, 1); });\nh += '</tr>';\n/* S3 사용 — ic-* 버킷 합계.\n   ★ 품질 지능화(SMARTBIG+YMS)의 13개 버킷은 **팀 단위로만** 귀속이 정의돼 서비스로 못 쪼갠다\n     → 원본 표가 이 팀의 Trino·Pod 을 병합 셀로 적은 것과 같은 규칙으로 colspan 병합한다.\n   메트릭 미수집 환경에선 전부 '—'(관측 없음, 0 아님). */\nh += '<tr><td class=\"mx-lab\">S3 사용 <span class=\"mx-u\">GiB</span></td>';\n(function(){\n  const g = v => (v==null ? null : v/1073741824);\n  const teamShared = g(s3shared);\n  let tot = 0, any = false;\n  queues.forEach(q => { if (q!==\"yms\" && s3[q]!=null){ tot += s3[q]/1073741824; any=true; } });\n  if (teamShared!=null){ tot += teamShared; any = true; }\n  h += '<td class=\"mx-c mx-num mx-tot\">'+(any?fmt(tot,1):'<span class=\"mx-dim\">—</span>')+'</td>';\n  for (let i=0;i<queues.length;i++){\n    const q=queues[i];\n    if (q===\"smartbig\" && queues[i+1]===\"yms\"){\n      h += '<td class=\"mx-c mx-num mx-merge\" colspan=\"2\">'\n         + (teamShared==null?'<span class=\"mx-dim\">—</span>':fmt(teamShared,1))\n         + '<div class=\"mx-note\">SMARTBIG + YMS 공통 (13개 버킷)</div></td>'; i++;\n    } else {\n      const v = g(s3[q]);\n      h += '<td class=\"mx-c mx-num\">'+(v==null?'<span class=\"mx-dim\">—</span>':fmt(v,1))+'</td>';\n    }\n  }\n})();\nh += '</tr>';\nh += '<tr><td class=\"mx-lab\">공용 차용 <span class=\"mx-u\">cores</span></td>'+totCell(null, ovf, 2);\nqueues.forEach(q => { const v=ovf[q];\n  h += '<td class=\"mx-c mx-num'+(v>0?\" mx-ovf\":\"\")+'\">'+(v==null?\"—\":fmt(v,2))+'</td>'; });\nh += '</tr>';\nh += '<tr><td class=\"mx-lab\">실행 파드</td>'+totCell(null, pods);\nqueues.forEach(q => { h += '<td class=\"mx-c mx-num\">'+(pods[q]==null?\"—\":fmt(pods[q]))+'</td>'; });\nh += '</tr>';\n\n/* ── 상태 · 비중 ── */\nh += '<tr><td class=\"mx-lab\">상태</td>'+TOT_EMPTY;\nqueues.forEach(q => { const p=pct(lu[q],lq[q]); const [cls,lbl]=stat(p);\n  h += '<td class=\"mx-c\">'+(p==null?'<span class=\"mx-dim\">—</span>'\n     : '<span class=\"mx-pill '+cls+'\">'+lbl+' '+p.toFixed(0)+'%</span>')+'</td>'; });\nh += '</tr>';\n/* 원본 배분표의 '비율' 행 — 팀 단위 병합 셀 그대로 */\nh += '<tr><td class=\"mx-lab\">비율 <span class=\"mx-u\">원본 문서값</span></td>'\n   + '<td class=\"mx-c mx-num mx-tot\">'+DOC_RATIO.total+'</td>';\nfor (let i=0;i<queues.length;i++){\n  const q=queues[i], nx=queues[i+1];\n  const pair = DOC_RATIO.pairs.filter(p => p[0]===q && p[1]===nx)[0];\n  if (pair){ h += '<td class=\"mx-c mx-num mx-merge\" colspan=\"2\">'+pair[2]+'</td>'; i++; }\n  else h += '<td class=\"mx-c mx-num\">'+(DOC_RATIO.single[q]||\"—\")+'</td>';\n}\nh += '</tr>';\nh += '<tr class=\"mx-sec\"><td class=\"mx-lab\">전체 비중 <span class=\"mx-u\">보장 기준</span></td>'+'<td class=\"mx-c mx-num mx-tot\">100.0%</td>';\nqueues.forEach(q => { h += '<td class=\"mx-c mx-num\">'+(totGuar?((guar[q]/totGuar*100).toFixed(1)+\"%\"):\"—\")+'</td>'; });\nh += '</tr>';\n\nh += '</tbody></table>';\nh += '<div class=\"mx-legend\">'\n  +  '<span><i class=\"sw ok\"></i>보장 범위 내 사용</span>'\n  +  '<span><i class=\"sw hatch\"></i>공용자원에서 끌어쓴 몫</span>'\n  +  '<span class=\"mx-dim\">회색 배경 = 원본 표의 병합 셀 — Trino Catalog·Trino vCores·Pod 수(SMARTBIG+YMS), 공용자원(전체), 비율(팀 단위)</span>'\n  +  '<span class=\"mx-dim\">state: 보장 guaranteed · 한계 max · 사용 allocated · 대기 pending</span>'\n  +  '</div>';\n\nMATRIX_HTML = tagSrc(h) + SRC_LEGEND;\nH.registerHelper('matrix', () => new H.SafeString(MATRIX_HTML));\n",
+        "styles": "\n.mx{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px;\n    font-family:system-ui,-apple-system,\"Segoe UI\",\"Noto Sans KR\",\"Malgun Gothic\",sans-serif}\n.mx th,.mx td{padding:6px 9px;text-align:center;vertical-align:middle;\n    border-right:1px solid rgba(128,138,155,.18);border-bottom:1px solid rgba(128,138,155,.18)}\n.mx .mx-lab{text-align:left;white-space:nowrap;font-weight:600;\n    border-right:1px solid rgba(128,138,155,.45);min-width:150px}\n.mx .mx-u{font-weight:400;opacity:.6;font-size:11px}\n.mx .mx-team{color:#fff;font-weight:700;font-size:12.5px;letter-spacing:-.01em;\n    border-radius:4px 4px 0 0;border-right:2px solid var(--panel-bg,transparent)}\n.mx .mx-svc{padding:7px 9px}\n.mx .mx-svc-id{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:12.5px}\n.mx .mx-svc-ko{font-size:10.5px;opacity:.65;margin-top:2px}\n.mx tr.mx-sec td{background:rgba(128,138,155,.10);font-weight:650}\n.mx tr.mx-sec .mx-lab{text-transform:uppercase;letter-spacing:.06em;font-size:11px;opacity:.85}\n.mx .mx-num{font-family:ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}\n.mx .mx-txt{font-size:11px;opacity:.85;max-width:210px;white-space:normal;line-height:1.45}\n.mx .mx-tag{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;\n    padding:1px 6px;border:1px solid rgba(128,138,155,.45);border-radius:3px}\n.mx .mx-o{color:#0ca30c;font-family:ui-monospace,monospace;font-weight:700}\n.mx .mx-x{color:#d03b3b;font-family:ui-monospace,monospace;font-weight:700}\n.mx .mx-merge{background:rgba(128,138,155,.10)}\n.mx .mx-note{font-size:10px;opacity:.6;margin-top:2px;font-family:inherit}\n/* '전체리소스' 열 — 서비스 열과 시각적으로 분리 (원본 표의 좌측 요약 열) */\n.mx .mx-tot{background:rgba(128,138,155,.07);border-right:2px solid rgba(128,138,155,.28);\n            white-space:nowrap}\n.mx thead .mx-tot{font-size:11px;font-weight:600;opacity:.85}\n.mx .mx-warn2{color:#eda100;opacity:.95}\n.mx .mx-dim{opacity:.45}\n.mx .mx-ovf{color:#ec835a;font-weight:650}\n.mx .mx-uv{display:flex;justify-content:space-between;align-items:baseline;gap:8px}\n.mx .mx-n{font-family:ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}\n.mx .mx-p{font-family:ui-monospace,monospace;font-size:11px;opacity:.7}\n.mx .mx-bar{height:6px;border-radius:3px;background:rgba(128,138,155,.22);\n    overflow:hidden;margin-top:4px;display:flex}\n.mx .mx-bar i{display:block;height:100%;border-radius:3px}\n.mx .mx-bar i.ok{background:#2a78d6} .mx .mx-bar i.warn{background:#fab219}\n.mx .mx-bar i.ser{background:#ec835a} .mx .mx-bar i.crit{background:#d03b3b}\n.mx .mx-bar b{display:block;height:100%;\n    background:repeating-linear-gradient(45deg,rgba(255,255,255,.65) 0 2px,transparent 2px 5px),#d03b3b}\n.mx-pill{display:inline-block;font-size:11px;font-weight:650;padding:1.5px 7px;border-radius:3px;\n    font-family:ui-monospace,monospace}\n.mx-pill.ok{color:#0ca30c;background:rgba(12,163,12,.14)}\n.mx-pill.warn{color:#fab219;background:rgba(250,178,25,.18)}\n.mx-pill.ser{color:#ec835a;background:rgba(236,131,90,.18)}\n.mx-pill.crit{color:#d03b3b;background:rgba(208,59,59,.15)}\n.mx-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;opacity:.8;margin-top:10px}\n.mx-legend .sw{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:5px}\n.mx-legend .sw.ok{background:#2a78d6}\n.mx-legend .sw.hatch{background:repeating-linear-gradient(45deg,#d03b3b 0 2px,transparent 2px 5px),rgba(128,138,155,.3)}\n\n.src{display:inline-block;font-size:9.5px;font-weight:700;line-height:15px;\n     padding:0 6px;border-radius:3px;letter-spacing:.02em;vertical-align:1px;color:#fff;\n     font-family:system-ui,-apple-system,\"Segoe UI\",\"Noto Sans KR\",\"Malgun Gothic\",sans-serif}\n.src.doc{background:#9a6f18}\n.src.live{background:#2a68b8}\n.src.na{background:#6b7280}\n.srcleg{display:flex;gap:8px 18px;flex-wrap:wrap;font-size:11px;margin-top:11px;\n        padding-top:9px;border-top:1px solid rgba(128,138,155,.22);line-height:1.65;opacity:.85}\n.srcleg span.it{display:block;max-width:520px}\n.srcleg code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;\n        padding:1px 5px;border-radius:3px;background:rgba(128,138,155,.16)}\n\n.mx .mx-lab .src{width:38px;padding:0;text-align:center;margin-right:8px}\n.mx tr.mx-r-doc .mx-lab{box-shadow:inset 3px 0 0 #9a6f18}\n.mx tr.mx-r-live .mx-lab{box-shadow:inset 3px 0 0 #2a68b8}\n.mx tr.mx-r-na .mx-lab{box-shadow:inset 3px 0 0 #6b7280}\n",
+        "contentPartials": [],
+        "externalStyles": [],
+        "externalScripts": [],
+        "wrap": true,
+        "afterRender": ""
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "CPU · 보장 대비",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 29
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))\n/\nsum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "사용률",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "사용",
+          "editorMode": "code"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "할당",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "사용률"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#0ca30c",
+                      "value": null
+                    },
+                    {
+                      "color": "#fab219",
+                      "value": 0.75
+                    },
+                    {
+                      "color": "#ec835a",
+                      "value": 0.9
+                    },
+                    {
+                      "color": "#d03b3b",
+                      "value": 1.0
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "^(사용|할당)$"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "wideLayout": true
+      },
+      "description": "큐 보장자원 합계 대비 · 레코딩 룰 미참조 판 — 계산은 인라인 PromQL, 메타데이터·계획값은 패널 JS 하드코딩. 값은 team-dash-matrix 와 동일해야 한다."
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "MEMORY · 쿼터 대비",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 29
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"},\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))\n/\nsum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"},\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "사용률",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"},\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "사용",
+          "editorMode": "code"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"},\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "할당",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "사용률"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#0ca30c",
+                      "value": null
+                    },
+                    {
+                      "color": "#fab219",
+                      "value": 0.75
+                    },
+                    {
+                      "color": "#ec835a",
+                      "value": 0.9
+                    },
+                    {
+                      "color": "#d03b3b",
+                      "value": 1.0
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "^(사용|할당)$"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "wideLayout": true
+      },
+      "description": "YuniKorn 이 실제로 스케줄하는 축 · 레코딩 룰 미참조 판 — 계산은 인라인 PromQL, 메타데이터·계획값은 패널 JS 하드코딩. 값은 team-dash-matrix 와 동일해야 한다."
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "공용자원 — 차용 / 공용 풀",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 29
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum(clamp_min(\n  (# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))\n  - on (cluster, svc) group_left()\n  (# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n)),\n  0\n)) or vector(0))\n/\nscalar(vector(6.768))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "사용률",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(clamp_min(\n  (# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))\n  - on (cluster, svc) group_left()\n  (# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n)),\n  0\n)) or vector(0)",
+          "instant": true,
+          "range": false,
+          "legendFormat": "차용",
+          "editorMode": "code"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "vector(6.768)",
+          "instant": true,
+          "range": false,
+          "legendFormat": "공용 풀",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "사용률"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#0ca30c",
+                      "value": null
+                    },
+                    {
+                      "color": "#fab219",
+                      "value": 0.75
+                    },
+                    {
+                      "color": "#ec835a",
+                      "value": 0.9
+                    },
+                    {
+                      "color": "#d03b3b",
+                      "value": 1.0
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "^(차용|공용 풀)$"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "wideLayout": true
+      },
+      "description": "**공용자원** = 보장(guaranteed) 밖의 공유 여유분. 어느 팀에도 귀속되지 않는다.\n\n· `차용` = 보장선을 넘어 공용 풀에서 끌어쓴 몫(0 이면 전 큐가 보장 범위 내).\n· `공용 풀` = 배분표의 공용자원 **3,384 vCores**(랩은 1/500 스케일이라 6.768 로 보인다).\n· 비율 = 차용 ÷ 공용 풀. · 레코딩 룰 미참조 판 — 계산은 인라인 PromQL, 메타데이터·계획값은 패널 JS 하드코딩. 값은 team-dash-matrix 와 동일해야 한다."
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "클러스터 용량 대비",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 29
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))\n/\nscalar(max by (cluster) (yunikorn_queue_resource{cluster=\"$cluster\", queue=\"root\", resource=\"vcore\", state=\"max\"} / 1000))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "사용률",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "instant": true,
+          "range": false,
+          "legendFormat": "사용",
+          "editorMode": "code"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster) (yunikorn_queue_resource{cluster=\"$cluster\", queue=\"root\", resource=\"vcore\", state=\"max\"} / 1000)",
+          "instant": true,
+          "range": false,
+          "legendFormat": "할당",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "사용률"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#0ca30c",
+                      "value": null
+                    },
+                    {
+                      "color": "#fab219",
+                      "value": 0.75
+                    },
+                    {
+                      "color": "#ec835a",
+                      "value": 0.9
+                    },
+                    {
+                      "color": "#d03b3b",
+                      "value": 1.0
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "^(사용|할당)$"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "wideLayout": true
+      },
+      "description": "노드 allocatable 합계 대비 · 레코딩 룰 미참조 판 — 계산은 인라인 PromQL, 메타데이터·계획값은 패널 JS 하드코딩. 값은 team-dash-matrix 와 동일해야 한다."
+    },
+    {
+      "id": 6,
+      "type": "marcusolsson-dynamictext-panel",
+      "title": "보장자원 배분 비중   —   팀별 guaranteed vCores",
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "teamq",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (cluster, team) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(\n  # 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n),\n  \"team\", \"공통 영역\",            \"svc\", \"common\"),\n  \"team\", \"공통 영역\",            \"svc\", \"platform\"),\n  \"team\", \"AI/Data Platform\", \"svc\", \"fdc\"),\n  \"team\", \"품질 지능화\",           \"svc\", \"smartbig\"),\n  \"team\", \"품질 지능화\",           \"svc\", \"yms\"),\n  \"team\", \"EES/MDM/IPA\",      \"svc\", \"tttm\"),\n  \"team\", \"장비 지능화\",           \"svc\", \"pluto\")\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "shared",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "vector(6.768)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        }
+      ],
+      "options": {
+        "content": "{{{share}}}",
+        "defaultContent": "데이터 없음 — 쿼리 결과가 비었거나 패널 JS 가 실행되지 않았습니다.\n\n이 문구조차 안 보이면 플러그인 문제일 가능성이 높습니다: marcusolsson-dynamictext-panel 은 6.2.0(Grafana >=11)을 쓸 것 — 6.2.3/6.3.0 은 Grafana >=12.3 을 요구해 12.x 에서 로드되지 않는다.",
+        "editors": [
+          "styles"
+        ],
+        "renderMode": "data",
+        "helpers": "\n/* ── 플러그인 API 호환 shim (버전 차이로 조용히 빈 패널이 되는 걸 막는다) ──\n   Business Text v6 : new Function('context', code) → context.{handlebars, panelData}\n   구버전(v4/v5)     : handlebars / panelData / data 가 **개별 변수**로 들어온다.\n   폐쇄망처럼 미러된 구버전이 깔리면 `context` 가 없어 ReferenceError 로 죽고,\n   helper 가 등록되지 않아 패널이 **에러 없이 텅** 빈다.\n   typeof 가드라 없는 식별자를 참조해도 안전하다. */\nvar __BTCTX = (typeof context !== 'undefined' && context) ? context : {};\nvar __BTH = __BTCTX.handlebars || (typeof handlebars !== 'undefined' ? handlebars : null);\nvar __BTS = (__BTCTX.panelData && __BTCTX.panelData.series)\n         || (typeof panelData !== 'undefined' && panelData && panelData.series)\n         || (typeof data !== 'undefined' && data && data.series) || [];\n\n/* bt_prelude.js — Business Text 패널 공용 JS 프리앰블.\n   각 변형 생성기가 자기 렌더 코드 앞에 이 파일을 통째로 붙인다.\n\n   ── Business Text v6 실행 규약 (소스 실측) ─────────────────────────────\n   - 이 코드는 new Function('context', code) 로 실행된다 → 변수명은 context.\n   - **반환값은 렌더에 쓰이지 않는다.** 실제 렌더는 content(Handlebars) 가 한다.\n     → helper 를 등록하고 content 에서 {{{이름}}} 으로 부른다.\n   - renderMode='data' 일 때 context.panelData.series 에 전 refId 프레임이 들어온다.\n\n   ── 살아남는 것 / 죽는 것 (배포된 번들에서 확인) ───────────────────────\n     textUtil.sanitize = DOMPurify.sanitize(h, {USE_PROFILES:{html:true},\n                                                FORBID_TAGS:[\"form\",\"input\"]})\n     살아남음 : table/td/colspan, div, span, button, class, style(inline),\n                data-*, flexbox, position:absolute, repeating-linear-gradient\n     죽음     : <svg> 전체(html 프로파일에 svg 없음), <script>, on* 핸들러\n   → 도형은 전부 CSS 로 그린다. SVG 를 쓰면 조용히 사라진다.\n\n   ── CSS 작성 규칙 (지키지 않으면 패널이 통째로 투명해진다) ─────────────\n   1. options.styles 에 :root{} 를 쓰지 말 것 — 문서 전역으로 새어 다른 패널을 망친다.\n   2. color-mix()/var() 로 **목업 토큰**을 참조하지 말 것. --panel 같은 건 Grafana 에\n      없어서 값이 unresolvable 이 되고, 그러면 그 선언 전체가 무효화된다.\n      (배경과 테두리가 둘 다 color-mix 면 타일이 완전 투명해져 \"빈 패널\" 로 보인다)\n      → 리터럴 rgba() 를 쓰거나, var() 는 반드시 폴백과 함께: var(--x, rgba(...))\n   3. 인라인 커스텀 프로퍼티(style=\"--tc:#2a78d6\")는 통과한다 — 팀 색은 이 방식으로 넘긴다. */\n\n/* Grafana Vector/배열 양쪽 호환 */\nfunction arr(f) {\n  return (f && f.values && f.values.toArray) ? f.values.toArray() : (f ? f.values : []);\n}\n\n/* refId 프레임 → { <keyLabel 값>: {라벨..., __v: 값} }\n\n   ⚠ 프레임 형태가 두 가지다 (실측):\n     (a) time_series — 시리즈마다 프레임 1개, **라벨이 값 필드(field.labels)에** 붙는다.\n         /api/ds/query 백엔드 직접 호출로 확인한 모양이 이것.\n     (b) table — 라벨이 컬럼으로 펼쳐진 프레임 1개.\n         format:\"table\" 은 Prometheus **프론트엔드** 데이터소스가 적용하므로\n         패널 안에서는 이쪽이 올 수 있다.\n   렌더 없이 어느 쪽인지 확정할 수 없어 **둘 다 처리**한다. */\n/* 큐 식별 정규화 — 환경마다 queue 라벨 모양이 다르다:\n     root.platform  ·  platform  ·  root.app.app-platform  ·  root.sql.sql-platform\n   전부 서비스 키 `platform` 으로 접는다. **여기 한 곳에서** 접어야 INFO/PLAN 조회가\n   환경과 무관해진다(룰 판은 queue 경로를, 무룰 판은 svc 를 보내는데 둘 다 여기서 수렴). */\nfunction svcKey(q) {\n  return String(q == null ? \"\" : q).replace(/^.*\\./, \"\").replace(/^(app|sql)-/, \"\");\n}\n\nfunction collectBy(series, refId, keyLabel) {\n  const key = keyLabel || \"svc\";\n  /* 큐/서비스 축만 정규화한다 — team 같은 라벨은 값을 그대로 써야 한다 */\n  const norm = (key === \"queue\" || key === \"svc\") ? svcKey : (x => x);\n  const out = {};\n  series.filter(s => s.refId === refId).forEach(f => {\n    const names = (f.fields || []).map(x => x.name);\n\n    if (names.indexOf(key) >= 0) {                    /* (b) table 형태 */\n      const cols = {};\n      names.forEach((n, i) => { cols[n] = arr(f.fields[i]); });\n      let vn = names.find(n => n === \"Value\" || n.indexOf(\"Value\") === 0);\n      if (!vn) vn = names.find(n => n !== \"Time\" && f.fields[names.indexOf(n)].type === \"number\");\n      (cols[key] || []).forEach((k0, r) => {\n        const k = norm(k0);\n        const rec = out[k] || (out[k] = {});\n        names.forEach(n => { if (n !== \"Time\") rec[n] = cols[n][r]; });\n        if (vn) rec.__v = cols[vn][r];\n      });\n      return;\n    }\n\n    /* (a) time_series 형태 — 라벨이 값 필드에 */\n    const vf = (f.fields || []).find(x => x.type === \"number\")\n            || (f.fields || [])[(f.fields || []).length - 1];\n    const lab = (vf && vf.labels) || {};\n    if (lab[key] == null) return;\n    const k = norm(lab[key]);\n    const rec = out[k] || (out[k] = {});\n    Object.keys(lab).forEach(k => { rec[k] = lab[k]; });\n    const vs = arr(vf);\n    rec.__v = vs.length ? vs[vs.length - 1] : null;\n  });\n  return out;\n}\n/* 무룰/네이티브 판은 `svc`, 룰 판은 `queue` 를 보낸다 — 있는 쪽을 쓴다 */\nfunction collect(series, refId) {\n  const a = collectBy(series, refId, \"svc\");\n  return Object.keys(a).length ? a : collectBy(series, refId, \"queue\");\n}\n\n/* {키: 레코드} → {키: 값} */\nfunction val(m) { const o = {}; Object.keys(m).forEach(k => { o[k] = m[k].__v; }); return o; }\n\n/* 라벨 없는 스칼라 (cluster:shared_pool_vcores 등) */\nfunction scalarOf(series, refId) {\n  const f = series.filter(s => s.refId === refId)[0];\n  if (!f) return null;\n  const vf = (f.fields || []).find(x => x.type === \"number\")\n          || (f.fields || [])[(f.fields || []).length - 1];\n  const vs = arr(vf);\n  return (vs && vs.length) ? vs[vs.length - 1] : null;\n}\n\n/* ── 서식 ──────────────────────────────────────────────────────────── */\nconst fmt = (v, d) => (v == null || isNaN(v)) ? \"—\"\n  : Number(v).toLocaleString(\"ko-KR\", { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });\nconst pct = (a, b) => (b && a != null && !isNaN(a)) ? a / b * 100 : null;\nconst esc = (s) => String(s == null ? \"\" : s)\n  .replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\").replace(/\"/g, \"&quot;\");\n\n/* ── 상태 판정 ─────────────────────────────────────────────────────────\n   임계는 목업과 동일: 75 주의 / 90 임박 / 100 초과.\n\n   ⚠ \"관측 없음\"과 \"0%\" 를 반드시 구분한다.\n   현재 6개 큐 중 4개는 queue:used_* 시리즈가 **아예 없다**(0 이 아니라 부재).\n   zero-fill 로 0 을 채워 넣고 그냥 그리면 \"여유(초록)\" 로 렌더되는데, 이건\n   유휴가 아니라 미관측이다 — 관측 못 하는 큐를 건강하다고 단언하게 된다.\n   그래서 값이 null 이면 별도 'none' 상태로 회색 처리한다. */\nfunction stat(p) {\n  if (p == null || isNaN(p)) return [\"none\", \"관측 없음\"];\n  if (p >= 100) return [\"crit\", \"초과\"];\n  if (p >= 90)  return [\"ser\", \"임박\"];\n  if (p >= 75)  return [\"warn\", \"주의\"];\n  return [\"ok\", \"여유\"];\n}\n\n/* ── 빈 패널 진단 ──────────────────────────────────────────────────────\n   쿼리는 통과했는데 화면이 비는 경우가 이 패널의 대표 실패 모드다.\n   헤드리스 브라우저를 못 띄우는 환경이라 API 검증으로는 절대 안 잡힌다.\n   → 렌더할 게 없으면 프레임 구조를 화면에 출력해 원인을 눈으로 볼 수 있게 한다.\n   각 변형은 데이터가 비면 반드시 bail(...) 후 return 할 것. */\nfunction bail(H, helperName, S, why) {\n  const dump = (S || []).map(s => {\n    const names = (s.fields || []).map(f => f.name).join(\"/\");\n    return esc(s.refId) + \"[\" + names + \"]\";\n  }).join(\" · \");\n  H.registerHelper(helperName, () => new H.SafeString(\n    '<div style=\"padding:14px;line-height:1.7;font-size:12px;opacity:.8\">'\n    + '<b>데이터 없음</b> — ' + esc(why) + '<br>'\n    + 'frames=' + (S || []).length + '<br>'\n    + (dump || '(프레임 없음)')\n    + '</div>'));\n}\n\n/* 팔레트·서비스 키·팀 순서 — dashlib.prelude() 가 정본(TEAM_COLORS/TEAMS/QUEUES)에서 채운다.\n   여기 리터럴로 두면 팀이 늘 때 이 사본만 조용히 옛 값으로 남는다(실제로 그랬다). */\nconst COLORS = {\"공통 영역\": \"#6b7280\", \"AI/Data Platform\": \"#2a78d6\", \"품질 지능화\": \"#eb6834\", \"EES/MDM/IPA\": \"#1baf7a\", \"장비 지능화\": \"#eda100\"};\nconst ORDER = [\"platform\", \"fdc\", \"smartbig\", \"yms\", \"tttm\", \"pluto\"];\nconst TEAM_ORDER = [\"공통 영역\", \"AI/Data Platform\", \"품질 지능화\", \"EES/MDM/IPA\", \"장비 지능화\"];\n\nconst H = __BTH;\nconst S = __BTS;\n\n/* arr() 는 prelude 정본을 쓴다 — 사본을 두면 정본을 덮어쓴다 */\n\n/* refId 프레임 → {팀: 값}. table/time_series 두 형태 모두 처리. */\nfunction byTeam(series, refId){\n  const out = {};\n  series.filter(s => s.refId === refId).forEach(f => {\n    const names = (f.fields||[]).map(x=>x.name);\n    const ti = names.indexOf(\"team\");\n    if (ti >= 0) {\n      const teams = arr(f.fields[ti]);\n      let vn = names.find(n => n === \"Value\" || n.indexOf(\"Value\") === 0)\n            || names.find(n => n !== \"Time\" && f.fields[names.indexOf(n)].type === \"number\");\n      const vals = vn ? arr(f.fields[names.indexOf(vn)]) : [];\n      teams.forEach((tm,i)=>{ out[tm] = vals[i]; });\n      return;\n    }\n    const vf = (f.fields||[]).find(x=>x.type===\"number\") || (f.fields||[])[(f.fields||[]).length-1];\n    const lab = (vf && vf.labels) || {};\n    if (!lab.team) return;\n    const vs = arr(vf);\n    out[lab.team] = vs.length ? vs[vs.length-1] : null;\n  });\n  return out;\n}\nfunction scalarOf(series, refId){\n  const m = byTeam(series, refId);\n  const k = Object.keys(m);\n  if (k.length) return m[k[0]];\n  const f = series.filter(s=>s.refId===refId)[0];\n  if (!f) return null;\n  const vf = (f.fields||[]).find(x=>x.type===\"number\");\n  const vs = arr(vf); return vs && vs.length ? vs[vs.length-1] : null;\n}\n\nconst S = __BTS;\nconst q = byTeam(S, \"teamq\");\nconst teams = TEAM_ORDER.filter(t => q[t] != null);\nconst fmt = v => v==null||isNaN(v) ? \"—\" : Number(v).toLocaleString(\"ko-KR\",{maximumFractionDigits:2});\n\nif (!teams.length) {\n  H.registerHelper('share', () => new H.SafeString(\n    '<div style=\"padding:14px;opacity:.7\">데이터 없음 — frames=' + S.length\n    + ' refIds=' + S.map(s=>s.refId).join(\",\") + '</div>'));\n  return;\n}\nconst tot = teams.reduce((a,t)=>a+q[t],0);\nconst shared = scalarOf(S, \"shared\");\n\nlet h = '<div class=\"sh-wrap\"><div class=\"sh-bar\">';\nteams.forEach(t => {\n  const pc = q[t]/tot*100;\n  h += '<div class=\"sh-seg\" style=\"flex:'+pc.toFixed(4)+';background:'+(COLORS[t]||\"#8a93a3\")+'\">'\n     + (pc >= 7 ? pc.toFixed(1)+'%' : '') + '</div>';\n});\nh += '</div><div class=\"sh-legend\">';\nteams.forEach(t => {\n  h += '<span><i style=\"background:'+(COLORS[t]||\"#8a93a3\")+'\"></i>'+t\n     + ' <b>'+fmt(q[t])+'</b></span>';\n});\nif (shared != null) h += '<span class=\"sh-dim\"><span class=\"src doc\">문서</span> 공용자원 <b>'+fmt(shared)+'</b> (팀 미귀속 · 출처 메트릭 없는 상수)</span>';\nh += '</div><div class=\"sh-tot\">합계 <b>'+fmt(tot)+'</b> cores</div></div>';\n\nH.registerHelper('share', () => new H.SafeString(h));\n",
+        "styles": "\n.sh-wrap{font-family:system-ui,-apple-system,\"Segoe UI\",\"Noto Sans KR\",\"Malgun Gothic\",sans-serif}\n.sh-bar{display:flex;height:34px;gap:2px}\n.sh-seg{display:flex;align-items:center;justify-content:center;border-radius:2px;\n  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;font-weight:700;\n  color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45);min-width:2px}\n.sh-seg:first-child{border-radius:4px 2px 2px 4px}\n.sh-seg:last-child{border-radius:2px 4px 4px 2px}\n.sh-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;margin-top:10px;opacity:.9}\n.sh-legend i{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:6px;\n  vertical-align:-1px}\n.sh-legend b{font-family:ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}\n.sh-dim{opacity:.6}\n.sh-tot{font-size:11.5px;opacity:.6;margin-top:6px;\n  font-family:ui-monospace,Menlo,Consolas,monospace}\n\n.src{display:inline-block;font-size:9.5px;font-weight:700;line-height:15px;\n     padding:0 6px;border-radius:3px;letter-spacing:.02em;vertical-align:1px;color:#fff;\n     font-family:system-ui,-apple-system,\"Segoe UI\",\"Noto Sans KR\",\"Malgun Gothic\",sans-serif}\n.src.doc{background:#9a6f18}\n.src.live{background:#2a68b8}\n.src.na{background:#6b7280}\n.srcleg{display:flex;gap:8px 18px;flex-wrap:wrap;font-size:11px;margin-top:11px;\n        padding-top:9px;border-top:1px solid rgba(128,138,155,.22);line-height:1.65;opacity:.85}\n.srcleg span.it{display:block;max-width:520px}\n.srcleg code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;\n        padding:1px 5px;border-radius:3px;background:rgba(128,138,155,.16)}\n",
+        "contentPartials": [],
+        "externalStyles": [],
+        "externalScripts": [],
+        "wrap": true,
+        "afterRender": ""
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "description": "레코딩 룰 미참조 판 — 계산은 인라인 PromQL, 메타데이터·계획값은 패널 JS 하드코딩. 값은 team-dash-matrix 와 동일해야 한다. 공용 풀은 출처가 없어 vector() 리터럴이다."
+    }
+  ]
+}

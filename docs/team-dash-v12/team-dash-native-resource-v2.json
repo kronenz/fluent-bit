@@ -1,0 +1,1474 @@
+{
+  "uid": "team-dash-native-resource-v2",
+  "title": "[비교] 리소스 현황 · BT 미사용 (v2)",
+  "tags": [
+    "team-dash-mock"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 0,
+  "refresh": "30s",
+  "editable": true,
+  "description": "Business Text 미사용 판 — Grafana 코어 패널만 쓴다. 플러그인 설치가 필요 없고 유실될 JS 도 없다. 값은 [비교] 같은 이름의 대시보드와 동일하다.",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "links": [
+    {
+      "type": "dashboards",
+      "title": "목업 재현",
+      "tags": [
+        "team-dash-mock"
+      ],
+      "asDropdown": false,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    },
+    {
+      "type": "dashboards",
+      "title": "자원 현황",
+      "tags": [
+        "team-dash"
+      ],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    },
+    {
+      "type": "dashboards",
+      "title": "다른 시각화",
+      "tags": [
+        "team-dash-alt"
+      ],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0
+      },
+      {
+        "name": "cluster",
+        "label": "Cluster",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "query": "label_values(yunikorn_queue_resource, cluster)",
+          "refId": "cluster"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "obs",
+          "value": "obs"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "CPU · 보장자원 대비",
+      "type": "stat",
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))\n/\nsum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "legendFormat": "사용률",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "legendFormat": "사용",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "legendFormat": "할당",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "관측 없음",
+                  "color": "#8a93a3",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "noValue": "관측 없음"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "사용률"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#0ca30c",
+                      "value": null
+                    },
+                    {
+                      "color": "#fab219",
+                      "value": 0.75
+                    },
+                    {
+                      "color": "#ec835a",
+                      "value": 0.9
+                    },
+                    {
+                      "color": "#d03b3b",
+                      "value": 1.0
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "사용"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "할당"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "wideLayout": true
+      },
+      "description": "**실측** Business Text 미사용 판 — Grafana 코어 패널만 쓴다. 플러그인 설치가 필요 없고 유실될 JS 도 없다. 값은 [비교] 같은 이름의 대시보드와 동일하다."
+    },
+    {
+      "id": 11,
+      "title": "Memory · 쿼터 대비",
+      "type": "stat",
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"},\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))\n/\nsum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"},\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "legendFormat": "사용률",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"},\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "legendFormat": "사용",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"},\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "legendFormat": "할당",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "관측 없음",
+                  "color": "#8a93a3",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "noValue": "관측 없음"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "사용률"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#0ca30c",
+                      "value": null
+                    },
+                    {
+                      "color": "#fab219",
+                      "value": 0.75
+                    },
+                    {
+                      "color": "#ec835a",
+                      "value": 0.9
+                    },
+                    {
+                      "color": "#d03b3b",
+                      "value": 1.0
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "사용"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "할당"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "wideLayout": true
+      },
+      "description": "**실측** YuniKorn 스케줄 기준. Business Text 미사용 판 — Grafana 코어 패널만 쓴다. 플러그인 설치가 필요 없고 유실될 JS 도 없다. 값은 [비교] 같은 이름의 대시보드와 동일하다."
+    },
+    {
+      "id": 12,
+      "title": "Storage · MinIO S3",
+      "type": "text",
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "### 데이터 없음\n\n버킷별 메트릭이 수집되지 않습니다 — ServiceMonitor 가 `/minio/v2/metrics/cluster` 만 긁어 `bucket` 라벨 시리즈가 없습니다.\n\n빈 값은 **0 이 아니라 미수집**입니다."
+      },
+      "transparent": false,
+      "description": "숫자를 지어내지 않고 없다고 쓴다."
+    },
+    {
+      "id": 2,
+      "title": "보장자원 배분 — 팀별 실측 guaranteed vCores",
+      "type": "bargauge",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (cluster, team) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(\n  # 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n),\n  \"team\", \"공통 영역\",            \"svc\", \"common\"),\n  \"team\", \"공통 영역\",            \"svc\", \"platform\"),\n  \"team\", \"AI/Data Platform\", \"svc\", \"fdc\"),\n  \"team\", \"품질 지능화\",           \"svc\", \"smartbig\"),\n  \"team\", \"품질 지능화\",           \"svc\", \"yms\"),\n  \"team\", \"EES/MDM/IPA\",      \"svc\", \"tttm\"),\n  \"team\", \"장비 지능화\",           \"svc\", \"pluto\")\n)",
+          "legendFormat": "{{team}}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "noValue": "관측 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "관측 없음",
+                  "color": "#8a93a3",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "공통 영역"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#6b7280"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "AI/Data Platform"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#2a78d6"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "품질 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eb6834"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "EES/MDM/IPA"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#1baf7a"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "장비 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eda100"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "minVizWidth": 8,
+        "minVizHeight": 16,
+        "sizing": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "description": "**실측** 팀 롤업. 공용자원(shared) 6.768 vCores 는 출처 메트릭이 없는 **문서값 상수**라 여기 막대에는 들어가지 않는다. Business Text 미사용 판 — Grafana 코어 패널만 쓴다. 플러그인 설치가 필요 없고 유실될 JS 도 없다. 값은 [비교] 같은 이름의 대시보드와 동일하다."
+    },
+    {
+      "id": 3,
+      "title": "공용자원 소진",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(clamp_min(\n  (# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))\n  - on (cluster, svc) group_left()\n  (# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n)),\n  0\n))",
+          "legendFormat": "차용",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 120
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "vector(6.768)",
+          "legendFormat": "공용 풀 · 문서값(상수)",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 120
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 3,
+          "min": 0,
+          "custom": {
+            "fillOpacity": 18,
+            "lineWidth": 2,
+            "gradientMode": "opacity",
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "공용 풀 · 문서값(상수)"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    8,
+                    6
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8a93a3"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "공용 풀은 출처 메트릭이 없어 `vector(6.768)` 리터럴이다. 레코딩 룰 미참조 판 — 계산은 인라인 PromQL, 메타데이터·계획값은 하드코딩. 값은 룰 버전과 동일해야 한다."
+    },
+    {
+      "id": 4,
+      "title": "팀별 사용량 — 실측 allocated vCores",
+      "type": "bargauge",
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (cluster, team) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(\n  # 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n),\n  \"team\", \"공통 영역\",            \"svc\", \"common\"),\n  \"team\", \"공통 영역\",            \"svc\", \"platform\"),\n  \"team\", \"AI/Data Platform\", \"svc\", \"fdc\"),\n  \"team\", \"품질 지능화\",           \"svc\", \"smartbig\"),\n  \"team\", \"품질 지능화\",           \"svc\", \"yms\"),\n  \"team\", \"EES/MDM/IPA\",      \"svc\", \"tttm\"),\n  \"team\", \"장비 지능화\",           \"svc\", \"pluto\")\n)",
+          "legendFormat": "{{team}}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "noValue": "관측 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "관측 없음",
+                  "color": "#8a93a3",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "공통 영역"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#6b7280"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "AI/Data Platform"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#2a78d6"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "품질 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eb6834"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "EES/MDM/IPA"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#1baf7a"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "장비 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eda100"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "minVizWidth": 8,
+        "minVizHeight": 16,
+        "sizing": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "description": "**실측** Business Text 미사용 판 — Grafana 코어 패널만 쓴다. 플러그인 설치가 필요 없고 유실될 JS 도 없다. 값은 [비교] 같은 이름의 대시보드와 동일하다."
+    },
+    {
+      "id": 13,
+      "title": "팀별 보장자원 사용률",
+      "type": "bargauge",
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum by (cluster, team) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(\n  # 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n),\n  \"team\", \"공통 영역\",            \"svc\", \"common\"),\n  \"team\", \"공통 영역\",            \"svc\", \"platform\"),\n  \"team\", \"AI/Data Platform\", \"svc\", \"fdc\"),\n  \"team\", \"품질 지능화\",           \"svc\", \"smartbig\"),\n  \"team\", \"품질 지능화\",           \"svc\", \"yms\"),\n  \"team\", \"EES/MDM/IPA\",      \"svc\", \"tttm\"),\n  \"team\", \"장비 지능화\",           \"svc\", \"pluto\")\n))\n/ on (cluster,team) group_left()\n(sum by (cluster, team) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(\n  # 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n),\n  \"team\", \"공통 영역\",            \"svc\", \"common\"),\n  \"team\", \"공통 영역\",            \"svc\", \"platform\"),\n  \"team\", \"AI/Data Platform\", \"svc\", \"fdc\"),\n  \"team\", \"품질 지능화\",           \"svc\", \"smartbig\"),\n  \"team\", \"품질 지능화\",           \"svc\", \"yms\"),\n  \"team\", \"EES/MDM/IPA\",      \"svc\", \"tttm\"),\n  \"team\", \"장비 지능화\",           \"svc\", \"pluto\")\n))",
+          "legendFormat": "{{team}}",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 1,
+          "noValue": "관측 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "관측 없음",
+                  "color": "#8a93a3",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#2a78d6",
+                "value": null
+              },
+              {
+                "color": "#e0b400",
+                "value": 0.7
+              },
+              {
+                "color": "#ec835a",
+                "value": 0.9
+              },
+              {
+                "color": "#d03b3b",
+                "value": 1.0
+              }
+            ]
+          },
+          "max": 1.25,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "minVizWidth": 8,
+        "minVizHeight": 16,
+        "sizing": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "description": "**실측** 사용 ÷ 보장. 축 최대 125% — 100% 기준선이 항상 같은 자리에 온다. Business Text 미사용 판 — Grafana 코어 패널만 쓴다. 플러그인 설치가 필요 없고 유실될 JS 도 없다. 값은 [비교] 같은 이름의 대시보드와 동일하다."
+    },
+    {
+      "id": 100,
+      "type": "row",
+      "title": "추이",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "panels": []
+    },
+    {
+      "id": 5,
+      "title": "클러스터 사용률 추이",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 29
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))\n/\nsum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "legendFormat": "CPU · 보장 대비",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"},\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))\n/\nsum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"},\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "legendFormat": "Memory · 쿼터 대비",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 1,
+          "min": 0,
+          "custom": {
+            "fillOpacity": 12,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "gradientMode": "opacity",
+            "spanNulls": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU · 보장 대비"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#2a78d6"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Memory · 쿼터 대비"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eb6834"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "레코딩 룰 미참조 판 — 계산은 인라인 PromQL, 메타데이터·계획값은 하드코딩. 값은 룰 버전과 동일해야 한다."
+    },
+    {
+      "id": 6,
+      "title": "큐별 요청 vCores 추이",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 29
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (queue) (# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "legendFormat": "{{queue}}",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "min": 0,
+          "custom": {
+            "fillOpacity": 35,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "gradientMode": "opacity",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "레코딩 룰 미참조 판 — 계산은 인라인 PromQL, 메타데이터·계획값은 하드코딩. 값은 룰 버전과 동일해야 한다."
+    },
+    {
+      "id": 7,
+      "title": "큐별 대기(pending) vCores 추이",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 38
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (queue) (# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"pending\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "legendFormat": "{{queue}}",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "min": 0,
+          "custom": {
+            "fillOpacity": 35,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "gradientMode": "opacity",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "`state=\"pending\"` — 스케줄 대기 중인 요구량. 0 이 아니라 **시리즈가 없으면** 그 큐는 대기 요구 자체가 관측되지 않은 것이다. 레코딩 룰 미참조 판 — 계산은 인라인 PromQL, 메타데이터·계획값은 하드코딩. 값은 룰 버전과 동일해야 한다."
+    },
+    {
+      "id": 9,
+      "title": "팀별 S3 버킷 사용량 추이",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 47
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (cluster, team) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  \n  max by (cluster, bucket) (minio_cluster_usage_buckets_total_bytes{cluster=\"$cluster\", bucket=~\"ic-.*\"}),\n  \"team\", \"공통 영역\",            \"bucket\", \"ic-platform\"),\n  \"team\", \"AI/Data Platform\", \"bucket\", \"ic-fdc\"),\n  \"team\", \"AI/Data Platform\", \"bucket\", \"ic-lfdc\"),\n  \"team\", \"품질 지능화\",           \"bucket\", \"ic-bmc\"),\n  \"team\", \"품질 지능화\",           \"bucket\", \"ic-ees\"),\n  \"team\", \"품질 지능화\",           \"bucket\", \"ic-ias\"),\n  \"team\", \"품질 지능화\",           \"bucket\", \"ic-mes\"),\n  \"team\", \"품질 지능화\",           \"bucket\", \"ic-nfa\"),\n  \"team\", \"품질 지능화\",           \"bucket\", \"ic-pnt\"),\n  \"team\", \"품질 지능화\",           \"bucket\", \"ic-sep\"),\n  \"team\", \"품질 지능화\",           \"bucket\", \"ic-smartbig\"),\n  \"team\", \"품질 지능화\",           \"bucket\", \"ic-tas\"),\n  \"team\", \"품질 지능화\",           \"bucket\", \"ic-tidx\"),\n  \"team\", \"품질 지능화\",           \"bucket\", \"ic-tsv\"),\n  \"team\", \"품질 지능화\",           \"bucket\", \"ic-wfbm\"),\n  \"team\", \"품질 지능화\",           \"bucket\", \"ic-wt\"),\n  \"team\", \"EES/MDM/IPA\",      \"bucket\", \"ic-tttm\"),\n  \"team\", \"장비 지능화\",           \"bucket\", \"ic-pluto\")\n)",
+          "legendFormat": "{{team}}",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 2,
+          "min": 0,
+          "custom": {
+            "fillOpacity": 35,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "gradientMode": "opacity",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "공통 영역"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#6b7280"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "AI/Data Platform"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#2a78d6"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "품질 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eb6834"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "EES/MDM/IPA"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#1baf7a"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "장비 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eda100"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "`minio_cluster_usage_buckets_total_bytes{bucket=~\"ic-.*\"}` 를 `max by (bucket)` 로 중복 제거 후 버킷→서비스→팀으로 합산. ⚠ 이 클러스터는 ServiceMonitor 가 `/minio/v2/metrics/cluster` 만 긁어 **버킷 단위 시리즈가 없다** — 빈 그래프는 0 이 아니라 미수집이다. 레코딩 룰 미참조 판 — 계산은 인라인 PromQL, 메타데이터·계획값은 하드코딩. 값은 룰 버전과 동일해야 한다."
+    },
+    {
+      "id": 8,
+      "title": "OverCommit — 큐 한계(max) 합 vs 클러스터 용량",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 38
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"max\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "legendFormat": "큐 한계 합",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster) (yunikorn_queue_resource{cluster=\"$cluster\", queue=\"root\", resource=\"vcore\", state=\"max\"} / 1000)",
+          "legendFormat": "클러스터 용량",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(# 큐 -> 서비스 매핑은 아래 label_replace 줄이 전부다 (정본: norules_lib.QUEUE_MAP). 큐가 늘면 한 줄 추가.\nsum by (cluster, svc) (\n  max by (cluster, queue, svc) (\nlabel_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(label_replace(label_replace(\n  label_replace(label_replace(label_replace(label_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue!=\"root\", queue!=\"root.app\", queue!=\"root.sql\"} / 1000,\n  \"svc\", \"platform\", \"queue\", \"root.app.app-platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.app.app-fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.app.app-smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.app.app-yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.app.app-tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.app.app-pluto\"),\n  \"svc\", \"common\",   \"queue\", \"root.sql.sql-common\"),\n  \"svc\", \"platform\", \"queue\", \"root.sql.sql-platform\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.sql.sql-pluto\"),\n  \"svc\", \"yms\",      \"queue\", \"root.sql.sql-yms\"),\n  \"svc\", \"platform\", \"queue\", \"root.platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"root.fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"root.smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"root.yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"root.tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"root.pluto\"),\n  \"svc\", \"platform\", \"queue\", \"platform\"),\n  \"svc\", \"fdc\",      \"queue\", \"fdc\"),\n  \"svc\", \"smartbig\", \"queue\", \"smartbig\"),\n  \"svc\", \"yms\",      \"queue\", \"yms\"),\n  \"svc\", \"tttm\",     \"queue\", \"tttm\"),\n  \"svc\", \"pluto\",    \"queue\", \"pluto\")\n  )\n))",
+          "legendFormat": "보장 합",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "min": 0,
+          "custom": {
+            "fillOpacity": 12,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "gradientMode": "opacity",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "한계 합이 용량을 넘는 만큼이 OverCommit 이다(원본 배분표 머리말의 그 구성). 보장 합은 그 아래 하한. 레코딩 룰 미참조 판 — 계산은 인라인 PromQL, 메타데이터·계획값은 하드코딩. 값은 룰 버전과 동일해야 한다."
+    }
+  ]
+}
