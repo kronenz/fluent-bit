@@ -1,0 +1,1853 @@
+{
+  "uid": "team-dash-native-team-v3",
+  "title": "[비교] 팀별 · BT 미사용 (v3)",
+  "tags": [
+    "team-dash-mock"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 0,
+  "refresh": "30s",
+  "editable": true,
+  "description": "Business Text 미사용 판 — Grafana 코어 패널만 쓴다. 플러그인 설치가 필요 없고 유실될 JS 도 없다. 값은 [비교] 같은 이름의 대시보드와 동일하다.",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "links": [
+    {
+      "type": "dashboards",
+      "title": "목업 재현",
+      "tags": [
+        "team-dash-mock"
+      ],
+      "asDropdown": false,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    },
+    {
+      "type": "dashboards",
+      "title": "자원 현황",
+      "tags": [
+        "team-dash"
+      ],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    },
+    {
+      "type": "dashboards",
+      "title": "다른 시각화",
+      "tags": [
+        "team-dash-alt"
+      ],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0
+      },
+      {
+        "name": "cluster",
+        "label": "Cluster",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "query": "label_values(yunikorn_queue_resource, cluster)",
+          "refId": "cluster"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "obs",
+          "value": "obs"
+        }
+      },
+      {
+        "name": "team",
+        "label": "팀",
+        "type": "custom",
+        "query": "공통 영역,AI/Data Platform,품질 지능화,EES/MDM/IPA,장비 지능화",
+        "options": [
+          {
+            "selected": true,
+            "text": "공통 영역",
+            "value": "공통 영역"
+          },
+          {
+            "selected": false,
+            "text": "AI/Data Platform",
+            "value": "AI/Data Platform"
+          },
+          {
+            "selected": false,
+            "text": "품질 지능화",
+            "value": "품질 지능화"
+          },
+          {
+            "selected": false,
+            "text": "EES/MDM/IPA",
+            "value": "EES/MDM/IPA"
+          },
+          {
+            "selected": false,
+            "text": "장비 지능화",
+            "value": "장비 지능화"
+          }
+        ],
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "큐별 실측 (PromQL)",
+      "type": "table",
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (queue) (yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\"}) / 1000",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (queue) (yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"max\"}) / 1000",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (queue) (yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\"}) / 1000",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (queue) (yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"pending\"}) / 1000",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (queue) (yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"allocated\"}) / 1073741824",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "F",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (queue) (yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"guaranteed\"}) / 1073741824",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "G",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (queue) (yunikorn_queue_resource{cluster=\"$cluster\", resource=\"pods\", state=\"allocated\"})",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "H",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (queue) (yunikorn_queue_app{cluster=\"$cluster\", state=\"running\"})",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "right",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "minWidth": 78
+          },
+          "decimals": 2,
+          "noValue": "—"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "보장"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "한계"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "사용"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "대기"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Mem 사용"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Mem 보장"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "파드"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "앱"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "큐"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "left"
+              },
+              {
+                "id": "custom.width",
+                "value": 200
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "root.app.app-platform": {
+                        "text": "PLATFORM · app",
+                        "index": 0
+                      },
+                      "root.app.app-fdc": {
+                        "text": "FDC · app",
+                        "index": 1
+                      },
+                      "root.app.app-smartbig": {
+                        "text": "SMARTBIG · app",
+                        "index": 2
+                      },
+                      "root.app.app-yms": {
+                        "text": "YMS · app",
+                        "index": 3
+                      },
+                      "root.app.app-tttm": {
+                        "text": "TTTM · app",
+                        "index": 4
+                      },
+                      "root.app.app-pluto": {
+                        "text": "PLUTO · app",
+                        "index": 5
+                      },
+                      "root.sql.sql-platform": {
+                        "text": "PLATFORM · sql",
+                        "index": 6
+                      },
+                      "root.sql.sql-yms": {
+                        "text": "YMS · sql",
+                        "index": 7
+                      },
+                      "root.sql.sql-pluto": {
+                        "text": "PLUTO · sql",
+                        "index": 8
+                      },
+                      "root.sql.sql-common": {
+                        "text": "COMMON · sql",
+                        "index": 9
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": ""
+        }
+      },
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "queue",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "큐": 0,
+              "보장": 1,
+              "한계": 2,
+              "사용": 3,
+              "대기": 4,
+              "Mem 사용": 5,
+              "Mem 보장": 6,
+              "파드": 7,
+              "앱": 8
+            },
+            "renameByName": {
+              "queue": "큐",
+              "Value #A": "보장",
+              "Value": "보장",
+              "Value #B": "한계",
+              "Value #C": "사용",
+              "Value #D": "대기",
+              "Value #E": "Mem 사용",
+              "Value #F": "Mem 보장",
+              "Value #G": "파드",
+              "Value #H": "앱"
+            }
+          }
+        }
+      ],
+      "description": "**실측 · PromQL** — 행이 실제 스케줄 큐다(`root.app.app-*` = Spark, `root.sql.sql-*` = Trino). 원본 배분표의 `APACHE SPARK` / `Trino` 두 행과 같은 구조다. 매핑용 `label_replace` 가 하나도 없다 — `sum by (queue)` 뿐이고, 보기 좋은 이름은 Grafana 값 매핑이 붙인다. `—` 는 0 이 아니라 **시리즈 없음**(미관측). Business Text 미사용 판 — Grafana 코어 패널만 쓴다. 플러그인 설치가 필요 없고 유실될 JS 도 없다. 값은 [비교] 같은 이름의 대시보드와 동일하다."
+    },
+    {
+      "id": 12,
+      "title": "팀 ↔ 서비스 (문서 · 하드코딩)",
+      "type": "text",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "options": {
+        "mode": "markdown",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "> **문서 · 하드코딩** — 팀↔서비스 매핑은 원본 배분표 값입니다(메트릭에 `team` 라벨이 없습니다).\n\n| 팀 | 서비스 | 계획 보장 vCores |\n|---|---|---|\n| **공통 영역** | PLATFORM | 230 |\n| **AI/Data Platform** | FDC | 2,900 |\n| **품질 지능화** | SMARTBIG, YMS | 4,750 |\n| **EES/MDM/IPA** | TTTM | 690 |\n| **장비 지능화** | PLUTO | 2,270 |\n\n◈ **공통 영역**에는 PLATFORM 외에 `root.sql.sql-common`(Trino 공통 리소스 쿼터 묶음)도 함께 집계됩니다."
+      },
+      "transparent": false,
+      "description": "출처 메트릭이 없는 전사값."
+    },
+    {
+      "id": 2,
+      "title": "CPU 사용률 — 팀별 보장 대비",
+      "type": "bargauge",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 11
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=~\"root.app.app-platform|root.sql.sql-platform|root.sql.sql-common\"})\n/\nsum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue=~\"root.app.app-platform|root.sql.sql-platform|root.sql.sql-common\"})",
+          "legendFormat": "공통 영역",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=\"root.app.app-fdc\"})\n/\nsum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue=\"root.app.app-fdc\"})",
+          "legendFormat": "AI/Data Platform",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=~\"root.app.app-smartbig|root.app.app-yms|root.sql.sql-yms\"})\n/\nsum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue=~\"root.app.app-smartbig|root.app.app-yms|root.sql.sql-yms\"})",
+          "legendFormat": "품질 지능화",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=\"root.app.app-tttm\"})\n/\nsum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue=\"root.app.app-tttm\"})",
+          "legendFormat": "EES/MDM/IPA",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=~\"root.app.app-pluto|root.sql.sql-pluto\"})\n/\nsum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue=~\"root.app.app-pluto|root.sql.sql-pluto\"})",
+          "legendFormat": "장비 지능화",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 1,
+          "noValue": "관측 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "관측 없음",
+                  "color": "#8a93a3",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#2a78d6",
+                "value": null
+              },
+              {
+                "color": "#e0b400",
+                "value": 0.7
+              },
+              {
+                "color": "#ec835a",
+                "value": 0.9
+              },
+              {
+                "color": "#d03b3b",
+                "value": 1.0
+              }
+            ]
+          },
+          "max": 1.25,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "minVizWidth": 8,
+        "minVizHeight": 16,
+        "sizing": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "description": "**실측** Business Text 미사용 판 — Grafana 코어 패널만 쓴다. 플러그인 설치가 필요 없고 유실될 JS 도 없다. 값은 [비교] 같은 이름의 대시보드와 동일하다."
+    },
+    {
+      "id": 3,
+      "title": "Memory 사용 — 팀별 실측",
+      "type": "bargauge",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 11
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"allocated\", queue=~\"root.app.app-platform|root.sql.sql-platform|root.sql.sql-common\"})",
+          "legendFormat": "공통 영역",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"allocated\", queue=\"root.app.app-fdc\"})",
+          "legendFormat": "AI/Data Platform",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"allocated\", queue=~\"root.app.app-smartbig|root.app.app-yms|root.sql.sql-yms\"})",
+          "legendFormat": "품질 지능화",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"allocated\", queue=\"root.app.app-tttm\"})",
+          "legendFormat": "EES/MDM/IPA",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"allocated\", queue=~\"root.app.app-pluto|root.sql.sql-pluto\"})",
+          "legendFormat": "장비 지능화",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "noValue": "관측 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "관측 없음",
+                  "color": "#8a93a3",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "공통 영역"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#6b7280"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "AI/Data Platform"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#2a78d6"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "품질 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eb6834"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "EES/MDM/IPA"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#1baf7a"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "장비 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eda100"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "minVizWidth": 8,
+        "minVizHeight": 16,
+        "sizing": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "description": "**실측** Business Text 미사용 판 — Grafana 코어 패널만 쓴다. 플러그인 설치가 필요 없고 유실될 JS 도 없다. 값은 [비교] 같은 이름의 대시보드와 동일하다."
+    },
+    {
+      "id": 100,
+      "type": "row",
+      "title": "추이",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "panels": []
+    },
+    {
+      "id": 4,
+      "title": "팀별 CPU 사용량 추이",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=~\"root.app.app-platform|root.sql.sql-platform|root.sql.sql-common\"}) / 1000",
+          "legendFormat": "공통 영역",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=\"root.app.app-fdc\"}) / 1000",
+          "legendFormat": "AI/Data Platform",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=~\"root.app.app-smartbig|root.app.app-yms|root.sql.sql-yms\"}) / 1000",
+          "legendFormat": "품질 지능화",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=\"root.app.app-tttm\"}) / 1000",
+          "legendFormat": "EES/MDM/IPA",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=~\"root.app.app-pluto|root.sql.sql-pluto\"}) / 1000",
+          "legendFormat": "장비 지능화",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "min": 0,
+          "custom": {
+            "fillOpacity": 12,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "gradientMode": "opacity",
+            "spanNulls": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "공통 영역"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#6b7280"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "AI/Data Platform"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#2a78d6"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "품질 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eb6834"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "EES/MDM/IPA"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#1baf7a"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "장비 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eda100"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "⚠ 룰 버전에는 있던 `{team=~\"$team\"}` 필터가 이 판에는 없다 — 인라인 팀 롤업은 괄호로 묶인 식이라 셀렉터를 못 붙이고, team 라벨을 가진 원시 메트릭이 없어 우회도 안 된다. 팀 변수를 바꿔도 이 패널은 항상 전 팀을 보여준다."
+    },
+    {
+      "id": 5,
+      "title": "팀별 보장자원 사용률 추이",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=~\"root.app.app-platform|root.sql.sql-platform|root.sql.sql-common\"})\n/\nsum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue=~\"root.app.app-platform|root.sql.sql-platform|root.sql.sql-common\"})",
+          "legendFormat": "공통 영역",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=\"root.app.app-fdc\"})\n/\nsum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue=\"root.app.app-fdc\"})",
+          "legendFormat": "AI/Data Platform",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=~\"root.app.app-smartbig|root.app.app-yms|root.sql.sql-yms\"})\n/\nsum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue=~\"root.app.app-smartbig|root.app.app-yms|root.sql.sql-yms\"})",
+          "legendFormat": "품질 지능화",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=\"root.app.app-tttm\"})\n/\nsum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue=\"root.app.app-tttm\"})",
+          "legendFormat": "EES/MDM/IPA",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=~\"root.app.app-pluto|root.sql.sql-pluto\"})\n/\nsum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\", queue=~\"root.app.app-pluto|root.sql.sql-pluto\"})",
+          "legendFormat": "장비 지능화",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 1,
+          "min": 0,
+          "custom": {
+            "fillOpacity": 0,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "gradientMode": "none",
+            "spanNulls": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "공통 영역"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#6b7280"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "AI/Data Platform"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#2a78d6"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "품질 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eb6834"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "EES/MDM/IPA"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#1baf7a"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "장비 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eda100"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "⚠ 룰 버전에는 있던 `{team=~\"$team\"}` 필터가 이 판에는 없다 — 인라인 팀 롤업은 괄호로 묶인 식이라 셀렉터를 못 붙이고, team 라벨을 가진 원시 메트릭이 없어 우회도 안 된다. 팀 변수를 바꿔도 이 패널은 항상 전 팀을 보여준다."
+    },
+    {
+      "id": 6,
+      "title": "팀별 한계(max) 대비 사용률 추이",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 31
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=~\"root.app.app-platform|root.sql.sql-platform|root.sql.sql-common\"})\n/\nsum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"max\", queue=~\"root.app.app-platform|root.sql.sql-platform|root.sql.sql-common\"})",
+          "legendFormat": "공통 영역",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=\"root.app.app-fdc\"})\n/\nsum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"max\", queue=\"root.app.app-fdc\"})",
+          "legendFormat": "AI/Data Platform",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=~\"root.app.app-smartbig|root.app.app-yms|root.sql.sql-yms\"})\n/\nsum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"max\", queue=~\"root.app.app-smartbig|root.app.app-yms|root.sql.sql-yms\"})",
+          "legendFormat": "품질 지능화",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=\"root.app.app-tttm\"})\n/\nsum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"max\", queue=\"root.app.app-tttm\"})",
+          "legendFormat": "EES/MDM/IPA",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\", queue=~\"root.app.app-pluto|root.sql.sql-pluto\"})\n/\nsum(yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"max\", queue=~\"root.app.app-pluto|root.sql.sql-pluto\"})",
+          "legendFormat": "장비 지능화",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 1,
+          "min": 0,
+          "custom": {
+            "fillOpacity": 0,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "gradientMode": "none",
+            "spanNulls": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "공통 영역"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#6b7280"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "AI/Data Platform"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#2a78d6"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "품질 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eb6834"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "EES/MDM/IPA"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#1baf7a"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "장비 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eda100"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "보장 대비가 아니라 **한계(state=max) 대비** — 버스트 상한까지 얼마나 남았는지. ⚠ 룰 버전에는 있던 `{team=~\"$team\"}` 필터가 이 판에는 없다 — 인라인 팀 롤업은 괄호로 묶인 식이라 셀렉터를 못 붙이고, team 라벨을 가진 원시 메트릭이 없어 우회도 안 된다. 팀 변수를 바꿔도 이 패널은 항상 전 팀을 보여준다."
+    },
+    {
+      "id": 8,
+      "title": "팀별 S3 버킷 사용량 추이",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (bucket) (minio_cluster_usage_buckets_total_bytes{cluster=\"$cluster\", bucket=~\"ic-platform\"}))",
+          "legendFormat": "공통 영역",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (bucket) (minio_cluster_usage_buckets_total_bytes{cluster=\"$cluster\", bucket=~\"ic-fdc|ic-lfdc\"}))",
+          "legendFormat": "AI/Data Platform",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (bucket) (minio_cluster_usage_buckets_total_bytes{cluster=\"$cluster\", bucket=~\"ic-bmc|ic-ees|ic-ias|ic-mes|ic-nfa|ic-pnt|ic-sep|ic-smartbig|ic-tas|ic-tidx|ic-tsv|ic-wfbm|ic-wt\"}))",
+          "legendFormat": "품질 지능화",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (bucket) (minio_cluster_usage_buckets_total_bytes{cluster=\"$cluster\", bucket=~\"ic-tttm\"}))",
+          "legendFormat": "EES/MDM/IPA",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (bucket) (minio_cluster_usage_buckets_total_bytes{cluster=\"$cluster\", bucket=~\"ic-pluto\"}))",
+          "legendFormat": "장비 지능화",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 2,
+          "min": 0,
+          "custom": {
+            "fillOpacity": 35,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "gradientMode": "opacity",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "공통 영역"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#6b7280"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "AI/Data Platform"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#2a78d6"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "품질 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eb6834"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "EES/MDM/IPA"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#1baf7a"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "장비 지능화"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#eda100"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "`minio_cluster_usage_buckets_total_bytes{bucket=~\"ic-.*\"}` → `max by (bucket)` 중복 제거 → 버킷→서비스→팀 합산. ⚠ 이 클러스터는 버킷 단위 메트릭 미수집이라 빈 그래프가 정상. ⚠ 룰 버전에는 있던 `{team=~\"$team\"}` 필터가 이 판에는 없다 — 인라인 팀 롤업은 괄호로 묶인 식이라 셀렉터를 못 붙이고, team 라벨을 가진 원시 메트릭이 없어 우회도 안 된다. 팀 변수를 바꿔도 이 패널은 항상 전 팀을 보여준다."
+    },
+    {
+      "id": 7,
+      "title": "큐별 실행 앱 수 추이",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 31
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_app{cluster=\"$cluster\", state=\"running\", queue=~\"root.app.app-platform|root.sql.sql-platform\"})",
+          "legendFormat": "PLATFORM",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_app{cluster=\"$cluster\", state=\"running\", queue=\"root.app.app-fdc\"})",
+          "legendFormat": "FDC",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_app{cluster=\"$cluster\", state=\"running\", queue=\"root.app.app-smartbig\"})",
+          "legendFormat": "SMARTBIG",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_app{cluster=\"$cluster\", state=\"running\", queue=~\"root.app.app-yms|root.sql.sql-yms\"})",
+          "legendFormat": "YMS",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_app{cluster=\"$cluster\", state=\"running\", queue=\"root.app.app-tttm\"})",
+          "legendFormat": "TTTM",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "F",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_app{cluster=\"$cluster\", state=\"running\", queue=~\"root.app.app-pluto|root.sql.sql-pluto\"})",
+          "legendFormat": "PLUTO",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "G",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(yunikorn_queue_app{cluster=\"$cluster\", state=\"running\", queue=\"root.sql.sql-common\"})",
+          "legendFormat": "common",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "min": 0,
+          "custom": {
+            "fillOpacity": 35,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "gradientMode": "opacity",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "`yunikorn_queue_app{state=\"running\"}` — 파드가 아닌 **앱** 개수. 실측 state 는 accepted·running 두 가지다. 레코딩 룰 미참조 판 — 계산은 인라인 PromQL, 메타데이터·계획값은 하드코딩. 값은 룰 버전과 동일해야 한다."
+    }
+  ]
+}
