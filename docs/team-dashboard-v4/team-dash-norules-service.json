@@ -1,0 +1,454 @@
+{
+  "uid": "team-dash-norules-service",
+  "title": "[비교] 서비스별 · 레코딩 룰 미사용",
+  "tags": [
+    "team-dash-mock"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 0,
+  "refresh": "30s",
+  "editable": true,
+  "description": "레코딩 룰을 쓰지 않고 같은 화면을 만든 비교판. 값은 team-dash-mock-service 와 동일, 쿼리 길이와 하드코딩 양이 다르다.",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "links": [
+    {
+      "type": "dashboards",
+      "title": "목업 재현",
+      "tags": [
+        "team-dash-mock"
+      ],
+      "asDropdown": false,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    },
+    {
+      "type": "dashboards",
+      "title": "자원 현황",
+      "tags": [
+        "team-dash"
+      ],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    },
+    {
+      "type": "dashboards",
+      "title": "다른 시각화",
+      "tags": [
+        "team-dash-alt"
+      ],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0
+      },
+      {
+        "name": "cluster",
+        "label": "Cluster",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "query": "label_values(yunikorn_queue_resource, cluster)",
+          "refId": "cluster"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "obs",
+          "value": "obs"
+        }
+      },
+      {
+        "name": "team",
+        "label": "팀",
+        "type": "custom",
+        "query": "AI/Data Platform,품질 지능화,EES/MDM/IPA,장비 지능화",
+        "options": [
+          {
+            "selected": true,
+            "text": "AI/Data Platform",
+            "value": "AI/Data Platform"
+          },
+          {
+            "selected": false,
+            "text": "품질 지능화",
+            "value": "품질 지능화"
+          },
+          {
+            "selected": false,
+            "text": "EES/MDM/IPA",
+            "value": "EES/MDM/IPA"
+          },
+          {
+            "selected": false,
+            "text": "장비 지능화",
+            "value": "장비 지능화"
+          }
+        ],
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true
+      },
+      {
+        "name": "queue",
+        "label": "큐",
+        "type": "custom",
+        "query": "root.platform,root.fdc,root.smartbig,root.yms,root.tttm,root.pluto",
+        "options": [
+          {
+            "selected": true,
+            "text": "root.platform",
+            "value": "root.platform"
+          },
+          {
+            "selected": false,
+            "text": "root.fdc",
+            "value": "root.fdc"
+          },
+          {
+            "selected": false,
+            "text": "root.smartbig",
+            "value": "root.smartbig"
+          },
+          {
+            "selected": false,
+            "text": "root.yms",
+            "value": "root.yms"
+          },
+          {
+            "selected": false,
+            "text": "root.tttm",
+            "value": "root.tttm"
+          },
+          {
+            "selected": false,
+            "text": "root.pluto",
+            "value": "root.pluto"
+          }
+        ],
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "",
+      "type": "marcusolsson-dynamictext-panel",
+      "gridPos": {
+        "h": 13,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "lq",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster,queue) (\nlabel_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"guaranteed\",\n                          queue!=\"root\"},\n  \"queue\", \"root.$1\", \"queue\", \"^(?:root\\\\.)?(.+)$\"\n) / 1000\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "lu",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster,queue) (\nlabel_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\",\n                          queue!=\"root\"},\n  \"queue\", \"root.$1\", \"queue\", \"^(?:root\\\\.)?(.+)$\"\n) / 1000\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "mq",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster,queue) (\nlabel_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"guaranteed\",\n                          queue!=\"root\"},\n  \"queue\", \"root.$1\", \"queue\", \"^(?:root\\\\.)?(.+)$\"\n)\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "mu",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster,queue) (\nlabel_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"memory\", state=\"allocated\",\n                          queue!=\"root\"},\n  \"queue\", \"root.$1\", \"queue\", \"^(?:root\\\\.)?(.+)$\"\n)\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "lim",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster,queue) (\nlabel_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"max\",\n                          queue!=\"root\"},\n  \"queue\", \"root.$1\", \"queue\", \"^(?:root\\\\.)?(.+)$\"\n) / 1000\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "pend",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster,queue) (\nlabel_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"pending\",\n                          queue!=\"root\"},\n  \"queue\", \"root.$1\", \"queue\", \"^(?:root\\\\.)?(.+)$\"\n) / 1000\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "apps",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster,queue) (\nlabel_replace(\n  yunikorn_queue_app{cluster=\"$cluster\", state=\"running\", queue!=\"root\"},\n  \"queue\", \"root.$1\", \"queue\", \"^(?:root\\\\.)?(.+)$\"\n)\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "s3",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (cluster,queue) (\n  max by (bucket) (minio_cluster_usage_buckets_total_bytes{cluster=\"$cluster\", bucket=~\"ic-.*\"})\n  * on (bucket) group_left(queue) (\n    label_replace(label_replace(label_replace(vector(1),\"cluster\",\"$cluster\",\"\",\"\"),\"bucket\",\"ic-platform\",\"\",\"\"),\"queue\",\"root.platform\",\"\",\"\")\n    or label_replace(label_replace(label_replace(vector(1),\"cluster\",\"$cluster\",\"\",\"\"),\"bucket\",\"ic-fdc\",\"\",\"\"),\"queue\",\"root.fdc\",\"\",\"\")\n    or label_replace(label_replace(label_replace(vector(1),\"cluster\",\"$cluster\",\"\",\"\"),\"bucket\",\"ic-lfdc\",\"\",\"\"),\"queue\",\"root.fdc\",\"\",\"\")\n    or label_replace(label_replace(label_replace(vector(1),\"cluster\",\"$cluster\",\"\",\"\"),\"bucket\",\"ic-tttm\",\"\",\"\"),\"queue\",\"root.tttm\",\"\",\"\")\n    or label_replace(label_replace(label_replace(vector(1),\"cluster\",\"$cluster\",\"\",\"\"),\"bucket\",\"ic-pluto\",\"\",\"\"),\"queue\",\"root.pluto\",\"\",\"\")\n  )\n)",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        },
+        {
+          "refId": "s3t",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace(sum(max by (bucket) (minio_cluster_usage_buckets_total_bytes{cluster=\"$cluster\", bucket=~\"ic-bmc|ic-ees|ic-ias|ic-mes|ic-nfa|ic-pnt|ic-sep|ic-smartbig|ic-tas|ic-tidx|ic-tsv|ic-wfbm|ic-wt\"})), \"queue\", \"root.smartbig\", \"\", \"\")",
+          "instant": true,
+          "range": false,
+          "format": "table",
+          "editorMode": "code",
+          "legendFormat": ""
+        }
+      ],
+      "options": {
+        "content": "{{{svc}}}",
+        "defaultContent": "데이터 없음 — 쿼리 결과가 비었거나 패널 JS 가 실행되지 않았습니다.\n\n이 문구조차 안 보이면 플러그인 문제일 가능성이 높습니다: marcusolsson-dynamictext-panel 은 6.2.0(Grafana >=11)을 쓸 것 — 6.2.3/6.3.0 은 Grafana >=12.3 을 요구해 12.x 에서 로드되지 않는다.",
+        "editors": [
+          "styles"
+        ],
+        "renderMode": "data",
+        "helpers": "/* ── 플러그인 API 호환 shim (버전 차이로 조용히 빈 패널이 되는 걸 막는다) ──\n   Business Text v6 : new Function('context', code) → context.{handlebars, panelData}\n   구버전(v4/v5)     : handlebars / panelData / data 가 **개별 변수**로 들어온다.\n   폐쇄망처럼 미러된 구버전이 깔리면 `context` 가 없어 ReferenceError 로 죽고,\n   helper 가 등록되지 않아 패널이 **에러 없이 텅** 빈다.\n   typeof 가드라 없는 식별자를 참조해도 안전하다. */\nvar __BTCTX = (typeof context !== 'undefined' && context) ? context : {};\nvar __BTH = __BTCTX.handlebars || (typeof handlebars !== 'undefined' ? handlebars : null);\nvar __BTS = (__BTCTX.panelData && __BTCTX.panelData.series)\n         || (typeof panelData !== 'undefined' && panelData && panelData.series)\n         || (typeof data !== 'undefined' && data && data.series) || [];\n\n/* bt_prelude.js — Business Text 패널 공용 JS 프리앰블.\n   각 변형 생성기가 자기 렌더 코드 앞에 이 파일을 통째로 붙인다.\n\n   ── Business Text v6 실행 규약 (소스 실측) ─────────────────────────────\n   - 이 코드는 new Function('context', code) 로 실행된다 → 변수명은 context.\n   - **반환값은 렌더에 쓰이지 않는다.** 실제 렌더는 content(Handlebars) 가 한다.\n     → helper 를 등록하고 content 에서 {{{이름}}} 으로 부른다.\n   - renderMode='data' 일 때 context.panelData.series 에 전 refId 프레임이 들어온다.\n\n   ── 살아남는 것 / 죽는 것 (배포된 번들에서 확인) ───────────────────────\n     textUtil.sanitize = DOMPurify.sanitize(h, {USE_PROFILES:{html:true},\n                                                FORBID_TAGS:[\"form\",\"input\"]})\n     살아남음 : table/td/colspan, div, span, button, class, style(inline),\n                data-*, flexbox, position:absolute, repeating-linear-gradient\n     죽음     : <svg> 전체(html 프로파일에 svg 없음), <script>, on* 핸들러\n   → 도형은 전부 CSS 로 그린다. SVG 를 쓰면 조용히 사라진다.\n\n   ── CSS 작성 규칙 (지키지 않으면 패널이 통째로 투명해진다) ─────────────\n   1. options.styles 에 :root{} 를 쓰지 말 것 — 문서 전역으로 새어 다른 패널을 망친다.\n   2. color-mix()/var() 로 **목업 토큰**을 참조하지 말 것. --panel 같은 건 Grafana 에\n      없어서 값이 unresolvable 이 되고, 그러면 그 선언 전체가 무효화된다.\n      (배경과 테두리가 둘 다 color-mix 면 타일이 완전 투명해져 \"빈 패널\" 로 보인다)\n      → 리터럴 rgba() 를 쓰거나, var() 는 반드시 폴백과 함께: var(--x, rgba(...))\n   3. 인라인 커스텀 프로퍼티(style=\"--tc:#2a78d6\")는 통과한다 — 팀 색은 이 방식으로 넘긴다. */\n\n/* Grafana Vector/배열 양쪽 호환 */\nfunction arr(f) {\n  return (f && f.values && f.values.toArray) ? f.values.toArray() : (f ? f.values : []);\n}\n\n/* refId 프레임 → { <keyLabel 값>: {라벨..., __v: 값} }\n\n   ⚠ 프레임 형태가 두 가지다 (실측):\n     (a) time_series — 시리즈마다 프레임 1개, **라벨이 값 필드(field.labels)에** 붙는다.\n         /api/ds/query 백엔드 직접 호출로 확인한 모양이 이것.\n     (b) table — 라벨이 컬럼으로 펼쳐진 프레임 1개.\n         format:\"table\" 은 Prometheus **프론트엔드** 데이터소스가 적용하므로\n         패널 안에서는 이쪽이 올 수 있다.\n   렌더 없이 어느 쪽인지 확정할 수 없어 **둘 다 처리**한다. */\nfunction collectBy(series, refId, keyLabel) {\n  const key = keyLabel || \"queue\";\n  const out = {};\n  series.filter(s => s.refId === refId).forEach(f => {\n    const names = (f.fields || []).map(x => x.name);\n\n    if (names.indexOf(key) >= 0) {                    /* (b) table 형태 */\n      const cols = {};\n      names.forEach((n, i) => { cols[n] = arr(f.fields[i]); });\n      let vn = names.find(n => n === \"Value\" || n.indexOf(\"Value\") === 0);\n      if (!vn) vn = names.find(n => n !== \"Time\" && f.fields[names.indexOf(n)].type === \"number\");\n      (cols[key] || []).forEach((k, r) => {\n        const rec = out[k] || (out[k] = {});\n        names.forEach(n => { if (n !== \"Time\") rec[n] = cols[n][r]; });\n        if (vn) rec.__v = cols[vn][r];\n      });\n      return;\n    }\n\n    /* (a) time_series 형태 — 라벨이 값 필드에 */\n    const vf = (f.fields || []).find(x => x.type === \"number\")\n            || (f.fields || [])[(f.fields || []).length - 1];\n    const lab = (vf && vf.labels) || {};\n    if (lab[key] == null) return;\n    const rec = out[lab[key]] || (out[lab[key]] = {});\n    Object.keys(lab).forEach(k => { rec[k] = lab[k]; });\n    const vs = arr(vf);\n    rec.__v = vs.length ? vs[vs.length - 1] : null;\n  });\n  return out;\n}\nfunction collect(series, refId) { return collectBy(series, refId, \"queue\"); }\n\n/* {키: 레코드} → {키: 값} */\nfunction val(m) { const o = {}; Object.keys(m).forEach(k => { o[k] = m[k].__v; }); return o; }\n\n/* 라벨 없는 스칼라 (cluster:shared_pool_vcores 등) */\nfunction scalarOf(series, refId) {\n  const f = series.filter(s => s.refId === refId)[0];\n  if (!f) return null;\n  const vf = (f.fields || []).find(x => x.type === \"number\")\n          || (f.fields || [])[(f.fields || []).length - 1];\n  const vs = arr(vf);\n  return (vs && vs.length) ? vs[vs.length - 1] : null;\n}\n\n/* ── 서식 ──────────────────────────────────────────────────────────── */\nconst fmt = (v, d) => (v == null || isNaN(v)) ? \"—\"\n  : Number(v).toLocaleString(\"ko-KR\", { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });\nconst pct = (a, b) => (b && a != null && !isNaN(a)) ? a / b * 100 : null;\nconst esc = (s) => String(s == null ? \"\" : s)\n  .replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\").replace(/\"/g, \"&quot;\");\n\n/* ── 상태 판정 ─────────────────────────────────────────────────────────\n   임계는 목업과 동일: 75 주의 / 90 임박 / 100 초과.\n\n   ⚠ \"관측 없음\"과 \"0%\" 를 반드시 구분한다.\n   현재 6개 큐 중 4개는 queue:used_* 시리즈가 **아예 없다**(0 이 아니라 부재).\n   zero-fill 로 0 을 채워 넣고 그냥 그리면 \"여유(초록)\" 로 렌더되는데, 이건\n   유휴가 아니라 미관측이다 — 관측 못 하는 큐를 건강하다고 단언하게 된다.\n   그래서 값이 null 이면 별도 'none' 상태로 회색 처리한다. */\nfunction stat(p) {\n  if (p == null || isNaN(p)) return [\"none\", \"관측 없음\"];\n  if (p >= 100) return [\"crit\", \"초과\"];\n  if (p >= 90)  return [\"ser\", \"임박\"];\n  if (p >= 75)  return [\"warn\", \"주의\"];\n  return [\"ok\", \"여유\"];\n}\n\n/* ── 빈 패널 진단 ──────────────────────────────────────────────────────\n   쿼리는 통과했는데 화면이 비는 경우가 이 패널의 대표 실패 모드다.\n   헤드리스 브라우저를 못 띄우는 환경이라 API 검증으로는 절대 안 잡힌다.\n   → 렌더할 게 없으면 프레임 구조를 화면에 출력해 원인을 눈으로 볼 수 있게 한다.\n   각 변형은 데이터가 비면 반드시 bail(...) 후 return 할 것. */\nfunction bail(H, helperName, S, why) {\n  const dump = (S || []).map(s => {\n    const names = (s.fields || []).map(f => f.name).join(\"/\");\n    return esc(s.refId) + \"[\" + names + \"]\";\n  }).join(\" · \");\n  H.registerHelper(helperName, () => new H.SafeString(\n    '<div style=\"padding:14px;line-height:1.7;font-size:12px;opacity:.8\">'\n    + '<b>데이터 없음</b> — ' + esc(why) + '<br>'\n    + 'frames=' + (S || []).length + '<br>'\n    + (dump || '(프레임 없음)')\n    + '</div>'));\n}\n\n/* 공용 팔레트 — 목업 _SPEC.md 와 동일 */\nconst COLORS = {\n  \"AI/Data Platform\": \"#2a78d6\", \"품질 지능화\": \"#eb6834\",\n  \"EES/MDM/IPA\": \"#1baf7a\", \"장비 지능화\": \"#eda100\"\n};\nconst ORDER = [\"root.platform\", \"root.fdc\", \"root.smartbig\", \"root.yms\", \"root.tttm\", \"root.pluto\"];\nconst TEAM_ORDER = [\"AI/Data Platform\", \"품질 지능화\", \"EES/MDM/IPA\", \"장비 지능화\"];\n\nconst H = __BTH;\nconst S = __BTS;\n\n/* ⚠ 아래는 전부 원래 레코딩 룰에 있던 값이다. 출처가 되는 메트릭이 없어서\n   (엑셀 배분표에만 있음) 룰을 안 쓰면 여기에 그대로 옮겨 적어야 한다.\n   이 대시보드가 늘어나면 이 블록도 같이 늘어난다. */\nconst INFO = {\n  \"root.platform\": {service:\"PLATFORM\", service_ko:\"플랫폼 운영 관리\", team:\"AI/Data Platform\",\n    ldap:\"platform\", ns_app:\"app-platform\", ns_sql:\"sql-platform\", sql_engine:\"O\",\n    catalog:\"all\", bucket:\"ic-platform\"},\n  \"root.fdc\": {service:\"FDC\", service_ko:\"FDC 서비스\", team:\"AI/Data Platform\",\n    ldap:\"fdc\", ns_app:\"app-fdc\", ns_sql:\"-\", sql_engine:\"X\",\n    catalog:\"-\", bucket:\"fdc, ic-lfdc, ic-m…\"},\n  \"root.smartbig\": {service:\"SMARTBIG\", service_ko:\"Smart Big 서비스\", team:\"품질 지능화\",\n    ldap:\"smartbig\", ns_app:\"app-smartbig\", ns_sql:\"sql-smartbig\", sql_engine:\"O\",\n    catalog:\"icberg, icnfa, smartbig, tas, pntchp\", bucket:\"ic-smartbig, ic-ees, ic-bmc, ic-wt …\"},\n  \"root.yms\": {service:\"YMS\", service_ko:\"Smart YMS 서비스\", team:\"품질 지능화\",\n    ldap:\"yms\", ns_app:\"app-yms\", ns_sql:\"-\", sql_engine:\"O\",\n    catalog:\"(팀 공통)\", bucket:\"(팀 공통)\"},\n  \"root.tttm\": {service:\"TTTM\", service_ko:\"-\", team:\"EES/MDM/IPA\",\n    ldap:\"tttm\", ns_app:\"app-tttm\", ns_sql:\"sql-tttm\", sql_engine:\"O\",\n    catalog:\"icberg\", bucket:\"ic-tttm\"},\n  \"root.pluto\": {service:\"PLUTO\", service_ko:\"-\", team:\"장비 지능화\",\n    ldap:\"pluto\", ns_app:\"app-pluto\", ns_sql:\"sql-pluto\", sql_engine:\"O\",\n    catalog:\"icberg\", bucket:\"ic-pluto\"},\n};\n/* queue:plan_* 4종 — 병합셀(fdc/yms 의 trino·pods)은 null 로 둬야 한다 */\nconst PLAN = {\n  \"root.platform\": {spark:0,    trino:30,   pods:6,    guar:230},\n  \"root.fdc\":      {spark:2900, trino:null, pods:null, guar:2900},\n  \"root.smartbig\": {spark:1000, trino:2350, pods:80,   guar:3350},\n  \"root.yms\":      {spark:1400, trino:null, pods:null, guar:1400},\n  \"root.tttm\":     {spark:100,  trino:590,  pods:20,   guar:690},\n  \"root.pluto\":    {spark:1100, trino:1170, pods:40,   guar:2270},\n};\n\nconst lq = val(collect(S,\"lq\")), lu = val(collect(S,\"lu\"));\nconst mq = val(collect(S,\"mq\")), mu = val(collect(S,\"mu\"));\n/* state=max(한계) · state=pending(대기) · yunikorn_queue_app(앱 수) */\nconst lim = val(collect(S,\"lim\")), pend = val(collect(S,\"pend\")), apps = val(collect(S,\"apps\"));\nconst s3 = val(collect(S,\"s3\"));   /* 큐로 귀속되는 버킷 */\nconst s3shared = val(collect(S,\"s3t\"))[\"root.smartbig\"];  /* 품질 지능화 13개(팀 공통) */\nconst SHARED_Q = {\"root.smartbig\":1, \"root.yms\":1};\nconst qs = ORDER.filter(q => INFO[q]);\nif (!qs.length) { bail(H,'svc',S,'하드코딩 INFO 가 비었습니다.'); return; }\n\nfunction cell(p, tc){\n  const st = stat(p);\n  return '<td><span class=\"pbar\" style=\"--tc:' + tc + '\"><i style=\"width:'\n    + (p==null?0:Math.min(100,p)).toFixed(2) + '%\"></i></span>'\n    + (p==null ? '<span class=\"nd\">—</span>' : '<b>'+fmt(p,0)+'%</b>') + '</td>';\n}\n\nlet h = '<div class=\"hd\">서비스(큐)별 할당 · 사용'\n      + '<em>레코딩 룰 미사용 — 계산은 인라인 PromQL, 메타데이터·계획값은 패널 내 하드코딩</em></div>';\nh += '<table class=\"tb\"><thead><tr>'\n   + '<th class=\"l\">서비스</th><th class=\"l\">큐</th><th>SPARK</th><th>TRINO</th><th>POD</th>'\n   + '<th>계획 보장</th><th>랩 보장</th><th>랩 한계</th><th>CPU 사용</th><th>대기</th><th>앱</th>'\n   + '<th>S3 GiB</th><th>CPU %</th><th>MEM %</th><th>상태</th>'\n   + '</tr></thead><tbody>';\nqs.forEach(q => {\n  const m = INFO[q], pl = PLAN[q], tc = COLORS[m.team] || '#8a93a3';\n  const cr = pct(lu[q], lq[q]);\n  const mr = pct(mu[q], mq[q]);\n  const worst = (cr==null && mr==null) ? null : Math.max(cr==null?-1:cr, mr==null?-1:mr);\n  const st = stat(worst<0 ? null : worst);\n  h += '<tr><td class=\"l\"><span class=\"nm\"><i class=\"dot\" style=\"background:'+tc+'\"></i>'\n     + '<b>' + esc(m.service) + '</b>'\n     + (m.service_ko==='-' ? '' : '<span class=\"sub\">· ' + esc(m.service_ko) + '</span>')\n     + '</span></td>'\n     + '<td class=\"l\"><code class=\"code\">' + esc(q) + '</code></td>'\n     + '<td>' + fmt(pl.spark,0) + '</td>'\n     /* 원본 표: FDC 는 SQL 엔진이 없어 'X', YMS 는 SMARTBIG 과 병합돼 '팀 공통' */\n     + '<td>' + (pl.trino!=null ? fmt(pl.trino,0)\n                 : (m.sql_engine==='X' ? '<b class=\"xx\">X</b>' : '<span class=\"nd\">팀 공통</span>')) + '</td>'\n     + '<td>' + (pl.pods!=null ? fmt(pl.pods,0)\n                 : (m.sql_engine==='X' ? '<span class=\"nd\">—</span>' : '<span class=\"nd\">팀 공통</span>')) + '</td>'\n     + '<td>' + fmt(pl.guar,0) + '</td>'\n     + '<td>' + fmt(lq[q],2) + '</td>'\n     + '<td>' + (lim[q]==null ? '<span class=\"nd\">—</span>' : fmt(lim[q],2)) + '</td>'\n     + '<td>' + (lu[q]==null ? '<span class=\"nd\">관측 없음</span>' : fmt(lu[q],2)) + '</td>'\n     + '<td>' + (pend[q]==null ? '<span class=\"nd\">—</span>' : fmt(pend[q],2)) + '</td>'\n     + '<td>' + (apps[q]==null ? '<span class=\"nd\">—</span>' : fmt(apps[q],0)) + '</td>'\n     + '<td>' + (SHARED_Q[q]\n         ? (s3shared==null ? '<span class=\"nd\">관측 없음</span>'\n            : fmt(s3shared/1073741824,1)+'<span class=\"nd\"> 팀공통</span>')\n         : (s3[q]==null ? '<span class=\"nd\">관측 없음</span>' : fmt(s3[q]/1073741824,1))) + '</td>'\n     + cell(cr, tc) + cell(mr, tc)\n     + '<td><span class=\"chip ' + st[0] + '\">' + st[1] + '</span></td></tr>';\n});\nh += '</tbody></table>';\nh += '<div class=\"ft\">이 패널은 <b>레코딩 룰을 참조하지 않는다.</b> 대신 (a) 쿼터·사용량·대기·앱을 '\n   + '<code>yunikorn_queue_resource</code>/<code>yunikorn_queue_app</code> 에서 매번 인라인으로 계산하고, '\n   + '(b) 서비스 메타데이터와 배분표 계획값을 <b>패널 JS 에 하드코딩</b>했다. 값은 룰 버전과 동일하다.<br>'\n   + 'state — <b>보장</b> guaranteed · <b>한계</b> max(버스트 상한) · <b>사용</b> allocated · '\n   + '<b>대기</b> pending(자원 부족으로 못 뜬 요구) · <b>앱</b> yunikorn_queue_app{state=\"running\"} · '\n   + '<b>S3</b> minio_cluster_usage_buckets_total_bytes(ic-* 버킷을 서비스로 합산). '\n   + '<span class=\"nd\">—</span> 는 0 이 아니라 <b>시리즈 자체가 없음</b>(미관측).</div>';\nH.registerHelper('svc', () => new H.SafeString(h));\n",
+        "styles": "\n.chip{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap;\n      border:1px solid rgba(128,138,155,.35)}\n.xx{color:#d03b3b;font-weight:700}\n.chip.ok{color:#0ca30c}.chip.warn{color:#8a6200}.chip.ser{color:#ec835a}\n.chip.crit{color:#d03b3b}.chip.none{color:#8a93a3}\n.dot{width:9px;height:9px;border-radius:2px;flex:none;display:inline-block}\n.tb{width:100%;border-collapse:collapse;font-size:12px}\n.tb th{text-align:right;font-size:10px;letter-spacing:.06em;font-weight:700;opacity:.5;\n       padding:0 8px 7px;border-bottom:1px solid rgba(128,138,155,.28);white-space:nowrap}\n.tb th.l{text-align:left}\n.tb td{padding:9px 8px;border-bottom:1px solid rgba(128,138,155,.16);text-align:right;\n       font-variant-numeric:tabular-nums;white-space:nowrap}\n.tb td.l{text-align:left}\n.tb td b{font-weight:700}\n.nm{display:flex;align-items:center;gap:8px;font-weight:650}\n.sub{opacity:.55;font-weight:400;font-size:11px}\n.nd{opacity:.45;font-size:11px}\n.code{font-family:monospace;font-size:10.5px;padding:2px 7px;border-radius:4px;\n      background:rgba(128,138,155,.16)}\n.pbar{position:relative;display:inline-block;width:62px;height:6px;border-radius:3px;\n      background:rgba(128,138,155,.20);vertical-align:middle;margin-right:7px}\n.pbar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--tc,#8a93a3)}\n.hd{font-size:13px;font-weight:700;margin-bottom:2px}\n.hd em{font-style:normal;font-size:11px;font-weight:400;opacity:.55;margin-left:7px}\n.ft{font-size:10.5px;opacity:.6;margin-top:11px;padding-top:9px;line-height:1.6;\n    border-top:1px solid rgba(128,138,155,.2)}\n.ft b{opacity:.85;font-weight:650}\n",
+        "contentPartials": [],
+        "externalStyles": [],
+        "externalScripts": [],
+        "wrap": true,
+        "afterRender": ""
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "description": "레코딩 룰 미참조 판. gen-mock.py 의 같은 패널과 값이 동일해야 한다."
+    },
+    {
+      "id": 100,
+      "type": "row",
+      "title": "추이",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "title": "큐별 요청 vs 실소비 (로그 축) — 룰 미사용",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (cluster,queue) (\nlabel_replace(\n  yunikorn_queue_resource{cluster=\"$cluster\", resource=\"vcore\", state=\"allocated\",\n                          queue!=\"root\"},\n  \"queue\", \"root.$1\", \"queue\", \"^(?:root\\\\.)?(.+)$\"\n) / 1000\n)",
+          "legendFormat": "{{queue}} · 요청",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (cluster,queue) (\n  rate(container_cpu_usage_seconds_total{cluster=\"$cluster\", container!=\"\", image!=\"\"}[5m])\n  * on (namespace,pod) group_left(queue)\n  label_replace(\n    kube_pod_annotations{cluster=\"$cluster\", annotation_yunikorn_apache_org_queue!=\"\"},\n    \"queue\", \"$1\", \"annotation_yunikorn_apache_org_queue\", \"(.+)\"\n  )\n)",
+          "legendFormat": "{{queue}} · 실소비",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "editorMode": "code",
+          "maxDataPoints": 300
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 6,
+          "custom": {
+            "fillOpacity": 0,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "scaleDistribution": {
+              "type": "log",
+              "log": 10
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*실소비$"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    8,
+                    5
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "룰 버전은 `queue:used_vcores` / `queue:consumed_vcores` 두 이름이면 끝났다. 여기서는 같은 조인을 두 번 풀어 쓴다."
+    }
+  ]
+}
