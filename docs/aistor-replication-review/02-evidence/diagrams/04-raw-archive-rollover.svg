@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="840" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="90" width="1480" height="250" fill="#FFFFFF" stroke="#7AA116" stroke-width="1.5"/>
+<rect x="40" y="90" width="26" height="26" fill="#7AA116"/>
+<text x="53.0" y="106.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">ILM</text>
+<text x="74" y="107.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">S3 / AIStor ILM 이 제공하는 것 (객체 단위 1:1)</text>
+<rect x="40" y="380" width="1480" height="420" fill="#FFFFFF" stroke="#8C4FFF" stroke-width="1.5"/>
+<rect x="40" y="380" width="26" height="26" fill="#8C4FFF"/>
+<text x="53.0" y="396.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">k8s</text>
+<text x="74" y="397.3333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">서비스(데이터 엔지니어)가 직접 구현해야 하는 Rollover 파이프라인</text>
+<polyline points="191.0,210.0 404.0,210.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="456.0,200.0 600.0,200.0 600.0,150.0 714.0,150.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="456.0,220.0 600.0,220.0 600.0,270.0 714.0,270.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="430.0,184.0 430.0,108.0 900.0,108.0 900.0,215.0 958.0,215.0" fill="none" stroke="#DD344C" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="270.0,520.0 310.0,520.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="510.0,520.0 550.0,520.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="750.0,520.0 790.0,520.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="990.0,520.0 1030.0,520.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="1230.0,520.0 1270.0,520.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="165.0,300.0 165.0,468.0" fill="none" stroke="#8C4FFF" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="139.0" y="184.0" width="52" height="52" rx="8" fill="#C72C48"/>
+<text x="165.0" y="213.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<rect x="404.0" y="184.0" width="52" height="52" rx="8" fill="#ED7100"/>
+<text x="430.0" y="213.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">ILM</text>
+<rect x="714.0" y="124.0" width="52" height="52" rx="8" fill="#8A1C2E"/>
+<text x="740.0" y="153.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<rect x="714.0" y="244.0" width="52" height="52" rx="8" fill="#7D8998"/>
+<text x="740.0" y="273.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">DEL</text>
+<rect x="960" y="120" width="530" height="190" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="964" y="181.5" font-size="12" fill="#DD344C" text-anchor="start" font-weight="normal">✕ Lifecycle 에 존재하지 않는 액션</text>
+<text x="964" y="196.5" font-size="12" fill="#DD344C" text-anchor="start" font-weight="normal">· 여러 객체를 하나로 병합 (묶기)</text>
+<text x="964" y="211.5" font-size="12" fill="#DD344C" text-anchor="start" font-weight="normal">· zip / tar.gz / zstd 압축 패키지 생성</text>
+<text x="964" y="226.5" font-size="12" fill="#DD344C" text-anchor="start" font-weight="normal">· 기간·크기 기준 rollover (새 아카이브 객체 생성)</text>
+<text x="964" y="241.5" font-size="12" fill="#DD344C" text-anchor="start" font-weight="normal">· 원본 ↔ 아카이브 정합성 검증 후 원본 삭제</text>
+<text x="964" y="256.5" font-size="12" fill="#DD344C" text-anchor="start" font-weight="normal">※ 서버측 압축(compression)은 투명 압축 — GET 시 원본으로 복원, 아카이브 아님</text>
+<rect x="70" y="470" width="200" height="100" rx="6" fill="#F5F0FF" stroke="#8C4FFF"/>
+<text x="170.0" y="501.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">① 대상 선정</text>
+<text x="170.0" y="516.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">ListObjectsV2</text>
+<text x="170.0" y="531.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">prefix·날짜 파티션</text>
+<text x="170.0" y="546.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(rollover 기준: 기간·크기)</text>
+<rect x="310" y="470" width="200" height="100" rx="6" fill="#F5F0FF" stroke="#8C4FFF"/>
+<text x="410.0" y="516.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">② 읽기</text>
+<text x="410.0" y="531.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">GetObject 병렬 스트리밍</text>
+<rect x="550" y="470" width="200" height="100" rx="6" fill="#F5F0FF" stroke="#8C4FFF"/>
+<text x="650.0" y="509.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">③ 패키징·압축</text>
+<text x="650.0" y="524.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">zip / tar.zst 생성</text>
+<text x="650.0" y="539.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">+ manifest(목록·checksum)</text>
+<rect x="790" y="470" width="200" height="100" rx="6" fill="#F5F0FF" stroke="#8C4FFF"/>
+<text x="890.0" y="509.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">④ 업로드</text>
+<text x="890.0" y="524.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Multipart PutObject</text>
+<text x="890.0" y="539.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">→ archive/ 버킷 (Warm)</text>
+<rect x="1030" y="470" width="200" height="100" rx="6" fill="#F5F0FF" stroke="#8C4FFF"/>
+<text x="1130.0" y="509.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">⑤ 검증</text>
+<text x="1130.0" y="524.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">건수·크기·checksum 대조</text>
+<text x="1130.0" y="539.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">실패 시 재시도·보류</text>
+<rect x="1270" y="470" width="200" height="100" rx="6" fill="#F5F0FF" stroke="#8C4FFF"/>
+<text x="1370.0" y="509.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">⑥ 원본 정리</text>
+<text x="1370.0" y="524.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">DeleteObjects 또는</text>
+<text x="1370.0" y="539.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">태그 → ILM Expiration</text>
+<rect x="70" y="610" width="1400" height="150" rx="6" fill="#FAFBFC" stroke="#5E6C84"/>
+<text x="74" y="651.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">구현 시 필수 고려 사항</text>
+<text x="74" y="666.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">· 멱등성: 재실행 시 중복 아카이브 방지 (결정적 객체 키: archive/yyyy/mm/dd/part-N.zip)</text>
+<text x="74" y="681.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">· Versioning ON: 원본 삭제는 delete marker 만 생성 → noncurrent 만료 규칙 별도 필요</text>
+<text x="74" y="696.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">· Object Lock(WORM) 버킷: 보존 기간 내 원본 삭제 불가 → rollover 대상 버킷 설계 시 제외</text>
+<text x="74" y="711.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">· Replication: 원본 삭제·아카이브 업로드가 복제 규칙(delete, delete-marker)에 따라 Warm 에 어떻게 반영되는지 확인</text>
+<text x="74" y="726.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">· 조회: zip 내부 파일은 AIStor S3 Zip 확장(x-minio-extract, 읽기 전용)으로 조회 가능 여부 검토</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">RAW → Archive(zip) — S3 ILM 이 해주는 것 vs 서비스가 구현해야 하는 것</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">S3/AIStor Lifecycle 액션은 Transition·Expiration 뿐 — 병합·압축·zip 패키징·rollover 는 애플리케이션 영역</text>
+<text x="165.0" y="254.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">RAW 버킷 (Hot)</text>
+<text x="165.0" y="269.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">소형 객체 다수</text>
+<text x="430.0" y="254.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">ILM 규칙</text>
+<text x="430.0" y="269.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(Scanner 가 비동기 평가)</text>
+<text x="740.0" y="194.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Warm Tier</text>
+<text x="740.0" y="209.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(동일 객체 그대로 이동)</text>
+<text x="740.0" y="314.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">삭제</text>
+<text x="740.0" y="329.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(delete marker)</text>
+<rect x="240.0" y="180.5" width="120" height="19" fill="#FFFFFF"/>
+<text x="300.0" y="193.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">prefix · tag · 경과일</text>
+<rect x="600.0" y="120.5" width="80" height="19" fill="#FFFFFF"/>
+<text x="640.0" y="133.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">Transition</text>
+<rect x="600.0" y="280.5" width="80" height="19" fill="#FFFFFF"/>
+<text x="640.0" y="293.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">Expiration</text>
+<rect x="615.0" y="98.5" width="90" height="19" fill="#FFFFFF"/>
+<text x="660.0" y="111.66666666666667" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">Archive(zip)?</text>
+<text x="74" y="435.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">실행 주체: k8s CronJob · Airflow DAG · Spark Job (dataops)  /  상태 저장: 체크포인트 테이블 또는 manifest 객체</text>
+<rect x="105.0" y="350.5" width="120" height="19" fill="#FFFFFF"/>
+<text x="165.0" y="363.6666666666667" font-size="11" fill="#8C4FFF" text-anchor="middle" font-weight="normal">서비스가 직접 읽음</text>
+</svg>

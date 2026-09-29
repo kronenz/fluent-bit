@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="920" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="220" y="100" width="560" height="460" fill="#FFFFFF" stroke="#8C4FFF" stroke-width="1.5"/>
+<rect x="220" y="100" width="26" height="26" fill="#8C4FFF"/>
+<text x="233.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">k8s</text>
+<text x="254" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">용인 IDC · dataops 클러스터 (신규)</text>
+<rect x="220" y="590" width="560" height="260" fill="#FFFFFF" stroke="#326CE5" stroke-width="1.5"/>
+<rect x="220" y="590" width="26" height="26" fill="#326CE5"/>
+<text x="233.0" y="606.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">L</text>
+<text x="254" y="607.3333333333334" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Lake 플랫폼</text>
+<rect x="820" y="100" width="260" height="750" fill="#FFFFFF" stroke="#7AA116" stroke-width="1.5"/>
+<rect x="820" y="100" width="26" height="26" fill="#7AA116"/>
+<text x="833.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">⇄</text>
+<text x="854" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">DC 간 연결 (용인 → 이천)</text>
+<rect x="1120" y="100" width="400" height="750" fill="#FFFFFF" stroke="#C72C48" stroke-width="1.5"/>
+<rect x="1120" y="100" width="26" height="26" fill="#C72C48"/>
+<text x="1133.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<text x="1154" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">이천 IDC · AIStor</text>
+<polyline points="136.0,300.0 304.0,300.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="356.0,300.0 534.0,300.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="560.0,370.0 560.0,442.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="136.0,700.0 304.0,700.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="356.0,700.0 534.0,700.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="586.0,700.0 700.0,700.0 700.0,300.0 586.0,300.0" fill="none" stroke="#1F6FEB" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="330.0,274.0 330.0,150.0 950.0,150.0 950.0,182.0" fill="none" stroke="#232F3E" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="950.0,280.0 950.0,332.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="780.0,510.0 924.0,510.0" fill="none" stroke="#232F3E" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="976.0,360.0 1288.0,360.0" fill="none" stroke="#232F3E" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="1320.0,618.0 1320.0,432.0" fill="none" stroke="#7D8998" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="780.0,800.0 1200.0,800.0 1200.0,380.0 1288.0,380.0" fill="none" stroke="#DD344C" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="40.0,885.0 80.0,885.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="320.0,885.0 360.0,885.0" fill="none" stroke="#1F6FEB" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="600.0,885.0 640.0,885.0" fill="none" stroke="#DD344C" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<rect x="84.0" y="274.0" width="52" height="52" rx="8" fill="#326CE5"/>
+<text x="110.0" y="303.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">user</text>
+<rect x="84.0" y="674.0" width="52" height="52" rx="8" fill="#326CE5"/>
+<text x="110.0" y="703.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">user</text>
+<rect x="304.0" y="274.0" width="52" height="52" rx="8" fill="#DD00A1"/>
+<text x="330.0" y="303.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Trino</text>
+<rect x="534.0" y="274.0" width="52" height="52" rx="8" fill="#01A88D"/>
+<text x="560.0" y="303.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">HMS</text>
+<rect x="534.0" y="444.0" width="52" height="52" rx="8" fill="#C74634"/>
+<text x="560.0" y="473.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Oracle</text>
+<rect x="304.0" y="674.0" width="52" height="52" rx="8" fill="#E25A1C"/>
+<text x="330.0" y="703.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Engine</text>
+<rect x="534.0" y="674.0" width="52" height="52" rx="8" fill="#1F6FEB"/>
+<text x="560.0" y="703.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Polaris</text>
+<rect x="924.0" y="184.0" width="52" height="52" rx="8" fill="#DD344C"/>
+<text x="950.0" y="213.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">FW</text>
+<rect x="924.0" y="334.0" width="52" height="52" rx="8" fill="#7AA116"/>
+<text x="950.0" y="363.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">VIP</text>
+<rect x="924.0" y="484.0" width="52" height="52" rx="8" fill="#7AA116"/>
+<text x="950.0" y="513.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">DNS</text>
+<rect x="1290.0" y="330.0" width="60" height="60" rx="8" fill="#8A1C2E"/>
+<text x="1320.0" y="363.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<rect x="1290.0" y="620.0" width="60" height="60" rx="8" fill="#7D8998"/>
+<text x="1320.0" y="653.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">Warm 단독 사용 — 용인 dataops Trino → HMS(Oracle) ← Polaris(Lake) federation</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">데이터는 이천 Warm 클러스터에만 존재 · 용인은 카탈로그(HMS)와 조회 엔진(Trino)만 보유 · Lake는 Polaris가 HMS를 federation 하여 조회</text>
+<text x="110.0" y="344.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">분석가·서비스</text>
+<text x="110.0" y="359.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(용인)</text>
+<text x="110.0" y="744.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Lake 사용자</text>
+<text x="110.0" y="759.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(Notebook·BI)</text>
+<text x="330.0" y="345.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Trino (용인)</text>
+<text x="330.0" y="360.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Iceberg connector</text>
+<text x="330.0" y="375.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">catalog.type=hive_metastore</text>
+<text x="560.0" y="344.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">HMS (Warm 전용)</text>
+<text x="560.0" y="359.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Thrift :9083</text>
+<text x="560.0" y="514.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">HMS DB (Oracle)</text>
+<text x="560.0" y="529.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">용인용 스키마</text>
+<rect x="180.0" y="270.5" width="40" height="19" fill="#FFFFFF"/>
+<text x="200.0" y="283.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">SQL</text>
+<rect x="385.0" y="270.5" width="120" height="19" fill="#FFFFFF"/>
+<text x="445.0" y="283.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">① 메타데이터 조회</text>
+<rect x="575.0" y="395.5" width="50" height="19" fill="#FFFFFF"/>
+<text x="600.0" y="408.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">JDBC</text>
+<text x="330.0" y="744.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Lake 엔진</text>
+<text x="330.0" y="759.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(Spark / Trino-Lake)</text>
+<text x="560.0" y="744.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Apache Polaris</text>
+<text x="560.0" y="759.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(Iceberg REST Catalog)</text>
+<rect x="400.0" y="670.5" width="90" height="19" fill="#FFFFFF"/>
+<text x="445.0" y="683.6666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">② REST API</text>
+<rect x="620.0" y="593.0" width="160" height="34" fill="#FFFFFF"/>
+<text x="700.0" y="606.6666666666666" font-size="11" fill="#1F6FEB" text-anchor="middle" font-weight="normal">③ Catalog Federation</text>
+<text x="700.0" y="620.6666666666666" font-size="11" fill="#1F6FEB" text-anchor="middle" font-weight="normal">(HMS를 외부 카탈로그로)</text>
+<text x="950.0" y="254.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">방화벽 (용인·이천)</text>
+<text x="950.0" y="269.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">TCP 443 (또는 9000)</text>
+<text x="950.0" y="404.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">이천 L4 VIP / Ingress</text>
+<text x="950.0" y="419.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(Public 경로)</text>
+<text x="950.0" y="554.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">사내 DNS</text>
+<text x="950.0" y="569.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">warm-s3.&lt;domain&gt; → VIP</text>
+<rect x="525.0" y="140.5" width="230" height="19" fill="#FFFFFF"/>
+<text x="640.0" y="153.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">④ 데이터 파일 read (S3 API · HTTPS)</text>
+<rect x="810.0" y="480.5" width="80" height="19" fill="#FFFFFF"/>
+<text x="850.0" y="493.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">⑤ 이름 해석</text>
+<text x="1320.0" y="408.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Warm 클러스터</text>
+<text x="1320.0" y="423.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(용인 조회 대상)</text>
+<text x="1320.0" y="698.5" font-size="12" fill="#7D8998" text-anchor="middle" font-weight="normal">Hot 클러스터</text>
+<text x="1320.0" y="713.5" font-size="12" fill="#7D8998" text-anchor="middle" font-weight="normal">(용인 직접 접근 없음)</text>
+<rect x="1020.0" y="330.5" width="80" height="19" fill="#FFFFFF"/>
+<text x="1060.0" y="343.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">HTTPS :443</text>
+<rect x="1260.0" y="508.0" width="120" height="34" fill="#FFFFFF"/>
+<text x="1320.0" y="521.6666666666666" font-size="11" fill="#7D8998" text-anchor="middle" font-weight="normal">Replication / ILM</text>
+<text x="1320.0" y="535.6666666666666" font-size="11" fill="#7D8998" text-anchor="middle" font-weight="normal">(이천 내부)</text>
+<rect x="915.0" y="783.0" width="170" height="34" fill="#FFFFFF"/>
+<text x="1000.0" y="796.6666666666666" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">⑥ Lake 엔진 데이터 read</text>
+<text x="1000.0" y="810.6666666666666" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">경로·자격증명 확인 필요</text>
+<text x="88" y="888.6666666666666" font-size="11" fill="#5E6C84" text-anchor="start" font-weight="normal">데이터/메타 경로</text>
+<text x="368" y="888.6666666666666" font-size="11" fill="#5E6C84" text-anchor="start" font-weight="normal">카탈로그 federation</text>
+<text x="648" y="888.6666666666666" font-size="11" fill="#5E6C84" text-anchor="start" font-weight="normal">확인 필요 경로</text>
+</svg>
