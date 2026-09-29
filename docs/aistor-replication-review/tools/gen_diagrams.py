@@ -88,6 +88,8 @@ def d02():
                 width=1560, height=920,
                 subtitle="데이터는 이천 Warm 클러스터에만 존재 · 용인은 카탈로그(HMS)와 조회 엔진(Trino)만 보유 · Lake는 Polaris가 HMS를 federation 하여 조회")
 
+    d.box("cond", 820, 44, 700, 36, "전제: Warm 데이터를 HMS 로 조회하는 케이스가 있을 때만 (모드 ①) — 없으면 실시간 Replication 불필요",
+          stroke=RED, fill=WARN_FILL, color=RED, size=12, bold=True)
     d.icon("ana", 110, 300, "분석가·서비스\n(용인)", kind="k8s:user", color=BLUE)
     d.icon("lu", 110, 700, "Lake 사용자\n(Notebook·BI)", kind="k8s:user", color=BLUE)
 
@@ -186,58 +188,6 @@ def d03():
 
 
 # ---------------------------------------------------------------- 04
-def d04():
-    d = Diagram("04-raw-archive-rollover",
-                "RAW → Archive(zip) — S3 ILM 이 해주는 것 vs 서비스가 구현해야 하는 것",
-                width=1560, height=840,
-                subtitle="S3/AIStor Lifecycle 액션은 Transition·Expiration 뿐 — 병합·압축·zip 패키징·rollover 는 애플리케이션 영역")
-
-    d.group("ilm", 40, 90, 1480, 250, "S3 / AIStor ILM 이 제공하는 것 (객체 단위 1:1)", GREEN, badge="ILM")
-    d.icon("raw", 165, 210, "RAW 버킷 (Hot)\n소형 객체 다수", kind="s3", color=AISTOR)
-    d.icon("ilmr", 430, 210, "ILM 규칙\n(Scanner 가 비동기 평가)", glyph="ILM", color=ORANGE, label_w=170)
-    d.icon("wt", 740, 150, "Warm Tier\n(동일 객체 그대로 이동)", kind="s3", color="#8A1C2E", label_w=170)
-    d.icon("del", 740, 270, "삭제\n(delete marker)", glyph="DEL", color=GREY)
-    d.edge([(191, 210), (404, 210)], "prefix · tag · 경과일", at=(300, 190), label_w=120)
-    d.edge([(456, 200), (600, 200), (600, 150), (714, 150)], "Transition", at=(640, 130), label_w=80)
-    d.edge([(456, 220), (600, 220), (600, 270), (714, 270)], "Expiration", at=(640, 290), label_w=80)
-    d.box("no", 960, 120, 530, 190,
-          "✕ Lifecycle 에 존재하지 않는 액션\n"
-          "· 여러 객체를 하나로 병합 (묶기)\n"
-          "· zip / tar.gz / zstd 압축 패키지 생성\n"
-          "· 기간·크기 기준 rollover (새 아카이브 객체 생성)\n"
-          "· 원본 ↔ 아카이브 정합성 검증 후 원본 삭제\n"
-          "※ 서버측 압축(compression)은 투명 압축 — GET 시 원본으로 복원, 아카이브 아님",
-          stroke=RED, fill=WARN_FILL, size=12, color=RED, align="left")
-    d.edge([(430, 184), (430, 108), (900, 108), (900, 215), (958, 215)], "Archive(zip)?",
-           at=(660, 108), label_w=90, dashed=True, color=RED)
-
-    d.group("svc", 40, 380, 1480, 420, "서비스(데이터 엔지니어)가 직접 구현해야 하는 Rollover 파이프라인", PURPLE, badge="k8s")
-    d.text(70, 420, 1000, 22, "실행 주체: k8s CronJob · Airflow DAG · Spark Job (dataops)  /  상태 저장: 체크포인트 테이블 또는 manifest 객체",
-           size=12, color=MUTED, align="left")
-    steps = ["① 대상 선정\nListObjectsV2\nprefix·날짜 파티션\n(rollover 기준: 기간·크기)",
-             "② 읽기\nGetObject 병렬 스트리밍",
-             "③ 패키징·압축\nzip / tar.zst 생성\n+ manifest(목록·checksum)",
-             "④ 업로드\nMultipart PutObject\n→ archive/ 버킷 (Warm)",
-             "⑤ 검증\n건수·크기·checksum 대조\n실패 시 재시도·보류",
-             "⑥ 원본 정리\nDeleteObjects 또는\n태그 → ILM Expiration"]
-    xs = [70, 310, 550, 790, 1030, 1270]
-    for i, (x, s) in enumerate(zip(xs, steps)):
-        d.box(f"s{i}", x, 470, 200, 100, s, stroke=PURPLE, fill="#F5F0FF", size=12)
-        if i:
-            d.edge([(xs[i - 1] + 200, 520), (x, 520)])
-    d.edge([(165, 300), (165, 468)], "서비스가 직접 읽음", at=(165, 360), label_w=120, color=PURPLE)
-    d.box("note", 70, 610, 1400, 150,
-          "구현 시 필수 고려 사항\n"
-          "· 멱등성: 재실행 시 중복 아카이브 방지 (결정적 객체 키: archive/yyyy/mm/dd/part-N.zip)\n"
-          "· Versioning ON: 원본 삭제는 delete marker 만 생성 → noncurrent 만료 규칙 별도 필요\n"
-          "· Object Lock(WORM) 버킷: 보존 기간 내 원본 삭제 불가 → rollover 대상 버킷 설계 시 제외\n"
-          "· Replication: 원본 삭제·아카이브 업로드가 복제 규칙(delete, delete-marker)에 따라 Warm 에 어떻게 반영되는지 확인\n"
-          "· 조회: zip 내부 파일은 AIStor S3 Zip 확장(x-minio-extract, 읽기 전용)으로 조회 가능 여부 검토",
-          stroke=MUTED, fill="#FAFBFC", size=12, color=INK, align="left")
-    return d
-
-
-# ---------------------------------------------------------------- 05
 def d05():
     d = Diagram("05-yongin-network-checkpoints",
                 "용인 신규 클러스터 → 이천 Warm(S3) 접근 — 네트워크 블럭 해소 체크포인트",
@@ -296,6 +246,8 @@ def d06():
                 width=1560, height=900,
                 subtitle="S3 Replication 은 데이터 파일만 복제 · 카탈로그(HMS)는 사이트별로 따로 등록/동기화해야 함")
 
+    d.box("cond", 40, 800, 480, 60, "전제: 모드 ① (Warm 을 HMS 로 조회하는 케이스)\n모드 ② 백업 / ③ 불필요 이면 HMS-Warm 구축 보류",
+          stroke=RED, fill=WARN_FILL, color=RED, size=12, bold=True)
     d.icon("lu", 100, 430, "Lake 사용자", kind="k8s:user", color=BLUE)
     d.group("lake", 200, 120, 300, 660, "Lake 플랫폼", BLUE, badge="L")
     d.icon("pol", 350, 430, "Apache Polaris\nexternal catalog\n• lake_hot → HMS-Hot\n• lake_warm → HMS-Warm",
@@ -377,44 +329,8 @@ def d07():
 
 
 # ================================================================ INDEX 개념도
-def i1():
-    d = Diagram("i1-conclusion1-network-paths", "결론 1 — 이천 연결 경로: Private 는 내부 전용, 외부는 두 진입점만",
-                width=1180, height=660,
-                subtitle="dataops ↔ AIStor 는 같은 이천 베어메탈 k8s 대역 · 대용량 ETL 은 Private 고정 · 외부는 Ingress / L4 VIP")
-    d.group("dop", 40, 100, 260, 200, "이천 dataops (k8s)", PURPLE, badge="k8s")
-    d.icon("spark", 110, 190, "Spark", glyph="Spark", color=SPARK, size=48)
-    d.icon("trino", 230, 190, "Trino", glyph="Trino", color=TRINO, size=48)
-    d.group("ext", 40, 340, 260, 200, "외부 (용인 dataops · 사무망)", GREY, badge="EXT", dashed=True)
-    d.icon("u", 110, 430, "사용자", kind="k8s:user", color=BLUE, size=48)
-    d.icon("ty", 230, 430, "용인 Trino", glyph="Trino", color=TRINO, size=48)
-
-    d.group("pri", 340, 100, 420, 200, "Private 경로 (이천 내부)", GREEN, badge="⇄")
-    d.icon("mesh", 460, 190, "ClusterMesh\nglobal service", glyph="Mesh", color=GREEN, size=48)
-    d.icon("bgp", 640, 190, "BGP (ToR)\nLB-IP 광고", glyph="BGP", color=GREEN, size=48)
-    d.group("pub", 340, 340, 420, 200, "Public 경로 (외부 진입)", GREEN, badge="P")
-    d.icon("ing", 480, 400, "Ingress (L7)", kind="k8s:ing", color=BLUE, size=44)
-    d.icon("vip", 480, 490, "L4 스위치 VIP", glyph="VIP", color=GREEN, size=44)
-
-    d.group("s3", 800, 100, 340, 440, "AIStor (이천 · 베어메탈 k8s)", AISTOR, badge="S3")
-    d.icon("hot", 970, 190, "Hot", kind="s3", color=AISTOR, size=56)
-    d.icon("warm", 970, 430, "Warm", kind="s3", color="#8A1C2E", size=56)
-    d.edge([(970, 244), (970, 400)], "Replication\n(비동기)", at=(970, 320), label_w=90)
-
-    d.edge([(300, 190), (436, 190)], width=2.5)
-    d.edge([(484, 190), (616, 190)], width=2.5)
-    d.edge([(664, 190), (940, 190)], "S3 API", at=(760, 172), label_w=60, width=2.5)
-    d.edge([(300, 440), (360, 440), (360, 400), (458, 400)])
-    d.edge([(360, 440), (360, 490), (458, 490)])
-    d.edge([(502, 400), (700, 400), (700, 430), (940, 430)], "S3 API · HTTPS", at=(820, 412), label_w=100)
-    d.edge([(502, 490), (700, 490), (700, 430)])
-    d.box("msg", 40, 575, 1100, 50,
-          "대용량 ETL·조회 = Private 경로 고정   |   외부 접근 = DNS → Ingress 또는 L4 VIP (Pod IP 직접 노출 금지)",
-          stroke=INK, fill="#F4F5F7", size=13, bold=True)
-    return d
-
-
 def i3():
-    d = Diagram("i3-conclusion3-unit-mismatch", "결론 3 — 커밋 단위 불일치: Iceberg 는 '스냅샷 묶음', Replication 은 '객체 하나씩'",
+    d = Diagram("i3-conclusion3-unit-mismatch", "Replication 과 Iceberg 커밋 단위 불일치 — '스냅샷 묶음' vs '객체 하나씩'",
                 width=1400, height=720,
                 subtitle="Hot 에서는 한 번에 커밋된 스냅샷이 Warm 에는 객체별로 따로·늦게 도착 → Warm 에서 일관된 테이블 보장 안 됨")
     d.group("hot", 40, 100, 380, 440, "Hot 버킷 + HMS-Hot", AISTOR, badge="S3")
@@ -446,43 +362,8 @@ def i3():
     return d
 
 
-def i4():
-    d = Diagram("i4-conclusion4-ilm-vs-rollover", "결론 4 — ILM 은 '객체를 옮기거나 지우기'만, zip 아카이브는 서비스가 만든다",
-                width=1400, height=640,
-                subtitle="S3/AIStor Lifecycle 액션 = Transition · Expiration · 병합·압축·zip·rollover 는 없음")
-    d.group("ilm", 40, 100, 560, 400, "S3 / AIStor ILM — 객체 단위 1:1", GREEN, badge="ILM")
-    for i, y in enumerate([160, 225, 290]):
-        d.box(f"o{i}", 80, y, 110, 40, f"raw obj-{i + 1}", stroke=INK, size=11)
-        d.box(f"t{i}", 430, y, 130, 40, f"obj-{i + 1} (Warm)", stroke="#8A1C2E", size=11)
-        d.edge([(190, y + 20), (428, y + 20)], "Transition" if i == 1 else None, at=(310, y + 8), label_w=80,
-               color=ORANGE)
-    d.box("o3", 80, 355, 110, 40, "raw obj-4", stroke=INK, size=11)
-    d.box("dl", 430, 355, 130, 40, "삭제", stroke=GREY, fill="#F4F5F7", size=11, color=GREY)
-    d.edge([(190, 375), (428, 375)], "Expiration", at=(310, 363), label_w=80, color=GREY)
-    d.box("no", 70, 420, 500, 56, "✕ 여러 객체 병합 · 압축 · zip 패키징 · rollover 액션 없음",
-          stroke=RED, fill=WARN_FILL, color=RED, size=12, bold=True)
-
-    d.group("svc", 640, 100, 720, 400, "RAW → Archive(zip) — 서비스가 직접 구현", PURPLE, badge="k8s")
-    for r in range(3):
-        for c in range(2):
-            d.box(f"r{r}{c}", 680 + c * 70, 170 + r * 60, 60, 36, "raw", stroke=INK, size=11)
-    d.box("job", 880, 190, 190, 120, "Rollover Job\n(CronJob / Airflow)\n① 선정 ② 읽기\n③ 압축 ④ 업로드 ⑤ 검증",
-          stroke=PURPLE, fill="#F5F0FF", size=12, bold=True)
-    d.box("zip", 1120, 215, 210, 70, "archive/yyyy/mm/dd/\npart-N.zip  (Warm)", stroke="#8A1C2E", fill="#FBEFF1",
-          size=12, bold=True)
-    d.edge([(820, 250), (878, 250)], width=2.5, color=PURPLE)
-    d.edge([(1070, 250), (1118, 250)], width=2.5, color=PURPLE)
-    d.box("clean", 880, 390, 450, 70, "⑥ 원본 정리 — DeleteObjects 또는 태그 → ILM Expiration\n(Versioning ON 이면 noncurrent 만료 규칙 병행)",
-          stroke=MUTED, fill="#FAFBFC", size=12)
-    d.edge([(975, 310), (975, 388)], dashed=True, color=PURPLE)
-    d.box("msg", 40, 540, 1320, 60,
-          "투명 압축(compression)은 GET 시 원본으로 풀림 → 아카이브 아님   |   S3 Zip 확장은 zip 내부 '읽기'만 지원 → zip 생성은 클라이언트 책임",
-          stroke=INK, fill="#F4F5F7", size=13, bold=True)
-    return d
-
-
 def i6():
-    d = Diagram("i6-conclusion6-hms-split-register", "결론 6 — HMS 는 Hot / Warm 분리, Warm 은 '검증 후 등록'",
+    d = Diagram("i6-conclusion6-hms-split-register", "[모드 ① 조회용 복제일 때] HMS 는 Hot / Warm 분리, Warm 은 '검증 후 등록'",
                 width=1400, height=720,
                 subtitle="S3 Replication 은 데이터만 복제 → 동기화 Job 이 Warm 파일 완전성을 확인한 뒤에만 HMS-Warm 포인터를 갱신")
     d.group("cat", 40, 100, 1320, 230, "카탈로그 계층", TEAL, badge="HMS")
@@ -514,50 +395,127 @@ def i6():
 
 
 def i7():
-    d = Diagram("i7-todo-milestones", "해야 할 일 — 마일스톤 의존 관계 (M1 → M7)",
-                width=1500, height=640,
-                subtitle="박스 안 No = INDEX §3 작업 번호 · 빨간 게이트 = 다음 단계 착수 전 확정해야 할 결정")
+    d = Diagram("i7-todo-milestones", "해야 할 일 — 마일스톤 의존 관계 (Replication 우선 → ILM → 향후 구성)",
+                width=1560, height=700,
+                subtitle="박스 안 No = INDEX §3 작업 번호 · 빨간 게이트 = 다음 단계 착수 전 확정해야 할 결정 · 점선 박스 = 게이트 결과에 따라 조건부")
     ms = {
-        "m1": (40, 200, "M1 근거 확인 · 설계 결정\nNo 1 ~ 10, 34\n보안 PDF · 복제 방향 · 버킷명\n삭제 플래그 · SLA", INK),
-        "m2": (330, 200, "M2 네트워크 개통\nNo 12 ~ 20\nSNAT · 방화벽 · DNS\nVIP/Ingress · TLS", GREEN),
-        "m3": (620, 200, "M3 HMS-Warm 구축\nNo 21 ~ 24\nOracle 스키마 · 배포\nHMS-Hot 정책 조정", TEAL),
-        "m4": (910, 90, "M4 등록 자동화 PoC\n+ 용인 Trino 검증\nNo 25 ~ 28, 35", PURPLE),
-        "m5": (910, 320, "M5 Polaris federation PoC\nNo 29 ~ 32\nlake_hot / lake_warm", POLARIS),
-        "m7": (1220, 200, "M7 운영 이관\nNo 33\n대상 확대 · 사용자 가이드", INK),
-        "m6": (330, 440, "M6 Archive Rollover 구현\nNo 11\nJob 설계 · 정리 ILM 규칙", ORANGE),
+        "m0": (40, 220, "M0 담당자 우려 · 요구 확인\nNo 1 ~ 3\n복제 목적 · Warm 조회 케이스\nRPO/RTO", RED, False),
+        "m1": (320, 220, "M1 Replication 근거 · 설계\nNo 4 ~ 10\n보안 PDF · 방향 · 버킷명\n삭제 플래그 · Scanner", INK, False),
+        "m2": (600, 220, "M2 Replication 테스트\nNo 11 ~ 15\n백업 시점(T-B) · 충돌 C1~C5\n복제 지연·백로그", ORANGE, False),
+        "m3": (600, 470, "M3 ILM / Archive 협의 · PoC\nNo 16 ~ 20\nA 미사용 · B 하이브리드 · C 전면\nTransition 규칙", GREEN, False),
+        "m4": (900, 90, "M4 네트워크 개통\nNo 21 ~ 25\n(모드 ① 또는 용인 접근 필요 시)", GREEN, True),
+        "m5": (900, 250, "M5 HMS-Warm · 등록 자동화\nNo 26 ~ 31\n(모드 ① 일 때만)", TEAL, True),
+        "m6": (900, 410, "M6 Polaris federation PoC\nNo 32 ~ 34\n(모드 ① 일 때만)", POLARIS, True),
+        "m7": (1250, 270, "M7 운영 이관\nNo 35\n복제·ILM 정책 적용 · 가이드", INK, False),
     }
-    for k, (x, y, t, c) in ms.items():
-        d.box(k, x, y, 240, 120, t, stroke=c, fill=WHITE, size=12, bold=False)
-    d.edge([(280, 260), (328, 260)], width=2.5)
-    d.edge([(570, 260), (618, 260)], width=2.5)
-    d.edge([(860, 240), (885, 240), (885, 150), (908, 150)], width=2.5)
-    d.edge([(860, 280), (885, 280), (885, 380), (908, 380)], width=2.5)
-    d.edge([(1150, 150), (1185, 150), (1185, 240), (1218, 240)], width=2.5)
-    d.edge([(1150, 380), (1185, 380), (1185, 280), (1218, 280)], width=2.5)
-    d.edge([(160, 320), (160, 500), (328, 500)], width=2.5, color=ORANGE)
+    for k, (x, y, t, c, cond) in ms.items():
+        d.box(k, x, y, 240, 120, t, stroke=c, fill=WHITE, size=12, dashed=cond)
+    d.edge([(280, 280), (318, 280)], width=2.5)
+    d.edge([(560, 280), (598, 280)], width=2.5)
+    d.edge([(720, 340), (720, 468)], width=2.5, color=GREEN)
+    d.edge([(840, 260), (870, 260), (870, 150), (898, 150)], width=2.5)
+    d.edge([(840, 300), (870, 300), (870, 310), (898, 310)], width=2.5)
+    d.edge([(870, 310), (870, 470), (898, 470)], width=2.5)
+    d.edge([(1140, 150), (1200, 150), (1200, 310), (1248, 310)], width=2.5)
+    d.edge([(1140, 310), (1248, 330)], width=2.5)
+    d.edge([(1140, 470), (1200, 470), (1200, 350), (1248, 350)], width=2.5)
+    d.edge([(840, 530), (1370, 530), (1370, 392)], width=2.5, color=GREEN)
 
-    gates = [(40, 90, "G1 복제 방향 · 버킷명 동일 여부"), (330, 90, "G2 경로 A/B · 진입점(VIP/Ingress)"),
-             (620, 90, "G3 Oracle 배치 · HMS 버전")]
-    for x, y, t in gates:
-        d.box(f"g{x}", x, y, 240, 50, t, stroke=RED, fill=WARN_FILL, color=RED, size=12, bold=True)
-        d.edge([(x + 120, y + 50), (x + 120, 198)], dashed=True, color=RED)
-    d.box("lg", 620, 460, 830, 130,
-          "병렬 가능: M2(네트워크) 와 M6(Archive) 는 M1 이후 동시 진행\n"
-          "M4 · M5 는 M3 완료 후 병렬 PoC → 둘 다 통과해야 M7\n"
-          "각 단계 완료 기준: INDEX §3 해당 No 전부 ☑ + 03-future 검증 항목(H-50~54, P-01~08) 통과",
+    gates = [(40, 90, "G0 Warm 을 HMS 로 조회하는\n케이스가 있는가? (모드 결정)", 160),
+             (320, 90, "G1 복제 목적 · 버킷명 동일 여부", 460),
+             (320, 480, "G2 아카이브 방식\nA / B / C 협의", 0)]
+    for x, y, t, tx in gates:
+        d.box(f"g{x}", x, y, 240, 60, t, stroke=RED, fill=WARN_FILL, color=RED, size=12, bold=True)
+    d.edge([(160, 150), (160, 218)], dashed=True, color=RED)
+    d.edge([(440, 150), (440, 218)], dashed=True, color=RED)
+    d.edge([(560, 510), (598, 510)], dashed=True, color=RED)
+    d.box("lg", 40, 600, 1470, 80,
+          "G0 = 예 → 모드 ① 실시간 복제 + M4·M5·M6 진행   |   G0 = 아니오 → 모드 ② 백업(M2 의 백업 시점 테스트 결과로 주기 결정) 또는 모드 ③ 복제 불필요 → M4·M5·M6 보류\n"
+          "M3(ILM/Archive) 는 Replication 결정(M2) 이후 착수 · Rollover Job 은 협의 결과(G2)가 C 일 때만 구현",
           stroke=MUTED, fill="#FAFBFC", size=12, align="left")
     return d
 
 
+def r_decision():
+    d = Diagram("03-replication-mode-decision", "Replication 필요성 판단 — 조회용 실시간 복제 vs 백업용 복제 vs 불필요",
+                width=1500, height=840,
+                subtitle="Warm 데이터를 HMS 로 조회하는 케이스가 없으면 실시간 Replication 은 필요 없음 · 백업 용도면 테이블 특성별 백업 시점을 테스트로 결정")
+    d.box("q1", 40, 100, 440, 80, "Q1. Warm MinIO 의 데이터를 HMS(Trino · Polaris)로\n직접 조회하는 케이스가 있는가?", stroke=INK,
+          fill="#F4F5F7", size=13, bold=True)
+    d.box("q2", 540, 100, 440, 80, "Q2. Replication 목적이\n데이터 백업(DR) 인가?", stroke=INK, fill="#F4F5F7", size=13, bold=True)
+    d.box("m1", 40, 250, 440, 110, "모드 ① 조회용 실시간 Replication\n· 복제 → 검증 → HMS-Warm register\n· 충돌 C1~C5 대응 · Scanner 지연 관리 필수\n· 용인 Warm 단독 조회 구성 (장표 2)",
+          stroke=TEAL, fill="#E6F7F4", color=INK, size=12, bold=False)
+    d.box("m2", 540, 250, 440, 110, "모드 ② 백업용 Replication\n· 실시간 아님 — 테이블 특성별 백업 시점\n· 유지보수(merge·스냅샷 정리) 후 복제\n· 복구 시에만 Warm register",
+          stroke=ORANGE, fill="#FFF4E5", color=INK, size=12)
+    d.box("m3", 1040, 100, 420, 80, "모드 ③ Replication 불필요\n→ ILM Transition 만 사용 (Hot 용량 관리)", stroke=GREY, fill="#F4F5F7",
+          color=INK, size=12, bold=True)
+    d.edge([(260, 180), (260, 248)], "예", at=(260, 214), label_w=30)
+    d.edge([(480, 140), (538, 140)], "아니오", at=(509, 122), label_w=50)
+    d.edge([(760, 180), (760, 248)], "예", at=(760, 214), label_w=30)
+    d.edge([(980, 140), (1038, 140)], "아니오", at=(1009, 122), label_w=50)
+    d.box("who", 1040, 250, 420, 110, "먼저 확인: 담당자 우려사항\n· 조회 케이스 유무 · RPO/RTO\n· 복제 용량·대역폭 · 운영 부담\n→ 03-future/00-owner-concerns", stroke=RED,
+          fill=WARN_FILL, color=RED, size=12)
+
+    d.group("bk", 40, 410, 1420, 400, "모드 ② 백업 시점 테스트 — 테이블 특성별 (merge · 스냅샷 정리 후 복제 가능 여부)", ORANGE, badge="T-B")
+    steps = ["① 쓰기 창 종료\n(배치 완료 · 커밋 정지)", "② rewrite_data_files\n(merge · compaction)",
+             "③ expire_snapshots ·\nremove_orphan_files", "④ 복제 트리거\n배치 복제 / 규칙 enable\n/ mirror 🔍",
+             "⑤ 복제 완료 확인\nFAILED · PENDING 0", "⑥ 복구 검증\nWarm register_table\n→ 조회 성공"]
+    xs = [60, 295, 530, 765, 1000, 1235]
+    for i, (x, t) in enumerate(zip(xs, steps)):
+        d.box(f"s{i}", x, 470, 205, 90, t, stroke=ORANGE, fill="#FFF4E5", size=12)
+        if i:
+            d.edge([(xs[i - 1] + 205, 515), (x, 515)])
+    kinds = [("Append-only (RAW · 로그)", "파티션 마감 후 일 단위"), ("MERGE/UPDATE 多 (CDC · 팩트)", "compaction 직후 복제"),
+             ("소형 디멘전", "전체 스냅샷 주기 복사"), ("대형 이력 파티션", "마감 파티션만 1회 복제")]
+    for i, (k, v) in enumerate(kinds):
+        d.box(f"k{i}", 60 + i * 350, 610, 330, 70, f"{k}\n→ {v} (가설)", stroke=PURPLE, fill="#F5F0FF", size=12)
+    d.box("chk", 60, 710, 1380, 80,
+          "검증 포인트: 유지보수 후 복제 시 복제 객체 수·용량 감소량 · 삭제(delete marker) 전파 방식 · 복제 규칙 disable→enable 시 누락분 처리 · 배치 복제 기능 지원 여부 🔍\n"
+          "Iceberg 순서 보장: data → manifest → metadata.json 순으로 복사하면 백업 시점 스냅샷 일관성 확보 가능 (rewrite_table_path 방식과 비교)",
+          stroke=MUTED, fill="#FAFBFC", size=12, align="left")
+    return d
+
+
+def archive_options():
+    d = Diagram("07-ilm-archive-options", "RAW 아카이브 방식 선택지 — A. zip 미사용 · B. 하이브리드 · C. 전면 Rollover (협의 필요)",
+                width=1500, height=800,
+                subtitle="ILM 은 Transition · Expiration 만 제공 (zip 생성 불가) · 하이브리드는 '변환은 서비스, 이관은 ILM' 으로 역할 분리")
+    cols = [(40, "A. zip 미사용 — RAW 그대로 ILM", GREEN, False,
+             ["RAW 객체 (Hot)", "ILM Transition\n(prefix · 경과일)", "Warm Tier\n(객체 1:1 · Hot 엔드포인트로 조회)"],
+             "장점: 구현 없음 · 조회 경로 그대로\n고려: 소형 객체 수 유지 → Warm 객체 수·\nScanner 부하 · 압축 이득 없음\n(서버측 투명 압축으로 일부 보완)"),
+            (520, "B. 하이브리드 — 서비스 zip + ILM 이관", ORANGE, False,
+             ["① 서비스: 정책 시점에 zip 변환\n(예: 파티션 마감 N일 후)\n→ archive/ prefix 에 저장", "② ILM Transition 규칙\n(archive/ prefix 또는 tag)", "Warm Tier\n(zip 객체 이관)"],
+             "장점: 객체 수 감소 · 이관·재시도는 ILM 담당\n→ 서비스 구현 범위 축소\n고려: zip 변환·검증·원본 정리는 서비스 ·\n조회 시 zip 해제 필요 (S3 Zip 확장 🔍)"),
+            (1000, "C. 전면 Rollover (기존안)", GREY, True,
+             ["서비스: 대상 선정 · 읽기", "서비스: zip 생성 · 업로드\n(Warm archive/ 직접)", "서비스: 검증 · 원본 정리"],
+             "장점: 시점·형식 완전 제어\n고려: 구현·운영 부담 최대 ·\nWarm 직접 쓰기 시 복제 방향과 충돌 가능")]
+    for x, title, c, dashed, flow, note in cols:
+        d.group(f"g{x}", x, 100, 460, 540, title, c, badge="", dashed=dashed)
+        for i, t in enumerate(flow):
+            y = 150 + i * 105
+            d.box(f"f{x}{i}", x + 40, y, 380, 75, t, stroke=c, fill=WHITE, size=12)
+            if i:
+                d.edge([(x + 230, y - 30), (x + 230, y)], color=c)
+        d.box(f"n{x}", x + 20, 480, 420, 140, note, stroke=MUTED, fill="#FAFBFC", size=12, align="left")
+    d.box("dec", 40, 665, 1420, 105,
+          "협의 필요 — 결정 기준: ① 아카이브 데이터 조회 요구(빈도 · 방식)  ② 소형 객체 수 · Scanner 부하  ③ 압축 이득(용량)  ④ 서비스 구현 · 운영 부담  ⑤ 보존 · 삭제 정책\n"
+          "권고 순서: A 로 시작 가능한지 확인 → 객체 수·용량 문제가 확인되면 B(하이브리드) → C 는 B 로 해결되지 않는 요구가 있을 때만",
+          stroke=RED, fill=WARN_FILL, color=RED, size=13, bold=True, align="left")
+    return d
+
+
 def main():
-    targets = {"01-architecture": [d01, d02], "02-evidence": [d03, d04, d07], "03-future": [d05, d06],
-               ".": [i1, i3, i4, i6, i7]}
-    for folder, fns in targets.items():
-        out = os.path.join(ROOT, folder, "diagrams")
-        for fn in fns:
-            dg = fn()
-            dg.save(out, out)
-            print("wrote", folder, dg.name)
+    order = [("01-icheon-hot-warm-dataops", d01), ("02-warm-standalone-yongin", d02),
+             ("03-replication-mode-decision", r_decision), ("04-commit-unit-mismatch", i3),
+             ("05-iceberg-vs-replication-timeline", d03), ("06-scanner-impact", d07),
+             ("07-ilm-archive-options", archive_options), ("08-yongin-network-checkpoints", d05),
+             ("09-hot-warm-catalog-split", d06), ("10-verify-and-register", i6), ("11-todo-milestones", i7)]
+    out = os.path.join(ROOT, "diagrams")
+    for name, fn in order:
+        dg = fn()
+        dg.name = name
+        dg.save(out, out)
+        print("wrote", name)
 
 
 if __name__ == "__main__":

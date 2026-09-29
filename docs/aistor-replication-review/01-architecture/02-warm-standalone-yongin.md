@@ -3,7 +3,9 @@
 > 요청 2 · 카테고리: 아키텍처 대응 장표
 > 관련: [장표 1](./01-hot-warm-icheon-dataops.md) · [HMS To-do](../03-future/02-hms-oracle-split-todo.md) · [Polaris/스키마 확인 사항](../03-future/03-open-items-polaris-hot-warm-schema.md)
 
-![Warm 단독 사용 — 용인](./diagrams/02-warm-standalone-yongin.svg)
+> ⚠️ **전제 (피드백 반영)**: 이 구성은 **Warm MinIO 데이터를 HMS 로 조회하는 케이스가 있을 때(모드 ①)** 만 필요합니다. 케이스가 없으면 실시간 Replication · HMS-Warm · 등록 자동화는 불필요하며, 백업 용도(모드 ②)는 [근거 1](../02-evidence/01-replication-necessity-backup.md) 의 백업 시점 테스트로 대체합니다. 판단은 [담당자 우려 확인 OC-1](../03-future/00-owner-concerns.md) 이후 확정.
+
+![Warm 단독 사용 — 용인](../diagrams/02-warm-standalone-yongin.svg)
 
 > Confluence: Gliffy 매크로 → Import → `diagrams/02-warm-standalone-yongin.gliffy`
 
@@ -14,7 +16,7 @@
 | # | 원칙 | 이유 |
 |---|---|---|
 | 1 | 용인은 **데이터를 저장하지 않는다**. 모든 데이터 파일은 이천 Warm 버킷에서 S3 API 로 읽는다 | 용인에 스토리지 없음 (요청 전제) |
-| 2 | 용인에는 **Warm 전용 HMS(HMS-Warm)** 를 둔다. HMS-Hot 을 공유하지 않는다 | HMS-Hot 의 `metadata_location` 은 Hot 기준 최신 스냅샷을 가리키며, Warm 에 아직 복제되지 않은 파일을 참조할 수 있음 ([C1/C2](../02-evidence/01-iceberg-snapshot-vs-replication.md)) |
+| 2 | 용인에는 **Warm 전용 HMS(HMS-Warm)** 를 둔다. HMS-Hot 을 공유하지 않는다 | HMS-Hot 의 `metadata_location` 은 Hot 기준 최신 스냅샷을 가리키며, Warm 에 아직 복제되지 않은 파일을 참조할 수 있음 ([C1/C2](../02-evidence/02-iceberg-snapshot-vs-replication.md)) |
 | 3 | HMS-Warm 에는 **복제 완료가 검증된 metadata.json 만** 등록한다 (`register_table`) | S3 Replication 은 스냅샷 단위 일관성을 보장하지 않음 |
 | 4 | 용인 Trino 에서 Warm 테이블은 **읽기 전용**으로 운영한다 | 단방향 복제(Hot→Warm) — Warm 에서 커밋하면 Hot 과 이력이 갈라짐 |
 | 5 | Lake 는 Polaris 의 **HMS federation**(external catalog)으로 HMS-Warm 을 조회한다 | Polaris 가 HMS 를 source of truth 로 두고 접근을 중개 |
@@ -82,13 +84,13 @@ s3.region=us-east-1
 }
 ```
 
-> 🔍 필드명은 Polaris 버전별로 다를 수 있음. 공개 문서 기준 HMS federation 은 **별도 빌드 옵션**(Hive 지원 포함)과 `ENABLE_CATALOG_FEDERATION=true`, `SUPPORTED_CATALOG_CONNECTION_TYPES` 에 `HIVE` 포함이 필요하고, 인증은 `IMPLICIT` 만 지원하며 **연결 하나당 HiveCatalog 하나**(다중 HMS 라우팅 없음)입니다. ([근거](../02-evidence/04-official-reference-links.md#p1))
+> 🔍 필드명은 Polaris 버전별로 다를 수 있음. 공개 문서 기준 HMS federation 은 **별도 빌드 옵션**(Hive 지원 포함)과 `ENABLE_CATALOG_FEDERATION=true`, `SUPPORTED_CATALOG_CONNECTION_TYPES` 에 `HIVE` 포함이 필요하고, 인증은 `IMPLICIT` 만 지원하며 **연결 하나당 HiveCatalog 하나**(다중 HMS 라우팅 없음)입니다. ([근거](../02-evidence/06-official-reference-links.md#p1))
 
 ## 4. 이 구조의 리스크와 대응
 
 | 리스크 | 영향 | 대응 |
 |---|---|---|
-| Warm 에 아직 복제되지 않은 파일을 참조하는 스냅샷 조회 | FileNotFound, 쿼리 실패 | 검증 후 register ([근거 3 §5](../02-evidence/01-iceberg-snapshot-vs-replication.md)) |
+| Warm 에 아직 복제되지 않은 파일을 참조하는 스냅샷 조회 | FileNotFound, 쿼리 실패 | 검증 후 register ([근거 2 §5](../02-evidence/02-iceberg-snapshot-vs-replication.md)) |
 | HMS-Warm 포인터가 Hot 대비 뒤처짐 | 용인 조회 데이터 신선도 저하 | 등록 주기(SLA) 합의, 지연 모니터링 |
 | DC 간 대역폭 | Trino 스캔 성능 저하 | 파티션 프루닝·파일 크기(compaction) 관리, 대역폭 측정 |
 | 용인 → Warm 쓰기 발생 | Hot/Warm 이력 분기 | Warm 접근 계정은 **읽기 전용 정책**, Trino 카탈로그 read-only 운영 |

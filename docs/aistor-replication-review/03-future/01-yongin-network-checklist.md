@@ -1,11 +1,13 @@
 # [향후 5] 용인 신규 클러스터 → 이천 Warm(S3) 접근 — 네트워크 블럭 해소 확인 사항
 
 > 요청 5 · 카테고리: 향후 구성 대응
-> 관련: [장표 2](../01-architecture/02-warm-standalone-yongin.md) · [Cilium 근거 C1/C2](../02-evidence/04-official-reference-links.md#c1)
+> 관련: [장표 2](../01-architecture/02-warm-standalone-yongin.md) · [Cilium 근거 C1/C2](../02-evidence/06-official-reference-links.md#c1)
 
-![용인 → Warm 네트워크 체크포인트](./diagrams/05-yongin-network-checkpoints.svg)
+> 전제: 용인에서 Warm 을 상시 조회하는 경우(모드 ①) 또는 백업 복구 시나리오(모드 ②)에서 용인 접근이 필요한 경우에만 진행 — [근거 1](../02-evidence/01-replication-necessity-backup.md)
 
-> Confluence: Gliffy 매크로 → Import → `diagrams/05-yongin-network-checkpoints.gliffy`
+![용인 → Warm 네트워크 체크포인트](../diagrams/08-yongin-network-checkpoints.svg)
+
+> Confluence: Gliffy 매크로 → Import → `diagrams/08-yongin-network-checkpoints.gliffy`
 
 ---
 

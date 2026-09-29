@@ -1,7 +1,10 @@
 # [향후 7] 확인 필수 사항 — Lake 의 Polaris 조회 방식 · Hot/Warm 스키마 구성
 
 > 요청 7 · 카테고리: 향후 구성 대응
-> 관련: [장표 2](../01-architecture/02-warm-standalone-yongin.md) · [HMS To-do](./02-hms-oracle-split-todo.md) · 다이어그램 `diagrams/06-hot-warm-catalog-split.*`
+> 관련: [장표 2](../01-architecture/02-warm-standalone-yongin.md) · [HMS To-do](./02-hms-oracle-split-todo.md) · 다이어그램 `diagrams/09-hot-warm-catalog-split.*`
+
+
+> ⚠️ **전제 (피드백 반영)**: `lake_warm` 조회와 Warm 스키마 구성은 **Warm MinIO 데이터를 HMS 로 조회하는 케이스가 있을 때(모드 ①)** 만 필요합니다. 케이스가 없으면 실시간 Replication · HMS-Warm · 등록 자동화는 불필요하며, 백업 용도(모드 ②)는 [근거 1](../02-evidence/01-replication-necessity-backup.md) 의 백업 시점 테스트로 대체합니다. 판단은 [담당자 우려 확인 OC-1](../03-future/00-owner-concerns.md) 이후 확정.
 
 ---
 
@@ -29,7 +32,7 @@
 | P-07 | Lake 엔진의 위치와 Warm 접근 경로 | 장표 2 ⑥ — 방화벽/DNS 추가 필요 여부 | Lake 팀 | ☐ |
 | P-08 | Generic table 미지원 | Iceberg 가 아닌 Hive 테이블은 Polaris federation 으로 조회 불가 | 대상 테이블 포맷 목록 | ☐ |
 
-근거: [P1 HMS federation](../02-evidence/04-official-reference-links.md#p1), [P2 S3 호환 스토리지](../02-evidence/04-official-reference-links.md#p2)
+근거: [P1 HMS federation](../02-evidence/06-official-reference-links.md#p1), [P2 S3 호환 스토리지](../02-evidence/06-official-reference-links.md#p2)
 
 ## 2. Hot ↔ Warm 스키마(카탈로그) 구성 — HMS 를 따로 둘 때
 
@@ -64,14 +67,16 @@
 | S-06 | HMS-Hot 이 Iceberg 외 Hive 테이블도 관리한다면 Warm 등록 대상에서 제외 규칙 | 데이터엔지니어링 | ☐ |
 | S-07 | 사용자 안내: "용인/Lake 에서는 `lake_warm`/`iceberg_warm` 카탈로그를 사용" 가이드 배포 | 플랫폼 | ☐ |
 
-## 3. 진행 순서 (제안)
+## 3. 진행 순서 (제안 — 전체 순서는 [INDEX §5](../INDEX.md))
 
 | 단계 | 작업 | 선행 조건 |
 |---|---|---|
-| 1 | 사내 PDF 확인 (R-01~R-20) + 버킷명·복제 방향 결정 | — |
-| 2 | 네트워크 A 경로 개통 (① ~ ⑦) | 방화벽·DNS 신청 |
-| 3 | HMS-Warm + Oracle 스키마 구축 (H-10 ~ H-26) | 2 |
-| 4 | 등록 자동화 Job PoC (H-30 ~ H-35) — 테이블 1~2 개 | 3 |
-| 5 | 용인 Trino 연결·검증 (H-50 ~ H-54) | 4 |
-| 6 | Polaris `lake_warm` federation PoC (P-01 ~ P-08) | 3 |
-| 7 | 대상 테이블 확대 + 모니터링·운영 이관 | 5, 6 |
+| 0 | 담당자 우려 확인 (OC-1~OC-13) → 모드 결정 | — |
+| 1 | Replication 근거 확인 (R-01~R-24) + 버킷명 · 복제 방향 결정 | 0 |
+| 2 | Replication 테스트 (충돌 C1~C5 · 복제 지연) | 1 |
+| 3 | (모드 ①) 네트워크 A 경로 개통 (① ~ ⑦) | 2 |
+| 4 | (모드 ①) HMS-Warm + Oracle 스키마 구축 (H-10 ~ H-26) | 3 |
+| 5 | (모드 ①) 등록 자동화 Job PoC (H-30 ~ H-35) — 테이블 1~2 개 | 4 |
+| 6 | (모드 ①) 용인 Trino 연결 · 검증 (H-50 ~ H-54) | 5 |
+| 7 | (모드 ①) Polaris `lake_warm` federation PoC (P-01 ~ P-08) | 4 |
+| 8 | 대상 테이블 확대 + 모니터링 · 운영 이관 | 6, 7 |

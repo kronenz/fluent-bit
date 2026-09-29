@@ -3,9 +3,12 @@
 > 요청 6 · 카테고리: 향후 구성 대응
 > 관련: [장표 2](../01-architecture/02-warm-standalone-yongin.md) · [Polaris·스키마 확인 사항](./03-open-items-polaris-hot-warm-schema.md)
 
-![Hot/Warm 카탈로그 분리](./diagrams/06-hot-warm-catalog-split.svg)
 
-> Confluence: Gliffy 매크로 → Import → `diagrams/06-hot-warm-catalog-split.gliffy`
+> ⚠️ **전제 (피드백 반영)**: HMS-Warm 구축은 **Warm MinIO 데이터를 HMS 로 조회하는 케이스가 있을 때(모드 ①)** 만 필요합니다. 케이스가 없으면 실시간 Replication · HMS-Warm · 등록 자동화는 불필요하며, 백업 용도(모드 ②)는 [근거 1](../02-evidence/01-replication-necessity-backup.md) 의 백업 시점 테스트로 대체합니다. 판단은 [담당자 우려 확인 OC-1](../03-future/00-owner-concerns.md) 이후 확정.
+
+![Hot/Warm 카탈로그 분리](../diagrams/09-hot-warm-catalog-split.svg)
+
+> Confluence: Gliffy 매크로 → Import → `diagrams/09-hot-warm-catalog-split.gliffy`
 
 ---
 
@@ -56,10 +59,12 @@
 
 ### 2.4 Warm 테이블 등록·동기화 자동화
 
+![검증 후 등록](../diagrams/10-verify-and-register.svg)
+
 | # | 할 일 | 세부 | 상태 |
 |---|---|---|---|
 | H-30 | 초기 등록 | 대상 테이블별 최신 **검증 완료** metadata.json 을 HMS-Warm 에 등록 — Spark `CALL <cat>.system.register_table('db.tbl', 's3://.../vN.metadata.json')` 또는 Trino `CALL iceberg.system.register_table(...)` (`iceberg.register-table-procedure.enabled=true`) | ☐ |
-| H-31 | 완전성 검증 Job | metadata → manifest list → manifest → data file 전체를 **Warm 에서 HEAD** 확인 후에만 등록/갱신 ([근거 3 §5](../02-evidence/01-iceberg-snapshot-vs-replication.md)) | ☐ |
+| H-31 | 완전성 검증 Job | metadata → manifest list → manifest → data file 전체를 **Warm 에서 HEAD** 확인 후에만 등록/갱신 ([근거 2 §5](../02-evidence/02-iceberg-snapshot-vs-replication.md)) | ☐ |
 | H-32 | 포인터 갱신 방식 결정 | 재등록(unregister + register) vs HMS 테이블 파라미터 `metadata_location` 갱신 — 조회 중 쿼리 영향 확인 🔍 | ☐ |
 | H-33 | 주기·SLA | 등록 주기 ≤ 신선도 SLA, **Hot `expire_snapshots` 보존 기간 > 복제 지연 + 등록 주기** | ☐ |
 | H-34 | 쓰기 차단 | 용인 Trino 카탈로그 read-only 운영, S3 키 읽기 전용 정책 | ☐ |

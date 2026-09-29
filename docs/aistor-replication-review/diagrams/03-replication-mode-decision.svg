@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="840" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="410" width="1420" height="400" fill="#FFFFFF" stroke="#ED7100" stroke-width="1.5"/>
+<rect x="40" y="410" width="26" height="26" fill="#ED7100"/>
+<text x="53.0" y="426.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">T-B</text>
+<text x="74" y="427.3333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">모드 ② 백업 시점 테스트 — 테이블 특성별 (merge · 스냅샷 정리 후 복제 가능 여부)</text>
+<polyline points="260.0,180.0 260.0,248.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="480.0,140.0 538.0,140.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="760.0,180.0 760.0,248.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="980.0,140.0 1038.0,140.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="265.0,515.0 295.0,515.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="500.0,515.0 530.0,515.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="735.0,515.0 765.0,515.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="970.0,515.0 1000.0,515.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="1205.0,515.0 1235.0,515.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="40" y="100" width="440" height="80" rx="6" fill="#F4F5F7" stroke="#232F3E"/>
+<text x="260.0" y="136.33333333333334" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="bold">Q1. Warm MinIO 의 데이터를 HMS(Trino · Polaris)로</text>
+<text x="260.0" y="152.33333333333334" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="bold">직접 조회하는 케이스가 있는가?</text>
+<rect x="540" y="100" width="440" height="80" rx="6" fill="#F4F5F7" stroke="#232F3E"/>
+<text x="760.0" y="136.33333333333334" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="bold">Q2. Replication 목적이</text>
+<text x="760.0" y="152.33333333333334" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="bold">데이터 백업(DR) 인가?</text>
+<rect x="40" y="250" width="440" height="110" rx="6" fill="#E6F7F4" stroke="#01A88D"/>
+<text x="260.0" y="286.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">모드 ① 조회용 실시간 Replication</text>
+<text x="260.0" y="301.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">· 복제 → 검증 → HMS-Warm register</text>
+<text x="260.0" y="316.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">· 충돌 C1~C5 대응 · Scanner 지연 관리 필수</text>
+<text x="260.0" y="331.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">· 용인 Warm 단독 조회 구성 (장표 2)</text>
+<rect x="540" y="250" width="440" height="110" rx="6" fill="#FFF4E5" stroke="#ED7100"/>
+<text x="760.0" y="286.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">모드 ② 백업용 Replication</text>
+<text x="760.0" y="301.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">· 실시간 아님 — 테이블 특성별 백업 시점</text>
+<text x="760.0" y="316.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">· 유지보수(merge·스냅샷 정리) 후 복제</text>
+<text x="760.0" y="331.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">· 복구 시에만 Warm register</text>
+<rect x="1040" y="100" width="420" height="80" rx="6" fill="#F4F5F7" stroke="#7D8998"/>
+<text x="1250.0" y="136.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">모드 ③ Replication 불필요</text>
+<text x="1250.0" y="151.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">→ ILM Transition 만 사용 (Hot 용량 관리)</text>
+<rect x="1040" y="250" width="420" height="110" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1250.0" y="286.5" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">먼저 확인: 담당자 우려사항</text>
+<text x="1250.0" y="301.5" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">· 조회 케이스 유무 · RPO/RTO</text>
+<text x="1250.0" y="316.5" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">· 복제 용량·대역폭 · 운영 부담</text>
+<text x="1250.0" y="331.5" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">→ 03-future/00-owner-concerns</text>
+<rect x="60" y="470" width="205" height="90" rx="6" fill="#FFF4E5" stroke="#ED7100"/>
+<text x="162.5" y="511.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">① 쓰기 창 종료</text>
+<text x="162.5" y="526.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(배치 완료 · 커밋 정지)</text>
+<rect x="295" y="470" width="205" height="90" rx="6" fill="#FFF4E5" stroke="#ED7100"/>
+<text x="397.5" y="511.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">② rewrite_data_files</text>
+<text x="397.5" y="526.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(merge · compaction)</text>
+<rect x="530" y="470" width="205" height="90" rx="6" fill="#FFF4E5" stroke="#ED7100"/>
+<text x="632.5" y="511.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">③ expire_snapshots ·</text>
+<text x="632.5" y="526.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">remove_orphan_files</text>
+<rect x="765" y="470" width="205" height="90" rx="6" fill="#FFF4E5" stroke="#ED7100"/>
+<text x="867.5" y="504.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">④ 복제 트리거</text>
+<text x="867.5" y="519.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">배치 복제 / 규칙 enable</text>
+<text x="867.5" y="534.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">/ mirror 🔍</text>
+<rect x="1000" y="470" width="205" height="90" rx="6" fill="#FFF4E5" stroke="#ED7100"/>
+<text x="1102.5" y="511.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">⑤ 복제 완료 확인</text>
+<text x="1102.5" y="526.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">FAILED · PENDING 0</text>
+<rect x="1235" y="470" width="205" height="90" rx="6" fill="#FFF4E5" stroke="#ED7100"/>
+<text x="1337.5" y="504.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">⑥ 복구 검증</text>
+<text x="1337.5" y="519.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Warm register_table</text>
+<text x="1337.5" y="534.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">→ 조회 성공</text>
+<rect x="60" y="610" width="330" height="70" rx="6" fill="#F5F0FF" stroke="#8C4FFF"/>
+<text x="225.0" y="641.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Append-only (RAW · 로그)</text>
+<text x="225.0" y="656.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">→ 파티션 마감 후 일 단위 (가설)</text>
+<rect x="410" y="610" width="330" height="70" rx="6" fill="#F5F0FF" stroke="#8C4FFF"/>
+<text x="575.0" y="641.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">MERGE/UPDATE 多 (CDC · 팩트)</text>
+<text x="575.0" y="656.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">→ compaction 직후 복제 (가설)</text>
+<rect x="760" y="610" width="330" height="70" rx="6" fill="#F5F0FF" stroke="#8C4FFF"/>
+<text x="925.0" y="641.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">소형 디멘전</text>
+<text x="925.0" y="656.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">→ 전체 스냅샷 주기 복사 (가설)</text>
+<rect x="1110" y="610" width="330" height="70" rx="6" fill="#F5F0FF" stroke="#8C4FFF"/>
+<text x="1275.0" y="641.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">대형 이력 파티션</text>
+<text x="1275.0" y="656.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">→ 마감 파티션만 1회 복제 (가설)</text>
+<rect x="60" y="710" width="1380" height="80" rx="6" fill="#FAFBFC" stroke="#5E6C84"/>
+<text x="64" y="746.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">검증 포인트: 유지보수 후 복제 시 복제 객체 수·용량 감소량 · 삭제(delete marker) 전파 방식 · 복제 규칙 disable→enable 시 누락분 처리 · 배치 복제 기능 지원 여부 🔍</text>
+<text x="64" y="761.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">Iceberg 순서 보장: data → manifest → metadata.json 순으로 복사하면 백업 시점 스냅샷 일관성 확보 가능 (rewrite_table_path 방식과 비교)</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">Replication 필요성 판단 — 조회용 실시간 복제 vs 백업용 복제 vs 불필요</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">Warm 데이터를 HMS 로 조회하는 케이스가 없으면 실시간 Replication 은 필요 없음 · 백업 용도면 테이블 특성별 백업 시점을 테스트로 결정</text>
+<rect x="245.0" y="204.5" width="30" height="19" fill="#FFFFFF"/>
+<text x="260.0" y="217.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">예</text>
+<rect x="484.0" y="112.5" width="50" height="19" fill="#FFFFFF"/>
+<text x="509.0" y="125.66666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">아니오</text>
+<rect x="745.0" y="204.5" width="30" height="19" fill="#FFFFFF"/>
+<text x="760.0" y="217.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">예</text>
+<rect x="984.0" y="112.5" width="50" height="19" fill="#FFFFFF"/>
+<text x="1009.0" y="125.66666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">아니오</text>
+</svg>

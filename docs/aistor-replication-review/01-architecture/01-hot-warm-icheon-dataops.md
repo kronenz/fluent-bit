@@ -1,11 +1,11 @@
 # [장표 1] 이천 Hot/Warm AIStor ↔ 이천 dataops 클러스터 연결 아키텍처
 
 > 요청 1 · 카테고리: 아키텍처 대응 장표
-> 관련: [장표 2](./02-warm-standalone-yongin.md) · [네트워크 체크리스트](../03-future/01-yongin-network-checklist.md) · [충돌 근거](../02-evidence/01-iceberg-snapshot-vs-replication.md)
+> 관련: [장표 2](./02-warm-standalone-yongin.md) · [네트워크 체크리스트](../03-future/01-yongin-network-checklist.md) · [충돌 근거](../02-evidence/02-iceberg-snapshot-vs-replication.md)
 
-![이천 Hot/Warm ↔ dataops](./diagrams/01-hot-warm-icheon-dataops.svg)
+![이천 Hot/Warm ↔ dataops](../diagrams/01-icheon-hot-warm-dataops.svg)
 
-> Confluence: Gliffy 매크로 → Import → `diagrams/01-hot-warm-icheon-dataops.gliffy` (draw.io 는 `.drawio`)
+> Confluence: Gliffy 매크로 → Import → `diagrams/01-icheon-hot-warm-dataops.gliffy` (draw.io 는 `.drawio`)
 
 ---
 
@@ -41,18 +41,20 @@
 | Warm 에서 직접 조회 | **가능** (Warm 엔드포인트) | 불가 — 조회는 **Hot 엔드포인트 경유**(투명) |
 | 동작 시점 | PUT 응답 후 큐잉(기본 비동기) | Scanner 가 규칙 평가 시 (비즉시) |
 | 전제 | 양쪽 Versioning ON | Tier 등록 |
-| Iceberg 영향 | 스냅샷 단위 일관성 없음 → [충돌 C1~C3](../02-evidence/01-iceberg-snapshot-vs-replication.md) | 참조 여부 모름 → [충돌 C4](../02-evidence/01-iceberg-snapshot-vs-replication.md) |
+| Iceberg 영향 | 스냅샷 단위 일관성 없음 → [충돌 C1~C3](../02-evidence/02-iceberg-snapshot-vs-replication.md) | 참조 여부 모름 → [충돌 C4](../02-evidence/02-iceberg-snapshot-vs-replication.md) |
 | 용인 단독 조회 | **이 방식이 필요** | 부적합 (Hot 이 살아있어야 조회) |
 | 근거 | PDF-5, PDF-2 / 공개: AIStor Bucket Replication | PDF-3, PDF-1 / 공개: AIStor Object Lifecycle Management |
 
-> ⚠️ 같은 객체에 ①·②를 **동시에** 걸면 "Transition 된 객체의 복제", "resync 시 Tier 연결 단절" 같은 조합 제약이 있습니다. 공개 문서 기준으로 *resync 시 tiering 된 데이터는 non-transitioned 상태로 복원되어 remote 데이터와 영구 단절* 된다고 명시되어 있으므로, 조합 사용 전 **PDF-2(Global Reference)의 상호작용 표**로 확인이 필요합니다. ([근거 링크](../02-evidence/04-official-reference-links.md#m5))
+> **순서 원칙**: Replication(①) 필요성을 먼저 판단하고 ILM(②)은 그 다음에 설계합니다. Warm 을 HMS 로 조회하는 케이스가 없으면 실시간 Replication 은 필요 없습니다 → [근거 1 모드 판단](../02-evidence/01-replication-necessity-backup.md)
+
+> ⚠️ 같은 객체에 ①·②를 **동시에** 걸면 "Transition 된 객체의 복제", "resync 시 Tier 연결 단절" 같은 조합 제약이 있습니다. 공개 문서 기준으로 *resync 시 tiering 된 데이터는 non-transitioned 상태로 복원되어 remote 데이터와 영구 단절* 된다고 명시되어 있으므로, 조합 사용 전 **PDF-2(Global Reference)의 상호작용 표**로 확인이 필요합니다. ([근거 링크](../02-evidence/06-official-reference-links.md#m5))
 
 ## 4. 장표 설명 멘트 (발표용)
 
 1. dataops 와 AIStor 는 **같은 이천 베어메탈 k8s 대역**이며 ClusterMesh + BGP 로 Private 통신합니다. 대용량 ETL/조회는 Private 경로만 탑니다.
 2. 외부(용인·사무망)는 **Ingress 또는 스위치 L4 VIP** 두 진입점만 허용합니다. S3 엔드포인트를 Pod IP 로 직접 노출하지 않습니다.
 3. Hot→Warm 은 두 가지 메커니즘이 있습니다. **Replication 은 사본, ILM Transition 은 이동**입니다. 용인이 Warm 을 "단독" 조회하려면 Replication 사본이 필요합니다.
-4. 단, Replication 은 **Iceberg 스냅샷을 모릅니다**. 그래서 Warm 측 카탈로그 등록은 별도 절차(검증 후 register)가 필요합니다 → 장표 2, 근거 3.
+4. 단, Replication 은 **Iceberg 스냅샷을 모릅니다**. 그래서 Warm 측 카탈로그 등록은 별도 절차(검증 후 register)가 필요합니다 → 장표 2, 근거 2.
 
 ## 5. 확인 필요 사항
 
