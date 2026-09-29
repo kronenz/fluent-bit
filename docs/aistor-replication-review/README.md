@@ -23,7 +23,8 @@
 
 ```text
 aistor-replication-review/
-├── INDEX.md                                    ← 요약 · 문서별 핵심 · To-do/일정 표
+├── INDEX.md                                    ← 요약 · 문서별 핵심 · To-do/일정 표 · 개념도
+├── diagrams/                                   INDEX 개념도 i1·i3·i4·i6·i7 (.drawio/.gliffy/.svg)
 ├── README.md                                   ← 지금 문서 (요약·트리·용어·보안문서 목록)
 ├── 01-architecture/                            ── 1. 아키텍처 대응 장표
 │   ├── README.md

@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="640" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="100" width="560" height="400" fill="#FFFFFF" stroke="#7AA116" stroke-width="1.5"/>
+<rect x="40" y="100" width="26" height="26" fill="#7AA116"/>
+<text x="53.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">ILM</text>
+<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">S3 / AIStor ILM — 객체 단위 1:1</text>
+<rect x="640" y="100" width="720" height="400" fill="#FFFFFF" stroke="#8C4FFF" stroke-width="1.5"/>
+<rect x="640" y="100" width="26" height="26" fill="#8C4FFF"/>
+<text x="653.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">k8s</text>
+<text x="674" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">RAW → Archive(zip) — 서비스가 직접 구현</text>
+<polyline points="190.0,180.0 428.0,180.0" fill="none" stroke="#ED7100" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="190.0,245.0 428.0,245.0" fill="none" stroke="#ED7100" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="190.0,310.0 428.0,310.0" fill="none" stroke="#ED7100" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="190.0,375.0 428.0,375.0" fill="none" stroke="#7D8998" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="820.0,250.0 878.0,250.0" fill="none" stroke="#8C4FFF" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="1070.0,250.0 1118.0,250.0" fill="none" stroke="#8C4FFF" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="975.0,310.0 975.0,388.0" fill="none" stroke="#8C4FFF" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<rect x="80" y="160" width="110" height="40" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
+<text x="135.0" y="183.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">raw obj-1</text>
+<rect x="430" y="160" width="130" height="40" rx="6" fill="#FFFFFF" stroke="#8A1C2E"/>
+<text x="495.0" y="183.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">obj-1 (Warm)</text>
+<rect x="80" y="225" width="110" height="40" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
+<text x="135.0" y="248.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">raw obj-2</text>
+<rect x="430" y="225" width="130" height="40" rx="6" fill="#FFFFFF" stroke="#8A1C2E"/>
+<text x="495.0" y="248.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">obj-2 (Warm)</text>
+<rect x="80" y="290" width="110" height="40" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
+<text x="135.0" y="313.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">raw obj-3</text>
+<rect x="430" y="290" width="130" height="40" rx="6" fill="#FFFFFF" stroke="#8A1C2E"/>
+<text x="495.0" y="313.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">obj-3 (Warm)</text>
+<rect x="80" y="355" width="110" height="40" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
+<text x="135.0" y="378.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">raw obj-4</text>
+<rect x="430" y="355" width="130" height="40" rx="6" fill="#F4F5F7" stroke="#7D8998"/>
+<text x="495.0" y="378.6666666666667" font-size="11" fill="#7D8998" text-anchor="middle" font-weight="normal">삭제</text>
+<rect x="70" y="420" width="500" height="56" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="320.0" y="452.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">✕ 여러 객체 병합 · 압축 · zip 패키징 · rollover 액션 없음</text>
+<rect x="680" y="170" width="60" height="36" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
+<text x="710.0" y="191.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">raw</text>
+<rect x="750" y="170" width="60" height="36" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
+<text x="780.0" y="191.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">raw</text>
+<rect x="680" y="230" width="60" height="36" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
+<text x="710.0" y="251.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">raw</text>
+<rect x="750" y="230" width="60" height="36" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
+<text x="780.0" y="251.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">raw</text>
+<rect x="680" y="290" width="60" height="36" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
+<text x="710.0" y="311.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">raw</text>
+<rect x="750" y="290" width="60" height="36" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
+<text x="780.0" y="311.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">raw</text>
+<rect x="880" y="190" width="190" height="120" rx="6" fill="#F5F0FF" stroke="#8C4FFF"/>
+<text x="975.0" y="231.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">Rollover Job</text>
+<text x="975.0" y="246.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">(CronJob / Airflow)</text>
+<text x="975.0" y="261.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">① 선정 ② 읽기</text>
+<text x="975.0" y="276.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">③ 압축 ④ 업로드 ⑤ 검증</text>
+<rect x="1120" y="215" width="210" height="70" rx="6" fill="#FBEFF1" stroke="#8A1C2E"/>
+<text x="1225.0" y="246.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">archive/yyyy/mm/dd/</text>
+<text x="1225.0" y="261.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">part-N.zip  (Warm)</text>
+<rect x="880" y="390" width="450" height="70" rx="6" fill="#FAFBFC" stroke="#5E6C84"/>
+<text x="1105.0" y="421.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">⑥ 원본 정리 — DeleteObjects 또는 태그 → ILM Expiration</text>
+<text x="1105.0" y="436.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(Versioning ON 이면 noncurrent 만료 규칙 병행)</text>
+<rect x="40" y="540" width="1320" height="60" rx="6" fill="#F4F5F7" stroke="#232F3E"/>
+<text x="700.0" y="574.3333333333334" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="bold">투명 압축(compression)은 GET 시 원본으로 풀림 → 아카이브 아님   |   S3 Zip 확장은 zip 내부 '읽기'만 지원 → zip 생성은 클라이언트 책임</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">결론 4 — ILM 은 '객체를 옮기거나 지우기'만, zip 아카이브는 서비스가 만든다</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">S3/AIStor Lifecycle 액션 = Transition · Expiration · 병합·압축·zip·rollover 는 없음</text>
+<rect x="270.0" y="223.5" width="80" height="19" fill="#FFFFFF"/>
+<text x="310.0" y="236.66666666666666" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">Transition</text>
+<rect x="270.0" y="353.5" width="80" height="19" fill="#FFFFFF"/>
+<text x="310.0" y="366.6666666666667" font-size="11" fill="#7D8998" text-anchor="middle" font-weight="normal">Expiration</text>
+</svg>

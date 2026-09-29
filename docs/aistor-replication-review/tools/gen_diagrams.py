@@ -5,7 +5,7 @@
 """
 import os
 
-from diagram_lib import (AISTOR, BLUE, GREEN, GREY, INK, MUTED, ORANGE, PURPLE, RED, TEAL, Diagram)
+from diagram_lib import (AISTOR, BLUE, GREEN, GREY, INK, MUTED, ORANGE, PURPLE, RED, TEAL, WHITE, Diagram)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SPARK, TRINO, ORACLE, POLARIS = "#E25A1C", "#DD00A1", "#C74634", "#1F6FEB"
@@ -336,8 +336,182 @@ def d06():
     return d
 
 
+# ================================================================ INDEX 개념도
+def i1():
+    d = Diagram("i1-conclusion1-network-paths", "결론 1 — 이천 연결 경로: Private 는 내부 전용, 외부는 두 진입점만",
+                width=1180, height=660,
+                subtitle="dataops ↔ AIStor 는 같은 이천 베어메탈 k8s 대역 · 대용량 ETL 은 Private 고정 · 외부는 Ingress / L4 VIP")
+    d.group("dop", 40, 100, 260, 200, "이천 dataops (k8s)", PURPLE, badge="k8s")
+    d.icon("spark", 110, 190, "Spark", glyph="Spark", color=SPARK, size=48)
+    d.icon("trino", 230, 190, "Trino", glyph="Trino", color=TRINO, size=48)
+    d.group("ext", 40, 340, 260, 200, "외부 (용인 dataops · 사무망)", GREY, badge="EXT", dashed=True)
+    d.icon("u", 110, 430, "사용자", kind="k8s:user", color=BLUE, size=48)
+    d.icon("ty", 230, 430, "용인 Trino", glyph="Trino", color=TRINO, size=48)
+
+    d.group("pri", 340, 100, 420, 200, "Private 경로 (이천 내부)", GREEN, badge="⇄")
+    d.icon("mesh", 460, 190, "ClusterMesh\nglobal service", glyph="Mesh", color=GREEN, size=48)
+    d.icon("bgp", 640, 190, "BGP (ToR)\nLB-IP 광고", glyph="BGP", color=GREEN, size=48)
+    d.group("pub", 340, 340, 420, 200, "Public 경로 (외부 진입)", GREEN, badge="P")
+    d.icon("ing", 480, 400, "Ingress (L7)", kind="k8s:ing", color=BLUE, size=44)
+    d.icon("vip", 480, 490, "L4 스위치 VIP", glyph="VIP", color=GREEN, size=44)
+
+    d.group("s3", 800, 100, 340, 440, "AIStor (이천 · 베어메탈 k8s)", AISTOR, badge="S3")
+    d.icon("hot", 970, 190, "Hot", kind="s3", color=AISTOR, size=56)
+    d.icon("warm", 970, 430, "Warm", kind="s3", color="#8A1C2E", size=56)
+    d.edge([(970, 244), (970, 400)], "Replication\n(비동기)", at=(970, 320), label_w=90)
+
+    d.edge([(300, 190), (436, 190)], width=2.5)
+    d.edge([(484, 190), (616, 190)], width=2.5)
+    d.edge([(664, 190), (940, 190)], "S3 API", at=(760, 172), label_w=60, width=2.5)
+    d.edge([(300, 440), (360, 440), (360, 400), (458, 400)])
+    d.edge([(360, 440), (360, 490), (458, 490)])
+    d.edge([(502, 400), (700, 400), (700, 430), (940, 430)], "S3 API · HTTPS", at=(820, 412), label_w=100)
+    d.edge([(502, 490), (700, 490), (700, 430)])
+    d.box("msg", 40, 575, 1100, 50,
+          "대용량 ETL·조회 = Private 경로 고정   |   외부 접근 = DNS → Ingress 또는 L4 VIP (Pod IP 직접 노출 금지)",
+          stroke=INK, fill="#F4F5F7", size=13, bold=True)
+    return d
+
+
+def i3():
+    d = Diagram("i3-conclusion3-unit-mismatch", "결론 3 — 커밋 단위 불일치: Iceberg 는 '스냅샷 묶음', Replication 은 '객체 하나씩'",
+                width=1400, height=720,
+                subtitle="Hot 에서는 한 번에 커밋된 스냅샷이 Warm 에는 객체별로 따로·늦게 도착 → Warm 에서 일관된 테이블 보장 안 됨")
+    d.group("hot", 40, 100, 380, 440, "Hot 버킷 + HMS-Hot", AISTOR, badge="S3")
+    d.box("snap", 70, 145, 320, 265, "", stroke=PURPLE, fill="#F5F0FF", dashed=True)
+    d.text(80, 150, 300, 20, "Snapshot v3 — 한 번에 커밋", size=12, bold=True, color=PURPLE, align="left")
+    d.box("hd", 100, 185, 260, 44, "data/*.parquet", stroke=INK)
+    d.box("hm", 100, 260, 260, 44, "manifest (*.avro)", stroke=INK)
+    d.box("hj", 100, 335, 260, 44, "v3.metadata.json", stroke=INK)
+    d.box("hp", 70, 450, 320, 60, "HMS-Hot 포인터 → v3\n(원자 교체)", stroke=TEAL, fill="#E6F7F4", color=TEAL, bold=True)
+
+    d.group("q", 460, 100, 440, 440, "Replication 큐 — 객체별 · 비동기", ORANGE, badge="Q")
+    d.edge([(360, 207), (1000, 207)], "PENDING … (지연 / 실패)", at=(680, 190), label_w=180, dashed=True, color=RED)
+    d.edge([(360, 282), (1000, 282)], "t + 2s  ✓", at=(680, 265), label_w=90, color=ORANGE)
+    d.edge([(360, 357), (1000, 357)], "t + 1s  ✓ (먼저 도착)", at=(680, 340), label_w=150, color=ORANGE)
+    d.edge([(390, 480), (1000, 480)], "✕ 복제 대상 아님 (Oracle 의 행)", at=(680, 463), label_w=220, dashed=True, color=RED)
+
+    d.group("warm", 940, 100, 420, 440, "Warm 버킷 + HMS-Warm", "#8A1C2E", badge="S3")
+    d.box("wd", 1000, 185, 300, 44, "data/*.parquet  ✕ 아직 없음", stroke=RED, fill=WARN_FILL, color=RED, dashed=True)
+    d.box("wm", 1000, 260, 300, 44, "manifest  ✓", stroke=INK)
+    d.box("wj", 1000, 335, 300, 44, "v3.metadata.json  ✓", stroke=INK)
+    d.box("wp", 1000, 450, 300, 60, "HMS-Warm 포인터 없음\n→ 별도 등록 필요", stroke=RED, fill=WARN_FILL, color=RED, bold=True)
+
+    chips = [("C1 부분 복제", "metadata 는 왔는데\ndata 가 없음"), ("C2 카탈로그 미복제", "HMS 포인터는\nS3 복제 대상 아님"),
+             ("C3 삭제 전파", "expire_snapshots 삭제가\n플래그 따라 다르게 반영"), ("C4 ILM 비인지", "ILM 은 Iceberg 참조를\n모름 · 삭제 미복제"),
+             ("C5 Object Lock", "보존 중 삭제 불가\n→ 유지보수 실패")]
+    for i, (t, b) in enumerate(chips):
+        x = 40 + i * 266
+        d.box(f"ch{i}", x, 570, 250, 110, f"{t}\n{b}", stroke=RED, fill=WARN_FILL, color=RED, size=12)
+    return d
+
+
+def i4():
+    d = Diagram("i4-conclusion4-ilm-vs-rollover", "결론 4 — ILM 은 '객체를 옮기거나 지우기'만, zip 아카이브는 서비스가 만든다",
+                width=1400, height=640,
+                subtitle="S3/AIStor Lifecycle 액션 = Transition · Expiration · 병합·압축·zip·rollover 는 없음")
+    d.group("ilm", 40, 100, 560, 400, "S3 / AIStor ILM — 객체 단위 1:1", GREEN, badge="ILM")
+    for i, y in enumerate([160, 225, 290]):
+        d.box(f"o{i}", 80, y, 110, 40, f"raw obj-{i + 1}", stroke=INK, size=11)
+        d.box(f"t{i}", 430, y, 130, 40, f"obj-{i + 1} (Warm)", stroke="#8A1C2E", size=11)
+        d.edge([(190, y + 20), (428, y + 20)], "Transition" if i == 1 else None, at=(310, y + 8), label_w=80,
+               color=ORANGE)
+    d.box("o3", 80, 355, 110, 40, "raw obj-4", stroke=INK, size=11)
+    d.box("dl", 430, 355, 130, 40, "삭제", stroke=GREY, fill="#F4F5F7", size=11, color=GREY)
+    d.edge([(190, 375), (428, 375)], "Expiration", at=(310, 363), label_w=80, color=GREY)
+    d.box("no", 70, 420, 500, 56, "✕ 여러 객체 병합 · 압축 · zip 패키징 · rollover 액션 없음",
+          stroke=RED, fill=WARN_FILL, color=RED, size=12, bold=True)
+
+    d.group("svc", 640, 100, 720, 400, "RAW → Archive(zip) — 서비스가 직접 구현", PURPLE, badge="k8s")
+    for r in range(3):
+        for c in range(2):
+            d.box(f"r{r}{c}", 680 + c * 70, 170 + r * 60, 60, 36, "raw", stroke=INK, size=11)
+    d.box("job", 880, 190, 190, 120, "Rollover Job\n(CronJob / Airflow)\n① 선정 ② 읽기\n③ 압축 ④ 업로드 ⑤ 검증",
+          stroke=PURPLE, fill="#F5F0FF", size=12, bold=True)
+    d.box("zip", 1120, 215, 210, 70, "archive/yyyy/mm/dd/\npart-N.zip  (Warm)", stroke="#8A1C2E", fill="#FBEFF1",
+          size=12, bold=True)
+    d.edge([(820, 250), (878, 250)], width=2.5, color=PURPLE)
+    d.edge([(1070, 250), (1118, 250)], width=2.5, color=PURPLE)
+    d.box("clean", 880, 390, 450, 70, "⑥ 원본 정리 — DeleteObjects 또는 태그 → ILM Expiration\n(Versioning ON 이면 noncurrent 만료 규칙 병행)",
+          stroke=MUTED, fill="#FAFBFC", size=12)
+    d.edge([(975, 310), (975, 388)], dashed=True, color=PURPLE)
+    d.box("msg", 40, 540, 1320, 60,
+          "투명 압축(compression)은 GET 시 원본으로 풀림 → 아카이브 아님   |   S3 Zip 확장은 zip 내부 '읽기'만 지원 → zip 생성은 클라이언트 책임",
+          stroke=INK, fill="#F4F5F7", size=13, bold=True)
+    return d
+
+
+def i6():
+    d = Diagram("i6-conclusion6-hms-split-register", "결론 6 — HMS 는 Hot / Warm 분리, Warm 은 '검증 후 등록'",
+                width=1400, height=720,
+                subtitle="S3 Replication 은 데이터만 복제 → 동기화 Job 이 Warm 파일 완전성을 확인한 뒤에만 HMS-Warm 포인터를 갱신")
+    d.group("cat", 40, 100, 1320, 230, "카탈로그 계층", TEAL, badge="HMS")
+    d.icon("ic", 130, 210, "이천 Spark / Trino\n(쓰기·조회)", glyph="Trino", color=TRINO, size=48)
+    d.icon("hh", 360, 210, "HMS-Hot (이천)\nOracle · 기존", glyph="HMS", color=TEAL)
+    d.box("job", 560, 160, 280, 110, "동기화 · 검증 Job\n① 최신 metadata_location 조회\n② Warm 에서 전체 파일 HEAD\n③ 누락 0건일 때만 register",
+          stroke=PURPLE, fill="#F5F0FF", size=12, bold=True)
+    d.icon("hw", 1040, 210, "HMS-Warm (용인용)\nOracle · 신규 · 읽기 전용", glyph="HMS", color=TEAL, label_w=180)
+    d.icon("ty", 1260, 160, "용인 Trino", glyph="Trino", color=TRINO, size=40)
+    d.icon("pl", 1260, 260, "Polaris\nlake_warm", glyph="Polaris", color=POLARIS, size=40)
+    d.edge([(154, 210), (334, 210)], "커밋", at=(245, 192), label_w=40)
+    d.edge([(386, 210), (558, 210)], "①", at=(470, 192), label_w=30, color=PURPLE)
+    d.edge([(840, 210), (1014, 210)], "③ register_table", at=(925, 192), label_w=120, color=PURPLE, width=2.5)
+    d.edge([(1240, 160), (1066, 200)])
+    d.edge([(1240, 260), (1066, 220)])
+
+    d.group("st", 40, 380, 1320, 200, "스토리지 계층 — AIStor (이천)", AISTOR, badge="S3")
+    d.icon("hot", 360, 470, "Hot 버킷  s3://<bucket>/…", kind="s3", color=AISTOR, size=56, label_w=200)
+    d.icon("warm", 1040, 470, "Warm 버킷  s3://<bucket>/… (동일 버킷명 권장)", kind="s3", color="#8A1C2E", size=56,
+           label_w=280)
+    d.edge([(390, 470), (1010, 470)], "Replication — 데이터 파일만 (비동기)", at=(700, 452), label_w=240, width=2.5)
+    d.edge([(360, 262), (360, 440)], "commit 대상", at=(360, 350), label_w=80, dashed=True, color=TEAL)
+    d.edge([(700, 270), (700, 430), (1010, 430)], "② HEAD 검증", at=(700, 350), label_w=90, dashed=True, color=PURPLE)
+    d.edge([(1040, 262), (1040, 440)], "metadata_location", at=(1040, 350), label_w=120, dashed=True, color=TEAL)
+    d.box("rule", 40, 610, 1320, 60,
+          "⚠ 조건: Hot 스냅샷 보존 기간(expire_snapshots) > 복제 지연 + 검증·등록 주기   |   Warm 에서는 DDL·쓰기 금지 (Hot 에서만 변경)",
+          stroke=RED, fill=WARN_FILL, color=RED, size=13, bold=True)
+    return d
+
+
+def i7():
+    d = Diagram("i7-todo-milestones", "해야 할 일 — 마일스톤 의존 관계 (M1 → M7)",
+                width=1500, height=640,
+                subtitle="박스 안 No = INDEX §3 작업 번호 · 빨간 게이트 = 다음 단계 착수 전 확정해야 할 결정")
+    ms = {
+        "m1": (40, 200, "M1 근거 확인 · 설계 결정\nNo 1 ~ 10\n보안 PDF · 복제 방향 · 버킷명\n삭제 플래그 · SLA", INK),
+        "m2": (330, 200, "M2 네트워크 개통\nNo 12 ~ 20\nSNAT · 방화벽 · DNS\nVIP/Ingress · TLS", GREEN),
+        "m3": (620, 200, "M3 HMS-Warm 구축\nNo 21 ~ 24\nOracle 스키마 · 배포\nHMS-Hot 정책 조정", TEAL),
+        "m4": (910, 90, "M4 등록 자동화 PoC\n+ 용인 Trino 검증\nNo 25 ~ 28", PURPLE),
+        "m5": (910, 320, "M5 Polaris federation PoC\nNo 29 ~ 32\nlake_hot / lake_warm", POLARIS),
+        "m7": (1220, 200, "M7 운영 이관\nNo 33\n대상 확대 · 사용자 가이드", INK),
+        "m6": (330, 440, "M6 Archive Rollover 구현\nNo 11\nJob 설계 · 정리 ILM 규칙", ORANGE),
+    }
+    for k, (x, y, t, c) in ms.items():
+        d.box(k, x, y, 240, 120, t, stroke=c, fill=WHITE, size=12, bold=False)
+    d.edge([(280, 260), (328, 260)], width=2.5)
+    d.edge([(570, 260), (618, 260)], width=2.5)
+    d.edge([(860, 240), (885, 240), (885, 150), (908, 150)], width=2.5)
+    d.edge([(860, 280), (885, 280), (885, 380), (908, 380)], width=2.5)
+    d.edge([(1150, 150), (1185, 150), (1185, 240), (1218, 240)], width=2.5)
+    d.edge([(1150, 380), (1185, 380), (1185, 280), (1218, 280)], width=2.5)
+    d.edge([(160, 320), (160, 500), (328, 500)], width=2.5, color=ORANGE)
+
+    gates = [(40, 90, "G1 복제 방향 · 버킷명 동일 여부"), (330, 90, "G2 경로 A/B · 진입점(VIP/Ingress)"),
+             (620, 90, "G3 Oracle 배치 · HMS 버전")]
+    for x, y, t in gates:
+        d.box(f"g{x}", x, y, 240, 50, t, stroke=RED, fill=WARN_FILL, color=RED, size=12, bold=True)
+        d.edge([(x + 120, y + 50), (x + 120, 198)], dashed=True, color=RED)
+    d.box("lg", 620, 460, 830, 130,
+          "병렬 가능: M2(네트워크) 와 M6(Archive) 는 M1 이후 동시 진행\n"
+          "M4 · M5 는 M3 완료 후 병렬 PoC → 둘 다 통과해야 M7\n"
+          "각 단계 완료 기준: INDEX §3 해당 No 전부 ☑ + 03-future 검증 항목(H-50~54, P-01~08) 통과",
+          stroke=MUTED, fill="#FAFBFC", size=12, align="left")
+    return d
+
+
 def main():
-    targets = {"01-architecture": [d01, d02], "02-evidence": [d03, d04], "03-future": [d05, d06]}
+    targets = {"01-architecture": [d01, d02], "02-evidence": [d03, d04], "03-future": [d05, d06],
+               ".": [i1, i3, i4, i6, i7]}
     for folder, fns in targets.items():
         out = os.path.join(ROOT, folder, "diagrams")
         for fn in fns:

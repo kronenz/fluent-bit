@@ -14,6 +14,15 @@
 | 결론 6 | HMS 는 Hot(이천) / Warm(용인용) 분리, Warm 은 검증 후 `register_table` |
 | 전제(가정) | Replication 방향 Hot → Warm 단방향 · Hot/Warm 버킷명 동일 유지 권고 |
 
+## 1-1. 결론 개념도
+
+| 결론 | 개념도 | draw.io | Gliffy |
+|---|---|---|---|
+| 결론 1 — 이천 연결 경로 | ![결론 1](./diagrams/i1-conclusion1-network-paths.svg) | [i1 .drawio](./diagrams/i1-conclusion1-network-paths.drawio) | [i1 .gliffy](./diagrams/i1-conclusion1-network-paths.gliffy) |
+| 결론 3 — 커밋 단위 불일치 | ![결론 3](./diagrams/i3-conclusion3-unit-mismatch.svg) | [i3 .drawio](./diagrams/i3-conclusion3-unit-mismatch.drawio) | [i3 .gliffy](./diagrams/i3-conclusion3-unit-mismatch.gliffy) |
+| 결론 4 — ILM vs 서비스 Rollover | ![결론 4](./diagrams/i4-conclusion4-ilm-vs-rollover.svg) | [i4 .drawio](./diagrams/i4-conclusion4-ilm-vs-rollover.drawio) | [i4 .gliffy](./diagrams/i4-conclusion4-ilm-vs-rollover.gliffy) |
+| 결론 6 — HMS 분리 · 검증 후 등록 | ![결론 6](./diagrams/i6-conclusion6-hms-split-register.svg) | [i6 .drawio](./diagrams/i6-conclusion6-hms-split-register.drawio) | [i6 .gliffy](./diagrams/i6-conclusion6-hms-split-register.gliffy) |
+
 ## 2. 문서 목록 · 핵심 내용
 
 | 카테고리 | 요청 | 문서 | 핵심 내용 | 다이어그램 |
@@ -88,3 +97,15 @@
 | M5 Polaris federation PoC | 29~32 | M3 | | | ☐ |
 | M6 Archive Rollover 구현 | 11 | M1 | | | ☐ |
 | M7 운영 이관 | 33 | M4, M5 | | | ☐ |
+
+## 5-1. 마일스톤 의존 관계도
+
+| 개념도 | draw.io | Gliffy |
+|---|---|---|
+| ![해야 할 일 마일스톤](./diagrams/i7-todo-milestones.svg) | [i7 .drawio](./diagrams/i7-todo-milestones.drawio) | [i7 .gliffy](./diagrams/i7-todo-milestones.gliffy) |
+
+| 게이트 | 확정할 결정 | 관련 No | 다음 단계 |
+|---|---|---|---|
+| G1 | 복제 방향 · 버킷명 동일 여부 | 3, 5 | M1 → M2 |
+| G2 | 경로 A/B · 진입점(VIP/Ingress) | 12 | M2 착수 |
+| G3 | Oracle 배치 · HMS 버전 | 21 | M3 착수 |
