@@ -12,6 +12,7 @@
 | 결론 4 | ILM 액션은 Transition·Expiration 뿐 — RAW→Archive(zip) rollover 는 서비스가 구현 |
 | 결론 5 | 용인 → Warm 접근은 A. Public(VIP/Ingress) 경로 우선 |
 | 결론 6 | HMS 는 Hot(이천) / Warm(용인용) 분리, Warm 은 검증 후 `register_table` |
+| 결론 7 | Scanner 가 ILM Transition · 복제 재큐잉(3회 실패 후) · 버전 정리를 함께 처리 → Scanner 가 느리면 Warm 누락·Hot 용량·버전 누적이 같이 악화 |
 | 전제(가정) | Replication 방향 Hot → Warm 단방향 · Hot/Warm 버킷명 동일 유지 권고 |
 
 ## 1-1. 결론 개념도
@@ -22,6 +23,7 @@
 | 결론 3 — 커밋 단위 불일치 | ![결론 3](./diagrams/i3-conclusion3-unit-mismatch.svg) | [i3 .drawio](./diagrams/i3-conclusion3-unit-mismatch.drawio) | [i3 .gliffy](./diagrams/i3-conclusion3-unit-mismatch.gliffy) |
 | 결론 4 — ILM vs 서비스 Rollover | ![결론 4](./diagrams/i4-conclusion4-ilm-vs-rollover.svg) | [i4 .drawio](./diagrams/i4-conclusion4-ilm-vs-rollover.drawio) | [i4 .gliffy](./diagrams/i4-conclusion4-ilm-vs-rollover.gliffy) |
 | 결론 6 — HMS 분리 · 검증 후 등록 | ![결론 6](./diagrams/i6-conclusion6-hms-split-register.svg) | [i6 .drawio](./diagrams/i6-conclusion6-hms-split-register.drawio) | [i6 .gliffy](./diagrams/i6-conclusion6-hms-split-register.gliffy) |
+| 결론 7 — Scanner 지연 영향 | ![결론 7](./02-evidence/diagrams/07-scanner-impact.svg) | [07 .drawio](./02-evidence/diagrams/07-scanner-impact.drawio) | [07 .gliffy](./02-evidence/diagrams/07-scanner-impact.gliffy) |
 
 ## 2. 문서 목록 · 핵심 내용
 
@@ -32,7 +34,8 @@
 | 1. 아키텍처 | 2 | [02-warm-standalone-yongin](./01-architecture/02-warm-standalone-yongin.md) | 용인 구성 원칙 5개, 흐름 ①~⑥, Trino/HMS/Polaris 설정 초안, 확인 B-1~B-5 | 02-warm-standalone-yongin |
 | 2. 근거 | 3 | [01-iceberg-snapshot-vs-replication](./02-evidence/01-iceberg-snapshot-vs-replication.md) | 충돌 C1 부분 복제 · C2 카탈로그 미복제 · C3 삭제 전파 · C4 ILM 비인지 · C5 Object Lock, 절대경로 문제, 복제→검증→등록 | 03-iceberg-snapshot-vs-replication |
 | 2. 근거 | 4 | [02-raw-archive-ilm-limitation](./02-evidence/02-raw-archive-ilm-limitation.md) | ILM 에 압축·병합·zip·rollover 없음, 투명 압축 ≠ 아카이브, S3 Zip 은 읽기 전용, Rollover Job 6단계 | 04-raw-archive-rollover |
-| 2. 근거 | 공통 | [03-internal-pdf-evidence-map](./02-evidence/03-internal-pdf-evidence-map.md) | 보안 PDF 6종 — 주장별 확인 문서·키워드 R-01~R-20 | — |
+| 2. 근거 | 추가 | [05-scanner-impact](./02-evidence/05-scanner-impact.md) | Scanner 작업·주기 원문, 3회 실패 후 Scanner 재큐잉, 지연 영향 매트릭스, 대응 S-A~S-G, 확인 E5-1~E5-6 | 07-scanner-impact |
+| 2. 근거 | 공통 | [03-internal-pdf-evidence-map](./02-evidence/03-internal-pdf-evidence-map.md) | 보안 PDF 6종 — 주장별 확인 문서·키워드 R-01~R-22 | — |
 | 2. 근거 | 공통 | [04-official-reference-links](./02-evidence/04-official-reference-links.md) | 공개 공식 문서 링크 + 원문 인용 (AIStor·AWS·Iceberg·Polaris·Trino·Cilium) | — |
 | 3. 향후 구성 | 5 | [01-yongin-network-checklist](./03-future/01-yongin-network-checklist.md) | 경로 A/B 비교, 체크포인트 ①~⑨, 포트 매트릭스, 검증 Runbook, 결정 N-1~N-4 | 05-yongin-network-checkpoints |
 | 3. 향후 구성 | 6 | [02-hms-oracle-split-todo](./03-future/02-hms-oracle-split-todo.md) | HMS-Hot/Warm 목표 구성, To-do H-01~H-54 | 06-hot-warm-catalog-split |
@@ -43,7 +46,7 @@
 
 | No | 단계 | 해야 할 일 | 세부 ID | 관련 문서 | 담당 | 시작일 | 완료 예정일 | 완료일 | 상태 | 비고 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 1 | 근거 확인 | 보안 PDF 6종 확인 · 페이지/절 기입 | R-01~R-20 | [02-evidence/03](./02-evidence/03-internal-pdf-evidence-map.md) | | | | | ☐ 미착수 | |
+| 1 | 근거 확인 | 보안 PDF 6종 확인 · 페이지/절 기입 | R-01~R-22 | [02-evidence/03](./02-evidence/03-internal-pdf-evidence-map.md) | | | | | ☐ 미착수 | |
 | 2 | 근거 확인 | 복제 순서/일관성 보장 여부 벤더 문의 | E3-1 | [02-evidence/01](./02-evidence/01-iceberg-snapshot-vs-replication.md) | | | | | ☐ 미착수 | |
 | 3 | 설계 결정 | Replication 방향·대상 버킷/프리픽스 확정 | A-1 | [01-architecture/01](./01-architecture/01-hot-warm-icheon-dataops.md) | | | | | ☐ 미착수 | |
 | 4 | 설계 결정 | Replication + ILM Transition 병행 여부 | A-2, E3-4 | [01-architecture/01](./01-architecture/01-hot-warm-icheon-dataops.md) | | | | | ☐ 미착수 | |
@@ -76,6 +79,8 @@
 | 31 | Polaris | Lake 엔진 위치·Warm 접근 경로 · 비 Iceberg 테이블 확인 | P-07, P-08, B-5, S-05, S-06 | [03-future/03](./03-future/03-open-items-polaris-hot-warm-schema.md) | | | | | ☐ 미착수 | |
 | 32 | 스키마 | Hot/Warm union view 필요 여부 | S-04 | [03-future/03](./03-future/03-open-items-polaris-hot-warm-schema.md) | | | | | ☐ 미착수 | |
 | 33 | 운영 이관 | 대상 테이블 확대 · 사용자 가이드 배포 | S-07 | [03-future/03](./03-future/03-open-items-polaris-hot-warm-schema.md) | | | | | ☐ 미착수 | |
+| 34 | Scanner | 운영 Scanner 사이클 시간·excess versions/folders·speed 설정 확인 | E5-1~E5-3 | [02-evidence/05](./02-evidence/05-scanner-impact.md) | | | | | ☐ 미착수 | |
+| 35 | Scanner | 복제 백로그 모니터링 · resync-backlog 절차 · Hot HEAD 재큐잉 PoC | E5-4, E5-5, S-B, S-C | [02-evidence/05](./02-evidence/05-scanner-impact.md) | | | | | ☐ 미착수 | |
 
 ## 4. 상태 표기
 
@@ -90,10 +95,10 @@
 
 | 단계 | 포함 No | 선행 | 시작일 | 완료 예정일 | 상태 |
 |---|---|---|---|---|---|
-| M1 근거 확인·설계 결정 | 1~10 | — | | | ☐ |
+| M1 근거 확인·설계 결정 | 1~10, 34 | — | | | ☐ |
 | M2 네트워크 개통 | 12~20 | M1 | | | ☐ |
 | M3 HMS-Warm 구축 | 21~24 | M2 | | | ☐ |
-| M4 등록 자동화 PoC · 용인 Trino 검증 | 25~28 | M3 | | | ☐ |
+| M4 등록 자동화 PoC · 용인 Trino 검증 | 25~28, 35 | M3 | | | ☐ |
 | M5 Polaris federation PoC | 29~32 | M3 | | | ☐ |
 | M6 Archive Rollover 구현 | 11 | M1 | | | ☐ |
 | M7 운영 이관 | 33 | M4, M5 | | | ☐ |

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="780" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="100" width="400" height="520" fill="#FFFFFF" stroke="#232F3E" stroke-width="1.5"/>
+<rect x="40" y="100" width="26" height="26" fill="#232F3E"/>
+<text x="53.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">SCN</text>
+<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Scanner 동작 방식</text>
+<rect x="480" y="100" width="360" height="520" fill="#FFFFFF" stroke="#ED7100" stroke-width="1.5"/>
+<rect x="480" y="100" width="26" height="26" fill="#ED7100"/>
+<text x="493.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">4</text>
+<text x="514" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Scanner 가 담당하는 작업</text>
+<rect x="880" y="100" width="580" height="520" fill="#FFFFFF" stroke="#DD344C" stroke-width="1.5"/>
+<rect x="880" y="100" width="26" height="26" fill="#DD344C"/>
+<text x="893.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">!</text>
+<text x="914" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Scanner 가 느려질 때 영향</text>
+<polyline points="240.0,210.0 240.0,230.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="240.0,290.0 240.0,310.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="240.0,370.0 240.0,390.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="240.0,450.0 240.0,480.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="440.0,360.0 478.0,360.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="820.0,190.0 898.0,190.0" fill="none" stroke="#DD344C" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="820.0,275.0 898.0,275.0" fill="none" stroke="#DD344C" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="820.0,325.0 898.0,325.0" fill="none" stroke="#DD344C" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="820.0,410.0 898.0,410.0" fill="none" stroke="#DD344C" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="820.0,520.0 898.0,520.0" fill="none" stroke="#DD344C" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="1440.0,325.0 1480.0,325.0 1480.0,650.0 240.0,650.0 240.0,552.0" fill="none" stroke="#DD344C" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<rect x="60" y="150" width="360" height="60" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
+<text x="240.0" y="184.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">버킷 그룹을 순차 처리</text>
+<rect x="60" y="230" width="360" height="60" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
+<text x="240.0" y="256.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">버킷 스캔 완료 후 30초 대기</text>
+<text x="240.0" y="271.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">→ 다음 버킷</text>
+<rect x="60" y="310" width="360" height="60" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
+<text x="240.0" y="336.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">객체명 해시로 대상 선택</text>
+<text x="240.0" y="351.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">16회 스캔에 걸쳐 전체 객체 1회 확인</text>
+<rect x="60" y="390" width="360" height="60" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
+<text x="240.0" y="416.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">작업 시간 × 속도 계수(기본 10.0) 대기</text>
+<text x="240.0" y="431.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">읽기/쓰기 요청에 I/O 양보(일시 정지)</text>
+<rect x="60" y="480" width="360" height="70" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="240.0" y="504.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">느려지는 요인</text>
+<text x="240.0" y="519.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">드라이브 종류 · 네트워크 처리량</text>
+<text x="240.0" y="534.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">객체 수·크기 · 기타 부하</text>
+<rect x="500" y="150" width="320" height="80" rx="6" fill="#FFF4E5" stroke="#ED7100"/>
+<text x="660.0" y="194.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">① 데이터 사용량 계산</text>
+<rect x="500" y="260" width="320" height="80" rx="6" fill="#FFF4E5" stroke="#ED7100"/>
+<text x="660.0" y="296.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">② ILM · 보존 규칙 평가/적용</text>
+<text x="660.0" y="311.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">(Transition · Expiration)</text>
+<rect x="500" y="370" width="320" height="80" rx="6" fill="#FFF4E5" stroke="#ED7100"/>
+<text x="660.0" y="406.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">③ Bucket/Site Replication</text>
+<text x="660.0" y="421.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">PENDING · FAILED 객체 재큐잉</text>
+<rect x="500" y="480" width="320" height="80" rx="6" fill="#FFF4E5" stroke="#ED7100"/>
+<text x="660.0" y="524.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">④ 누락·손상 데이터 Healing</text>
+<rect x="900" y="165" width="540" height="50" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1170.0" y="194.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">사용량·쿼터 수치 지연 (마지막 완료 스캔 기준)</text>
+<rect x="900" y="255" width="540" height="40" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1170.0" y="279.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">Transition 지연 → Hot 용량 압박 · 계획보다 늦은 이동</text>
+<rect x="900" y="305" width="540" height="40" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1170.0" y="329.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">Expiration · noncurrent 정리 지연 → 버전 누적</text>
+<rect x="900" y="370" width="540" height="80" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1170.0" y="399.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">3회 재시도 후 큐에서 빠진 FAILED 객체의 재큐잉 지연</text>
+<text x="1170.0" y="414.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">→ Warm 파일 누락 지속 (C1 장기화)</text>
+<text x="1170.0" y="429.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">→ HMS-Warm 등록 보류 · 용인 데이터 신선도 저하</text>
+<rect x="900" y="495" width="540" height="50" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1170.0" y="524.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">누락·손상 객체 복구(Healing) 지연</text>
+<rect x="40" y="680" width="1420" height="70" rx="6" fill="#F4F5F7" stroke="#232F3E"/>
+<text x="750.0" y="711.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">대응  ·  mc admin scanner info · minio_scanner_* 지표 모니터링   ·   mc replicate status / resync-backlog 로 FAILED·PENDING 수동 재큐잉</text>
+<text x="750.0" y="726.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">·  noncurrent 만료 규칙으로 버전 수 억제 (excess versions 경보)   ·   scanner speed 조정은 읽기/쓰기 I/O 와 트레이드오프   ·   ILM·복제 완료 시점에 SLA 를 의존하지 말 것</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">Scanner 가 느려지면 — ILM Transition · Replication 재처리 · 버전 정리가 함께 지연</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">Scanner 는 사용량 계산 · ILM/보존 규칙 · Replication 재큐잉 · Healing 을 한 사이클에서 처리 — 느려지면 네 작업이 모두 밀린다</text>
+<rect x="429.0" y="330.5" width="60" height="19" fill="#FFFFFF"/>
+<text x="459.0" y="343.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">매 사이클</text>
+<rect x="710.0" y="640.5" width="300" height="19" fill="#FFFFFF"/>
+<text x="860.0" y="653.6666666666666" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">악순환: 버전·객체 수 증가 → 스캔 더 느려짐</text>
+</svg>

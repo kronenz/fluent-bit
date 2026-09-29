@@ -40,6 +40,7 @@
 | 공개 근거 | AIStor Bucket Replication: *"returns a response to the originating PUT operation before placing the object into a replication queue."* ([M1](./04-official-reference-links.md#m1)) / 순서 보장 문구 부재 ([M2](./04-official-reference-links.md#m2)) |
 | 사내 PDF 확인 | **PDF-5 Replication.pdf**: 비동기/동기 모드 정의, 순서·일관성 보장 여부 문구, 복제 상태(PENDING/COMPLETED/FAILED) 정의와 재시도 정책 |
 | 판정 테스트 | 대량 INSERT 직후 Warm 측 `metadata.json` 존재 시점과 참조 파일 전체 존재 시점 차이 측정 |
+| 장기화 요인 | 3회 재시도 후 큐에서 빠진 FAILED 객체는 **Scanner 가 다시 방문할 때까지** 재큐잉되지 않음 → Scanner 가 느리면 C1 상태가 길어짐 ([근거 5](./05-scanner-impact.md), [M13](./04-official-reference-links.md#m13)) |
 
 ### C2. 카탈로그 미복제 (Catalog not replicated)
 

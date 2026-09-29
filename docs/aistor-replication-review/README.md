@@ -37,7 +37,8 @@ aistor-replication-review/
 │   ├── 02-raw-archive-ilm-limitation.md        (요청 4) RAW→Archive(zip) ILM rollover 불가 근거
 │   ├── 03-internal-pdf-evidence-map.md         보안 PDF 6종: 문서별 "무엇을 찾아 확인할지"
 │   ├── 04-official-reference-links.md          공개 공식 문서 링크·원문 인용 모음
-│   └── diagrams/  03-*, 04-*
+│   ├── 05-scanner-impact.md                    Scanner 지연 → ILM Transition·Replication 재큐잉 영향
+│   └── diagrams/  03-*, 04-*, 07-*
 ├── 03-future/                                  ── 3. 향후 구성 대응
 │   ├── README.md
 │   ├── 01-yongin-network-checklist.md          (요청 5) 용인 → Warm 방화벽·DNS·ClusterMesh 확인 사항

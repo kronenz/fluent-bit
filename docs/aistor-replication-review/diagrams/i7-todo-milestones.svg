@@ -11,7 +11,7 @@
 <polyline points="740.0,140.0 740.0,198.0" fill="none" stroke="#DD344C" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
 <rect x="40" y="200" width="240" height="120" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
 <text x="160.0" y="241.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">M1 근거 확인 · 설계 결정</text>
-<text x="160.0" y="256.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">No 1 ~ 10</text>
+<text x="160.0" y="256.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">No 1 ~ 10, 34</text>
 <text x="160.0" y="271.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">보안 PDF · 복제 방향 · 버킷명</text>
 <text x="160.0" y="286.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">삭제 플래그 · SLA</text>
 <rect x="330" y="200" width="240" height="120" rx="6" fill="#FFFFFF" stroke="#7AA116"/>
@@ -27,7 +27,7 @@
 <rect x="910" y="90" width="240" height="120" rx="6" fill="#FFFFFF" stroke="#8C4FFF"/>
 <text x="1030.0" y="139.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">M4 등록 자동화 PoC</text>
 <text x="1030.0" y="154.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">+ 용인 Trino 검증</text>
-<text x="1030.0" y="169.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">No 25 ~ 28</text>
+<text x="1030.0" y="169.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">No 25 ~ 28, 35</text>
 <rect x="910" y="320" width="240" height="120" rx="6" fill="#FFFFFF" stroke="#1F6FEB"/>
 <text x="1030.0" y="369.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">M5 Polaris federation PoC</text>
 <text x="1030.0" y="384.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">No 29 ~ 32</text>

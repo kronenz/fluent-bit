@@ -336,6 +336,46 @@ def d06():
     return d
 
 
+def d07():
+    d = Diagram("07-scanner-impact", "Scanner 가 느려지면 — ILM Transition · Replication 재처리 · 버전 정리가 함께 지연",
+                width=1500, height=780,
+                subtitle="Scanner 는 사용량 계산 · ILM/보존 규칙 · Replication 재큐잉 · Healing 을 한 사이클에서 처리 — 느려지면 네 작업이 모두 밀린다")
+    d.group("a", 40, 100, 400, 520, "Scanner 동작 방식", INK, badge="SCN")
+    rows = [(150, 60, "버킷 그룹을 순차 처리", INK, WHITE),
+            (230, 60, "버킷 스캔 완료 후 30초 대기\n→ 다음 버킷", INK, WHITE),
+            (310, 60, "객체명 해시로 대상 선택\n16회 스캔에 걸쳐 전체 객체 1회 확인", INK, WHITE),
+            (390, 60, "작업 시간 × 속도 계수(기본 10.0) 대기\n읽기/쓰기 요청에 I/O 양보(일시 정지)", INK, WHITE),
+            (480, 70, "느려지는 요인\n드라이브 종류 · 네트워크 처리량\n객체 수·크기 · 기타 부하", RED, WARN_FILL)]
+    for i, (y, h, t, c, f) in enumerate(rows):
+        d.box(f"a{i}", 60, y, 360, h, t, stroke=c, fill=f, color=c, size=12)
+        if i:
+            d.edge([(240, rows[i - 1][0] + rows[i - 1][1]), (240, y)])
+
+    d.group("b", 480, 100, 360, 520, "Scanner 가 담당하는 작업", ORANGE, badge="4")
+    tasks = [(150, "① 데이터 사용량 계산"), (260, "② ILM · 보존 규칙 평가/적용\n(Transition · Expiration)"),
+             (370, "③ Bucket/Site Replication\nPENDING · FAILED 객체 재큐잉"), (480, "④ 누락·손상 데이터 Healing")]
+    for i, (y, t) in enumerate(tasks):
+        d.box(f"b{i}", 500, y, 320, 80, t, stroke=ORANGE, fill="#FFF4E5", size=12, bold=True)
+    d.edge([(440, 360), (478, 360)], "매 사이클", at=(459, 340), label_w=60)
+
+    d.group("c", 880, 100, 580, 520, "Scanner 가 느려질 때 영향", RED, badge="!")
+    imp = [(165, 50, "사용량·쿼터 수치 지연 (마지막 완료 스캔 기준)", 190),
+           (255, 40, "Transition 지연 → Hot 용량 압박 · 계획보다 늦은 이동", 275),
+           (305, 40, "Expiration · noncurrent 정리 지연 → 버전 누적", 325),
+           (370, 80, "3회 재시도 후 큐에서 빠진 FAILED 객체의 재큐잉 지연\n→ Warm 파일 누락 지속 (C1 장기화)\n→ HMS-Warm 등록 보류 · 용인 데이터 신선도 저하", 410),
+           (495, 50, "누락·손상 객체 복구(Healing) 지연", 520)]
+    for i, (y, h, t, ey) in enumerate(imp):
+        d.box(f"c{i}", 900, y, 540, h, t, stroke=RED, fill=WARN_FILL, color=RED, size=12)
+        d.edge([(820, ey), (898, ey)], color=RED)
+    d.edge([(1440, 325), (1480, 325), (1480, 650), (240, 650), (240, 552)],
+           "악순환: 버전·객체 수 증가 → 스캔 더 느려짐", at=(860, 650), label_w=300, dashed=True, color=RED)
+    d.box("m", 40, 680, 1420, 70,
+          "대응  ·  mc admin scanner info · minio_scanner_* 지표 모니터링   ·   mc replicate status / resync-backlog 로 FAILED·PENDING 수동 재큐잉\n"
+          "·  noncurrent 만료 규칙으로 버전 수 억제 (excess versions 경보)   ·   scanner speed 조정은 읽기/쓰기 I/O 와 트레이드오프   ·   ILM·복제 완료 시점에 SLA 를 의존하지 말 것",
+          stroke=INK, fill="#F4F5F7", size=12, bold=True)
+    return d
+
+
 # ================================================================ INDEX 개념도
 def i1():
     d = Diagram("i1-conclusion1-network-paths", "결론 1 — 이천 연결 경로: Private 는 내부 전용, 외부는 두 진입점만",
@@ -478,10 +518,10 @@ def i7():
                 width=1500, height=640,
                 subtitle="박스 안 No = INDEX §3 작업 번호 · 빨간 게이트 = 다음 단계 착수 전 확정해야 할 결정")
     ms = {
-        "m1": (40, 200, "M1 근거 확인 · 설계 결정\nNo 1 ~ 10\n보안 PDF · 복제 방향 · 버킷명\n삭제 플래그 · SLA", INK),
+        "m1": (40, 200, "M1 근거 확인 · 설계 결정\nNo 1 ~ 10, 34\n보안 PDF · 복제 방향 · 버킷명\n삭제 플래그 · SLA", INK),
         "m2": (330, 200, "M2 네트워크 개통\nNo 12 ~ 20\nSNAT · 방화벽 · DNS\nVIP/Ingress · TLS", GREEN),
         "m3": (620, 200, "M3 HMS-Warm 구축\nNo 21 ~ 24\nOracle 스키마 · 배포\nHMS-Hot 정책 조정", TEAL),
-        "m4": (910, 90, "M4 등록 자동화 PoC\n+ 용인 Trino 검증\nNo 25 ~ 28", PURPLE),
+        "m4": (910, 90, "M4 등록 자동화 PoC\n+ 용인 Trino 검증\nNo 25 ~ 28, 35", PURPLE),
         "m5": (910, 320, "M5 Polaris federation PoC\nNo 29 ~ 32\nlake_hot / lake_warm", POLARIS),
         "m7": (1220, 200, "M7 운영 이관\nNo 33\n대상 확대 · 사용자 가이드", INK),
         "m6": (330, 440, "M6 Archive Rollover 구현\nNo 11\nJob 설계 · 정리 ILM 규칙", ORANGE),
@@ -510,7 +550,7 @@ def i7():
 
 
 def main():
-    targets = {"01-architecture": [d01, d02], "02-evidence": [d03, d04], "03-future": [d05, d06],
+    targets = {"01-architecture": [d01, d02], "02-evidence": [d03, d04, d07], "03-future": [d05, d06],
                ".": [i1, i3, i4, i6, i7]}
     for folder, fns in targets.items():
         out = os.path.join(ROOT, folder, "diagrams")

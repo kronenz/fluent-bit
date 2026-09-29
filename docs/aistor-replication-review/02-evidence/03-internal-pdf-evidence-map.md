@@ -41,6 +41,8 @@
 | R-18 | 2-Tier 간 네트워크 요구(대역폭·포트·전용망) | PDF-1 | "network", "bandwidth", "port", "latency" | — | | ☐ |
 | R-19 | 복제 지연/실패 모니터링 지표와 명령 | PDF-5 | "metrics", "status", "backlog", "failed" | — | | ☐ |
 | R-20 | 복제 대역폭 제한 설정 | PDF-5, PDF-1 | "bandwidth", "limit" | — | | ☐ |
+| R-21 | Scanner 가 ILM·Replication·Healing 을 함께 처리, 사이클·속도 설정·느려지는 요인 | PDF-3, PDF-2, PDF-1 | "scanner", "cycle", "speed", "excess versions" | M12 | | ☐ |
+| R-22 | 3회 재시도 후 큐에서 빠진 FAILED 복제는 Scanner 가 재큐잉 · GET/HEAD 시 자동 재큐잉 | PDF-5 | "retry", "three", "requeue", "resync-backlog" | M13 | | ☐ |
 
 ## 3. 문서별 요약 체크 (읽는 순서 권장)
 
@@ -50,5 +52,6 @@
 | 2 | PDF-2 Global Reference | ④ Versioning·ILM·Replication·Lock 조합 중 **금지/주의 조합**은? ⑤ ILM 삭제·delete marker 가 복제에 어떻게 반영되는가? |
 | 3 | PDF-5 Replication | ⑥ 비동기 모드의 보장 범위(순서/일관성)는? ⑦ 상태 확인·재처리 방법은? |
 | 4 | PDF-3 ILM | ⑧ 액션 목록과 필터 · Scanner 동작 ⑨ Tier 객체 조회 방식 |
+| 4-1 | PDF-3 / PDF-5 Scanner 관련 절 | ⑧-1 Scanner 사이클이 느려질 때 Transition·복제 재처리 지연을 벤더가 어떻게 안내하는가? 권장 speed 설정은? |
 | 5 | PDF-6 Versioning | ⑩ noncurrent 버전 정리 방법, 버전 수 한도 |
 | 6 | PDF-4 Object Locking | ⑪ 우리 버킷에 Lock 이 필요한가? 필요 시 Iceberg 유지보수와의 충돌 해소 방법 |

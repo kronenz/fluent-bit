@@ -4,7 +4,8 @@
 |---|---|---|
 | [01-iceberg-snapshot-vs-replication](./01-iceberg-snapshot-vs-replication.md) | 3 | Iceberg 스냅샷 ↔ S3 Replication 충돌 C1~C5, 버킷 경로 문제, "복제 → 검증 → 등록" 권고 |
 | [02-raw-archive-ilm-limitation](./02-raw-archive-ilm-limitation.md) | 4 | ILM 에 압축·병합·zip·rollover 액션이 없는 근거, 서비스 구현 범위 |
-| [03-internal-pdf-evidence-map](./03-internal-pdf-evidence-map.md) | 공통 | 사내 보안 PDF 6종 — 주장별로 "어느 문서에서 무엇을 찾을지" 체크리스트 (R-01~R-20) |
+| [05-scanner-impact](./05-scanner-impact.md) | 추가 | Scanner 지연이 ILM Transition · Replication 재큐잉 · 버전 정리 · Healing 에 주는 영향, 대응 S-A~S-G |
+| [03-internal-pdf-evidence-map](./03-internal-pdf-evidence-map.md) | 공통 | 사내 보안 PDF 6종 — 주장별로 "어느 문서에서 무엇을 찾을지" 체크리스트 (R-01~R-22) |
 | [04-official-reference-links](./04-official-reference-links.md) | 공통 | 공개 공식 문서 링크 + 영어 원문 인용 (M·A·I·P·T·C ID) |
 
 ## 근거 등급 규칙
