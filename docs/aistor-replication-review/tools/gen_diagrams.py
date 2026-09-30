@@ -51,13 +51,13 @@ def d01():
     d.edge([(731, 600), (930, 600)], "S3 API · Private", at=(800, 600), label_w=110)
 
     d.group("aistor", 840, 140, 320, 680, "AIStor 클러스터 (베어메탈 k8s · 상용)", AISTOR, badge="S3")
-    d.icon("hot", 960, 260, "Hot 클러스터\n(raw/ · iceberg/)", kind="s3", color=AISTOR, size=60)
-    d.icon("warm", 960, 600, "Warm 클러스터\n(replica · tier · 용인 버킷)", kind="s3", color="#8A1C2E", size=60)
+    d.icon("hot", 960, 260, "Hot 클러스터 · 2026-02-07\n(raw/ · iceberg/)", kind="s3", color=AISTOR, size=60, label_w=180)
+    d.icon("warm", 960, 600, "Warm 클러스터 · 2026-06-06\n(replica · tier · 용인 버킷)", kind="s3", color="#8A1C2E", size=60, label_w=180)
     d.edge([(960, 340), (960, 568)], "① Bucket Replication\n(비동기 · Versioning 필수)",
            at=(960, 450), label_w=170, width=2.5)
     d.edge([(990, 275), (1100, 275), (1100, 585), (990, 585)], "② ILM Transition\n(Remote Tier · Scanner)",
            at=(1100, 430), dashed=True, color=ORANGE, label_w=140)
-    d.box("warn1", 860, 740, 280, 64, "⚠ ①·② 동시 적용 대상·순서 검증 필요\n근거: Global Reference PDF · Replication.pdf",
+    d.box("warn1", 860, 740, 280, 64, "🚨 ① 은 Hot · Warm 동일 버전 필수 (현재 불일치)\n⚠ ①·② 동시 적용 대상 · 순서 검증 필요",
           stroke=RED, fill=WARN_FILL, size=11, color=RED)
 
     d.group("pub", 1190, 140, 140, 680, "Public 경로", GREEN, badge="P")
@@ -120,7 +120,7 @@ def d02():
     d.edge([(780, 510), (924, 510)], "⑤ 이름 해석", at=(850, 490), label_w=80, dashed=True)
 
     d.group("ic", 1120, 100, 400, 750, "이천 IDC · AIStor", AISTOR, badge="S3")
-    d.group("wb", 1140, 150, 360, 450, "Warm 클러스터 — 버킷 역할 분리", "#8A1C2E", badge="W")
+    d.group("wb", 1140, 150, 360, 450, "Warm 클러스터 · 2026-06-06", "#8A1C2E", badge="W")
     d.box("by", 1160, 200, 320, 90, "용인 전용 버킷 (yongin-*)\n용인 read/write · 원본\nVersioning 선택 · ILM Expiration 가능",
           stroke=PURPLE, fill="#F5F0FF", size=12, bold=True)
     d.box("br", 1160, 320, 320, 110, "이천 replica 버킷 (Hot 과 동일명)\nReplication 대상 · 백업\n용인 접근 차단 · 직접 쓰기 금지",
@@ -128,8 +128,8 @@ def d02():
     d.box("bt", 1160, 460, 320, 110, "ILM Tier 버킷 (전용 prefix)\nAIStor 독점 접근\n직접 접근 · ILM 규칙 금지",
           stroke=GREY, fill="#F4F5F7", size=12)
     d.edge([(976, 360), (1060, 360), (1060, 245), (1158, 245)], "HTTPS :443", at=(1060, 300), label_w=80, width=2.5, both=True)
-    d.icon("hot", 1320, 720, "Hot 클러스터 (이천 서비스)\n용인 접근 없음", kind="s3", dim=True, size=56, label_w=190)
-    d.edge([(1250, 692), (1250, 432)], "Replication", at=(1250, 640), label_w=80, dashed=True, color=GREY)
+    d.icon("hot", 1320, 720, "Hot 클러스터 · 2026-02-07\n(이천 서비스 · 용인 접근 없음)", kind="s3", dim=True, size=56, label_w=210)
+    d.edge([(1250, 692), (1250, 432)], "Replication\n(버전 일치 후)", at=(1250, 640), label_w=90, dashed=True, color=GREY)
     d.edge([(1390, 692), (1390, 572)], "ILM", at=(1390, 640), label_w=40, dashed=True, color=GREY)
     d.edge([(780, 800), (1100, 800), (1100, 260), (1158, 260)],
            "⑥ Lake 엔진 데이터 read (경로·자격증명 확인)", at=(940, 800), label_w=260, dashed=True, color=RED)
@@ -271,12 +271,12 @@ def d06():
     d.edge([(376, 420), (530, 420), (530, 250), (654, 250)], "① lake_hot", at=(590, 232), label_w=80, color=POLARIS)
     d.edge([(376, 440), (530, 440), (530, 610), (654, 610)], "② lake_warm", at=(590, 592), label_w=80, color=POLARIS)
 
-    d.group("s3", 1040, 100, 470, 740, "이천 AIStor", AISTOR, badge="S3")
+    d.group("s3", 1040, 100, 470, 740, "이천 AIStor — Hot 2026-02-07 · Warm 2026-06-06", AISTOR, badge="S3")
     d.icon("hot", 1160, 250, "Hot 버킷 (이천 서비스)", kind="s3", color=AISTOR, size=56, label_w=170)
     d.box("rep", 1080, 470, 170, 70, "Warm replica 버킷\n(백업 · 조회 안 함)", stroke=ORANGE, fill="#FFF4E5", size=11)
     d.box("tier", 1270, 470, 170, 70, "Warm tier prefix\n(AIStor 전용)", stroke=GREY, fill="#F4F5F7", size=11)
     d.box("yb", 1080, 620, 360, 70, "Warm 용인 버킷 (yongin-*)\n용인 원본 · read/write", stroke=PURPLE, fill="#F5F0FF", size=12, bold=True)
-    d.edge([(1140, 322), (1140, 468)], "Replication", at=(1140, 400), label_w=80, width=2.5, color=ORANGE)
+    d.edge([(1140, 322), (1140, 468)], "Replication\n🚨 동일 버전 필수", at=(1140, 400), label_w=110, width=2.5, color=ORANGE)
     d.edge([(1190, 300), (1190, 330), (1355, 330), (1355, 468)], "ILM Transition", at=(1290, 330), label_w=100,
            dashed=True, color=ORANGE)
     d.edge([(680, 224), (680, 150), (1160, 150), (1160, 220)], "metadata_location", at=(950, 150), label_w=120,
@@ -400,7 +400,7 @@ def i7():
                 subtitle="박스 안 No = INDEX §3 작업 번호 · 빨간 게이트 = 착수 전 확정할 결정 · 위 줄 = 이천 Replication/ILM · 아래 줄 = 용인 Warm 전용")
     ms = {
         "m0": (40, 270, "M0 담당자 우려 · 요구 확인\nNo 1 ~ 3\n두 케이스 범위 · RPO\nWarm 역할 분리", RED),
-        "m1": (320, 140, "M1 Replication · ILM 근거 · 설계\nNo 4 ~ 11\n보안 PDF · 대상 · 삭제 전파\nTier prefix · 용량", INK),
+        "m1": (320, 140, "M1 Replication · ILM 근거 · 설계\nNo 4 ~ 11, 36 (버전 일치)\n보안 PDF · 대상 · 삭제 전파\nTier prefix · 용량", INK),
         "m2": (600, 140, "M2 이천 Replication 테스트\nNo 12 ~ 16\n백업 시점(T-B) · C1~C5\n공존 부하", ORANGE),
         "m3": (880, 140, "M3 ILM / Archive 협의 · PoC\nNo 17 ~ 21\nA · B · C · Transition 규칙", GREEN),
         "m4": (320, 400, "M4 용인 네트워크 개통\nNo 22 ~ 26\nread/write 경로 · FW · DNS", GREEN),
@@ -418,7 +418,7 @@ def i7():
     d.edge([(1120, 460), (1170, 460), (1170, 350), (1218, 350)], width=2.5)
     d.edge([(720, 260), (720, 398)], "Warm 부하 공유", at=(720, 330), label_w=100, dashed=True, color=RED)
     gates = [(40, 140, "G0 Warm 버킷 역할 분리\n(용인 · replica · tier)", (160, 200), (160, 268)),
-             (600, 76, "G1 복제 대상 · 삭제 전파", (720, 116), (720, 138)),
+             (600, 76, "G1 버전 일치 · 복제 대상 · 삭제 전파", (720, 116), (720, 138)),
              (880, 76, "G2 아카이브 A / B / C", (1000, 116), (1000, 138))]
     for x, y, t, a, b in gates:
         d.box(f"g{x}", x, y, 240, 60 if y > 100 else 40, t, stroke=RED, fill=WARN_FILL, color=RED, size=12, bold=True)
@@ -433,14 +433,14 @@ def r_decision():
     d = Diagram("03-warm-coexistence", "두 케이스 공존 — 용인 Warm 전용 + 이천 Replication · ILM (Warm 클러스터 3개 역할)",
                 width=1500, height=900,
                 subtitle="공존 가능 (조건부) — Warm 버킷 역할 분리 · Bucket Replication 만 사용(Site Replication 불가) · Tier prefix 독점 · replica 측 ILM 별도")
-    d.group("hot", 40, 100, 330, 400, "Hot 클러스터 (이천 서비스)", AISTOR, badge="S3")
+    d.group("hot", 40, 100, 330, 400, "Hot 클러스터 (이천) · 2026-02-07", AISTOR, badge="S3")
     d.icon("hb", 205, 190, "이천 서비스 버킷\n(Iceberg · RAW)", kind="s3", color=AISTOR, size=56, label_w=170)
     d.box("hilm", 60, 300, 290, 80, "ILM 규칙 (Hot)\nTransition → Warm tier\nExpiration (삭제는 복제 안 됨)", stroke=ORANGE,
           fill="#FFF4E5", size=12)
     d.box("hrep", 60, 400, 290, 80, "Bucket Replication 규칙\nHot → Warm replica (단방향)\n목적: 백업 / DR", stroke=ORANGE,
           fill="#FFF4E5", size=12)
 
-    d.group("warm", 430, 100, 560, 400, "Warm 클러스터 — 버킷 역할 분리", "#8A1C2E", badge="W")
+    d.group("warm", 430, 100, 560, 400, "Warm 클러스터 · 2026-06-06 — 버킷 역할 분리", "#8A1C2E", badge="W")
     d.box("wr", 450, 150, 250, 100, "① replica 버킷 (Hot 동일명)\nReplication 대상 · Versioning\n직접 쓰기 금지 · 평시 조회 없음",
           stroke=ORANGE, fill="#FFF4E5", size=12)
     d.box("wt", 720, 150, 250, 100, "② tier 버킷 / 전용 prefix\nAIStor 독점 접근\n직접 접근 · ILM 규칙 금지", stroke=GREY,
@@ -462,7 +462,7 @@ def r_decision():
           fill=WHITE, size=12)
 
     d.group("chk", 40, 530, 1420, 350, "공존 조건 · 확인 사항", RED, badge="!")
-    conds = [("C-1 복제 방식", "Bucket Replication 만 사용\nSite Replication 불가\n(상호 배타 · 다른 사이트 비어 있어야 함)"),
+    conds = [("C-1 복제 방식 · 버전 🚨", "Bucket Replication · 원본/대상 동일 버전 필수\n현재 Hot 2026-02-07 ≠ Warm 2026-06-06\n→ 복제 구성 전 버전 일치 (Site Replication 불가)"),
              ("C-2 버킷 분리", "replica · tier · 용인 버킷 분리\n이름 충돌 방지 (Hot 동일명 예약)\n키 권한 분리"),
              ("C-3 Tier 규칙", "tier 버킷/prefix 는 AIStor 전용\n직접 수정 · 삭제 · ILM 금지\n(위반 시 데이터 유실)"),
              ("C-4 용량", "Transition + Replication 대상이\n겹치면 Warm 에 이중 저장\n→ 대상 prefix 설계 · 용량 산정"),

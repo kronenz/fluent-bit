@@ -47,6 +47,7 @@
 | R-24 | Transition 은 백업/DR 효과가 없음 · Transition 된 객체의 조회 방식 | PDF-3, PDF-1 | "business continuity", "disaster recovery", "tier" | M5 | | ☐ |
 | R-25 | Tier 버킷 독점 접근 · prefix 격리 · 원격 버킷 ILM 금지 (Warm 이 replica · 용인 원본과 공유될 때) | PDF-3, PDF-1, PDF-2 | "remote tier", "exclusive", "prefix", "data loss" | M14 | | ☐ |
 | R-26 | 한 클러스터가 복제 대상 + Tier 대상 + 일반 쓰기 대상을 겸할 때 제약 · 용량/성능 권고 | PDF-1, PDF-2 | "target", "tier", "capacity", "sizing" | — (공개 문서 부재) | | ☐ |
+| R-27 | **Hot(2026-02-07) · Warm(2026-06-06) 버전 불일치 시 Bucket Replication 지원 여부 · 업그레이드 순서 · 호환 릴리스 조합** · Tier 버전 호환 | PDF-5, PDF-1, PDF-2 | "version", "release", "upgrade", "matching", "compatib" | M17, M18 | | ☐ |
 
 ## 3. 문서별 요약 체크 (읽는 순서 권장)
 

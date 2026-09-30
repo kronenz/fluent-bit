@@ -14,7 +14,7 @@
 <rect x="1040" y="100" width="470" height="740" fill="#FFFFFF" stroke="#C72C48" stroke-width="1.5"/>
 <rect x="1040" y="100" width="26" height="26" fill="#C72C48"/>
 <text x="1053.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
-<text x="1074" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">이천 AIStor</text>
+<text x="1074" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">이천 AIStor — Hot 2026-02-07 · Warm 2026-06-06</text>
 <polyline points="126.0,430.0 324.0,430.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
 <polyline points="706.0,250.0 834.0,250.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
 <polyline points="660.0,370.0 620.0,370.0 620.0,262.0 654.0,262.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
@@ -83,8 +83,9 @@
 <rect x="550.0" y="582.5" width="80" height="19" fill="#FFFFFF"/>
 <text x="590.0" y="595.6666666666666" font-size="11" fill="#1F6FEB" text-anchor="middle" font-weight="normal">② lake_warm</text>
 <text x="1160.0" y="296.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Hot 버킷 (이천 서비스)</text>
-<rect x="1100.0" y="390.5" width="80" height="19" fill="#FFFFFF"/>
-<text x="1140.0" y="403.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">Replication</text>
+<rect x="1085.0" y="383.0" width="110" height="34" fill="#FFFFFF"/>
+<text x="1140.0" y="396.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">Replication</text>
+<text x="1140.0" y="410.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">🚨 동일 버전 필수</text>
 <rect x="1240.0" y="320.5" width="100" height="19" fill="#FFFFFF"/>
 <text x="1290.0" y="333.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">ILM Transition</text>
 <rect x="890.0" y="140.5" width="120" height="19" fill="#FFFFFF"/>

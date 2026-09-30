@@ -10,6 +10,7 @@
 | 케이스 I (이천) | Hot 원본 → Warm **Bucket Replication(백업)** + **ILM Transition(용량)** 둘 다 사용 |
 | 결론 0 (선행) | 담당자 우려(복제 목적 · RPO · 복제/Transition 범위 겹침 · Warm 공유 부하 · 용인 백업) 먼저 확인 |
 | 결론 1 (공존) | 두 케이스 **공존 가능 (조건부)** — Warm 3개 역할(이천 replica · ILM tier · 용인 원본) **버킷 · 권한 분리** 필수 |
+| 결론 2-0 (Replication · 블로커) | 🚨 Hot **2026-02-07** ≠ Warm **2026-06-06** — Bucket Replication 은 **동일 Object Store 버전 필수** → 복제 구성 전 버전 일치(업그레이드 계획) 선행 |
 | 결론 2 (Replication) | **Bucket Replication 만** 사용 — Site Replication 은 상호 배타 · 다른 사이트가 비어 있어야 해서 불가 |
 | 결론 3 (Replication · ILM) | 이천 Replication(백업) + Transition(용량) 병행은 역할이 달라 가능 — 단 Warm **이중 저장** · ILM 삭제 **미복제**(replica 측 ILM 별도) · resync 시 **Tier 단절** |
 | 결론 4 (Replication) | 이천 replica 는 스냅샷 일관성 없음(C1~C5) → **백업 시점 테스트(T-B)** · 복구 시 검증 후 등록 |
@@ -41,8 +42,8 @@
 | 3 | 근거 · Replication | [02-evidence/02-iceberg-snapshot-vs-replication](./02-evidence/02-iceberg-snapshot-vs-replication.md) | 충돌 C1~C5, 절대경로, 복제 → 검증 → 등록, 확인 E2-1~E2-7 | 이천 | 04, 05 |
 | 4 | 근거 · Replication/ILM | [02-evidence/03-scanner-impact](./02-evidence/03-scanner-impact.md) | Scanner 작업·주기, 3회 실패 후 재큐잉, 영향 매트릭스, 대응 S-A~S-G, 확인 E3-1~E3-6 | 이천 · Warm | 06 |
 | 5 | 근거 · ILM | [02-evidence/04-ilm-archive-options](./02-evidence/04-ilm-archive-options.md) | ILM 한계 근거, 아카이브 A/B/C, 협의 안건 AR-1~AR-5, 확인 E4-1~E4-6 | 이천 | 07 |
-| 6 | 근거 · 공통 | [02-evidence/05-internal-pdf-evidence-map](./02-evidence/05-internal-pdf-evidence-map.md) | 보안 PDF 6종 확인 매핑 R-01~R-26 | 공통 | — |
-| 7 | 근거 · 공통 | [02-evidence/06-official-reference-links](./02-evidence/06-official-reference-links.md) | 공개 공식 문서 링크 + 원문 인용 M1~M16 · A · I · P · T · C | 공통 | — |
+| 6 | 근거 · 공통 | [02-evidence/05-internal-pdf-evidence-map](./02-evidence/05-internal-pdf-evidence-map.md) | 보안 PDF 6종 확인 매핑 R-01~R-27 | 공통 | — |
+| 7 | 근거 · 공통 | [02-evidence/06-official-reference-links](./02-evidence/06-official-reference-links.md) | 공개 공식 문서 링크 + 원문 인용 M1~M18 · A · I · P · T · C | 공통 | — |
 | 8 | 아키텍처 | [01-architecture/01-hot-warm-icheon-dataops](./01-architecture/01-hot-warm-icheon-dataops.md) | 접근 경로 매트릭스, Replication(백업) → ILM(이동) 비교, 확인 A-1~A-6 | 이천 | 01 |
 | 9 | 아키텍처 | [01-architecture/02-warm-standalone-yongin](./01-architecture/02-warm-standalone-yongin.md) | 용인 Warm 전용 적재·조회, 흐름 ①~⑥, 버킷 역할, 설정 초안, 확인 B-1~B-6 | 용인 | 02 |
 | 10 | 향후 | [03-future/01-yongin-network-checklist](./03-future/01-yongin-network-checklist.md) | read/write 경로 A/B, 체크포인트 ①~⑨, 포트, Runbook, 결정 N-1~N-4 | 용인 (필수) | 08 |
@@ -73,7 +74,8 @@
 | 1 | M0 | 선행 | 담당자 우려 확인 — 이천 Replication | OC-1~OC-6 | 이천 | [03-future/00](./03-future/00-owner-concerns.md) | | | | | ☐ 미착수 | |
 | 2 | M0 | 선행 | 담당자 우려 확인 — 이천 ILM/Archive | OC-7~OC-11 | 이천 | [03-future/00](./03-future/00-owner-concerns.md) | | | | | ☐ 미착수 | |
 | 3 | M0 | 선행 | Warm 공유 · 용인 우려 확인 → **Warm 버킷 역할 분리 결정 (G0)** | OC-12~OC-16, E1-5, B-1, B-2 | 공통 | [02-evidence/01](./02-evidence/01-warm-coexistence-replication-ilm.md) | | | | | ☐ 미착수 | |
-| 4 | M1 | Replication | 보안 PDF 확인 · 페이지/절 기입 | R-01~R-26 | 공통 | [02-evidence/05](./02-evidence/05-internal-pdf-evidence-map.md) | | | | | ☐ 미착수 | |
+| 4 | M1 | Replication | 보안 PDF 확인 · 페이지/절 기입 | R-01~R-27 | 공통 | [02-evidence/05](./02-evidence/05-internal-pdf-evidence-map.md) | | | | | ☐ 미착수 | |
+| 36 | M1 | Replication | 🚨 **Hot · Warm 버전 일치** — 업그레이드 대상 · 순서 · 복제 중단 여부 · 롤백 계획 (블로커, 복제 구성 전 필수) | P-0, E1-7, E1-8, A-7, R-27 | 이천 · Warm | [02-evidence/01](./02-evidence/01-warm-coexistence-replication-ilm.md) | | | | | ☐ 미착수 | Warm 업그레이드 시 용인 영향 포함 |
 | 5 | M1 | Replication | 복제 대상 · Transition 대상 prefix 목록과 중복 범위 확정 (G1) | E1-1, A-1, OC-2, OC-7 | 이천 | [02-evidence/01](./02-evidence/01-warm-coexistence-replication-ilm.md) | | | | | ☐ 미착수 | |
 | 6 | M1 | Replication | 복제 순서/일관성 · Transition-복제 순서 동작 벤더 문의 | E2-1, E1-3, P-10 | 이천 | [02-evidence/02](./02-evidence/02-iceberg-snapshot-vs-replication.md) | | | | | ☐ 미착수 | |
 | 7 | M1 | Replication | replica 버킷명 = Hot 버킷명 유지 · 용인 명명 예약 | E2-5, H-03, S-03 | 공통 | [02-evidence/02](./02-evidence/02-iceberg-snapshot-vs-replication.md) | | | | | ☐ 미착수 | |
@@ -120,7 +122,7 @@
 | 단계 | 포함 No | 선행 | 대상 | 시작일 | 완료 예정일 | 상태 |
 |---|---|---|---|---|---|---|
 | M0 담당자 우려 · Warm 역할 분리 | 1~3 | — | 공통 | | | ☐ |
-| M1 Replication · ILM 근거 · 설계 | 4~11 | M0 | 이천 (+ Warm 공통) | | | ☐ |
+| M1 Replication · ILM 근거 · 설계 | 4~11, 36 | M0 | 이천 (+ Warm 공통) | | | ☐ |
 | M2 이천 Replication 테스트 (백업 시점 · 병행 · 공존 부하 · 복구) | 12~16 | M1 | 이천 (+ Warm 공통) | | | ☐ |
 | M3 ILM / Archive 협의 · PoC | 17~21 | M2 | 이천 | | | ☐ |
 | M4 용인 네트워크 개통 | 22~26 | M0 | 용인 | | | ☐ |
@@ -137,7 +139,7 @@
 | 게이트 | 확정할 결정 | 관련 No | 결과에 따른 분기 |
 |---|---|---|---|
 | G0 | Warm 버킷 역할 분리 (용인 · replica · tier) · 명명 · 권한 | 3 | 확정 후 두 줄(이천 M1~M3 / 용인 M4~M6) 병행 착수 |
-| G1 | 이천 복제 대상 · Transition 범위 겹침 · 삭제 전파 | 5, 8 | 겹침 → 이중 저장 용량 반영 · T-B8 / 삭제 전파 → replica 측 ILM 설계 |
+| G1 | **Hot · Warm 버전 일치** · 이천 복제 대상 · Transition 범위 겹침 · 삭제 전파 | 36, 5, 8 | 겹침 → 이중 저장 용량 반영 · T-B8 / 삭제 전파 → replica 측 ILM 설계 |
 | G2 | 아카이브 방식 A / B / C | 18 | A → Transition 규칙만 / B → 변환 Job(서비스) + Transition / C → 전면 Rollover Job |
 
 ## 6. 반영 이력
@@ -153,3 +155,4 @@
 | **v3** | 용인은 Warm 에만 적재·조회 (이천 복제본 조회 아님) | 장표 2 재작성 · HMS-Warm = 용인 원본 · 등록 Job → 이천 복구 절차로 전환 | 01-architecture/02 · 03-future/02 · 그림 02·09·10 |
 | **v3** | 이천은 Replication + ILM 둘 다 사용 | 모드 ①②③ 판단 삭제 → 두 케이스 공존 검토 (P-1~P-10, Y-1~Y-7) | 02-evidence/01 · 그림 03 |
 | **v3** | 두 케이스를 같이 써도 문제없는지 | 공존 조건 C-1~C-6 · Site Replication 불가 · Tier 독점 · 이중 저장 · 공존 부하 테스트 T-B8·T-B9 · 근거 M14~M16 · R-25·R-26 | 02-evidence/01 · 06 · 05 · 그림 03·11 |
+| **v3.1** | 복제는 Bucket Replication · AIStor 상용 Hot 2026-02-07 / Warm 2026-06-06 | 버전 일치 필수 근거(M17) · 블로커 P-0 · No 36 · G1 · R-27 · Tier 버전 요구 없음(M18) | 02-evidence/01 §1-1 · 06 · 05 · 그림 03·11 |

@@ -24,10 +24,20 @@
 | 이천 Replication | 필요성 판단 대상 (모드 ①②③) | **사용 확정 — 백업/DR 용도** (Warm replica 는 평시 조회 없음) |
 | 이천 ILM | Replication 다음 순서 | **사용 확정 — Hot 용량 관리** |
 
+## 1-1. 환경 버전 (v3.1)
+
+| 클러스터 | 제품 | 릴리스 | 역할 |
+|---|---|---|---|
+| Hot | AIStor (상용) | **2026-02-07** | 이천 서비스 원본 · Replication 원본 · ILM 원본 |
+| Warm | AIStor (상용) | **2026-06-06** | 이천 replica 대상 · ILM Tier 대상 · 용인 원본 |
+
+> 🚨 **블로커**: Bucket Replication 요구사항 — *"Both the source and destination deployments must run Object Store with matching versions."* / *"server-side bucket replication requires the source and destination bucket be two separate MinIO AIStor clusters running the same Object Store version."* ([M17](./06-official-reference-links.md#m17)). 현재 Hot 과 Warm 의 릴리스가 달라 **복제 구성 전 버전 일치(업그레이드 계획) 가 선행**되어야 합니다. ILM Tier 는 공식 문서에 버전 요구가 없고 "원격 Tier 는 다른 클러스터여야 함" 만 명시 ([M18](./06-official-reference-links.md#m18)).
+
 ## 2. 결론 — 공존 가능 (조건부)
 
 | # | 결론 | 근거 |
 |---|---|---|
+| 0 | **Hot(2026-02-07) · Warm(2026-06-06) 버전 불일치는 Bucket Replication 요구사항 위반** — 복제 구성 전에 두 클러스터 릴리스를 맞춰야 한다 (업그레이드 대상 · 순서 · 호환성은 벤더 확인) | [M17](./06-official-reference-links.md#m17) |
 | 1 | 두 케이스는 **한 Warm 클러스터에서 공존 가능**하다. 단 Warm 이 **3개 역할**(용인 원본 · 이천 replica · ILM tier)을 동시에 하므로 **버킷 단위로 역할을 분리**해야 한다 | 아래 §3, §4 |
 | 2 | 이천의 Hot → Warm 복제는 **Bucket Replication** 으로만 구성한다. **Site Replication 은 쓸 수 없다** | Site Replication 은 Bucket Replication 과 상호 배타이고, 구성 시 다른 사이트가 비어 있어야 함 — Warm 에는 용인 데이터가 있음 ([M16](./06-official-reference-links.md#m16)) |
 | 3 | 이천에서 Replication 과 ILM 을 **같이 쓰는 것 자체는 문제없다**. 역할이 다르다 — **Replication = 백업, Transition = 용량 관리** | "Using object transition does not provide any additional business continuity or disaster recovery benefits." · 백업은 Replication 사용 권고 ([M15](./06-official-reference-links.md#m15)) |
@@ -54,6 +64,7 @@
 
 | # | 검토 항목 | 문제 여부 | 설명 | 대응 | 근거 |
 |---|---|---|---|---|---|
+| P-0 | **버전 일치** | **블로커** | Hot 2026-02-07 ≠ Warm 2026-06-06 — Bucket Replication 은 동일 Object Store 버전 필수 | 업그레이드 계획(대상 · 순서 · 롤백) 벤더 확인 후 버전 일치 → 이후 복제 구성 · 이후 업그레이드도 양쪽 동시 계획 | [M17](./06-official-reference-links.md#m17) |
 | P-1 | 역할 충돌 | 없음 | Replication = 백업 사본, Transition = 용량 이동. 목적이 다름 | 목적을 문서화 | [M15](./06-official-reference-links.md#m15) |
 | P-2 | Warm 이중 저장 | **주의** | 같은 객체가 replica 버킷과 tier 에 모두 저장됨 | Transition 대상 prefix 와 복제 대상 prefix 를 설계 · Warm 용량 = replica + tier + 용인 | 설계 판단 |
 | P-3 | ILM Expiration 삭제 미복제 | **주의** | Hot 에서 ILM 으로 지운 객체는 replica 에 남음 | replica 버킷에 **별도 ILM**(보존 기간 · noncurrent 만료) 설정 | [M3](./06-official-reference-links.md#m3) |
@@ -63,6 +74,7 @@
 | P-7 | ILM 설정 복제 | 해당 없음 | Bucket Replication 은 ILM 설정을 복제하지 않음(Site Replication 도 기본 미복제) | Hot · Warm ILM 을 각각 관리 | [M16](./06-official-reference-links.md#m16) |
 | P-8 | Iceberg 일관성 | 복구 시 | replica 는 스냅샷 단위 일관성 없음(C1) · 카탈로그 없음(C2) | T-B 백업 시점 테스트 · 복구 시 검증 후 등록 (그림 10) | [근거 2](./02-iceberg-snapshot-vs-replication.md) |
 | P-9 | Scanner | **주의** | Hot Scanner 가 Transition · 복제 재큐잉을 함께 처리, Warm Scanner 는 용인 · replica 버킷 ILM 처리 | 양쪽 Scanner 사이클 모니터링 | [근거 3](./03-scanner-impact.md) |
+| P-11 | ILM Tier 버전 | 확인 | Tier 는 버전 요구 문구 없음 · 원격은 다른 클러스터여야 함 (Hot ≠ Warm ✓) | 상용 버전 호환 매트릭스 벤더 확인 | [M18](./06-official-reference-links.md#m18) |
 | P-10 | Transition 순서 | 🔍 | 복제가 끝나기 전에 Transition 되는 경우의 동작은 공식 문서 미기재 | Transition 경과일 ≫ 복제 지연 · 테스트로 확인 | 문서 부재 |
 
 ## 5. 용인 — Warm 전용 사용 검토
@@ -112,3 +124,5 @@
 | E1-4 | Warm 용량 산정 = replica + tier + 용인 (+ 버전) | 플랫폼 | ☐ |
 | E1-5 | 역할별 버킷 · 명명 규칙 · access key 정책 확정 | 플랫폼 · 보안 | ☐ |
 | E1-6 | T-B1 ~ T-B9 수행 | 데이터엔지니어링 | ☐ |
+| E1-7 | **Hot/Warm 버전 일치 계획** — 업그레이드 대상(Hot → 2026-06-06 또는 동일 릴리스), 순서, 복제 중단 여부, 롤백 | 벤더 · 플랫폼 (PDF-5, PDF-1) | ☐ |
+| E1-8 | 버전 일치 후 운영 규칙 — 향후 업그레이드는 Hot · Warm 동시(같은 창) 수행 | 플랫폼 | ☐ |

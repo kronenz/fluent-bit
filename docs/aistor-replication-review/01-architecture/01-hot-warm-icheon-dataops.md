@@ -19,8 +19,8 @@
 | | Oracle | HMS 백엔드 DB | JDBC |
 | Private 네트워크 | Cilium ClusterMesh | dataops ↔ AIStor 간 **global service** 로 S3 서비스 노출 | `service.cilium.io/global: "true"` |
 | | BGP (ToR 스위치) | LB-IP / PodCIDR 경로 광고 | Cilium BGP Control Plane |
-| AIStor (베어메탈 k8s) | Hot 클러스터 | 최신 데이터(raw/, iceberg/) 쓰기·조회 | Versioning ON |
-| | Warm 클러스터 | ① 이천 replica(백업) / ② ILM Remote Tier / ③ **용인 전용 버킷(용인 원본)** — 버킷 역할 분리 | replica 버킷 Versioning ON |
+| AIStor (베어메탈 k8s) | Hot 클러스터 (**2026-02-07**) | 최신 데이터(raw/, iceberg/) 쓰기·조회 | Versioning ON |
+| | Warm 클러스터 (**2026-06-06**) | ① 이천 replica(백업) / ② ILM Remote Tier / ③ **용인 전용 버킷(용인 원본)** — 버킷 역할 분리 | replica 버킷 Versioning ON |
 | Public 경로 | Ingress (L7) | 호스트 기반 S3 API 노출 | TLS 종단 위치 확인 필요 |
 | | L4 스위치 VIP | 스위치에 VIP 등록, 스위치가 로드밸런싱 | 용인·사무망·협력사 진입점 |
 
@@ -69,3 +69,4 @@
 | A-4 | Ingress 와 L4 VIP 의 용도 구분 (S3 대용량 전송은 L4 권장 여부) | 네트워크팀·AIStor 벤더 | PDF-1 |
 | A-5 | TLS 종단 위치(Ingress / AIStor) 및 인증서 SAN | `openssl s_client -connect <vip>:443 -servername <fqdn>` | — |
 | A-6 | ClusterMesh global service 로 노출된 S3 서비스 이름·네임스페이스 | `cilium clustermesh status`, `kubectl get svc -A -o yaml \| grep service.cilium.io/global` | Cilium 문서 |
+| A-7 | 🚨 Hot · Warm **버전 일치** (Bucket Replication 필수 요구) — 업그레이드 계획 | `mc admin info HOT` · `mc admin info WARM` · 벤더 | PDF-5, M17 |

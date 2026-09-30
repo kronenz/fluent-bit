@@ -18,7 +18,7 @@
 <rect x="1140" y="150" width="360" height="450" fill="#FFFFFF" stroke="#8A1C2E" stroke-width="1.5"/>
 <rect x="1140" y="150" width="26" height="26" fill="#8A1C2E"/>
 <text x="1153.0" y="166.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">W</text>
-<text x="1174" y="167.33333333333334" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Warm 클러스터 — 버킷 역할 분리</text>
+<text x="1174" y="167.33333333333334" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Warm 클러스터 · 2026-06-06</text>
 <polyline points="136.0,300.0 304.0,300.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
 <polyline points="136.0,470.0 304.0,470.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
 <polyline points="356.0,300.0 554.0,300.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
@@ -119,10 +119,11 @@
 <text x="850.0" y="493.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">⑤ 이름 해석</text>
 <rect x="1020.0" y="290.5" width="80" height="19" fill="#FFFFFF"/>
 <text x="1060.0" y="303.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">HTTPS :443</text>
-<text x="1320.0" y="766.5" font-size="12" fill="#7D8998" text-anchor="middle" font-weight="normal">Hot 클러스터 (이천 서비스)</text>
-<text x="1320.0" y="781.5" font-size="12" fill="#7D8998" text-anchor="middle" font-weight="normal">용인 접근 없음</text>
-<rect x="1210.0" y="630.5" width="80" height="19" fill="#FFFFFF"/>
-<text x="1250.0" y="643.6666666666666" font-size="11" fill="#7D8998" text-anchor="middle" font-weight="normal">Replication</text>
+<text x="1320.0" y="766.5" font-size="12" fill="#7D8998" text-anchor="middle" font-weight="normal">Hot 클러스터 · 2026-02-07</text>
+<text x="1320.0" y="781.5" font-size="12" fill="#7D8998" text-anchor="middle" font-weight="normal">(이천 서비스 · 용인 접근 없음)</text>
+<rect x="1205.0" y="623.0" width="90" height="34" fill="#FFFFFF"/>
+<text x="1250.0" y="636.6666666666666" font-size="11" fill="#7D8998" text-anchor="middle" font-weight="normal">Replication</text>
+<text x="1250.0" y="650.6666666666666" font-size="11" fill="#7D8998" text-anchor="middle" font-weight="normal">(버전 일치 후)</text>
 <rect x="1370.0" y="630.5" width="40" height="19" fill="#FFFFFF"/>
 <text x="1390.0" y="643.6666666666666" font-size="11" fill="#7D8998" text-anchor="middle" font-weight="normal">ILM</text>
 <rect x="810.0" y="790.5" width="260" height="19" fill="#FFFFFF"/>

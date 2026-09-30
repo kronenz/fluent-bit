@@ -18,6 +18,7 @@
 |---|---|---|---|
 | 0 | 선행 | 담당자 우려(복제 목적 · RPO · Transition/복제 범위 겹침 · Warm 공유 부하 · 용인 백업)를 먼저 확인 | [03-future/00](./03-future/00-owner-concerns.md) |
 | 1 | 공존 | 두 케이스는 한 Warm 에서 **공존 가능(조건부)** — Warm 이 ① 이천 replica ② ILM tier ③ 용인 원본 3개 역할 → **버킷 역할 분리 · 권한 분리** 필수 | [02-evidence/01](./02-evidence/01-warm-coexistence-replication-ilm.md) |
+| 2-0 | Replication | 🚨 **Hot(2026-02-07) · Warm(2026-06-06) 버전 불일치** — Bucket Replication 은 원본·대상 동일 Object Store 버전 필수 → 복제 구성 전 버전 일치 선행 | [02-evidence/01 §1-1](./02-evidence/01-warm-coexistence-replication-ilm.md) |
 | 2 | Replication | 이천 복제는 **Bucket Replication 만** 가능 — Site Replication 은 Bucket Replication 과 상호 배타이고 다른 사이트가 비어 있어야 함(Warm 에 용인 데이터 존재) | [02-evidence/01 P-6](./02-evidence/01-warm-coexistence-replication-ilm.md) |
 | 3 | Replication · ILM | 이천의 Replication(백업) + Transition(용량) 병행은 **역할이 달라 문제없음**. 단 같은 객체면 Warm **이중 저장** · ILM 삭제 **미복제** → replica 측 ILM 별도 · resync 시 **Tier 단절** 주의 | [02-evidence/01 §4](./02-evidence/01-warm-coexistence-replication-ilm.md) |
 | 4 | Replication | 이천 replica 는 Iceberg 스냅샷 일관성 없음(C1~C5) → 백업이므로 **백업 시점 테스트(T-B)** · 복구 시 검증 후 등록 | [02-evidence/02](./02-evidence/02-iceberg-snapshot-vs-replication.md) |
@@ -44,7 +45,7 @@ aistor-replication-review/
 │   ├── 02-iceberg-snapshot-vs-replication.md    Iceberg vs Replication 충돌 C1~C5
 │   ├── 03-scanner-impact.md                     Scanner 지연 영향 (복제 재큐잉 · Transition)
 │   ├── 04-ilm-archive-options.md                ILM 한계 · 아카이브 A/B/C (협의)
-│   ├── 05-internal-pdf-evidence-map.md          보안 PDF 확인 매핑 R-01~R-26
+│   ├── 05-internal-pdf-evidence-map.md          보안 PDF 확인 매핑 R-01~R-27
 │   └── 06-official-reference-links.md           공개 공식 문서 링크 · 원문 인용
 ├── 03-future/                                   ── 3. 향후 구성 대응
 │   ├── 00-owner-concerns.md                     담당자 우려 확인 (가장 먼저)
@@ -100,6 +101,7 @@ aistor-replication-review/
 | 항목 | 이 문서의 전제 | 상태 |
 |---|---|---|
 | Hot / Warm 위치 | **둘 다 이천**, AIStor는 베어메탈 k8s 위에 구성 | 확정 |
+| AIStor 릴리스 | Hot **2026-02-07** · Warm **2026-06-06** (상용) | 확정 — 🚨 Bucket Replication 은 동일 버전 필수 ([M17](./02-evidence/06-official-reference-links.md#m17)) |
 | 이천 네트워크 | dataops ↔ AIStor: Cilium **ClusterMesh + BGP** (Private 대역) | 확정 |
 | Public 노출 | **Ingress 주소** 또는 **LB VIP(스위치에 등록, 스위치가 로드밸런싱)** | 확정 |
 | 용인 | Warm **접근만** (데이터 미보유) | 확정 |
