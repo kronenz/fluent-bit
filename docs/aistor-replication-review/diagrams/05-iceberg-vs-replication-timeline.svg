@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="900" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<polyline points="150.0,180.0 150.0,870.0" fill="none" stroke="#C1C7D0" stroke-width="1" stroke-dasharray="6 4"/>
+<polyline points="390.0,180.0 390.0,870.0" fill="none" stroke="#C1C7D0" stroke-width="1" stroke-dasharray="6 4"/>
+<polyline points="640.0,180.0 640.0,870.0" fill="none" stroke="#C1C7D0" stroke-width="1" stroke-dasharray="6 4"/>
+<polyline points="880.0,180.0 880.0,870.0" fill="none" stroke="#C1C7D0" stroke-width="1" stroke-dasharray="6 4"/>
+<polyline points="1120.0,180.0 1120.0,870.0" fill="none" stroke="#C1C7D0" stroke-width="1" stroke-dasharray="6 4"/>
+<polyline points="1370.0,180.0 1370.0,870.0" fill="none" stroke="#C1C7D0" stroke-width="1" stroke-dasharray="6 4"/>
+<polyline points="150.0,215.0 640.0,215.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="150.0,260.0 640.0,260.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="150.0,305.0 640.0,305.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="150.0,350.0 390.0,350.0" fill="none" stroke="#01A88D" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="640.0,395.0 880.0,395.0" fill="none" stroke="#ED7100" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="880.0,440.0 1120.0,440.0" fill="none" stroke="#ED7100" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="1370.0,545.0 1120.0,545.0" fill="none" stroke="#DD344C" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="390.0,600.0 1370.0,600.0" fill="none" stroke="#DD344C" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="150.0,665.0 640.0,665.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="640.0,705.0 1120.0,705.0" fill="none" stroke="#ED7100" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="128.0" y="93.0" width="44" height="44" rx="8" fill="#E25A1C"/>
+<text x="150.0" y="118.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Spark</text>
+<rect x="368.0" y="93.0" width="44" height="44" rx="8" fill="#01A88D"/>
+<text x="390.0" y="118.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">HMS</text>
+<rect x="618.0" y="93.0" width="44" height="44" rx="8" fill="#C72C48"/>
+<text x="640.0" y="118.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<rect x="858.0" y="93.0" width="44" height="44" rx="8" fill="#ED7100"/>
+<text x="880.0" y="118.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Queue</text>
+<rect x="1098.0" y="93.0" width="44" height="44" rx="8" fill="#8A1C2E"/>
+<text x="1120.0" y="118.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<rect x="1348.0" y="93.0" width="44" height="44" rx="8" fill="#01A88D"/>
+<text x="1370.0" y="118.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">HMS</text>
+<rect x="1010" y="470" width="220" height="44" rx="6" fill="#FFF1F0" stroke="#DD344C" stroke-dasharray="6 4"/>
+<text x="1120.0" y="488.6666666666667" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">일부 data/manifest</text>
+<text x="1120.0" y="502.6666666666667" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">PENDING · FAILED</text>
+<rect x="520" y="760" width="720" height="56" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="880.0" y="784.6666666666666" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">ILM Transition/Expiration 은 객체 나이만 보고 동작 — Iceberg 가 참조 중인 파일인지 모름</text>
+<text x="880.0" y="798.6666666666666" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">(ILM Expiration 으로 삭제된 객체는 복제되지 않음 → Hot/Warm 불일치)</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">Iceberg 스냅샷 커밋 vs AIStor Bucket Replication — 충돌 지점 (시간 순)</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">S3 복제는 '객체(버전) 단위 비동기'이고 Iceberg 커밋은 '카탈로그 포인터 원자 교체' — 두 단위가 맞지 않아 C1~C4 충돌이 발생</text>
+<text x="150.0" y="155.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Writer</text>
+<text x="150.0" y="170.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(Spark · 이천)</text>
+<text x="390.0" y="155.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Hot HMS</text>
+<text x="390.0" y="170.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(카탈로그 포인터)</text>
+<text x="640.0" y="155.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Hot 버킷</text>
+<text x="880.0" y="155.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Replication 큐</text>
+<text x="880.0" y="170.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(비동기 · 객체 단위)</text>
+<text x="1120.0" y="155.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Warm 버킷</text>
+<text x="1370.0" y="155.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">복구 시 HMS / 조회 엔진</text>
+<text x="1370.0" y="170.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(평시 미사용)</text>
+<rect x="160.0" y="193.5" width="470" height="19" fill="#FFFFFF"/>
+<text x="395.0" y="206.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">t1  data/*.parquet PUT</text>
+<rect x="160.0" y="238.5" width="470" height="19" fill="#FFFFFF"/>
+<text x="395.0" y="251.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">t2  metadata/*-m0.avro (manifest) PUT</text>
+<rect x="160.0" y="283.5" width="470" height="19" fill="#FFFFFF"/>
+<text x="395.0" y="296.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">t3  metadata/v3.metadata.json PUT</text>
+<rect x="160.0" y="328.5" width="220" height="19" fill="#FFFFFF"/>
+<text x="270.0" y="341.6666666666667" font-size="11" fill="#01A88D" text-anchor="middle" font-weight="normal">t4  commit: metadata_location → v3 (원자 교체)</text>
+<rect x="650.0" y="373.5" width="220" height="19" fill="#FFFFFF"/>
+<text x="760.0" y="386.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">t5  버전별 큐잉 (PUT 응답 후)</text>
+<rect x="890.0" y="418.5" width="220" height="19" fill="#FFFFFF"/>
+<text x="1000.0" y="431.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">t6  v3.metadata.json 먼저 도착 가능</text>
+<rect x="1130.0" y="523.5" width="230" height="19" fill="#FFFFFF"/>
+<text x="1245.0" y="536.6666666666666" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">t7  v3 읽기 → 누락 파일 → FileNotFound / 불완전 스냅샷</text>
+<circle cx="40.0" cy="545.0" r="14.0" fill="#DD344C"/>
+<text x="40.0" y="548.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">C1</text>
+<rect x="530.0" y="578.5" width="700" height="19" fill="#FFFFFF"/>
+<text x="880.0" y="591.6666666666666" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">✕ HMS 포인터(Oracle 행)는 S3 복제 대상이 아님 → Warm HMS 는 v2 이하 또는 미등록</text>
+<circle cx="40.0" cy="600.0" r="14.0" fill="#DD344C"/>
+<text x="40.0" y="603.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">C2</text>
+<rect x="160.0" y="643.5" width="470" height="19" fill="#FFFFFF"/>
+<text x="395.0" y="656.6666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">t8  expire_snapshots / remove_orphan_files → DELETE</text>
+<rect x="650.0" y="683.5" width="460" height="19" fill="#FFFFFF"/>
+<text x="880.0" y="696.6666666666666" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">t9  delete / delete-marker 복제는 --replicate 플래그에 따라 다름 → Warm 잔존 또는 삭제</text>
+<circle cx="40.0" cy="685.0" r="14.0" fill="#DD344C"/>
+<text x="40.0" y="688.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">C3</text>
+<circle cx="40.0" cy="788.0" r="14.0" fill="#DD344C"/>
+<text x="40.0" y="791.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">C4</text>
+<text x="70" y="548.6666666666666" font-size="11" fill="#DD344C" text-anchor="start" font-weight="normal">부분 복제</text>
+<text x="70" y="603.6666666666666" font-size="11" fill="#DD344C" text-anchor="start" font-weight="normal">카탈로그 미복제</text>
+<text x="70" y="688.6666666666666" font-size="11" fill="#DD344C" text-anchor="start" font-weight="normal">삭제 전파</text>
+<text x="70" y="791.6666666666666" font-size="11" fill="#DD344C" text-anchor="start" font-weight="normal">ILM 비인지</text>
+</svg>
