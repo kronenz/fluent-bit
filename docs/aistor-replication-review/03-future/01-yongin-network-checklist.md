@@ -3,7 +3,7 @@
 > 요청 5 · 카테고리: 향후 구성 대응
 > 관련: [장표 2](../01-architecture/02-warm-standalone-yongin.md) · [Cilium 근거 C1/C2](../02-evidence/06-official-reference-links.md#c1)
 
-> 전제: 용인에서 Warm 을 상시 조회하는 경우(모드 ①) 또는 백업 복구 시나리오(모드 ②)에서 용인 접근이 필요한 경우에만 진행 — [근거 1](../02-evidence/01-replication-necessity-backup.md)
+> **v3 확정 — 필수**: 용인은 Warm 전용 버킷에 **적재(write)와 조회(read)** 를 모두 하므로 이 경로는 반드시 개통해야 합니다. 쓰기 트래픽(대용량 multipart PUT)을 포함해 대역폭 · 타임아웃을 산정합니다.
 
 ![용인 → Warm 네트워크 체크포인트](../diagrams/08-yongin-network-checkpoints.svg)
 
@@ -32,7 +32,7 @@
 | ③ | DC 간 회선·라우팅 | 용인 ↔ 이천 대역 간 라우팅, **대역폭·RTT**(Trino 스캔 성능 좌우) | `traceroute <vip>`, `iperf3`(허용 시), `mtr` | 네트워크 | ☐ |
 | ④ | 이천 방화벽 (인바운드) | ① 소스 → VIP/Ingress 허용, **AIStor 관리 포트(콘솔 등)는 차단** | 방화벽 정책 검토 | 네트워크/보안 | ☐ |
 | ⑤ | L4 VIP / Ingress | VIP 풀 멤버(AIStor Warm 노드/Service) · 헬스체크 경로 · **세션 타임아웃**(대용량 GET) · Ingress 사용 시 `proxy-body-size`/timeout | 스위치 설정 확인 · `curl -I https://<fqdn>/minio/health/live` | 네트워크 / AIStor 관리자 | ☐ |
-| ⑥ | TLS · 엔드포인트 · 자격증명 | 인증서 **SAN 에 Warm FQDN** 포함, 사내 CA 를 Trino JVM truststore 에 등록, **읽기 전용** access key 발급, path-style 사용 | `openssl s_client -connect <vip>:443 -servername warm-s3.<domain>` · `mc alias set warm https://warm-s3.<domain> <ak> <sk>` → `mc ls warm/<bucket>` | AIStor 관리자 / 용인 k8s | ☐ |
+| ⑥ | TLS · 엔드포인트 · 자격증명 | 인증서 **SAN 에 Warm FQDN** 포함, 사내 CA 를 Trino JVM truststore 에 등록, **`yongin-*` read/write · replica/tier 차단** access key 발급, path-style 사용 | `openssl s_client -connect <vip>:443 -servername warm-s3.<domain>` · `mc alias set warm https://warm-s3.<domain> <ak> <sk>` → `mc ls warm/<bucket>` | AIStor 관리자 / 용인 k8s | ☐ |
 | ⑦ | DNS | 사내 DNS 에 `warm-s3.<domain>` → VIP(또는 Ingress) 등록, 용인 CoreDNS 에서 사내 DNS 로 **forward/stub** | `kubectl exec <pod> -- nslookup warm-s3.<domain>` · CoreDNS Corefile | DNS / 용인 k8s | ☐ |
 | ⑧ | ClusterMesh 전제 (B 경로) | PodCIDR·ServiceCIDR 비중복, cluster name/ID 고유, clustermesh-apiserver 노출 방식(LB/NodePort)과 포트 | `cilium clustermesh status --wait` · `cilium config view \| grep -E "cluster-(name\|id)\|ipv4-native"` · Cilium *Firewall Rules* 절 🔍 | k8s 플랫폼 | ☐ |
 | ⑨ | BGP 경로 광고 (B 경로) | 용인/이천 ToR 에 상대 PodCIDR/LB-IP 경로가 수신되는지, 광고 정책(CiliumBGPAdvertisement) | `cilium bgp peers` · `cilium bgp routes advertised ipv4 unicast` 🔍 | k8s 플랫폼 / 네트워크 | ☐ |
@@ -41,7 +41,7 @@
 
 | 출발 | 도착 | 포트 | 용도 | 경로 |
 |---|---|---|---|---|
-| 용인 노드/Egress IP | 이천 L4 VIP (Warm) | TCP 443 (또는 9000) | S3 API (Trino/Spark 데이터 read) | A |
+| 용인 노드/Egress IP | 이천 L4 VIP (Warm) | TCP 443 (또는 9000) | S3 API (Trino/Spark 데이터 **read/write**) | A |
 | 용인 노드/Egress IP | 이천 Ingress IP | TCP 443 | S3 API (Ingress 사용 시) | A |
 | 용인 CoreDNS | 사내 DNS | UDP/TCP 53 | Warm FQDN 해석 | A/B |
 | 용인 Trino | 용인 HMS-Warm | TCP 9083 | 메타데이터 (클러스터 내부) | — |
@@ -67,9 +67,11 @@ openssl s_client -connect warm-s3.<domain>:443 -servername warm-s3.<domain> </de
 
 # 4) S3 인증·권한 (⑥)
 mc alias set warm https://warm-s3.<domain> "$AK" "$SK"
-mc ls warm/<bucket>/
-mc stat warm/<bucket>/<iceberg-table>/metadata/   # 읽기 가능
-mc cp /etc/hostname warm/<bucket>/_probe          # ⚠ 실패해야 정상(읽기 전용)
+mc ls warm/yongin-warehouse/
+mc cp /etc/hostname warm/yongin-warehouse/_probe  # 용인 버킷 쓰기 성공해야 정상
+mc rm warm/yongin-warehouse/_probe
+mc ls warm/<hot 버킷명>/                           # ⚠ 거부돼야 정상 (이천 replica)
+mc ls warm/<tier 버킷>/                             # ⚠ 거부돼야 정상 (ILM tier)
 
 # 5) 성능 기준선 (③)
 mc cp warm/<bucket>/<1GB 샘플> /dev/null           # 처리량 측정

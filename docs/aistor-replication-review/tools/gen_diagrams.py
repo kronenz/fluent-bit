@@ -52,7 +52,7 @@ def d01():
 
     d.group("aistor", 840, 140, 320, 680, "AIStor 클러스터 (베어메탈 k8s · 상용)", AISTOR, badge="S3")
     d.icon("hot", 960, 260, "Hot 클러스터\n(raw/ · iceberg/)", kind="s3", color=AISTOR, size=60)
-    d.icon("warm", 960, 600, "Warm 클러스터\n(replica · archive/)", kind="s3", color="#8A1C2E", size=60)
+    d.icon("warm", 960, 600, "Warm 클러스터\n(replica · tier · 용인 버킷)", kind="s3", color="#8A1C2E", size=60)
     d.edge([(960, 340), (960, 568)], "① Bucket Replication\n(비동기 · Versioning 필수)",
            at=(960, 450), label_w=170, width=2.5)
     d.edge([(990, 275), (1100, 275), (1100, 585), (990, 585)], "② ILM Transition\n(Remote Tier · Scanner)",
@@ -84,56 +84,59 @@ def d01():
 # ---------------------------------------------------------------- 02
 def d02():
     d = Diagram("02-warm-standalone-yongin",
-                "Warm 단독 사용 — 용인 dataops Trino → HMS(Oracle) ← Polaris(Lake) federation",
+                "용인 dataops — Warm 클러스터 전용 적재 · 조회 (Trino / Spark → HMS-Warm(Oracle) ← Polaris)",
                 width=1560, height=920,
-                subtitle="데이터는 이천 Warm 클러스터에만 존재 · 용인은 카탈로그(HMS)와 조회 엔진(Trino)만 보유 · Lake는 Polaris가 HMS를 federation 하여 조회")
-
-    d.box("cond", 820, 44, 700, 36, "전제: Warm 데이터를 HMS 로 조회하는 케이스가 있을 때만 (모드 ①) — 없으면 실시간 Replication 불필요",
-          stroke=RED, fill=WARN_FILL, color=RED, size=12, bold=True)
+                subtitle="용인 데이터는 Warm 의 용인 전용 버킷에만 적재·조회 · 이천 replica · tier 버킷과 분리 · Hot 과 복제 관계 없음")
     d.icon("ana", 110, 300, "분석가·서비스\n(용인)", kind="k8s:user", color=BLUE)
+    d.icon("src", 110, 470, "용인 원천 데이터", glyph="RAW", color=ORANGE)
     d.icon("lu", 110, 700, "Lake 사용자\n(Notebook·BI)", kind="k8s:user", color=BLUE)
 
     d.group("yi", 220, 100, 560, 460, "용인 IDC · dataops 클러스터 (신규)", PURPLE, badge="k8s")
-    d.icon("trino", 330, 300, "Trino (용인)\nIceberg connector\ncatalog.type=hive_metastore",
-           glyph="Trino", color=TRINO, label_w=200)
-    d.icon("hms", 560, 300, "HMS (Warm 전용)\nThrift :9083", glyph="HMS", color=TEAL)
-    d.icon("ora", 560, 470, "HMS DB (Oracle)\n용인용 스키마", kind="db", glyph="Oracle", color=ORACLE)
+    d.icon("trino", 330, 300, "Trino (용인)\ncatalog.type=hive_metastore", glyph="Trino", color=TRINO, label_w=200)
+    d.icon("spark", 330, 470, "Spark / 수집 (용인)\n적재 · 유지보수", glyph="Spark", color=SPARK, label_w=160)
+    d.icon("hms", 580, 300, "HMS-Warm (용인 원본)\nThrift :9083", glyph="HMS", color=TEAL, label_w=170)
+    d.icon("ora", 580, 470, "HMS DB (Oracle)\n용인용 스키마", kind="db", glyph="Oracle", color=ORACLE)
     d.edge([(136, 300), (304, 300)], "SQL", at=(200, 280), label_w=40)
-    d.edge([(356, 300), (534, 300)], "① 메타데이터 조회", at=(445, 280), label_w=120)
-    d.edge([(560, 370), (560, 442)], "JDBC", at=(600, 405), label_w=50)
+    d.edge([(136, 470), (304, 470)], "적재", at=(200, 450), label_w=40)
+    d.edge([(356, 300), (554, 300)], "① 메타 조회·커밋", at=(455, 280), label_w=120)
+    d.edge([(356, 460), (450, 460), (450, 320), (554, 320)])
+    d.edge([(580, 370), (580, 442)], "JDBC", at=(620, 405), label_w=50)
 
     d.group("lake", 220, 590, 560, 260, "Lake 플랫폼", BLUE, badge="L")
     d.icon("leng", 330, 700, "Lake 엔진\n(Spark / Trino-Lake)", glyph="Engine", color=SPARK)
-    d.icon("pol", 560, 700, "Apache Polaris\n(Iceberg REST Catalog)", glyph="Polaris", color=POLARIS, label_w=170)
+    d.icon("pol", 580, 700, "Apache Polaris\n(Iceberg REST Catalog)", glyph="Polaris", color=POLARIS, label_w=170)
     d.edge([(136, 700), (304, 700)])
-    d.edge([(356, 700), (534, 700)], "② REST API", at=(445, 680), label_w=90)
-    d.edge([(586, 700), (700, 700), (700, 300), (586, 300)],
-           "③ Catalog Federation\n(HMS를 외부 카탈로그로)", at=(700, 610), label_w=160, color=POLARIS)
+    d.edge([(356, 700), (554, 700)], "② REST API", at=(455, 680), label_w=90)
+    d.edge([(606, 700), (720, 700), (720, 300), (606, 300)],
+           "③ Catalog Federation\n(lake_warm → HMS-Warm)", at=(720, 610), label_w=160, color=POLARIS)
 
     d.group("net", 820, 100, 260, 750, "DC 간 연결 (용인 → 이천)", GREEN, badge="⇄")
     d.icon("fw", 950, 210, "방화벽 (용인·이천)\nTCP 443 (또는 9000)", glyph="FW", color=RED, label_w=170)
     d.icon("vip", 950, 360, "이천 L4 VIP / Ingress\n(Public 경로)", glyph="VIP", color=GREEN, label_w=170)
     d.icon("dns", 950, 510, "사내 DNS\nwarm-s3.<domain> → VIP", glyph="DNS", color=GREEN, label_w=190)
-    d.edge([(330, 274), (330, 150), (950, 150), (950, 182)], "④ 데이터 파일 read (S3 API · HTTPS)",
-           at=(640, 150), label_w=230, width=2.5)
-    d.edge([(950, 280), (950, 332)])
+    d.edge([(330, 274), (330, 150), (950, 150), (950, 182)], "④ 데이터 read / write (S3 API · HTTPS)",
+           at=(640, 150), label_w=250, width=2.5, both=True)
+    d.edge([(950, 280), (950, 332)], both=True)
     d.edge([(780, 510), (924, 510)], "⑤ 이름 해석", at=(850, 490), label_w=80, dashed=True)
 
     d.group("ic", 1120, 100, 400, 750, "이천 IDC · AIStor", AISTOR, badge="S3")
-    d.icon("warm", 1320, 360, "Warm 클러스터\n(용인 조회 대상)", kind="s3", color="#8A1C2E", size=60)
-    d.icon("hot", 1320, 650, "Hot 클러스터\n(용인 직접 접근 없음)", kind="s3", dim=True, size=60)
-    d.edge([(976, 360), (1288, 360)], "HTTPS :443", at=(1060, 340), label_w=80, width=2.5)
-    d.edge([(1320, 618), (1320, 432)], "Replication / ILM\n(이천 내부)", at=(1320, 525), label_w=120,
-           dashed=True, color=GREY)
-    d.edge([(780, 800), (1200, 800), (1200, 380), (1288, 380)],
-           "⑥ Lake 엔진 데이터 read\n경로·자격증명 확인 필요", at=(1000, 800), label_w=170, dashed=True, color=RED)
-
+    d.group("wb", 1140, 150, 360, 450, "Warm 클러스터 — 버킷 역할 분리", "#8A1C2E", badge="W")
+    d.box("by", 1160, 200, 320, 90, "용인 전용 버킷 (yongin-*)\n용인 read/write · 원본\nVersioning 선택 · ILM Expiration 가능",
+          stroke=PURPLE, fill="#F5F0FF", size=12, bold=True)
+    d.box("br", 1160, 320, 320, 110, "이천 replica 버킷 (Hot 과 동일명)\nReplication 대상 · 백업\n용인 접근 차단 · 직접 쓰기 금지",
+          stroke=ORANGE, fill="#FFF4E5", size=12)
+    d.box("bt", 1160, 460, 320, 110, "ILM Tier 버킷 (전용 prefix)\nAIStor 독점 접근\n직접 접근 · ILM 규칙 금지",
+          stroke=GREY, fill="#F4F5F7", size=12)
+    d.edge([(976, 360), (1060, 360), (1060, 245), (1158, 245)], "HTTPS :443", at=(1060, 300), label_w=80, width=2.5, both=True)
+    d.icon("hot", 1320, 720, "Hot 클러스터 (이천 서비스)\n용인 접근 없음", kind="s3", dim=True, size=56, label_w=190)
+    d.edge([(1250, 692), (1250, 432)], "Replication", at=(1250, 640), label_w=80, dashed=True, color=GREY)
+    d.edge([(1390, 692), (1390, 572)], "ILM", at=(1390, 640), label_w=40, dashed=True, color=GREY)
+    d.edge([(780, 800), (1100, 800), (1100, 260), (1158, 260)],
+           "⑥ Lake 엔진 데이터 read (경로·자격증명 확인)", at=(940, 800), label_w=260, dashed=True, color=RED)
     legend(d, 885, [("데이터/메타 경로", INK, False), ("카탈로그 federation", POLARIS, False),
-                    ("확인 필요 경로", RED, True)])
+                    ("이천 내부 (용인 무관)", GREY, True)])
     return d
 
-
-# ---------------------------------------------------------------- 03
 def d03():
     d = Diagram("03-iceberg-snapshot-vs-replication",
                 "Iceberg 스냅샷 커밋 vs AIStor Bucket Replication — 충돌 지점 (시간 순)",
@@ -144,7 +147,7 @@ def d03():
              ("hot", 640, "Hot 버킷", AISTOR, None),
              ("q", 880, "Replication 큐\n(비동기 · 객체 단위)", ORANGE, "Queue"),
              ("warm", 1120, "Warm 버킷", "#8A1C2E", None),
-             ("wq", 1370, "Warm HMS / 조회 엔진\n(용인 Trino)", TEAL, "HMS")]
+             ("wq", 1370, "복구 시 HMS / 조회 엔진\n(평시 미사용)", TEAL, "HMS")]
     for lid, cx, label, color, glyph in lanes:
         d.icon(lid, cx, 115, label, kind="s3" if glyph is None else "app", glyph=glyph or "", color=color,
                size=44, label_w=180)
@@ -241,13 +244,10 @@ def d05():
 
 # ---------------------------------------------------------------- 06
 def d06():
-    d = Diagram("06-hot-warm-catalog-split",
-                "Hot/Warm 카탈로그 분리 — HMS-Hot(이천) · HMS-Warm(용인용) · Polaris federation",
+    d = Diagram("09-hot-warm-catalog-split",
+                "카탈로그 구성 — HMS-Hot(이천 서비스) · HMS-Warm(용인 원본) · Polaris federation",
                 width=1560, height=900,
-                subtitle="S3 Replication 은 데이터 파일만 복제 · 카탈로그(HMS)는 사이트별로 따로 등록/동기화해야 함")
-
-    d.box("cond", 40, 800, 480, 60, "전제: 모드 ① (Warm 을 HMS 로 조회하는 케이스)\n모드 ② 백업 / ③ 불필요 이면 HMS-Warm 구축 보류",
-          stroke=RED, fill=WARN_FILL, color=RED, size=12, bold=True)
+                subtitle="용인 테이블은 HMS-Warm 이 원본 카탈로그(등록 Job 불필요) · 이천 replica 는 백업 — 복구 시에만 별도 등록")
     d.icon("lu", 100, 430, "Lake 사용자", kind="k8s:user", color=BLUE)
     d.group("lake", 200, 120, 300, 660, "Lake 플랫폼", BLUE, badge="L")
     d.icon("pol", 350, 430, "Apache Polaris\nexternal catalog\n• lake_hot → HMS-Hot\n• lake_warm → HMS-Warm",
@@ -255,38 +255,38 @@ def d06():
     d.edge([(126, 430), (324, 430)])
 
     d.group("ic", 560, 100, 420, 330, "이천 dataops (기존)", PURPLE, badge="k8s")
-    d.icon("hmsh", 680, 250, "HMS-Hot\n(기존)", glyph="HMS", color=TEAL)
+    d.icon("hmsh", 680, 250, "HMS-Hot\n(이천 서비스)", glyph="HMS", color=TEAL)
     d.icon("orah", 860, 250, "Oracle\n(Hot 스키마)", kind="db", glyph="Oracle", color=ORACLE)
     d.icon("trh", 680, 370, "Trino·Spark (이천)", glyph="Trino", color=TRINO, size=40)
     d.edge([(706, 250), (834, 250)], "JDBC", at=(770, 232), label_w=40)
     d.edge([(660, 370), (620, 370), (620, 262), (654, 262)])
 
     d.group("yi", 560, 460, 420, 380, "용인 dataops (신규)", PURPLE, badge="k8s")
-    d.icon("hmsw", 680, 610, "HMS-Warm\n(신규)", glyph="HMS", color=TEAL)
-    d.icon("oraw", 860, 610, "Oracle\n(Warm 스키마 · 신규)", kind="db", glyph="Oracle", color=ORACLE)
-    d.icon("trw", 680, 750, "Trino (용인)", glyph="Trino", color=TRINO, size=40)
+    d.icon("hmsw", 680, 610, "HMS-Warm\n(용인 원본 카탈로그)", glyph="HMS", color=TEAL, label_w=150)
+    d.icon("oraw", 860, 610, "Oracle\n(용인 스키마 · 신규)", kind="db", glyph="Oracle", color=ORACLE)
+    d.icon("trw", 680, 750, "Trino / Spark (용인)", glyph="Trino", color=TRINO, size=40)
     d.edge([(706, 610), (834, 610)], "JDBC", at=(770, 592), label_w=40)
     d.edge([(660, 750), (620, 750), (620, 622), (654, 622)])
 
-    d.edge([(376, 420), (530, 420), (530, 250), (654, 250)], "① lake_hot", at=(590, 232), label_w=80,
-           color=POLARIS)
-    d.edge([(376, 440), (530, 440), (530, 610), (654, 610)], "② lake_warm", at=(590, 592), label_w=80,
-           color=POLARIS)
+    d.edge([(376, 420), (530, 420), (530, 250), (654, 250)], "① lake_hot", at=(590, 232), label_w=80, color=POLARIS)
+    d.edge([(376, 440), (530, 440), (530, 610), (654, 610)], "② lake_warm", at=(590, 592), label_w=80, color=POLARIS)
 
     d.group("s3", 1040, 100, 470, 740, "이천 AIStor", AISTOR, badge="S3")
-    d.icon("hot", 1200, 250, "Hot 버킷\ns3://lake/… (hot endpoint)", kind="s3", color=AISTOR, size=60, label_w=190)
-    d.icon("warm", 1200, 610, "Warm 버킷\ns3://lake/… (warm endpoint)", kind="s3", color="#8A1C2E", size=60, label_w=190)
-    d.edge([(1200, 330), (1200, 578)], "Replication\n(데이터 파일만)", at=(1200, 450), label_w=110, width=2.5)
-    d.box("w", 1300, 380, 200, 150,
-          "⚠ 카탈로그 동기화\nHMS-Warm 에\nregister_table 필요\n버킷명 동일 유지 권장\n(다르면\nrewrite_table_path)",
-          stroke=RED, fill=WARN_FILL, size=11, color=RED)
-    d.edge([(680, 224), (680, 150), (1200, 150), (1200, 218)], "metadata_location", at=(950, 150), label_w=120,
+    d.icon("hot", 1160, 250, "Hot 버킷 (이천 서비스)", kind="s3", color=AISTOR, size=56, label_w=170)
+    d.box("rep", 1080, 470, 170, 70, "Warm replica 버킷\n(백업 · 조회 안 함)", stroke=ORANGE, fill="#FFF4E5", size=11)
+    d.box("tier", 1270, 470, 170, 70, "Warm tier prefix\n(AIStor 전용)", stroke=GREY, fill="#F4F5F7", size=11)
+    d.box("yb", 1080, 620, 360, 70, "Warm 용인 버킷 (yongin-*)\n용인 원본 · read/write", stroke=PURPLE, fill="#F5F0FF", size=12, bold=True)
+    d.edge([(1140, 322), (1140, 468)], "Replication", at=(1140, 400), label_w=80, width=2.5, color=ORANGE)
+    d.edge([(1190, 300), (1190, 330), (1355, 330), (1355, 468)], "ILM Transition", at=(1290, 330), label_w=100,
+           dashed=True, color=ORANGE)
+    d.edge([(680, 224), (680, 150), (1160, 150), (1160, 220)], "metadata_location", at=(950, 150), label_w=120,
            dashed=True, color=TEAL)
-    d.edge([(706, 750), (1200, 750), (1200, 685)], "data read (DC 간)", at=(950, 750), label_w=120)
-    d.edge([(680, 584), (680, 520), (1130, 520), (1130, 610), (1168, 610)], "metadata_location", at=(900, 520),
+    d.edge([(706, 750), (1260, 750), (1260, 692)], "data read / write (DC 간)", at=(950, 750), label_w=150, both=True)
+    d.edge([(680, 584), (680, 520), (1010, 520), (1010, 655), (1078, 655)], "metadata_location", at=(850, 520),
            label_w=120, dashed=True, color=TEAL)
+    d.box("note", 40, 800, 480, 60, "용인 테이블: 용인 엔진이 직접 커밋 → HMS-Warm (등록 Job 불필요)\n이천 replica: 복구 시에만 검증 후 register (그림 10)",
+          stroke=TEAL, fill="#E6F7F4", color=INK, size=12, bold=True)
     return d
-
 
 def d07():
     d = Diagram("07-scanner-impact", "Scanner 가 느려지면 — ILM Transition · Replication 재처리 · 버전 정리가 함께 지연",
@@ -314,7 +314,7 @@ def d07():
     imp = [(165, 50, "사용량·쿼터 수치 지연 (마지막 완료 스캔 기준)", 190),
            (255, 40, "Transition 지연 → Hot 용량 압박 · 계획보다 늦은 이동", 275),
            (305, 40, "Expiration · noncurrent 정리 지연 → 버전 누적", 325),
-           (370, 80, "3회 재시도 후 큐에서 빠진 FAILED 객체의 재큐잉 지연\n→ Warm 파일 누락 지속 (C1 장기화)\n→ HMS-Warm 등록 보류 · 용인 데이터 신선도 저하", 410),
+           (370, 80, "3회 재시도 후 큐에서 빠진 FAILED 객체의 재큐잉 지연\n→ Warm replica 누락 지속 (C1 장기화)\n→ 백업 시점 품질 저하 · 복구 시 불완전 스냅샷", 410),
            (495, 50, "누락·손상 객체 복구(Healing) 지연", 520)]
     for i, (y, h, t, ey) in enumerate(imp):
         d.box(f"c{i}", 900, y, 540, h, t, stroke=RED, fill=WARN_FILL, color=RED, size=12)
@@ -347,11 +347,11 @@ def i3():
     d.edge([(360, 357), (1000, 357)], "t + 1s  ✓ (먼저 도착)", at=(680, 340), label_w=150, color=ORANGE)
     d.edge([(390, 480), (1000, 480)], "✕ 복제 대상 아님 (Oracle 의 행)", at=(680, 463), label_w=220, dashed=True, color=RED)
 
-    d.group("warm", 940, 100, 420, 440, "Warm 버킷 + HMS-Warm", "#8A1C2E", badge="S3")
+    d.group("warm", 940, 100, 420, 440, "Warm replica 버킷 (백업)", "#8A1C2E", badge="S3")
     d.box("wd", 1000, 185, 300, 44, "data/*.parquet  ✕ 아직 없음", stroke=RED, fill=WARN_FILL, color=RED, dashed=True)
     d.box("wm", 1000, 260, 300, 44, "manifest  ✓", stroke=INK)
     d.box("wj", 1000, 335, 300, 44, "v3.metadata.json  ✓", stroke=INK)
-    d.box("wp", 1000, 450, 300, 60, "HMS-Warm 포인터 없음\n→ 별도 등록 필요", stroke=RED, fill=WARN_FILL, color=RED, bold=True)
+    d.box("wp", 1000, 450, 300, 60, "Warm 측 카탈로그 없음\n→ 복구 시 등록 필요", stroke=RED, fill=WARN_FILL, color=RED, bold=True)
 
     chips = [("C1 부분 복제", "metadata 는 왔는데\ndata 가 없음"), ("C2 카탈로그 미복제", "HMS 포인터는\nS3 복제 대상 아님"),
              ("C3 삭제 전파", "expire_snapshots 삭제가\n플래그 따라 다르게 반영"), ("C4 ILM 비인지", "ILM 은 Iceberg 참조를\n모름 · 삭제 미복제"),
@@ -363,17 +363,17 @@ def i3():
 
 
 def i6():
-    d = Diagram("i6-conclusion6-hms-split-register", "[모드 ① 조회용 복제일 때] HMS 는 Hot / Warm 분리, Warm 은 '검증 후 등록'",
+    d = Diagram("i6-conclusion6-hms-split-register", "[이천 replica 복구 절차] 검증 후 등록 — 평시 미사용, 복구·리허설 때만",
                 width=1400, height=720,
-                subtitle="S3 Replication 은 데이터만 복제 → 동기화 Job 이 Warm 파일 완전성을 확인한 뒤에만 HMS-Warm 포인터를 갱신")
+                subtitle="Replication 은 데이터만 복제 → 복구 시 Warm replica 의 파일 완전성을 확인한 뒤에만 복구용 HMS 에 등록 (용인 HMS-Warm 과 별개)")
     d.group("cat", 40, 100, 1320, 230, "카탈로그 계층", TEAL, badge="HMS")
     d.icon("ic", 130, 210, "이천 Spark / Trino\n(쓰기·조회)", glyph="Trino", color=TRINO, size=48)
     d.icon("hh", 360, 210, "HMS-Hot (이천)\nOracle · 기존", glyph="HMS", color=TEAL)
-    d.box("job", 560, 160, 280, 110, "동기화 · 검증 Job\n① 최신 metadata_location 조회\n② Warm 에서 전체 파일 HEAD\n③ 누락 0건일 때만 register",
+    d.box("job", 560, 160, 280, 110, "복구 · 검증 Job\n① 최신 metadata_location 조회\n② Warm 에서 전체 파일 HEAD\n③ 누락 0건일 때만 register",
           stroke=PURPLE, fill="#F5F0FF", size=12, bold=True)
-    d.icon("hw", 1040, 210, "HMS-Warm (용인용)\nOracle · 신규 · 읽기 전용", glyph="HMS", color=TEAL, label_w=180)
-    d.icon("ty", 1260, 160, "용인 Trino", glyph="Trino", color=TRINO, size=40)
-    d.icon("pl", 1260, 260, "Polaris\nlake_warm", glyph="Polaris", color=POLARIS, size=40)
+    d.icon("hw", 1040, 210, "복구용 HMS\n(임시 · 리허설용)", glyph="HMS", color=TEAL, label_w=180)
+    d.icon("ty", 1260, 160, "복구 검증 Trino", glyph="Trino", color=TRINO, size=40)
+    d.icon("pl", 1260, 260, "복구 후\n서비스 전환", glyph="DR", color=POLARIS, size=40)
     d.edge([(154, 210), (334, 210)], "커밋", at=(245, 192), label_w=40)
     d.edge([(386, 210), (558, 210)], "①", at=(470, 192), label_w=30, color=PURPLE)
     d.edge([(840, 210), (1014, 210)], "③ register_table", at=(925, 192), label_w=120, color=PURPLE, width=2.5)
@@ -382,99 +382,97 @@ def i6():
 
     d.group("st", 40, 380, 1320, 200, "스토리지 계층 — AIStor (이천)", AISTOR, badge="S3")
     d.icon("hot", 360, 470, "Hot 버킷  s3://<bucket>/…", kind="s3", color=AISTOR, size=56, label_w=200)
-    d.icon("warm", 1040, 470, "Warm 버킷  s3://<bucket>/… (동일 버킷명 권장)", kind="s3", color="#8A1C2E", size=56,
+    d.icon("warm", 1040, 470, "Warm replica 버킷  s3://<bucket>/… (동일 버킷명 권장)", kind="s3", color="#8A1C2E", size=56,
            label_w=280)
     d.edge([(390, 470), (1010, 470)], "Replication — 데이터 파일만 (비동기)", at=(700, 452), label_w=240, width=2.5)
     d.edge([(360, 262), (360, 440)], "commit 대상", at=(360, 350), label_w=80, dashed=True, color=TEAL)
     d.edge([(700, 270), (700, 430), (1010, 430)], "② HEAD 검증", at=(700, 350), label_w=90, dashed=True, color=PURPLE)
     d.edge([(1040, 262), (1040, 440)], "metadata_location", at=(1040, 350), label_w=120, dashed=True, color=TEAL)
     d.box("rule", 40, 610, 1320, 60,
-          "⚠ 조건: Hot 스냅샷 보존 기간(expire_snapshots) > 복제 지연 + 검증·등록 주기   |   Warm 에서는 DDL·쓰기 금지 (Hot 에서만 변경)",
+          "⚠ 조건: Hot 스냅샷 보존 기간 > 복제 지연 + 백업 주기   |   replica 버킷은 복구 전까지 쓰기 금지 · 용인 HMS-Warm 에 섞지 않음",
           stroke=RED, fill=WARN_FILL, color=RED, size=13, bold=True)
     return d
 
 
 def i7():
-    d = Diagram("i7-todo-milestones", "해야 할 일 — 마일스톤 의존 관계 (Replication 우선 → ILM → 향후 구성)",
+    d = Diagram("11-todo-milestones", "해야 할 일 — 마일스톤 (두 케이스 병행: 용인 Warm 전용 · 이천 Replication + ILM)",
                 width=1560, height=700,
-                subtitle="박스 안 No = INDEX §3 작업 번호 · 빨간 게이트 = 다음 단계 착수 전 확정해야 할 결정 · 점선 박스 = 게이트 결과에 따라 조건부")
+                subtitle="박스 안 No = INDEX §3 작업 번호 · 빨간 게이트 = 착수 전 확정할 결정 · 위 줄 = 이천 Replication/ILM · 아래 줄 = 용인 Warm 전용")
     ms = {
-        "m0": (40, 220, "M0 담당자 우려 · 요구 확인\nNo 1 ~ 3\n복제 목적 · Warm 조회 케이스\nRPO/RTO", RED, False),
-        "m1": (320, 220, "M1 Replication 근거 · 설계\nNo 4 ~ 10\n보안 PDF · 방향 · 버킷명\n삭제 플래그 · Scanner", INK, False),
-        "m2": (600, 220, "M2 Replication 테스트\nNo 11 ~ 15\n백업 시점(T-B) · 충돌 C1~C5\n복제 지연·백로그", ORANGE, False),
-        "m3": (600, 470, "M3 ILM / Archive 협의 · PoC\nNo 16 ~ 20\nA 미사용 · B 하이브리드 · C 전면\nTransition 규칙", GREEN, False),
-        "m4": (900, 90, "M4 네트워크 개통\nNo 21 ~ 25\n(모드 ① 또는 용인 접근 필요 시)", GREEN, True),
-        "m5": (900, 250, "M5 HMS-Warm · 등록 자동화\nNo 26 ~ 31\n(모드 ① 일 때만)", TEAL, True),
-        "m6": (900, 410, "M6 Polaris federation PoC\nNo 32 ~ 34\n(모드 ① 일 때만)", POLARIS, True),
-        "m7": (1250, 270, "M7 운영 이관\nNo 35\n복제·ILM 정책 적용 · 가이드", INK, False),
+        "m0": (40, 270, "M0 담당자 우려 · 요구 확인\nNo 1 ~ 3\n두 케이스 범위 · RPO\nWarm 역할 분리", RED),
+        "m1": (320, 140, "M1 Replication · ILM 근거 · 설계\nNo 4 ~ 11\n보안 PDF · 대상 · 삭제 전파\nTier prefix · 용량", INK),
+        "m2": (600, 140, "M2 이천 Replication 테스트\nNo 12 ~ 16\n백업 시점(T-B) · C1~C5\n공존 부하", ORANGE),
+        "m3": (880, 140, "M3 ILM / Archive 협의 · PoC\nNo 17 ~ 21\nA · B · C · Transition 규칙", GREEN),
+        "m4": (320, 400, "M4 용인 네트워크 개통\nNo 22 ~ 26\nread/write 경로 · FW · DNS", GREEN),
+        "m5": (600, 400, "M5 HMS-Warm(용인) 구축\nNo 27 ~ 31\nOracle · 배포 · 권한 분리", TEAL),
+        "m6": (880, 400, "M6 Polaris federation PoC\nNo 32 ~ 34\nlake_hot · lake_warm", POLARIS),
+        "m7": (1220, 270, "M7 운영 이관\nNo 35\n복제·ILM·용인 운영 · 가이드", INK),
     }
-    for k, (x, y, t, c, cond) in ms.items():
-        d.box(k, x, y, 240, 120, t, stroke=c, fill=WHITE, size=12, dashed=cond)
-    d.edge([(280, 280), (318, 280)], width=2.5)
-    d.edge([(560, 280), (598, 280)], width=2.5)
-    d.edge([(720, 340), (720, 468)], width=2.5, color=GREEN)
-    d.edge([(840, 260), (870, 260), (870, 150), (898, 150)], width=2.5)
-    d.edge([(840, 300), (870, 300), (870, 310), (898, 310)], width=2.5)
-    d.edge([(870, 310), (870, 470), (898, 470)], width=2.5)
-    d.edge([(1140, 150), (1200, 150), (1200, 310), (1248, 310)], width=2.5)
-    d.edge([(1140, 310), (1248, 330)], width=2.5)
-    d.edge([(1140, 470), (1200, 470), (1200, 350), (1248, 350)], width=2.5)
-    d.edge([(840, 530), (1370, 530), (1370, 392)], width=2.5, color=GREEN)
-
-    gates = [(40, 90, "G0 Warm 을 HMS 로 조회하는\n케이스가 있는가? (모드 결정)", 160),
-             (320, 90, "G1 복제 목적 · 버킷명 동일 여부", 460),
-             (320, 480, "G2 아카이브 방식\nA / B / C 협의", 0)]
-    for x, y, t, tx in gates:
-        d.box(f"g{x}", x, y, 240, 60, t, stroke=RED, fill=WARN_FILL, color=RED, size=12, bold=True)
-    d.edge([(160, 150), (160, 218)], dashed=True, color=RED)
-    d.edge([(440, 150), (440, 218)], dashed=True, color=RED)
-    d.edge([(560, 510), (598, 510)], dashed=True, color=RED)
-    d.box("lg", 40, 600, 1470, 80,
-          "G0 = 예 → 모드 ① 실시간 복제 + M4·M5·M6 진행   |   G0 = 아니오 → 모드 ② 백업(M2 의 백업 시점 테스트 결과로 주기 결정) 또는 모드 ③ 복제 불필요 → M4·M5·M6 보류\n"
-          "M3(ILM/Archive) 는 Replication 결정(M2) 이후 착수 · Rollover Job 은 협의 결과(G2)가 C 일 때만 구현",
+    for k, (x, y, t, c) in ms.items():
+        d.box(k, x, y, 240, 120, t, stroke=c, fill=WHITE, size=12)
+    d.edge([(280, 310), (300, 310), (300, 200), (318, 200)], width=2.5)
+    d.edge([(280, 350), (300, 350), (300, 460), (318, 460)], width=2.5)
+    for a, b, y in [(560, 598, 200), (840, 878, 200), (560, 598, 460), (840, 878, 460)]:
+        d.edge([(a, y), (b, y)], width=2.5)
+    d.edge([(1120, 200), (1170, 200), (1170, 310), (1218, 310)], width=2.5)
+    d.edge([(1120, 460), (1170, 460), (1170, 350), (1218, 350)], width=2.5)
+    d.edge([(720, 260), (720, 398)], "Warm 부하 공유", at=(720, 330), label_w=100, dashed=True, color=RED)
+    gates = [(40, 140, "G0 Warm 버킷 역할 분리\n(용인 · replica · tier)", (160, 200), (160, 268)),
+             (600, 76, "G1 복제 대상 · 삭제 전파", (720, 116), (720, 138)),
+             (880, 76, "G2 아카이브 A / B / C", (1000, 116), (1000, 138))]
+    for x, y, t, a, b in gates:
+        d.box(f"g{x}", x, y, 240, 60 if y > 100 else 40, t, stroke=RED, fill=WARN_FILL, color=RED, size=12, bold=True)
+        d.edge([a, b], dashed=True, color=RED)
+    d.box("lg", 40, 580, 1470, 90,
+          "두 줄은 병렬 진행 — 위: 이천 서비스(Hot → Warm replica 백업 + ILM Transition) / 아래: 용인(Warm 전용 적재·조회)\n"
+          "공통 선행 = M0 · G0(Warm 버킷 역할 분리) · Warm 은 두 케이스가 공유하므로 M2 에서 공존 부하(복제 + Tier + 용인 I/O) 측정",
           stroke=MUTED, fill="#FAFBFC", size=12, align="left")
     return d
-
 
 def r_decision():
-    d = Diagram("03-replication-mode-decision", "Replication 필요성 판단 — 조회용 실시간 복제 vs 백업용 복제 vs 불필요",
-                width=1500, height=840,
-                subtitle="Warm 데이터를 HMS 로 조회하는 케이스가 없으면 실시간 Replication 은 필요 없음 · 백업 용도면 테이블 특성별 백업 시점을 테스트로 결정")
-    d.box("q1", 40, 100, 440, 80, "Q1. Warm MinIO 의 데이터를 HMS(Trino · Polaris)로\n직접 조회하는 케이스가 있는가?", stroke=INK,
-          fill="#F4F5F7", size=13, bold=True)
-    d.box("q2", 540, 100, 440, 80, "Q2. Replication 목적이\n데이터 백업(DR) 인가?", stroke=INK, fill="#F4F5F7", size=13, bold=True)
-    d.box("m1", 40, 250, 440, 110, "모드 ① 조회용 실시간 Replication\n· 복제 → 검증 → HMS-Warm register\n· 충돌 C1~C5 대응 · Scanner 지연 관리 필수\n· 용인 Warm 단독 조회 구성 (장표 2)",
-          stroke=TEAL, fill="#E6F7F4", color=INK, size=12, bold=False)
-    d.box("m2", 540, 250, 440, 110, "모드 ② 백업용 Replication\n· 실시간 아님 — 테이블 특성별 백업 시점\n· 유지보수(merge·스냅샷 정리) 후 복제\n· 복구 시에만 Warm register",
-          stroke=ORANGE, fill="#FFF4E5", color=INK, size=12)
-    d.box("m3", 1040, 100, 420, 80, "모드 ③ Replication 불필요\n→ ILM Transition 만 사용 (Hot 용량 관리)", stroke=GREY, fill="#F4F5F7",
-          color=INK, size=12, bold=True)
-    d.edge([(260, 180), (260, 248)], "예", at=(260, 214), label_w=30)
-    d.edge([(480, 140), (538, 140)], "아니오", at=(509, 122), label_w=50)
-    d.edge([(760, 180), (760, 248)], "예", at=(760, 214), label_w=30)
-    d.edge([(980, 140), (1038, 140)], "아니오", at=(1009, 122), label_w=50)
-    d.box("who", 1040, 250, 420, 110, "먼저 확인: 담당자 우려사항\n· 조회 케이스 유무 · RPO/RTO\n· 복제 용량·대역폭 · 운영 부담\n→ 03-future/00-owner-concerns", stroke=RED,
-          fill=WARN_FILL, color=RED, size=12)
+    d = Diagram("03-warm-coexistence", "두 케이스 공존 — 용인 Warm 전용 + 이천 Replication · ILM (Warm 클러스터 3개 역할)",
+                width=1500, height=900,
+                subtitle="공존 가능 (조건부) — Warm 버킷 역할 분리 · Bucket Replication 만 사용(Site Replication 불가) · Tier prefix 독점 · replica 측 ILM 별도")
+    d.group("hot", 40, 100, 330, 400, "Hot 클러스터 (이천 서비스)", AISTOR, badge="S3")
+    d.icon("hb", 205, 190, "이천 서비스 버킷\n(Iceberg · RAW)", kind="s3", color=AISTOR, size=56, label_w=170)
+    d.box("hilm", 60, 300, 290, 80, "ILM 규칙 (Hot)\nTransition → Warm tier\nExpiration (삭제는 복제 안 됨)", stroke=ORANGE,
+          fill="#FFF4E5", size=12)
+    d.box("hrep", 60, 400, 290, 80, "Bucket Replication 규칙\nHot → Warm replica (단방향)\n목적: 백업 / DR", stroke=ORANGE,
+          fill="#FFF4E5", size=12)
 
-    d.group("bk", 40, 410, 1420, 400, "모드 ② 백업 시점 테스트 — 테이블 특성별 (merge · 스냅샷 정리 후 복제 가능 여부)", ORANGE, badge="T-B")
-    steps = ["① 쓰기 창 종료\n(배치 완료 · 커밋 정지)", "② rewrite_data_files\n(merge · compaction)",
-             "③ expire_snapshots ·\nremove_orphan_files", "④ 복제 트리거\n배치 복제 / 규칙 enable\n/ mirror 🔍",
-             "⑤ 복제 완료 확인\nFAILED · PENDING 0", "⑥ 복구 검증\nWarm register_table\n→ 조회 성공"]
-    xs = [60, 295, 530, 765, 1000, 1235]
-    for i, (x, t) in enumerate(zip(xs, steps)):
-        d.box(f"s{i}", x, 470, 205, 90, t, stroke=ORANGE, fill="#FFF4E5", size=12)
-        if i:
-            d.edge([(xs[i - 1] + 205, 515), (x, 515)])
-    kinds = [("Append-only (RAW · 로그)", "파티션 마감 후 일 단위"), ("MERGE/UPDATE 多 (CDC · 팩트)", "compaction 직후 복제"),
-             ("소형 디멘전", "전체 스냅샷 주기 복사"), ("대형 이력 파티션", "마감 파티션만 1회 복제")]
-    for i, (k, v) in enumerate(kinds):
-        d.box(f"k{i}", 60 + i * 350, 610, 330, 70, f"{k}\n→ {v} (가설)", stroke=PURPLE, fill="#F5F0FF", size=12)
-    d.box("chk", 60, 710, 1380, 80,
-          "검증 포인트: 유지보수 후 복제 시 복제 객체 수·용량 감소량 · 삭제(delete marker) 전파 방식 · 복제 규칙 disable→enable 시 누락분 처리 · 배치 복제 기능 지원 여부 🔍\n"
-          "Iceberg 순서 보장: data → manifest → metadata.json 순으로 복사하면 백업 시점 스냅샷 일관성 확보 가능 (rewrite_table_path 방식과 비교)",
-          stroke=MUTED, fill="#FAFBFC", size=12, align="left")
+    d.group("warm", 430, 100, 560, 400, "Warm 클러스터 — 버킷 역할 분리", "#8A1C2E", badge="W")
+    d.box("wr", 450, 150, 250, 100, "① replica 버킷 (Hot 동일명)\nReplication 대상 · Versioning\n직접 쓰기 금지 · 평시 조회 없음",
+          stroke=ORANGE, fill="#FFF4E5", size=12)
+    d.box("wt", 720, 150, 250, 100, "② tier 버킷 / 전용 prefix\nAIStor 독점 접근\n직접 접근 · ILM 규칙 금지", stroke=GREY,
+          fill="#F4F5F7", size=12)
+    d.box("wy", 450, 290, 520, 100, "③ 용인 전용 버킷 (yongin-*)\n용인 read/write 원본 · HMS-Warm 카탈로그 · 필요 시 ILM Expiration\nHot 과 복제·Tier 관계 없음",
+          stroke=PURPLE, fill="#F5F0FF", size=12, bold=True)
+    d.box("wilm", 450, 410, 520, 70, "replica 버킷 ILM 은 별도 설정 (Hot ILM 삭제는 복제 안 됨)\n→ noncurrent · 보존 기간을 Warm 에서 직접 관리",
+          stroke=RED, fill=WARN_FILL, color=RED, size=12)
+    d.edge([(350, 440), (400, 440), (400, 200), (448, 200)], "Replication", at=(400, 320), label_w=80, width=2.5, color=ORANGE)
+    d.edge([(350, 320), (385, 320), (385, 86), (845, 86), (845, 148)], "Transition", at=(620, 86), label_w=80,
+           dashed=True, color=ORANGE)
+
+    d.group("yi", 1050, 100, 410, 400, "용인 dataops", PURPLE, badge="k8s")
+    d.icon("yt", 1150, 200, "Trino / Spark (용인)", glyph="Trino", color=TRINO, label_w=150)
+    d.icon("yh", 1350, 200, "HMS-Warm\n(Oracle)", glyph="HMS", color=TEAL)
+    d.edge([(1176, 200), (1324, 200)], "메타", at=(1250, 182), label_w=40)
+    d.edge([(972, 340), (1090, 340), (1090, 200), (1124, 200)], "read / write\n(DC 간 · VIP)", at=(1030, 316), label_w=100, width=2.5, both=True)
+    d.box("ynote", 1070, 390, 370, 90, "용인 접근 키 = yongin-* 버킷만 허용\nreplica · tier 버킷 접근 차단", stroke=PURPLE,
+          fill=WHITE, size=12)
+
+    d.group("chk", 40, 530, 1420, 350, "공존 조건 · 확인 사항", RED, badge="!")
+    conds = [("C-1 복제 방식", "Bucket Replication 만 사용\nSite Replication 불가\n(상호 배타 · 다른 사이트 비어 있어야 함)"),
+             ("C-2 버킷 분리", "replica · tier · 용인 버킷 분리\n이름 충돌 방지 (Hot 동일명 예약)\n키 권한 분리"),
+             ("C-3 Tier 규칙", "tier 버킷/prefix 는 AIStor 전용\n직접 수정 · 삭제 · ILM 금지\n(위반 시 데이터 유실)"),
+             ("C-4 용량", "Transition + Replication 대상이\n겹치면 Warm 에 이중 저장\n→ 대상 prefix 설계 · 용량 산정"),
+             ("C-5 부하", "Warm = 복제 수신 + Tier 수신 +\n용인 read/write + Scanner\n→ 성능 경합 측정 필요"),
+             ("C-6 백업 품질", "replica 는 스냅샷 일관성 없음\n→ 백업 시점 테스트(T-B) ·\n복구 시 검증 후 등록")]
+    for i, (t, b) in enumerate(conds):
+        x = 60 + (i % 3) * 470
+        y = 580 + (i // 3) * 145
+        d.box(f"c{i}", x, y, 450, 125, f"{t}\n{b}", stroke=RED, fill=WARN_FILL, color=INK, size=12)
     return d
-
 
 def archive_options():
     d = Diagram("07-ilm-archive-options", "RAW 아카이브 방식 선택지 — A. zip 미사용 · B. 하이브리드 · C. 전면 Rollover (협의 필요)",
@@ -506,7 +504,7 @@ def archive_options():
 
 def main():
     order = [("01-icheon-hot-warm-dataops", d01), ("02-warm-standalone-yongin", d02),
-             ("03-replication-mode-decision", r_decision), ("04-commit-unit-mismatch", i3),
+             ("03-warm-coexistence", r_decision), ("04-commit-unit-mismatch", i3),
              ("05-iceberg-vs-replication-timeline", d03), ("06-scanner-impact", d07),
              ("07-ilm-archive-options", archive_options), ("08-yongin-network-checkpoints", d05),
              ("09-hot-warm-catalog-split", d06), ("10-verify-and-register", i6), ("11-todo-milestones", i7)]

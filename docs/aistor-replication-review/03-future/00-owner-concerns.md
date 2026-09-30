@@ -1,41 +1,50 @@
 # [향후 0] 담당자 우려사항 확인 — 가장 먼저 진행
 
-> 카테고리: 향후 구성 대응 (선행 단계 M0)
-> 피드백 반영: "담당자가 어떤 걸 우려하는지 확인 필요"
-> 목적: 우려사항에 따라 Replication 모드(① 조회용 / ② 백업용 / ③ 불필요)와 ILM 아카이브 방식(A/B/C)이 달라지므로, 설계·테스트 착수 전에 확인한다.
+> 카테고리: 향후 구성 대응 (선행 단계 M0) · v3 반영
+> 전제(확정): **용인 = Warm 전용 적재·조회**, **이천 서비스 = Hot → Warm Bucket Replication(백업) + ILM Transition(용량)** — 두 케이스 병행
+> 목적: 두 케이스가 Warm 을 공유할 때 담당자가 우려하는 지점을 먼저 확인하고, 설계 · 테스트 우선순위를 정한다. 근거: [근거 1 공존 검토](../02-evidence/01-warm-coexistence-replication-ilm.md)
 
 ---
 
-## 1. 확인 질문 — Replication (우선)
+## 1. 확인 질문 — 이천 Replication (우선)
 
-| # | 질문 | 답에 따라 달라지는 것 | 관련 문서 | 답변 | 확인일 |
+| # | 질문 | 답에 따라 달라지는 것 | 관련 | 답변 | 확인일 |
 |---|---|---|---|---|---|
-| OC-1 | Warm MinIO 데이터를 HMS(Trino·Polaris)로 **직접 조회**할 계획/사용자가 있는가? 누가, 얼마나 자주? | 모드 ① 여부 → 장표 2 · HMS-Warm · 용인 네트워크 전체 필요 여부 | [근거 1](../02-evidence/01-replication-necessity-backup.md) | | |
-| OC-2 | Replication 을 원하는 이유는? (백업·DR / 원격 조회 / 용량 분산 / 규정) | 모드 ② ③ 판단 | [근거 1](../02-evidence/01-replication-necessity-backup.md) | | |
-| OC-3 | 허용 RPO · RTO 는? (테이블 등급별) | 백업 시점·주기 (T-B) | [근거 1 §3](../02-evidence/01-replication-necessity-backup.md) | | |
-| OC-4 | Iceberg 테이블 **일관성**(부분 복제 스냅샷)에 대한 우려가 있는가? | 검증 후 등록 · 유지보수 후 복제 필요성 | [근거 2](../02-evidence/02-iceberg-snapshot-vs-replication.md) | | |
-| OC-5 | 복제로 인한 **용량(2배)·대역폭·비용** 우려는? | 복제 대상 범위 (버킷·프리픽스·테이블 선별) | [장표 1](../01-architecture/01-hot-warm-icheon-dataops.md) | | |
-| OC-6 | Hot 에서 삭제(expire_snapshots · RAW 정리)한 데이터가 Warm 에서도 **지워져야 하는가, 남아야 하는가**? | `--replicate delete,delete-marker` 설정 | [근거 2 C3](../02-evidence/02-iceberg-snapshot-vs-replication.md) | | |
-| OC-7 | 복제 검증·등록 Job 같은 **운영 부담**을 누가 맡는가? | 모드 ① 채택 가능성 | [HMS To-do](./02-hms-oracle-split-todo.md) | | |
-| OC-8 | Scanner 부하 · 복제 지연에 대한 경험/우려가 있는가? | 모니터링 · speed 설정 | [근거 3](../02-evidence/03-scanner-impact.md) | | |
+| OC-1 | 이천 Replication 의 목적은 백업·DR 인가? Warm replica 를 평시에 조회할 계획이 있는가? | 평시 조회가 있으면 검증 후 등록 상시 운영 필요 (현재 가정: 없음) | 근거 1 §1 | | |
+| OC-2 | 복제 대상 버킷/prefix 는? (전체 · 선별) | Warm 용량 · 대역폭 | 근거 1 E1-1 | | |
+| OC-3 | 허용 RPO · RTO (테이블 등급별) | 백업 시점 테스트 T-B · 복구 절차 | 근거 1 §6 | | |
+| OC-4 | Iceberg 테이블 **일관성**(부분 복제 스냅샷)에 대한 우려가 있는가? | 유지보수 후 백업 시점 · 복구 검증 강도 | 근거 2 | | |
+| OC-5 | Hot 에서 삭제한 데이터(expire_snapshots · ILM 만료)가 replica 에서 **지워져야 하는가, 남아야 하는가**? | `--replicate delete,delete-marker` · replica 측 ILM | 근거 1 P-3, 근거 2 C3 | | |
+| OC-6 | 복제 · resync 운영 부담(모니터링 · 백로그 처리)을 누가 맡는가? | 운영 절차 · 알림 | 근거 3 | | |
 
-## 2. 확인 질문 — ILM / Archive (다음)
+## 2. 확인 질문 — 이천 ILM (다음)
 
-| # | 질문 | 답에 따라 달라지는 것 | 관련 문서 | 답변 | 확인일 |
+| # | 질문 | 답에 따라 달라지는 것 | 관련 | 답변 | 확인일 |
 |---|---|---|---|---|---|
-| OC-9 | RAW 를 zip 으로 묶어야 하는 **이유**가 있는가? (용량 · 객체 수 · 규정 · 이관 편의) | A(미사용) vs B/C | [근거 4](../02-evidence/04-ilm-archive-options.md) | | |
-| OC-10 | 아카이브된 RAW 를 **다시 조회**하는 경우가 있는가? 빈도·방식은? | zip 사용 시 조회 방법 | [근거 4 §5](../02-evidence/04-ilm-archive-options.md) | | |
-| OC-11 | zip 변환 Job 을 서비스가 맡을 수 있는가? (하이브리드 B 의 전제) | B vs C · Job 소유 | [근거 4 §4](../02-evidence/04-ilm-archive-options.md) | | |
-| OC-12 | Transition 된 데이터 조회 **성능 저하**(Warm 경유) 우려는? | Transition 대상 prefix · 경과일 | [장표 1 §3](../01-architecture/01-hot-warm-icheon-dataops.md) | | |
-| OC-13 | 보존 기간 · Object Lock(WORM) · 규정 요구가 있는가? | 삭제 · 정리 정책, Lock 적용 버킷 | [근거 2 C5](../02-evidence/02-iceberg-snapshot-vs-replication.md) | | |
+| OC-7 | Transition 대상 prefix · 경과일은? 복제 대상과 **겹치는가**? | Warm 이중 저장(replica + tier) 여부 · 용량 | 근거 1 P-2 | | |
+| OC-8 | Transition 된 데이터 조회 **성능 저하**(Warm 경유) 우려는? | Transition 대상 · 경과일 | 장표 1 §3 | | |
+| OC-9 | RAW 를 zip 으로 묶어야 하는 이유가 있는가? | 아카이브 A / B / C | 근거 4 | | |
+| OC-10 | 아카이브된 RAW 를 다시 조회하는 경우 · 빈도 | zip 사용 시 조회 방법 | 근거 4 §5 | | |
+| OC-11 | zip 변환 Job 을 서비스가 맡을 수 있는가? | B vs C · Job 소유 | 근거 4 §4 | | |
 
-## 3. 답변 → 결정 매핑
+## 3. 확인 질문 — Warm 공유 · 용인
 
-| 답변 조합 | 결정 | 다음 단계 |
+| # | 질문 | 답에 따라 달라지는 것 | 관련 | 답변 | 확인일 |
+|---|---|---|---|---|---|
+| OC-12 | Warm 을 용인 원본 저장소로 쓰는 것과 이천 replica · tier 를 같은 클러스터에 두는 것에 대한 우려는? (부하 · 장애 영향 범위) | 버킷 분리 수준 · 부하 테스트(T-B9) · 대역폭 제한 | 근거 1 C-5 | | |
+| OC-13 | Warm 용량 산정 방식 (replica + tier + 용인 + 버전) 합의 | 증설 계획 | 근거 1 E1-4 | | |
+| OC-14 | 용인 데이터 **백업** 요구가 있는가? (현재 Warm 에만 존재) | 별도 백업 대상 · 방식 | 근거 1 Y-7 | | |
+| OC-15 | 버킷 명명 · access key 분리 정책 (replica · tier · 용인) | 권한 설계 | 근거 1 §3 | | |
+| OC-16 | 보존 기간 · Object Lock(WORM) · 규정 요구 | 삭제 · 정리 정책, Lock 적용 버킷 | 근거 2 C5 | | |
+
+## 4. 답변 → 결정 매핑
+
+| 답변 | 결정 | 다음 단계 |
 |---|---|---|
-| OC-1 = 예 | 모드 ① 조회용 실시간 복제 | M2 테스트 + M4 네트워크 · M5 HMS-Warm · M6 Polaris |
-| OC-1 = 아니오, OC-2 = 백업 | 모드 ② 백업용 복제 | M2 의 백업 시점 테스트(T-B) → 테이블별 주기 확정, M4~M6 보류 |
-| OC-1 = 아니오, OC-2 = 백업 아님 | 모드 ③ 복제 불필요 | ILM(M3)만 진행 |
-| OC-9 = 이유 없음 | 아카이브 A (zip 미사용) | ILM Transition 규칙만 설계 |
-| OC-9 = 있음, OC-11 = 가능 | 아카이브 B (하이브리드) | 변환 Job 범위 협의 (AR-2~AR-5) |
-| OC-9 = 있음, OC-11 = 불가 | 아카이브 C 또는 플랫폼 제공 검토 | 소유 주체 재협의 |
+| OC-1 = 백업 전용 | replica 는 복구 시에만 조회 → 검증 후 등록은 **복구 절차**로만 유지 | T-B 테스트 · 복구 리허설(T-B6) |
+| OC-1 = 평시 조회 있음 | 복구용이 아닌 **상시 검증·등록** 필요 (v2 의 모드 ① 절차 부활) | 등록 자동화 추가 |
+| OC-7 = 겹침 | Warm 이중 저장 → 용량 산정 · 대상 재조정 | T-B8 |
+| OC-9 = 이유 없음 | 아카이브 A (zip 미사용) | Transition 규칙만 |
+| OC-9 = 있음, OC-11 = 가능 | 아카이브 B (하이브리드) | AR-2~AR-5 협의 |
+| OC-12 = 우려 큼 | 부하 테스트 선행 · 복제 대역폭 제한 · 필요 시 클러스터 분리 검토 | T-B9 |
+| OC-14 = 백업 필요 | 용인 데이터 백업 대상 결정 (별도 버킷 복제 등) | 설계 추가 |

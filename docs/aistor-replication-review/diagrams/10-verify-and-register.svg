@@ -21,7 +21,7 @@
 <rect x="334.0" y="184.0" width="52" height="52" rx="8" fill="#01A88D"/>
 <text x="360.0" y="213.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">HMS</text>
 <rect x="560" y="160" width="280" height="110" rx="6" fill="#F5F0FF" stroke="#8C4FFF"/>
-<text x="700.0" y="196.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">동기화 · 검증 Job</text>
+<text x="700.0" y="196.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">복구 · 검증 Job</text>
 <text x="700.0" y="211.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">① 최신 metadata_location 조회</text>
 <text x="700.0" y="226.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">② Warm 에서 전체 파일 HEAD</text>
 <text x="700.0" y="241.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">③ 누락 0건일 때만 register</text>
@@ -30,24 +30,24 @@
 <rect x="1240.0" y="140.0" width="40" height="40" rx="8" fill="#DD00A1"/>
 <text x="1260.0" y="163.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Trino</text>
 <rect x="1240.0" y="240.0" width="40" height="40" rx="8" fill="#1F6FEB"/>
-<text x="1260.0" y="263.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Polaris</text>
+<text x="1260.0" y="263.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">DR</text>
 <rect x="332.0" y="442.0" width="56" height="56" rx="8" fill="#C72C48"/>
 <text x="360.0" y="473.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
 <rect x="1012.0" y="442.0" width="56" height="56" rx="8" fill="#8A1C2E"/>
 <text x="1040.0" y="473.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
 <rect x="40" y="610" width="1320" height="60" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
-<text x="700.0" y="644.3333333333334" font-size="13" fill="#DD344C" text-anchor="middle" font-weight="bold">⚠ 조건: Hot 스냅샷 보존 기간(expire_snapshots) &gt; 복제 지연 + 검증·등록 주기   |   Warm 에서는 DDL·쓰기 금지 (Hot 에서만 변경)</text>
-<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">[모드 ① 조회용 복제일 때] HMS 는 Hot / Warm 분리, Warm 은 '검증 후 등록'</text>
-<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">S3 Replication 은 데이터만 복제 → 동기화 Job 이 Warm 파일 완전성을 확인한 뒤에만 HMS-Warm 포인터를 갱신</text>
+<text x="700.0" y="644.3333333333334" font-size="13" fill="#DD344C" text-anchor="middle" font-weight="bold">⚠ 조건: Hot 스냅샷 보존 기간 &gt; 복제 지연 + 백업 주기   |   replica 버킷은 복구 전까지 쓰기 금지 · 용인 HMS-Warm 에 섞지 않음</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">[이천 replica 복구 절차] 검증 후 등록 — 평시 미사용, 복구·리허설 때만</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">Replication 은 데이터만 복제 → 복구 시 Warm replica 의 파일 완전성을 확인한 뒤에만 복구용 HMS 에 등록 (용인 HMS-Warm 과 별개)</text>
 <text x="130.0" y="252.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">이천 Spark / Trino</text>
 <text x="130.0" y="267.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(쓰기·조회)</text>
 <text x="360.0" y="254.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">HMS-Hot (이천)</text>
 <text x="360.0" y="269.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Oracle · 기존</text>
-<text x="1040.0" y="254.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">HMS-Warm (용인용)</text>
-<text x="1040.0" y="269.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Oracle · 신규 · 읽기 전용</text>
-<text x="1260.0" y="198.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">용인 Trino</text>
-<text x="1260.0" y="298.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Polaris</text>
-<text x="1260.0" y="313.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">lake_warm</text>
+<text x="1040.0" y="254.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">복구용 HMS</text>
+<text x="1040.0" y="269.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(임시 · 리허설용)</text>
+<text x="1260.0" y="198.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">복구 검증 Trino</text>
+<text x="1260.0" y="298.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">복구 후</text>
+<text x="1260.0" y="313.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">서비스 전환</text>
 <rect x="225.0" y="182.5" width="40" height="19" fill="#FFFFFF"/>
 <text x="245.0" y="195.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">커밋</text>
 <rect x="455.0" y="182.5" width="30" height="19" fill="#FFFFFF"/>
@@ -55,7 +55,7 @@
 <rect x="865.0" y="182.5" width="120" height="19" fill="#FFFFFF"/>
 <text x="925.0" y="195.66666666666666" font-size="11" fill="#8C4FFF" text-anchor="middle" font-weight="normal">③ register_table</text>
 <text x="360.0" y="516.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Hot 버킷  s3://&lt;bucket&gt;/…</text>
-<text x="1040.0" y="516.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Warm 버킷  s3://&lt;bucket&gt;/… (동일 버킷명 권장)</text>
+<text x="1040.0" y="516.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Warm replica 버킷  s3://&lt;bucket&gt;/… (동일 버킷명 권장)</text>
 <rect x="580.0" y="442.5" width="240" height="19" fill="#FFFFFF"/>
 <text x="700.0" y="455.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">Replication — 데이터 파일만 (비동기)</text>
 <rect x="320.0" y="340.5" width="80" height="19" fill="#FFFFFF"/>

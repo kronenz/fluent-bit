@@ -60,7 +60,7 @@
 |---|---|
 | Versioning ON | 원본 삭제는 delete marker 만 생성 → noncurrent 만료 규칙 필요 (PDF-6) |
 | Object Lock | 보존 기간 내 원본 삭제 불가 (PDF-4) |
-| ILM 삭제 미복제 | 원본 정리를 ILM Expiration 으로 하면 복제되지 않음 ([M3](./06-official-reference-links.md#m3)) — 모드 ① ② 에서 Warm 측 정리 규칙 별도 |
+| ILM 삭제 미복제 | 원본 정리를 ILM Expiration 으로 하면 복제되지 않음 ([M3](./06-official-reference-links.md#m3)) — replica 버킷에는 Warm 측 정리 규칙 별도 ([근거 1 P-3](./01-warm-coexistence-replication-ilm.md)) |
 | 멱등성 | 결정적 키(`archive/yyyy/mm/dd/part-N.zip`)로 재실행 중복 방지 |
 
 ## 5. 협의 안건

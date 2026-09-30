@@ -1685,7 +1685,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;\">3회 재시도 후 큐에서 빠진 FAILED 객체의 재큐잉 지연<br>→ Warm 파일 누락 지속 (C1 장기화)<br>→ HMS-Warm 등록 보류 · 용인 데이터 신선도 저하</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;\">3회 재시도 후 큐에서 빠진 FAILED 객체의 재큐잉 지연<br>→ Warm replica 누락 지속 (C1 장기화)<br>→ 백업 시점 품질 저하 · 복구 시 불완전 스냅샷</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,

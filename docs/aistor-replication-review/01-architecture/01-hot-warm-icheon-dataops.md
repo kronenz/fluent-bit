@@ -20,7 +20,7 @@
 | Private 네트워크 | Cilium ClusterMesh | dataops ↔ AIStor 간 **global service** 로 S3 서비스 노출 | `service.cilium.io/global: "true"` |
 | | BGP (ToR 스위치) | LB-IP / PodCIDR 경로 광고 | Cilium BGP Control Plane |
 | AIStor (베어메탈 k8s) | Hot 클러스터 | 최신 데이터(raw/, iceberg/) 쓰기·조회 | Versioning ON |
-| | Warm 클러스터 | Replication 사본 / ILM Remote Tier / archive | Versioning ON |
+| | Warm 클러스터 | ① 이천 replica(백업) / ② ILM Remote Tier / ③ **용인 전용 버킷(용인 원본)** — 버킷 역할 분리 | replica 버킷 Versioning ON |
 | Public 경로 | Ingress (L7) | 호스트 기반 S3 API 노출 | TLS 종단 위치 확인 필요 |
 | | L4 스위치 VIP | 스위치에 VIP 등록, 스위치가 로드밸런싱 | 용인·사무망·협력사 진입점 |
 
@@ -31,21 +31,24 @@
 | 이천 dataops Pod | Hot | **Private** · ClusterMesh global service | `http(s)://<svc>.<ns>.svc(.clusterset)` 또는 LB-IP | 대용량 ETL 트래픽 — Private 고정 |
 | 이천 dataops Pod | Warm | **Private** · BGP 광고 LB-IP 또는 global service | LB-IP / svc | 복제 검증·archive 작업 |
 | AIStor Hot | AIStor Warm | 클러스터 간 **Replication / Tier** 트래픽 | Warm 엔드포인트 (Remote target) | dataops 경로와 분리 권장 🔍 |
-| 용인 dataops / 사무망 | Warm (주), Hot (예외) | **Public** · DNS → L4 VIP 또는 Ingress | `https://warm-s3.<domain>` | [체크리스트](../03-future/01-yongin-network-checklist.md) |
+| 용인 dataops | Warm **용인 전용 버킷** (read/write) | **Public** · DNS → L4 VIP 또는 Ingress | `https://warm-s3.<domain>` | replica · tier 버킷 접근 차단 · [체크리스트](../03-future/01-yongin-network-checklist.md) |
+| 사무망 · 협력사 | Hot / Warm (필요 시) | **Public** · DNS → L4 VIP 또는 Ingress | `https://<hot 또는 warm>-s3.<domain>` | — |
 
 ## 3. Replication vs ILM Transition — 역할 구분 (장표 ①/②)
 
 | 구분 | ① Bucket Replication | ② ILM Transition (Remote Tier) |
 |---|---|---|
-| 목적 | Warm 에 **독립 조회 가능한 사본** 생성 (DR·원격 조회) | Hot 용량 절감 — 오래된 객체를 Warm 저장소로 **이동** |
+| 목적 | Warm 에 **백업 사본** 생성 (DR) — 이천 서비스 사용 확정 | Hot 용량 절감 — 오래된 객체를 Warm 저장소로 **이동** |
 | Warm 에서 직접 조회 | **가능** (Warm 엔드포인트) | 불가 — 조회는 **Hot 엔드포인트 경유**(투명) |
 | 동작 시점 | PUT 응답 후 큐잉(기본 비동기) | Scanner 가 규칙 평가 시 (비즉시) |
 | 전제 | 양쪽 Versioning ON | Tier 등록 |
 | Iceberg 영향 | 스냅샷 단위 일관성 없음 → [충돌 C1~C3](../02-evidence/02-iceberg-snapshot-vs-replication.md) | 참조 여부 모름 → [충돌 C4](../02-evidence/02-iceberg-snapshot-vs-replication.md) |
-| 용인 단독 조회 | **이 방식이 필요** | 부적합 (Hot 이 살아있어야 조회) |
+| 백업 효과 | **있음** (백업·DR 용도) | **없음** — "does not provide any additional business continuity or disaster recovery benefits" |
+| 용인 데이터와의 관계 | 없음 (용인은 Warm 전용 버킷에 직접 적재) | 없음 |
+| Warm 저장 위치 | replica 버킷 (Hot 동일명) | tier 버킷/전용 prefix (AIStor 독점) |
 | 근거 | PDF-5, PDF-2 / 공개: AIStor Bucket Replication | PDF-3, PDF-1 / 공개: AIStor Object Lifecycle Management |
 
-> **순서 원칙**: Replication(①) 필요성을 먼저 판단하고 ILM(②)은 그 다음에 설계합니다. Warm 을 HMS 로 조회하는 케이스가 없으면 실시간 Replication 은 필요 없습니다 → [근거 1 모드 판단](../02-evidence/01-replication-necessity-backup.md)
+> **두 케이스 공존**: 이천 서비스는 ① Replication(백업) 과 ② ILM(용량)을 **둘 다** 사용하고, 용인은 Warm 의 전용 버킷에만 적재·조회합니다. Warm 이 replica · tier · 용인 원본 3개 역할을 하므로 버킷 역할 분리 · Bucket Replication 만 사용(Site Replication 불가) · replica 측 ILM 별도 설정이 조건입니다 → [근거 1 공존 검토](../02-evidence/01-warm-coexistence-replication-ilm.md)
 
 > ⚠️ 같은 객체에 ①·②를 **동시에** 걸면 "Transition 된 객체의 복제", "resync 시 Tier 연결 단절" 같은 조합 제약이 있습니다. 공개 문서 기준으로 *resync 시 tiering 된 데이터는 non-transitioned 상태로 복원되어 remote 데이터와 영구 단절* 된다고 명시되어 있으므로, 조합 사용 전 **PDF-2(Global Reference)의 상호작용 표**로 확인이 필요합니다. ([근거 링크](../02-evidence/06-official-reference-links.md#m5))
 

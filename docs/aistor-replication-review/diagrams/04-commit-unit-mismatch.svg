@@ -10,7 +10,7 @@
 <rect x="940" y="100" width="420" height="440" fill="#FFFFFF" stroke="#8A1C2E" stroke-width="1.5"/>
 <rect x="940" y="100" width="26" height="26" fill="#8A1C2E"/>
 <text x="953.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
-<text x="974" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Warm 버킷 + HMS-Warm</text>
+<text x="974" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Warm replica 버킷 (백업)</text>
 <polyline points="360.0,207.0 1000.0,207.0" fill="none" stroke="#DD344C" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
 <polyline points="360.0,282.0 1000.0,282.0" fill="none" stroke="#ED7100" stroke-width="1.5" marker-end="url(#a)"/>
 <polyline points="360.0,357.0 1000.0,357.0" fill="none" stroke="#ED7100" stroke-width="1.5" marker-end="url(#a)"/>
@@ -33,8 +33,8 @@
 <rect x="1000" y="335" width="300" height="44" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
 <text x="1150.0" y="361.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">v3.metadata.json  ✓</text>
 <rect x="1000" y="450" width="300" height="60" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
-<text x="1150.0" y="476.5" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">HMS-Warm 포인터 없음</text>
-<text x="1150.0" y="491.5" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">→ 별도 등록 필요</text>
+<text x="1150.0" y="476.5" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">Warm 측 카탈로그 없음</text>
+<text x="1150.0" y="491.5" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">→ 복구 시 등록 필요</text>
 <rect x="40" y="570" width="250" height="110" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
 <text x="165.0" y="614.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">C1 부분 복제</text>
 <text x="165.0" y="629.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">metadata 는 왔는데</text>

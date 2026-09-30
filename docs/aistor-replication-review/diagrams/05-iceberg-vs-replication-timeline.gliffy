@@ -1487,7 +1487,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">Warm HMS / 조회 엔진<br>(용인 Trino)</span></p>",
+      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">복구 시 HMS / 조회 엔진<br>(평시 미사용)</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,

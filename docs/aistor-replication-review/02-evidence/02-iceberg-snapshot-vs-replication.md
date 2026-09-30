@@ -3,7 +3,7 @@
 > 요청 3 · 카테고리: 근거 정리
 > 공개 문서 원문 인용: [06-official-reference-links.md](./06-official-reference-links.md) · 사내 PDF 확인 포인트: [05-internal-pdf-evidence-map.md](./05-internal-pdf-evidence-map.md)
 
-> 적용 범위: 모드 ① 조회용 실시간 복제에서는 C1~C5 모두 대응 필수. 모드 ② 백업용에서는 **유지보수 후 시점 지정 복제**로 C1 을 완화할 수 있음 ([근거 1 T-B](./01-replication-necessity-backup.md)). 개념도: [04-commit-unit-mismatch](../diagrams/04-commit-unit-mismatch.svg)
+> 적용 범위 (v3): 이 충돌은 **이천 Hot → Warm replica** 에만 해당합니다. 용인 데이터는 Warm 에 직접 적재되므로 대상이 아닙니다. 이천 replica 는 평시 조회하지 않는 **백업**이므로 C1·C2 는 복구 시점 문제, C3·C4·C5 는 상시 관리 대상입니다 ([근거 1](./01-warm-coexistence-replication-ilm.md)). 개념도: [04-commit-unit-mismatch](../diagrams/04-commit-unit-mismatch.svg)
 
 ![Iceberg vs Replication 충돌 타임라인](../diagrams/05-iceberg-vs-replication-timeline.svg)
 

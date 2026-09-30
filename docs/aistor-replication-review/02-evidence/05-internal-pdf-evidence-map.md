@@ -45,6 +45,8 @@
 | R-22 | 3회 재시도 후 큐에서 빠진 FAILED 복제는 Scanner 가 재큐잉 · GET/HEAD 시 자동 재큐잉 | PDF-5 | "retry", "three", "requeue", "resync-backlog" | M13 | | ☐ |
 | R-23 | 시점 지정 복제 방법 (배치 복제 · 규칙 disable/enable 후 누락분 처리) | PDF-5, PDF-2 | "batch", "schedule", "disable", "enable", "resync" | — (T-B3, T-B4) | | ☐ |
 | R-24 | Transition 은 백업/DR 효과가 없음 · Transition 된 객체의 조회 방식 | PDF-3, PDF-1 | "business continuity", "disaster recovery", "tier" | M5 | | ☐ |
+| R-25 | Tier 버킷 독점 접근 · prefix 격리 · 원격 버킷 ILM 금지 (Warm 이 replica · 용인 원본과 공유될 때) | PDF-3, PDF-1, PDF-2 | "remote tier", "exclusive", "prefix", "data loss" | M14 | | ☐ |
+| R-26 | 한 클러스터가 복제 대상 + Tier 대상 + 일반 쓰기 대상을 겸할 때 제약 · 용량/성능 권고 | PDF-1, PDF-2 | "target", "tier", "capacity", "sizing" | — (공개 문서 부재) | | ☐ |
 
 ## 3. 문서별 요약 체크 (읽는 순서 권장)
 

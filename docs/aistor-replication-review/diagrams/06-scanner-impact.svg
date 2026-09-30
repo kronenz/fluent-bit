@@ -55,8 +55,8 @@
 <text x="1170.0" y="329.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">Expiration · noncurrent 정리 지연 → 버전 누적</text>
 <rect x="900" y="370" width="540" height="80" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
 <text x="1170.0" y="399.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">3회 재시도 후 큐에서 빠진 FAILED 객체의 재큐잉 지연</text>
-<text x="1170.0" y="414.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">→ Warm 파일 누락 지속 (C1 장기화)</text>
-<text x="1170.0" y="429.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">→ HMS-Warm 등록 보류 · 용인 데이터 신선도 저하</text>
+<text x="1170.0" y="414.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">→ Warm replica 누락 지속 (C1 장기화)</text>
+<text x="1170.0" y="429.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">→ 백업 시점 품질 저하 · 복구 시 불완전 스냅샷</text>
 <rect x="900" y="495" width="540" height="50" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
 <text x="1170.0" y="524.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">누락·손상 객체 복구(Healing) 지연</text>
 <rect x="40" y="680" width="1420" height="70" rx="6" fill="#F4F5F7" stroke="#232F3E"/>

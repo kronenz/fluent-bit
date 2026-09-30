@@ -7,7 +7,7 @@
   "height": 700,
   "maxWidth": 5000,
   "maxHeight": 5000,
-  "nodeIndex": 40,
+  "nodeIndex": 41,
   "autoFit": true,
   "exportBorder": false,
   "gridOn": true,
@@ -33,7 +33,7 @@
     "id": 1,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
     "width": 38.0,
-    "height": 1,
+    "height": 110.0,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 0,
@@ -53,11 +53,19 @@
       "controlPath": [
        [
         280.0,
-        280.0
+        310.0
+       ],
+       [
+        300.0,
+        310.0
+       ],
+       [
+        300.0,
+        200.0
        ],
        [
         318.0,
-        280.0
+        200.0
        ]
       ],
       "lockSegments": {},
@@ -80,7 +88,7 @@
     "id": 2,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
     "width": 38.0,
-    "height": 1,
+    "height": 110.0,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 1,
@@ -99,12 +107,20 @@
       "cornerRadius": null,
       "controlPath": [
        [
-        560.0,
-        280.0
+        280.0,
+        350.0
        ],
        [
-        598.0,
-        280.0
+        300.0,
+        350.0
+       ],
+       [
+        300.0,
+        460.0
+       ],
+       [
+        318.0,
+        460.0
        ]
       ],
       "lockSegments": {},
@@ -126,8 +142,8 @@
     "rotation": 0,
     "id": 3,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 1,
-    "height": 128.0,
+    "width": 38.0,
+    "height": 1,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 2,
@@ -135,7 +151,7 @@
      "type": "Line",
      "Line": {
       "strokeWidth": 2.5,
-      "strokeColor": "#7AA116",
+      "strokeColor": "#232F3E",
       "fillColor": "none",
       "dashStyle": null,
       "startArrow": 0,
@@ -146,12 +162,12 @@
       "cornerRadius": null,
       "controlPath": [
        [
-        720.0,
-        340.0
+        560.0,
+        200.0
        ],
        [
-        720.0,
-        468.0
+        598.0,
+        200.0
        ]
       ],
       "lockSegments": {},
@@ -173,8 +189,8 @@
     "rotation": 0,
     "id": 4,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 58.0,
-    "height": 110.0,
+    "width": 38.0,
+    "height": 1,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 3,
@@ -194,19 +210,11 @@
       "controlPath": [
        [
         840.0,
-        260.0
+        200.0
        ],
        [
-        870.0,
-        260.0
-       ],
-       [
-        870.0,
-        150.0
-       ],
-       [
-        898.0,
-        150.0
+        878.0,
+        200.0
        ]
       ],
       "lockSegments": {},
@@ -228,8 +236,8 @@
     "rotation": 0,
     "id": 5,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 58.0,
-    "height": 10.0,
+    "width": 38.0,
+    "height": 1,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 4,
@@ -248,20 +256,12 @@
       "cornerRadius": null,
       "controlPath": [
        [
-        840.0,
-        300.0
+        560.0,
+        460.0
        ],
        [
-        870.0,
-        300.0
-       ],
-       [
-        870.0,
-        310.0
-       ],
-       [
-        898.0,
-        310.0
+        598.0,
+        460.0
        ]
       ],
       "lockSegments": {},
@@ -283,8 +283,8 @@
     "rotation": 0,
     "id": 6,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 28.0,
-    "height": 160.0,
+    "width": 38.0,
+    "height": 1,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 5,
@@ -303,16 +303,12 @@
       "cornerRadius": null,
       "controlPath": [
        [
-        870.0,
-        310.0
+        840.0,
+        460.0
        ],
        [
-        870.0,
-        470.0
-       ],
-       [
-        898.0,
-        470.0
+        878.0,
+        460.0
        ]
       ],
       "lockSegments": {},
@@ -334,8 +330,8 @@
     "rotation": 0,
     "id": 7,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 108.0,
-    "height": 160.0,
+    "width": 98.0,
+    "height": 110.0,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 6,
@@ -354,19 +350,19 @@
       "cornerRadius": null,
       "controlPath": [
        [
-        1140.0,
-        150.0
+        1120.0,
+        200.0
        ],
        [
-        1200.0,
-        150.0
+        1170.0,
+        200.0
        ],
        [
-        1200.0,
+        1170.0,
         310.0
        ],
        [
-        1248.0,
+        1218.0,
         310.0
        ]
       ],
@@ -389,8 +385,8 @@
     "rotation": 0,
     "id": 8,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 108.0,
-    "height": 20.0,
+    "width": 98.0,
+    "height": 110.0,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 7,
@@ -409,12 +405,20 @@
       "cornerRadius": null,
       "controlPath": [
        [
-        1140.0,
-        310.0
+        1120.0,
+        460.0
        ],
        [
-        1248.0,
-        330.0
+        1170.0,
+        460.0
+       ],
+       [
+        1170.0,
+        350.0
+       ],
+       [
+        1218.0,
+        350.0
        ]
       ],
       "lockSegments": {},
@@ -436,18 +440,18 @@
     "rotation": 0,
     "id": 9,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 108.0,
-    "height": 120.0,
+    "width": 1,
+    "height": 138.0,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 8,
     "graphic": {
      "type": "Line",
      "Line": {
-      "strokeWidth": 2.5,
-      "strokeColor": "#232F3E",
+      "strokeWidth": 1.5,
+      "strokeColor": "#DD344C",
       "fillColor": "none",
-      "dashStyle": null,
+      "dashStyle": "6,4",
       "startArrow": 0,
       "endArrow": 1,
       "startArrowRotation": "auto",
@@ -456,20 +460,12 @@
       "cornerRadius": null,
       "controlPath": [
        [
-        1140.0,
-        470.0
+        720.0,
+        260.0
        ],
        [
-        1200.0,
-        470.0
-       ],
-       [
-        1200.0,
-        350.0
-       ],
-       [
-        1248.0,
-        350.0
+        720.0,
+        398.0
        ]
       ],
       "lockSegments": {},
@@ -491,18 +487,18 @@
     "rotation": 0,
     "id": 10,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 530.0,
-    "height": 138.0,
+    "width": 1,
+    "height": 68.0,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 9,
     "graphic": {
      "type": "Line",
      "Line": {
-      "strokeWidth": 2.5,
-      "strokeColor": "#7AA116",
+      "strokeWidth": 1.5,
+      "strokeColor": "#DD344C",
       "fillColor": "none",
-      "dashStyle": null,
+      "dashStyle": "6,4",
       "startArrow": 0,
       "endArrow": 1,
       "startArrowRotation": "auto",
@@ -511,16 +507,12 @@
       "cornerRadius": null,
       "controlPath": [
        [
-        840.0,
-        530.0
+        160.0,
+        200.0
        ],
        [
-        1370.0,
-        530.0
-       ],
-       [
-        1370.0,
-        392.0
+        160.0,
+        268.0
        ]
       ],
       "lockSegments": {},
@@ -543,7 +535,7 @@
     "id": 11,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
     "width": 1,
-    "height": 68.0,
+    "height": 22.0,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 10,
@@ -562,12 +554,12 @@
       "cornerRadius": null,
       "controlPath": [
        [
-        160.0,
-        150.0
+        720.0,
+        116.0
        ],
        [
-        160.0,
-        218.0
+        720.0,
+        138.0
        ]
       ],
       "lockSegments": {},
@@ -590,7 +582,7 @@
     "id": 12,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
     "width": 1,
-    "height": 68.0,
+    "height": 22.0,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 11,
@@ -609,59 +601,12 @@
       "cornerRadius": null,
       "controlPath": [
        [
-        440.0,
-        150.0
+        1000.0,
+        116.0
        ],
        [
-        440.0,
-        218.0
-       ]
-      ],
-      "lockSegments": {},
-      "ortho": false
-     }
-    },
-    "children": [],
-    "linkMap": [],
-    "hidden": false,
-    "constraints": {
-     "constraints": [],
-     "startConstraint": null,
-     "endConstraint": null
-    }
-   },
-   {
-    "x": 0,
-    "y": 0,
-    "rotation": 0,
-    "id": 13,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 38.0,
-    "height": 1,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 12,
-    "graphic": {
-     "type": "Line",
-     "Line": {
-      "strokeWidth": 1.5,
-      "strokeColor": "#DD344C",
-      "fillColor": "none",
-      "dashStyle": "6,4",
-      "startArrow": 0,
-      "endArrow": 1,
-      "startArrowRotation": "auto",
-      "endArrowRotation": "auto",
-      "interpolationType": "linear",
-      "cornerRadius": null,
-      "controlPath": [
-       [
-        560.0,
-        510.0
-       ],
-       [
-        598.0,
-        510.0
+        1000.0,
+        138.0
        ]
       ],
       "lockSegments": {},
@@ -679,15 +624,15 @@
    },
    {
     "x": 40,
-    "y": 220,
+    "y": 270,
     "rotation": 0,
-    "id": 15,
+    "id": 14,
     "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
     "width": 240,
     "height": 120,
     "lockAspectRatio": false,
     "lockShape": false,
-    "order": 13,
+    "order": 12,
     "graphic": {
      "type": "Shape",
      "Shape": {
@@ -709,7 +654,7 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 14,
+      "id": 13,
       "uid": null,
       "width": 240,
       "height": 120,
@@ -724,7 +669,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M0 담당자 우려 · 요구 확인<br>No 1 ~ 3<br>복제 목적 · Warm 조회 케이스<br>RPO/RTO</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M0 담당자 우려 · 요구 확인<br>No 1 ~ 3<br>두 케이스 범위 · RPO<br>Warm 역할 분리</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -739,15 +684,15 @@
    },
    {
     "x": 320,
-    "y": 220,
+    "y": 140,
     "rotation": 0,
-    "id": 17,
+    "id": 16,
     "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
     "width": 240,
     "height": 120,
     "lockAspectRatio": false,
     "lockShape": false,
-    "order": 14,
+    "order": 13,
     "graphic": {
      "type": "Shape",
      "Shape": {
@@ -769,7 +714,7 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 16,
+      "id": 15,
       "uid": null,
       "width": 240,
       "height": 120,
@@ -784,7 +729,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M1 Replication 근거 · 설계<br>No 4 ~ 10<br>보안 PDF · 방향 · 버킷명<br>삭제 플래그 · Scanner</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M1 Replication · ILM 근거 · 설계<br>No 4 ~ 11<br>보안 PDF · 대상 · 삭제 전파<br>Tier prefix · 용량</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -799,15 +744,15 @@
    },
    {
     "x": 600,
-    "y": 220,
+    "y": 140,
     "rotation": 0,
-    "id": 19,
+    "id": 18,
     "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
     "width": 240,
     "height": 120,
     "lockAspectRatio": false,
     "lockShape": false,
-    "order": 15,
+    "order": 14,
     "graphic": {
      "type": "Shape",
      "Shape": {
@@ -829,7 +774,7 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 18,
+      "id": 17,
       "uid": null,
       "width": 240,
       "height": 120,
@@ -844,7 +789,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M2 Replication 테스트<br>No 11 ~ 15<br>백업 시점(T-B) · 충돌 C1~C5<br>복제 지연·백로그</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M2 이천 Replication 테스트<br>No 12 ~ 16<br>백업 시점(T-B) · C1~C5<br>공존 부하</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -858,10 +803,70 @@
     "hidden": false
    },
    {
-    "x": 600,
-    "y": 470,
+    "x": 880,
+    "y": 140,
     "rotation": 0,
-    "id": 21,
+    "id": 20,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
+    "width": 240,
+    "height": 120,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 15,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
+      "strokeWidth": 1.5,
+      "strokeColor": "#7AA116",
+      "fillColor": "#FFFFFF",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 19,
+      "uid": null,
+      "width": 240,
+      "height": 120,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M3 ILM / Archive 협의 · PoC<br>No 17 ~ 21<br>A · B · C · Transition 규칙</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 320,
+    "y": 400,
+    "rotation": 0,
+    "id": 22,
     "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
     "width": 240,
     "height": 120,
@@ -889,7 +894,7 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 20,
+      "id": 21,
       "uid": null,
       "width": 240,
       "height": 120,
@@ -904,7 +909,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M3 ILM / Archive 협의 · PoC<br>No 16 ~ 20<br>A 미사용 · B 하이브리드 · C 전면<br>Transition 규칙</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M4 용인 네트워크 개통<br>No 22 ~ 26<br>read/write 경로 · FW · DNS</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -918,10 +923,10 @@
     "hidden": false
    },
    {
-    "x": 900,
-    "y": 90,
+    "x": 600,
+    "y": 400,
     "rotation": 0,
-    "id": 23,
+    "id": 24,
     "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
     "width": 240,
     "height": 120,
@@ -933,10 +938,10 @@
      "Shape": {
       "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
       "strokeWidth": 1.5,
-      "strokeColor": "#7AA116",
+      "strokeColor": "#01A88D",
       "fillColor": "#FFFFFF",
       "gradient": false,
-      "dashStyle": "6,4",
+      "dashStyle": null,
       "dropShadow": false,
       "state": 0,
       "opacity": 1,
@@ -949,7 +954,7 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 22,
+      "id": 23,
       "uid": null,
       "width": 240,
       "height": 120,
@@ -964,7 +969,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M4 네트워크 개통<br>No 21 ~ 25<br>(모드 ① 또는 용인 접근 필요 시)</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M5 HMS-Warm(용인) 구축<br>No 27 ~ 31<br>Oracle · 배포 · 권한 분리</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -978,10 +983,10 @@
     "hidden": false
    },
    {
-    "x": 900,
-    "y": 250,
+    "x": 880,
+    "y": 400,
     "rotation": 0,
-    "id": 25,
+    "id": 26,
     "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
     "width": 240,
     "height": 120,
@@ -993,10 +998,10 @@
      "Shape": {
       "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
       "strokeWidth": 1.5,
-      "strokeColor": "#01A88D",
+      "strokeColor": "#1F6FEB",
       "fillColor": "#FFFFFF",
       "gradient": false,
-      "dashStyle": "6,4",
+      "dashStyle": null,
       "dropShadow": false,
       "state": 0,
       "opacity": 1,
@@ -1009,7 +1014,7 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 24,
+      "id": 25,
       "uid": null,
       "width": 240,
       "height": 120,
@@ -1024,7 +1029,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M5 HMS-Warm · 등록 자동화<br>No 26 ~ 31<br>(모드 ① 일 때만)</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M6 Polaris federation PoC<br>No 32 ~ 34<br>lake_hot · lake_warm</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -1038,76 +1043,16 @@
     "hidden": false
    },
    {
-    "x": 900,
-    "y": 410,
+    "x": 1220,
+    "y": 270,
     "rotation": 0,
-    "id": 27,
+    "id": 28,
     "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
     "width": 240,
     "height": 120,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 19,
-    "graphic": {
-     "type": "Shape",
-     "Shape": {
-      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
-      "strokeWidth": 1.5,
-      "strokeColor": "#1F6FEB",
-      "fillColor": "#FFFFFF",
-      "gradient": false,
-      "dashStyle": "6,4",
-      "dropShadow": false,
-      "state": 0,
-      "opacity": 1,
-      "shadowX": 0,
-      "shadowY": 0
-     }
-    },
-    "children": [
-     {
-      "x": 0,
-      "y": 0,
-      "rotation": 0,
-      "id": 26,
-      "uid": null,
-      "width": 240,
-      "height": 120,
-      "lockAspectRatio": false,
-      "lockShape": false,
-      "order": 0,
-      "graphic": {
-       "type": "Text",
-       "Text": {
-        "tid": null,
-        "valign": "middle",
-        "overflow": "none",
-        "vposition": "none",
-        "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M6 Polaris federation PoC<br>No 32 ~ 34<br>(모드 ① 일 때만)</span></p>",
-        "paddingLeft": 4,
-        "paddingRight": 4,
-        "paddingBottom": 3,
-        "paddingTop": 3
-       }
-      },
-      "linkMap": []
-     }
-    ],
-    "linkMap": [],
-    "hidden": false
-   },
-   {
-    "x": 1250,
-    "y": 270,
-    "rotation": 0,
-    "id": 29,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
-    "width": 240,
-    "height": 120,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 20,
     "graphic": {
      "type": "Shape",
      "Shape": {
@@ -1129,7 +1074,7 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 28,
+      "id": 27,
       "uid": null,
       "width": 240,
       "height": 120,
@@ -1144,7 +1089,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M7 운영 이관<br>No 35<br>복제·ILM 정책 적용 · 가이드</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">M7 운영 이관<br>No 35<br>복제·ILM·용인 운영 · 가이드</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -1159,12 +1104,72 @@
    },
    {
     "x": 40,
-    "y": 90,
+    "y": 140,
     "rotation": 0,
-    "id": 31,
+    "id": 30,
     "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
     "width": 240,
     "height": 60,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 20,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
+      "strokeWidth": 1.5,
+      "strokeColor": "#DD344C",
+      "fillColor": "#FFF1F0",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 29,
+      "uid": null,
+      "width": 240,
+      "height": 60,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">G0 Warm 버킷 역할 분리<br>(용인 · replica · tier)</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 600,
+    "y": 76,
+    "rotation": 0,
+    "id": 32,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
+    "width": 240,
+    "height": 40,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 21,
@@ -1189,10 +1194,10 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 30,
+      "id": 31,
       "uid": null,
       "width": 240,
-      "height": 60,
+      "height": 40,
       "lockAspectRatio": false,
       "lockShape": false,
       "order": 0,
@@ -1204,7 +1209,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">G0 Warm 을 HMS 로 조회하는<br>케이스가 있는가? (모드 결정)</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">G1 복제 대상 · 삭제 전파</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -1218,13 +1223,13 @@
     "hidden": false
    },
    {
-    "x": 320,
-    "y": 90,
+    "x": 880,
+    "y": 76,
     "rotation": 0,
-    "id": 33,
+    "id": 34,
     "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
     "width": 240,
-    "height": 60,
+    "height": 40,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 22,
@@ -1249,10 +1254,10 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 32,
+      "id": 33,
       "uid": null,
       "width": 240,
-      "height": 60,
+      "height": 40,
       "lockAspectRatio": false,
       "lockShape": false,
       "order": 0,
@@ -1264,67 +1269,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">G1 복제 목적 · 버킷명 동일 여부</span></p>",
-        "paddingLeft": 4,
-        "paddingRight": 4,
-        "paddingBottom": 3,
-        "paddingTop": 3
-       }
-      },
-      "linkMap": []
-     }
-    ],
-    "linkMap": [],
-    "hidden": false
-   },
-   {
-    "x": 320,
-    "y": 480,
-    "rotation": 0,
-    "id": 35,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
-    "width": 240,
-    "height": 60,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 23,
-    "graphic": {
-     "type": "Shape",
-     "Shape": {
-      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
-      "strokeWidth": 1.5,
-      "strokeColor": "#DD344C",
-      "fillColor": "#FFF1F0",
-      "gradient": false,
-      "dashStyle": null,
-      "dropShadow": false,
-      "state": 0,
-      "opacity": 1,
-      "shadowX": 0,
-      "shadowY": 0
-     }
-    },
-    "children": [
-     {
-      "x": 0,
-      "y": 0,
-      "rotation": 0,
-      "id": 34,
-      "uid": null,
-      "width": 240,
-      "height": 60,
-      "lockAspectRatio": false,
-      "lockShape": false,
-      "order": 0,
-      "graphic": {
-       "type": "Text",
-       "Text": {
-        "tid": null,
-        "valign": "middle",
-        "overflow": "none",
-        "vposition": "none",
-        "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">G2 아카이브 방식<br>A / B / C 협의</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">G2 아카이브 A / B / C</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -1339,15 +1284,15 @@
    },
    {
     "x": 40,
-    "y": 600,
+    "y": 580,
     "rotation": 0,
-    "id": 37,
+    "id": 36,
     "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
     "width": 1470,
-    "height": 80,
+    "height": 90,
     "lockAspectRatio": false,
     "lockShape": false,
-    "order": 24,
+    "order": 23,
     "graphic": {
      "type": "Shape",
      "Shape": {
@@ -1369,10 +1314,10 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 36,
+      "id": 35,
       "uid": null,
       "width": 1470,
-      "height": 80,
+      "height": 90,
       "lockAspectRatio": false,
       "lockShape": false,
       "order": 0,
@@ -1384,7 +1329,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:left;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">G0 = 예 → 모드 ① 실시간 복제 + M4·M5·M6 진행   |   G0 = 아니오 → 모드 ② 백업(M2 의 백업 시점 테스트 결과로 주기 결정) 또는 모드 ③ 복제 불필요 → M4·M5·M6 보류<br>M3(ILM/Archive) 는 Replication 결정(M2) 이후 착수 · Rollover Job 은 협의 결과(G2)가 C 일 때만 구현</span></p>",
+        "html": "<p style=\"text-align:left;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">두 줄은 병렬 진행 — 위: 이천 서비스(Hot → Warm replica 백업 + ILM Transition) / 아래: 용인(Warm 전용 적재·조회)<br>공통 선행 = M0 · G0(Warm 버킷 역할 분리) · Warm 은 두 케이스가 공유하므로 M2 에서 공존 부하(복제 + Tier + 용인 I/O) 측정</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -1401,13 +1346,13 @@
     "x": 40,
     "y": 16,
     "rotation": 0,
-    "id": 38,
+    "id": 37,
     "uid": "com.gliffy.shape.basic.basic_v1.default.text",
     "width": 1480,
     "height": 30,
     "lockAspectRatio": false,
     "lockShape": false,
-    "order": 25,
+    "order": 24,
     "graphic": {
      "type": "Text",
      "Text": {
@@ -1416,7 +1361,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:left;\"><span style=\"font-size:22px;line-height:25px;color:#000000;font-weight:bold;\">해야 할 일 — 마일스톤 의존 관계 (Replication 우선 → ILM → 향후 구성)</span></p>",
+      "html": "<p style=\"text-align:left;\"><span style=\"font-size:22px;line-height:25px;color:#000000;font-weight:bold;\">해야 할 일 — 마일스톤 (두 케이스 병행: 용인 Warm 전용 · 이천 Replication + ILM)</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,
@@ -1431,13 +1376,13 @@
     "x": 40,
     "y": 48,
     "rotation": 0,
-    "id": 39,
+    "id": 38,
     "uid": "com.gliffy.shape.basic.basic_v1.default.text",
     "width": 1480,
     "height": 20,
     "lockAspectRatio": false,
     "lockShape": false,
-    "order": 26,
+    "order": 25,
     "graphic": {
      "type": "Text",
      "Text": {
@@ -1446,7 +1391,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:left;\"><span style=\"font-size:12px;line-height:15px;color:#5E6C84;\">박스 안 No = INDEX §3 작업 번호 · 빨간 게이트 = 다음 단계 착수 전 확정해야 할 결정 · 점선 박스 = 게이트 결과에 따라 조건부</span></p>",
+      "html": "<p style=\"text-align:left;\"><span style=\"font-size:12px;line-height:15px;color:#5E6C84;\">박스 안 No = INDEX §3 작업 번호 · 빨간 게이트 = 착수 전 확정할 결정 · 위 줄 = 이천 Replication/ILM · 아래 줄 = 용인 Warm 전용</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,
@@ -1454,6 +1399,66 @@
      }
     },
     "children": [],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 670.0,
+    "y": 320.5,
+    "rotation": 0,
+    "id": 40,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+    "width": 100,
+    "height": 19,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 26,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.rectangle.basic_v1",
+      "strokeWidth": 0,
+      "strokeColor": "#FFFFFF",
+      "fillColor": "#FFFFFF",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 39,
+      "uid": null,
+      "width": 100,
+      "height": 19,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#DD344C;\">Warm 부하 공유</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
     "linkMap": [],
     "hidden": false
    }
