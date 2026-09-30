@@ -20,7 +20,7 @@
 | 1 | 공존 | 두 케이스는 한 Warm 에서 **공존 가능(조건부)** — Warm 이 ① 이천 replica ② ILM tier ③ 용인 원본 3개 역할 → **버킷 역할 분리 · 권한 분리** 필수 | [02-evidence/01](./02-evidence/01-warm-coexistence-replication-ilm.md) |
 | 2-0 | Replication | 🚨 **Hot(2026-02-07) · Warm(2026-06-06) 버전 불일치** — Bucket Replication 은 원본·대상 동일 Object Store 버전 필수 → 복제 구성 전 버전 일치 선행 | [02-evidence/01 §1-1](./02-evidence/01-warm-coexistence-replication-ilm.md) |
 | 2 | Replication | 이천 복제는 **Bucket Replication 만** 가능 — Site Replication 은 Bucket Replication 과 상호 배타이고 다른 사이트가 비어 있어야 함(Warm 에 용인 데이터 존재) | [02-evidence/01 P-6](./02-evidence/01-warm-coexistence-replication-ilm.md) |
-| 3 | Replication · ILM | 이천의 Replication(백업) + Transition(용량) 병행은 **역할이 달라 문제없음**. 단 같은 객체면 Warm **이중 저장** · ILM 삭제 **미복제** → replica 측 ILM 별도 · resync 시 **Tier 단절** 주의 | [02-evidence/01 §4](./02-evidence/01-warm-coexistence-replication-ilm.md) |
+| 3 | Replication · ILM | 병행 **금지 문구는 없고 MinIO 는 병행 권장**. 단 같은 버킷·객체에 그대로 걸면 8가지 제약(resync Tier 단절 · Expiration 미복제 · ILM 비복제 · Transition 객체 복제 미기재 · Tier 독점 · 이중 저장 · Scanner · 버전) → **복제 대상과 Transition 대상 분리**가 기본 | [02-evidence/01 §4](./02-evidence/01-warm-coexistence-replication-ilm.md) |
 | 4 | Replication | 이천 replica 는 Iceberg 스냅샷 일관성 없음(C1~C5) → 백업이므로 **백업 시점 테스트(T-B)** · 복구 시 검증 후 등록 | [02-evidence/02](./02-evidence/02-iceberg-snapshot-vs-replication.md) |
 | 5 | Replication · ILM | Scanner 가 복제 재큐잉 · Transition · 버전 정리를 함께 처리 → 지연 시 함께 악화 | [02-evidence/03](./02-evidence/03-scanner-impact.md) |
 | 6 | ILM | ILM Tier 는 AIStor **독점 영역**(직접 접근 · ILM 금지). 아카이브는 A. zip 미사용 / B. 하이브리드 / C. 전면 Rollover 중 **협의** | [02-evidence/01 P-5](./02-evidence/01-warm-coexistence-replication-ilm.md), [02-evidence/04](./02-evidence/04-ilm-archive-options.md) |
@@ -45,7 +45,7 @@ aistor-replication-review/
 │   ├── 02-iceberg-snapshot-vs-replication.md    Iceberg vs Replication 충돌 C1~C5
 │   ├── 03-scanner-impact.md                     Scanner 지연 영향 (복제 재큐잉 · Transition)
 │   ├── 04-ilm-archive-options.md                ILM 한계 · 아카이브 A/B/C (협의)
-│   ├── 05-internal-pdf-evidence-map.md          보안 PDF 확인 매핑 R-01~R-27
+│   ├── 05-internal-pdf-evidence-map.md          보안 PDF 확인 매핑 R-01~R-28
 │   └── 06-official-reference-links.md           공개 공식 문서 링크 · 원문 인용
 ├── 03-future/                                   ── 3. 향후 구성 대응
 │   ├── 00-owner-concerns.md                     담당자 우려 확인 (가장 먼저)
@@ -72,6 +72,7 @@ aistor-replication-review/
 | 09 | hot-warm-catalog-split | 향후 (카탈로그) | 03-future/02, 03 |
 | 10 | verify-and-register | 이천 replica 복구 절차 | 03-future/02, INDEX |
 | 11 | todo-milestones | 진행 관리 | INDEX |
+| 12 | replication-ilm-constraints | Replication + ILM 동시 적용 제약 | 02-evidence/01 §4-1, INDEX |
 
 | 파일 | 용도 | Confluence 반영 방법 |
 |---|---|---|

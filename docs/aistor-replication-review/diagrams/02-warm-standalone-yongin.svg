@@ -18,7 +18,7 @@
 <rect x="1140" y="150" width="360" height="450" fill="#FFFFFF" stroke="#8A1C2E" stroke-width="1.5"/>
 <rect x="1140" y="150" width="26" height="26" fill="#8A1C2E"/>
 <text x="1153.0" y="166.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">W</text>
-<text x="1174" y="167.33333333333334" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Warm 클러스터 · 2026-06-06</text>
+<text x="1174" y="167.33333333333334" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Warm · 2026-06-06</text>
 <polyline points="136.0,300.0 304.0,300.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
 <polyline points="136.0,470.0 304.0,470.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
 <polyline points="356.0,300.0 554.0,300.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
@@ -30,10 +30,10 @@
 <polyline points="330.0,274.0 330.0,150.0 950.0,150.0 950.0,182.0" fill="none" stroke="#232F3E" stroke-width="2.5" marker-end="url(#a)" marker-start="url(#a)"/>
 <polyline points="950.0,280.0 950.0,332.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)" marker-start="url(#a)"/>
 <polyline points="780.0,510.0 924.0,510.0" fill="none" stroke="#232F3E" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
-<polyline points="976.0,360.0 1060.0,360.0 1060.0,245.0 1158.0,245.0" fill="none" stroke="#232F3E" stroke-width="2.5" marker-end="url(#a)" marker-start="url(#a)"/>
-<polyline points="1250.0,692.0 1250.0,432.0" fill="none" stroke="#7D8998" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
-<polyline points="1390.0,692.0 1390.0,572.0" fill="none" stroke="#7D8998" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
-<polyline points="780.0,800.0 1100.0,800.0 1100.0,260.0 1158.0,260.0" fill="none" stroke="#DD344C" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="976.0,360.0 1060.0,360.0 1060.0,222.0 1196.0,222.0" fill="none" stroke="#232F3E" stroke-width="2.5" marker-end="url(#a)" marker-start="url(#a)"/>
+<polyline points="1300.0,710.0 1300.0,650.0 1230.0,650.0 1230.0,470.0" fill="none" stroke="#7D8998" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="1340.0,710.0 1340.0,650.0 1410.0,650.0 1410.0,470.0" fill="none" stroke="#7D8998" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="780.0,800.0 1100.0,800.0 1100.0,242.0 1196.0,242.0" fill="none" stroke="#DD344C" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
 <polyline points="40.0,885.0 80.0,885.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
 <polyline points="320.0,885.0 360.0,885.0" fill="none" stroke="#1F6FEB" stroke-width="1.5" marker-end="url(#a)"/>
 <polyline points="600.0,885.0 640.0,885.0" fill="none" stroke="#7D8998" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
@@ -61,20 +61,17 @@
 <text x="950.0" y="363.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">VIP</text>
 <rect x="924.0" y="484.0" width="52" height="52" rx="8" fill="#7AA116"/>
 <text x="950.0" y="513.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">DNS</text>
-<rect x="1160" y="200" width="320" height="90" rx="6" fill="#F5F0FF" stroke="#8C4FFF"/>
-<text x="1320.0" y="234.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">용인 전용 버킷 (yongin-*)</text>
-<text x="1320.0" y="249.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">용인 read/write · 원본</text>
-<text x="1320.0" y="264.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">Versioning 선택 · ILM Expiration 가능</text>
-<rect x="1160" y="320" width="320" height="110" rx="6" fill="#FFF4E5" stroke="#ED7100"/>
-<text x="1320.0" y="364.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">이천 replica 버킷 (Hot 과 동일명)</text>
-<text x="1320.0" y="379.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Replication 대상 · 백업</text>
-<text x="1320.0" y="394.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">용인 접근 차단 · 직접 쓰기 금지</text>
-<rect x="1160" y="460" width="320" height="110" rx="6" fill="#F4F5F7" stroke="#7D8998"/>
-<text x="1320.0" y="504.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">ILM Tier 버킷 (전용 prefix)</text>
-<text x="1320.0" y="519.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">AIStor 독점 접근</text>
-<text x="1320.0" y="534.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">직접 접근 · ILM 규칙 금지</text>
-<rect x="1292.0" y="692.0" width="56" height="56" rx="8" fill="#7D8998"/>
-<text x="1320.0" y="723.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<path d="M1198.0,209.52 L1262.0,209.52 L1251.76,262.0 L1208.24,262.0 Z" fill="#8C4FFF" stroke="#8C4FFF"/>
+<ellipse cx="1230.0" cy="209.52" rx="32.0" ry="7.68" fill="#fff" stroke="#8C4FFF" stroke-width="2"/>
+<path d="M1200.0,380.8 L1260.0,380.8 L1250.4,430.0 L1209.6,430.0 Z" fill="#ED7100" stroke="#ED7100"/>
+<ellipse cx="1230.0" cy="380.8" rx="30.0" ry="7.199999999999999" fill="#fff" stroke="#ED7100" stroke-width="2"/>
+<rect x="1380.0" y="370.0" width="60" height="60" rx="8" fill="#5A6B86"/>
+<text x="1410.0" y="403.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Tier</text>
+<path d="M1292.0,722.08 L1348.0,722.08 L1339.04,768.0 L1300.96,768.0 Z" fill="#7D8998" stroke="#7D8998"/>
+<ellipse cx="1320.0" cy="722.08" rx="28.0" ry="6.72" fill="#fff" stroke="#7D8998" stroke-width="2"/>
+<rect x="1309.92" y="737.2" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="1321.12" y="740.0" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="1315.52" y="750.08" width="8.96" height="7.840000000000001" fill="#fff"/>
 <text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">용인 dataops — Warm 클러스터 전용 적재 · 조회 (Trino / Spark → HMS-Warm(Oracle) ← Polaris)</text>
 <text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">용인 데이터는 Warm 의 용인 전용 버킷에만 적재·조회 · 이천 replica · tier 버킷과 분리 · Hot 과 복제 관계 없음</text>
 <text x="110.0" y="344.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">분석가·서비스</text>
@@ -117,17 +114,25 @@
 <text x="640.0" y="153.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">④ 데이터 read / write (S3 API · HTTPS)</text>
 <rect x="810.0" y="480.5" width="80" height="19" fill="#FFFFFF"/>
 <text x="850.0" y="493.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">⑤ 이름 해석</text>
+<text x="1230.0" y="280.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">yongin-*</text>
+<text x="1230.0" y="295.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">read / write</text>
+<text x="1230.0" y="448.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">이천 replica</text>
+<text x="1410.0" y="448.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">ILM tier</text>
+<circle cx="1268.0" cy="372.0" r="11.0" fill="#DD344C"/>
+<text x="1268.0" y="375.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">✕</text>
+<circle cx="1448.0" cy="372.0" r="11.0" fill="#DD344C"/>
+<text x="1448.0" y="375.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">✕</text>
+<text x="1325.0" y="546.5" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">✕ = 용인 접근 차단</text>
+<text x="1325.0" y="561.5" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">(replica · tier)</text>
 <rect x="1020.0" y="290.5" width="80" height="19" fill="#FFFFFF"/>
 <text x="1060.0" y="303.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">HTTPS :443</text>
-<text x="1320.0" y="766.5" font-size="12" fill="#7D8998" text-anchor="middle" font-weight="normal">Hot 클러스터 · 2026-02-07</text>
-<text x="1320.0" y="781.5" font-size="12" fill="#7D8998" text-anchor="middle" font-weight="normal">(이천 서비스 · 용인 접근 없음)</text>
-<rect x="1205.0" y="623.0" width="90" height="34" fill="#FFFFFF"/>
-<text x="1250.0" y="636.6666666666666" font-size="11" fill="#7D8998" text-anchor="middle" font-weight="normal">Replication</text>
-<text x="1250.0" y="650.6666666666666" font-size="11" fill="#7D8998" text-anchor="middle" font-weight="normal">(버전 일치 후)</text>
-<rect x="1370.0" y="630.5" width="40" height="19" fill="#FFFFFF"/>
-<text x="1390.0" y="643.6666666666666" font-size="11" fill="#7D8998" text-anchor="middle" font-weight="normal">ILM</text>
-<rect x="810.0" y="790.5" width="260" height="19" fill="#FFFFFF"/>
-<text x="940.0" y="803.6666666666666" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">⑥ Lake 엔진 데이터 read (경로·자격증명 확인)</text>
+<text x="1320.0" y="786.0" font-size="12" fill="#7D8998" text-anchor="middle" font-weight="normal">Hot · 2026-02-07 (이천)</text>
+<rect x="1225.0" y="640.5" width="80" height="19" fill="#FFFFFF"/>
+<text x="1265.0" y="653.6666666666666" font-size="11" fill="#7D8998" text-anchor="middle" font-weight="normal">Replication</text>
+<rect x="1355.0" y="640.5" width="40" height="19" fill="#FFFFFF"/>
+<text x="1375.0" y="653.6666666666666" font-size="11" fill="#7D8998" text-anchor="middle" font-weight="normal">ILM</text>
+<rect x="840.0" y="790.5" width="200" height="19" fill="#FFFFFF"/>
+<text x="940.0" y="803.6666666666666" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">⑥ Lake 엔진 read (확인 필요)</text>
 <text x="88" y="888.6666666666666" font-size="11" fill="#5E6C84" text-anchor="start" font-weight="normal">데이터/메타 경로</text>
 <text x="368" y="888.6666666666666" font-size="11" fill="#5E6C84" text-anchor="start" font-weight="normal">카탈로그 federation</text>
 <text x="648" y="888.6666666666666" font-size="11" fill="#5E6C84" text-anchor="start" font-weight="normal">이천 내부 (용인 무관)</text>

@@ -40,7 +40,7 @@
 | 0 | **Hot(2026-02-07) · Warm(2026-06-06) 버전 불일치는 Bucket Replication 요구사항 위반** — 복제 구성 전에 두 클러스터 릴리스를 맞춰야 한다 (업그레이드 대상 · 순서 · 호환성은 벤더 확인) | [M17](./06-official-reference-links.md#m17) |
 | 1 | 두 케이스는 **한 Warm 클러스터에서 공존 가능**하다. 단 Warm 이 **3개 역할**(용인 원본 · 이천 replica · ILM tier)을 동시에 하므로 **버킷 단위로 역할을 분리**해야 한다 | 아래 §3, §4 |
 | 2 | 이천의 Hot → Warm 복제는 **Bucket Replication** 으로만 구성한다. **Site Replication 은 쓸 수 없다** | Site Replication 은 Bucket Replication 과 상호 배타이고, 구성 시 다른 사이트가 비어 있어야 함 — Warm 에는 용인 데이터가 있음 ([M16](./06-official-reference-links.md#m16)) |
-| 3 | 이천에서 Replication 과 ILM 을 **같이 쓰는 것 자체는 문제없다**. 역할이 다르다 — **Replication = 백업, Transition = 용량 관리** | "Using object transition does not provide any additional business continuity or disaster recovery benefits." · 백업은 Replication 사용 권고 ([M15](./06-official-reference-links.md#m15)) |
+| 3 | 이천에서 Replication 과 ILM 을 같이 쓰는 것은 **공식적으로 금지되지 않고 오히려 권장**된다(역할: Replication = 백업, Transition = 용량). 단 **같은 버킷·객체에 그대로 걸면** 8가지 제약(§4-1) 때문에 어렵다 → **대상 분리(P-A)** 가 기본 | "Using object transition does not provide any additional business continuity or disaster recovery benefits." · 백업은 Replication 사용 권고 ([M15](./06-official-reference-links.md#m15)) |
 | 4 | 다만 같은 객체에 둘을 걸면 **Warm 에 이중 저장**(replica + tier)되고, **ILM 삭제는 복제되지 않으며**, **resync 시 Tier 연결이 끊어진다** → 대상 prefix · replica 측 ILM · resync 절차를 설계해야 한다 | [M3](./06-official-reference-links.md#m3), [M5](./06-official-reference-links.md#m5) |
 | 5 | ILM Tier 버킷/prefix 는 **AIStor 독점 영역**이다. 용인이나 사람이 직접 접근·수정하거나 ILM 을 걸면 데이터가 유실될 수 있다 | [M14](./06-official-reference-links.md#m14) |
 | 6 | 이천 replica 는 평시 조회하지 않으므로 Iceberg 충돌 C1·C2 는 **복구 시점 문제**가 된다 → 백업 시점 테스트(T-B)와 복구 시 검증 후 등록으로 관리 | [근거 2](./02-iceberg-snapshot-vs-replication.md) |
@@ -76,6 +76,33 @@
 | P-9 | Scanner | **주의** | Hot Scanner 가 Transition · 복제 재큐잉을 함께 처리, Warm Scanner 는 용인 · replica 버킷 ILM 처리 | 양쪽 Scanner 사이클 모니터링 | [근거 3](./03-scanner-impact.md) |
 | P-11 | ILM Tier 버전 | 확인 | Tier 는 버전 요구 문구 없음 · 원격은 다른 클러스터여야 함 (Hot ≠ Warm ✓) | 상용 버전 호환 매트릭스 벤더 확인 | [M18](./06-official-reference-links.md#m18) |
 | P-10 | Transition 순서 | 🔍 | 복제가 끝나기 전에 Transition 되는 경우의 동작은 공식 문서 미기재 | Transition 경과일 ≫ 복제 지연 · 테스트로 확인 | 문서 부재 |
+
+## 4-1. Replication 과 ILM 을 "그대로" 같이 쓰기 어려운 이유
+
+![Replication + ILM 제약](../diagrams/12-replication-ilm-constraints.svg)
+
+> **공식 입장**: 공개 문서에 "같은 버킷에 Replication 과 ILM 을 함께 쓸 수 없다"는 **금지 문구는 없다**. 오히려 Tiering 문서는 *"MinIO recommends implementing Server-Side replication for workloads requiring additional business continuity protections beyond tiering."* 라고 병행을 권장한다 ([M19](./06-official-reference-links.md#m19)). 다만 **같은 버킷 · 같은 객체에 두 규칙을 동시에 걸면** 아래 제약 때문에 설계 없이 그대로 쓰기는 어렵다. 사내 PDF-2(Global Reference)에 금지 문구가 있는지는 R-28 로 확인한다.
+
+| # | 같이 쓰기 어려운 이유 | 무엇이 문제인가 | 근거 | 유형 |
+|---|---|---|---|---|
+| ① | **resync 시 Tier 연결 영구 단절** | replica 를 복구 경로로 쓰면(resync) Tiering 된 객체가 non-transitioned 로 복원되고 remote 데이터와 끊김 → 복구가 Tier 를 깨뜨림 | [M5](./06-official-reference-links.md#m5) | 공식 · 제약 |
+| ② | **ILM Expiration 삭제는 복제 안 됨** | Hot 에서 만료된 객체가 replica 에 남음 → "양쪽에 같은 Expiration 규칙" 을 직접 걸어야 함 | [M3](./06-official-reference-links.md#m3), [M20](./06-official-reference-links.md#m20) | 공식 · 제약 |
+| ③ | **ILM 설정 자체가 복제되지 않음** | Hot · Warm ILM 이 따로 놀아 비대칭 발생 (메인테이너: 복제된 각 사이트가 **독립적으로 tiering** → Tier 에 중복 사본) | [M16](./06-official-reference-links.md#m16), [M21](./06-official-reference-links.md#m21) | 공식 + 메인테이너 |
+| ④ | **Transition 된 객체의 복제 동작 미기재** | 복제가 끝나기 전에 Transition 되면 어떻게 되는지 공식 문구 없음. AWS S3 는 아카이브 계열(Glacier 등) 객체를 **복제하지 않음** | [M20](./06-official-reference-links.md#m20) (AWS 참고) | 부재 · 테스트 필요 |
+| ⑤ | **Tier 버킷은 AIStor 독점** | tier 버킷에 ILM 금지 · S3 API(AIStor 경유) 외 접근 금지 → tier 버킷을 복제 원본/대상으로 쓸 수 없음 (추론) | [M14](./06-official-reference-links.md#m14) | 공식 + 추론 |
+| ⑥ | **Warm 이중 저장** | 같은 객체가 replica 버킷과 tier 에 모두 저장 → 용량 2배 | 설계 판단 | 설계 |
+| ⑦ | **Scanner 공유** | 복제 재큐잉과 Transition 이 모두 Scanner 에 의존 → 한쪽 부하가 다른 쪽을 지연 | [근거 3](./03-scanner-impact.md) | 공식 + 추론 |
+| ⑧ | **버전 일치** | Replication 은 동일 Object Store 버전 필수 (ILM Tier 는 요구 없음) → 둘을 같이 쓰려면 버전 정렬 선행 | [M17](./06-official-reference-links.md#m17) | 공식 · 블로커 |
+
+### 권장 패턴 (같이 쓸 때)
+
+| 패턴 | 방법 | 해소되는 이유 |
+|---|---|---|
+| **P-A 대상 분리 (권장)** | 복제 대상 prefix/버킷 ≠ Transition 대상 prefix — 예: 최근 데이터는 복제(백업), 오래된 데이터는 Transition(용량) | ④ ⑥ ① 영향 최소화 |
+| **P-B 순서 보장** | 같은 객체라면 Transition 경과일 ≫ 복제 지연, 복제 COMPLETED 확인 후 Transition | ④ |
+| **P-C 대칭 규칙** | replica 버킷에 Hot 과 같은 Expiration(+ noncurrent 만료) 설정, replica 측 Transition 은 설정하지 않음 | ② ③ |
+| **P-D resync 통제** | Tiering 버킷의 resync 는 승인 절차 + Tier 데이터 처리 계획 수립 후에만 | ① |
+| **P-E 역할 분리** | tier 버킷/prefix 와 replica 버킷 분리, tier 는 복제 대상에서 제외 | ⑤ |
 
 ## 5. 용인 — Warm 전용 사용 검토
 
