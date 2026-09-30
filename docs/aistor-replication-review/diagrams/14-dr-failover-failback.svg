@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="100" width="440" height="440" fill="#FFFFFF" stroke="#7AA116" stroke-width="1.5"/>
+<rect x="40" y="100" width="26" height="26" fill="#7AA116"/>
+<text x="53.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">1</text>
+<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">① 평시</text>
+<rect x="530" y="100" width="440" height="440" fill="#FFFFFF" stroke="#DD344C" stroke-width="1.5"/>
+<rect x="530" y="100" width="26" height="26" fill="#DD344C"/>
+<text x="543.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">2</text>
+<text x="564" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">② 장애 → 전환</text>
+<rect x="1020" y="100" width="440" height="440" fill="#FFFFFF" stroke="#326CE5" stroke-width="1.5"/>
+<rect x="1020" y="100" width="26" height="26" fill="#326CE5"/>
+<text x="1033.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">3</text>
+<text x="1054" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">③ 원복</text>
+<polyline points="182.0,200.0 338.0,200.0" fill="none" stroke="#ED7100" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="176.0,360.0 344.0,360.0" fill="none" stroke="#01A88D" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="860.0,296.0 860.0,244.0" fill="none" stroke="#8C4FFF" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="860.0,364.0 860.0,426.0" fill="none" stroke="#8C4FFF" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="640.0,426.0 640.0,374.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="664.0,320.0 760.0,320.0 760.0,200.0 828.0,200.0" fill="none" stroke="#DD344C" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="662.0,450.0 836.0,450.0" fill="none" stroke="#5E6C84" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="1318.0,185.0 1162.0,185.0" fill="none" stroke="#326CE5" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="1162.0,222.0 1318.0,222.0" fill="none" stroke="#ED7100" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="476.0,320.0 528.0,320.0" fill="none" stroke="#5E6C84" stroke-width="3" marker-end="url(#a)"/>
+<polyline points="966.0,320.0 1018.0,320.0" fill="none" stroke="#5E6C84" stroke-width="3" marker-end="url(#a)"/>
+<path d="M120.0,180.8 L180.0,180.8 L170.4,230.0 L129.6,230.0 Z" fill="#C72C48" stroke="#C72C48"/>
+<ellipse cx="150.0" cy="180.8" rx="30.0" ry="7.199999999999999" fill="#fff" stroke="#C72C48" stroke-width="2"/>
+<rect x="139.2" y="197.0" width="9.6" height="8.4" fill="#fff"/>
+<rect x="151.2" y="200.0" width="9.6" height="8.4" fill="#fff"/>
+<rect x="145.2" y="210.8" width="9.6" height="8.4" fill="#fff"/>
+<path d="M340.0,180.8 L400.0,180.8 L390.4,230.0 L349.6,230.0 Z" fill="#ED7100" stroke="#ED7100"/>
+<ellipse cx="370.0" cy="180.8" rx="30.0" ry="7.199999999999999" fill="#fff" stroke="#ED7100" stroke-width="2"/>
+<rect x="126.0" y="336.0" width="48" height="48" rx="8" fill="#01A88D"/>
+<text x="150.0" y="363.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">HMS</text>
+<path d="M346.0,336.0 L384.0,336.0 L394.0,346.0 L394.0,384.0 L346.0,384.0 Z" fill="#fff" stroke="#01A88D" stroke-width="1.5"/>
+<text x="370.0" y="363.3333333333333" font-size="10" fill="#01A88D" text-anchor="middle" font-weight="bold">LOG</text>
+<path d="M612.0,172.08 L668.0,172.08 L659.04,218.0 L620.96,218.0 Z" fill="#7D8998" stroke="#7D8998"/>
+<ellipse cx="640.0" cy="172.08" rx="28.0" ry="6.72" fill="#fff" stroke="#7D8998" stroke-width="2"/>
+<rect x="629.92" y="187.2" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="641.12" y="190.0" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="635.52" y="200.08" width="8.96" height="7.840000000000001" fill="#fff"/>
+<path d="M830.0,170.8 L890.0,170.8 L880.4,220.0 L839.6,220.0 Z" fill="#ED7100" stroke="#ED7100"/>
+<ellipse cx="860.0" cy="170.8" rx="30.0" ry="7.199999999999999" fill="#fff" stroke="#ED7100" stroke-width="2"/>
+<rect x="836.0" y="296.0" width="48" height="48" rx="8" fill="#8C4FFF"/>
+<text x="860.0" y="323.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">job</text>
+<rect x="838.0" y="428.0" width="44" height="44" rx="8" fill="#01A88D"/>
+<text x="860.0" y="453.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">HMS</text>
+<rect x="616.0" y="296.0" width="48" height="48" rx="8" fill="#7AA116"/>
+<text x="640.0" y="323.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">DNS</text>
+<rect x="618.0" y="428.0" width="44" height="44" rx="8" fill="#DD00A1"/>
+<text x="640.0" y="453.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Trino</text>
+<path d="M1100.0,180.8 L1160.0,180.8 L1150.4,230.0 L1109.6,230.0 Z" fill="#C72C48" stroke="#C72C48"/>
+<ellipse cx="1130.0" cy="180.8" rx="30.0" ry="7.199999999999999" fill="#fff" stroke="#C72C48" stroke-width="2"/>
+<rect x="1119.2" y="197.0" width="9.6" height="8.4" fill="#fff"/>
+<rect x="1131.2" y="200.0" width="9.6" height="8.4" fill="#fff"/>
+<rect x="1125.2" y="210.8" width="9.6" height="8.4" fill="#fff"/>
+<path d="M1320.0,180.8 L1380.0,180.8 L1370.4,230.0 L1329.6,230.0 Z" fill="#ED7100" stroke="#ED7100"/>
+<ellipse cx="1350.0" cy="180.8" rx="30.0" ry="7.199999999999999" fill="#fff" stroke="#ED7100" stroke-width="2"/>
+<rect x="1106.0" y="356.0" width="48" height="48" rx="8" fill="#7AA116"/>
+<text x="1130.0" y="383.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">DNS</text>
+<rect x="1328.0" y="358.0" width="44" height="44" rx="8" fill="#7D8998" stroke-dasharray="4 3"/>
+<text x="1350.0" y="383.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">HMS</text>
+<rect x="40" y="570" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="153.5" y="597.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">🚨 버전 일치</text>
+<rect x="279" y="570" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="392.5" y="597.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">Versioning + seed</text>
+<rect x="518" y="570" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="631.5" y="597.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">버킷명 동일</text>
+<rect x="757" y="570" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="870.5" y="597.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">카탈로그 기록 · HMS 백업</text>
+<rect x="996" y="570" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1109.5" y="597.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">삭제 전파 · 보존 기간</text>
+<rect x="1235" y="570" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1348.5" y="597.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">DR 버킷 Transition 금지</text>
+<rect x="40" y="640" width="1420" height="80" rx="6" fill="#F4F5F7" stroke="#232F3E"/>
+<text x="750.0" y="676.3333333333334" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="bold">RPO = 복제 지연 + 마지막 완전 스냅샷까지 간격 (Scanner 지연 시 증가)     RTO = 장애 판단 + 검증 · register + 엔드포인트 전환</text>
+<text x="750.0" y="692.3333333333334" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="bold">범위 밖: 용인 데이터 (Warm 에만 존재 — 별도 백업 필요)</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">DR 전용 모드 — 버킷 Replication 만으로 Warm 을 복구 용도로 (Iceberg)</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">복제 = 파일 사본 · 테이블 복구 = 카탈로그 기록 + 검증 후 register · DR 대상 버킷은 Transition 금지</text>
+<text x="150.0" y="248.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Hot 버킷</text>
+<text x="370.0" y="248.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Warm replica</text>
+<text x="150.0" y="402.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">HMS-Hot</text>
+<text x="370.0" y="402.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">metadata_location</text>
+<text x="370.0" y="417.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">기록 · HMS 백업</text>
+<rect x="215.0" y="172.5" width="90" height="19" fill="#FFFFFF"/>
+<text x="260.0" y="185.66666666666666" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">Replication</text>
+<rect x="225.0" y="332.5" width="70" height="19" fill="#FFFFFF"/>
+<text x="260.0" y="345.6666666666667" font-size="11" fill="#01A88D" text-anchor="middle" font-weight="normal">주기 기록</text>
+<text x="640.0" y="236.0" font-size="12" fill="#7D8998" text-anchor="middle" font-weight="normal">Hot 장애</text>
+<circle cx="672.0" cy="162.0" r="13.0" fill="#DD344C"/>
+<text x="672.0" y="165.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">✕</text>
+<text x="860.0" y="238.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Warm replica</text>
+<text x="860.0" y="362.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">검증 Job</text>
+<text x="860.0" y="490.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">복구용 HMS</text>
+<text x="640.0" y="362.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">DNS · VIP 전환</text>
+<text x="640.0" y="490.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Trino · Spark</text>
+<rect x="870.0" y="258.5" width="60" height="19" fill="#FFFFFF"/>
+<text x="900.0" y="271.6666666666667" font-size="11" fill="#8C4FFF" text-anchor="middle" font-weight="normal">③ HEAD</text>
+<rect x="872.0" y="385.5" width="80" height="19" fill="#FFFFFF"/>
+<text x="912.0" y="398.6666666666667" font-size="11" fill="#8C4FFF" text-anchor="middle" font-weight="normal">③ register</text>
+<rect x="710.0" y="250.5" width="100" height="19" fill="#FFFFFF"/>
+<text x="760.0" y="263.6666666666667" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">④ 서비스 전환</text>
+<text x="1130.0" y="248.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Hot 복구</text>
+<text x="1350.0" y="248.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Warm replica</text>
+<rect x="1165.0" y="157.5" width="150" height="19" fill="#FFFFFF"/>
+<text x="1240.0" y="170.66666666666666" font-size="11" fill="#326CE5" text-anchor="middle" font-weight="normal">⑤ 역방향 복제 / resync</text>
+<rect x="1175.0" y="230.5" width="130" height="19" fill="#FFFFFF"/>
+<text x="1240.0" y="243.66666666666666" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">⑥ 정방향 복제 재개</text>
+<text x="1130.0" y="422.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">DNS 원복</text>
+<text x="1350.0" y="420.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">복구용 HMS 정리</text>
+</svg>

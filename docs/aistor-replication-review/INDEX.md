@@ -14,6 +14,7 @@
 | 결론 2 (Replication) | **Bucket Replication 만** 사용 — Site Replication 은 상호 배타 · 다른 사이트가 비어 있어야 해서 불가 |
 | 결론 3 (Replication · ILM) | 병행 **금지 문구는 없고 MinIO 는 병행 권장** — 단 같은 버킷·객체에 그대로 걸면 **8가지 제약**(resync Tier 단절 · Expiration 미복제 · ILM 비복제 · Transition 객체 복제 미기재 · Tier 독점 · 이중 저장 · Scanner 공유 · 버전) → **대상 분리(P-A)** 기본 |
 | 결론 3-1 (Replication · Versioning) | Replication 은 **Versioning 필수**(Replication.pdf 4.2) — Iceberg 는 Versioning 에서 동작하지만 백업 용도로는 충돌: 🚨 **Versioning 켜기 전 파일은 복제 안 됨** · 삭제가 noncurrent 로 누적 · 삭제 전파 딜레마 · 끌 수 없음 → seed 절차 · 양쪽 noncurrent 만료 |
+| 결론 3-2 (DR) | **버킷 Replication 만으로 Warm 을 Iceberg DR 로 사용 가능** — 단 복제는 파일 사본까지, 테이블 복구는 카탈로그 기록 + 검증 후 register · DR 대상 버킷은 Transition 금지 · RPO = 복제 지연 + 마지막 완전 스냅샷 간격 |
 | 결론 4 (Replication) | 이천 replica 는 스냅샷 일관성 없음(C1~C5) → **백업 시점 테스트(T-B)** · 복구 시 검증 후 등록 |
 | 결론 5 (Replication · ILM) | Scanner 지연 시 복제 재큐잉 · Transition · 버전 정리가 함께 지연 |
 | 결론 6 (ILM) | ILM Tier 는 AIStor 독점 영역 · 아카이브 **A / B(하이브리드) / C** 협의 |
@@ -28,6 +29,7 @@
 | 결론 1·2·3 — 두 케이스 공존 · Warm 역할 분리 | ![03](./diagrams/03-warm-coexistence.svg) | [03 .drawio](./diagrams/03-warm-coexistence.drawio) | [03 .gliffy](./diagrams/03-warm-coexistence.gliffy) |
 | 결론 3 — Replication + ILM 같이 쓰기 어려운 이유 | ![12](./diagrams/12-replication-ilm-constraints.svg) | [12 .drawio](./diagrams/12-replication-ilm-constraints.drawio) | [12 .gliffy](./diagrams/12-replication-ilm-constraints.gliffy) |
 | 결론 3-1 — Versioning × Iceberg 백업 | ![13](./diagrams/13-versioning-iceberg-backup.svg) | [13 .drawio](./diagrams/13-versioning-iceberg-backup.drawio) | [13 .gliffy](./diagrams/13-versioning-iceberg-backup.gliffy) |
+| 결론 3-2 — DR 전환 · 원복 | ![14](./diagrams/14-dr-failover-failback.svg) | [14 .drawio](./diagrams/14-dr-failover-failback.drawio) | [14 .gliffy](./diagrams/14-dr-failover-failback.gliffy) |
 | 결론 4 — 커밋 단위 불일치 (이천 replica) | ![04](./diagrams/04-commit-unit-mismatch.svg) | [04 .drawio](./diagrams/04-commit-unit-mismatch.drawio) | [04 .gliffy](./diagrams/04-commit-unit-mismatch.gliffy) |
 | 결론 4 — 복구 시 검증 후 등록 | ![10](./diagrams/10-verify-and-register.svg) | [10 .drawio](./diagrams/10-verify-and-register.drawio) | [10 .gliffy](./diagrams/10-verify-and-register.gliffy) |
 | 결론 5 — Scanner 지연 영향 | ![06](./diagrams/06-scanner-impact.svg) | [06 .drawio](./diagrams/06-scanner-impact.drawio) | [06 .gliffy](./diagrams/06-scanner-impact.gliffy) |
@@ -71,6 +73,7 @@
 | 11 | [11-todo-milestones](./diagrams/11-todo-milestones.svg) | 마일스톤 M0~M7 · 게이트 G0~G2 (두 줄 병행) | 진행 관리 |
 | 12 | [12-replication-ilm-constraints](./diagrams/12-replication-ilm-constraints.svg) | Replication + ILM 동시 적용 제약 ①~⑧ · 권장 패턴 | 이천 Replication · ILM |
 | 13 | [13-versioning-iceberg-backup](./diagrams/13-versioning-iceberg-backup.svg) | Versioning 필수 × Iceberg 백업 충돌 V-1~V-6 · 대응 | 이천 Replication |
+| 14 | [14-dr-failover-failback](./diagrams/14-dr-failover-failback.svg) | DR 전용 모드: 평시 → 전환 → 원복 · 성립 조건 DR-1~DR-8 | 이천 DR |
 
 ## 3. 해야 할 일 · 진행 사항 · 일정
 
@@ -94,6 +97,7 @@
 | 14 | M2 | 공존 | 공존 부하 테스트 (복제 · Tier 유입 + 용인 I/O) | T-B9, Y-4, H-53 | 공통 | [02-evidence/01](./02-evidence/01-warm-coexistence-replication-ilm.md) | | | | | ☐ 미착수 | |
 | 15 | M2 | Replication | 복제 지연 · 백로그 · resync-backlog 절차 · Hot HEAD PoC | E2-7, E3-4, E3-5, S-B, S-C | 이천 | [02-evidence/03](./02-evidence/03-scanner-impact.md) | | | | | ☐ 미착수 | |
 | 16 | M2 | Replication | 이천 replica 복구 절차 · 리허설 | H-30~H-35, T-B6, H-54 | 이천 | [03-future/02](./03-future/02-hms-oracle-split-todo.md) | | | | | ☐ 미착수 | |
+| 38 | M2 | Replication · DR | DR 전용 모드 설계 — DR 대상 버킷(Transition 금지) · `metadata_location` 기록 · 전환/원복 Runbook · RPO/RTO 측정 리허설 | DR-1~DR-8, E1-11 | 이천 | [02-evidence/01](./02-evidence/01-warm-coexistence-replication-ilm.md) | | | | | ☐ 미착수 | |
 | 17 | M3 | ILM | RAW 현황 파악 (객체 수 · 크기 · 압축 설정) | E4-2, E4-3 | 이천 | [02-evidence/04](./02-evidence/04-ilm-archive-options.md) | | | | | ☐ 미착수 | |
 | 18 | M3 | ILM | 아카이브 방식 협의 A / B / C (G2) | AR-1, E4-6 | 이천 | [02-evidence/04](./02-evidence/04-ilm-archive-options.md) | | | | | ☐ 미착수 | Rollover Job 확정 아님 |
 | 19 | M3 | ILM | (B·C) 변환 정책 시점 · Job 소유 | AR-2, AR-3 | 이천 | [02-evidence/04](./02-evidence/04-ilm-archive-options.md) | | | | | ☐ 미착수 | |
@@ -129,7 +133,7 @@
 |---|---|---|---|---|---|---|
 | M0 담당자 우려 · Warm 역할 분리 | 1~3 | — | 공통 | | | ☐ |
 | M1 Replication · ILM 근거 · 설계 | 4~11, 36, 37 | M0 | 이천 (+ Warm 공통) | | | ☐ |
-| M2 이천 Replication 테스트 (백업 시점 · 병행 · 공존 부하 · 복구) | 12~16 | M1 | 이천 (+ Warm 공통) | | | ☐ |
+| M2 이천 Replication 테스트 (백업 시점 · 병행 · 공존 부하 · 복구 · DR) | 12~16, 38 | M1 | 이천 (+ Warm 공통) | | | ☐ |
 | M3 ILM / Archive 협의 · PoC | 17~21 | M2 | 이천 | | | ☐ |
 | M4 용인 네트워크 개통 | 22~26 | M0 | 용인 | | | ☐ |
 | M5 HMS-Warm(용인) 구축 | 27~31 | M4 | 용인 | | | ☐ |
@@ -164,3 +168,4 @@
 | **v3.1** | 복제는 Bucket Replication · AIStor 상용 Hot 2026-02-07 / Warm 2026-06-06 | 버전 일치 필수 근거(M17) · 블로커 P-0 · No 36 · G1 · R-27 · Tier 버전 요구 없음(M18) | 02-evidence/01 §1-1 · 06 · 05 · 그림 03·11 |
 | **v3.2** | Replication 과 ILM 을 같이 못 쓰는 이유 반영 | 공개 문서엔 금지 문구 없음(병행 권장 M19) · 같은 버킷 동시 적용 제약 ①~⑧ · 권장 패턴 P-A~P-E · M20·M21 · R-28 · 그림 12 | 02-evidence/01 §4-1 · 그림 12 |
 | **v3.3** | Replication.pdf 4.2 Versioning 필수 × Hot Iceberg 백업 충돌 | 판정 "부분적으로 맞음" · V-1~V-6 · 대응 VA-1~VA-6 · T-B10·T-B11 · No 37 · M22 · R-29 · 그림 13 | 02-evidence/01 §4-2 · 그림 13 |
+| **v3.4** | 버킷 Replication 만으로 Warm 을 Iceberg DR 로 쓸 수 있는지 | 가능(조건부) · DR-1~DR-8 · 전환/원복 ①~⑥ · RPO/RTO · No 38 · 그림 14 | 02-evidence/01 §4-3 · 그림 14 |

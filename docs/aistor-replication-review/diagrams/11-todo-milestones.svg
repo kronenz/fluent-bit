@@ -18,8 +18,8 @@
 <text x="440.0" y="196.0" font-size="15" fill="#232F3E" text-anchor="middle" font-weight="bold">M1 근거 · 설계</text>
 <text x="440.0" y="214.0" font-size="15" fill="#232F3E" text-anchor="middle" font-weight="bold">No 4–11 · 36–37 🚨</text>
 <rect x="600" y="140" width="240" height="120" rx="6" fill="#FFFFFF" stroke="#ED7100"/>
-<text x="720.0" y="196.0" font-size="15" fill="#232F3E" text-anchor="middle" font-weight="bold">M2 복제 테스트</text>
-<text x="720.0" y="214.0" font-size="15" fill="#232F3E" text-anchor="middle" font-weight="bold">No 12–16</text>
+<text x="720.0" y="196.0" font-size="15" fill="#232F3E" text-anchor="middle" font-weight="bold">M2 복제 테스트 · DR</text>
+<text x="720.0" y="214.0" font-size="15" fill="#232F3E" text-anchor="middle" font-weight="bold">No 12–16 · 38</text>
 <rect x="880" y="140" width="240" height="120" rx="6" fill="#FFFFFF" stroke="#7AA116"/>
 <text x="1000.0" y="196.0" font-size="15" fill="#232F3E" text-anchor="middle" font-weight="bold">M3 ILM · Archive</text>
 <text x="1000.0" y="214.0" font-size="15" fill="#232F3E" text-anchor="middle" font-weight="bold">No 17–21</text>

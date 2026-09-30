@@ -22,6 +22,7 @@
 | 2 | Replication | 이천 복제는 **Bucket Replication 만** 가능 — Site Replication 은 Bucket Replication 과 상호 배타이고 다른 사이트가 비어 있어야 함(Warm 에 용인 데이터 존재) | [02-evidence/01 P-6](./02-evidence/01-warm-coexistence-replication-ilm.md) |
 | 3 | Replication · ILM | 병행 **금지 문구는 없고 MinIO 는 병행 권장**. 단 같은 버킷·객체에 그대로 걸면 8가지 제약(resync Tier 단절 · Expiration 미복제 · ILM 비복제 · Transition 객체 복제 미기재 · Tier 독점 · 이중 저장 · Scanner · 버전) → **복제 대상과 Transition 대상 분리**가 기본 | [02-evidence/01 §4](./02-evidence/01-warm-coexistence-replication-ilm.md) |
 | 3-1 | Replication · Versioning | Replication 은 **Versioning 필수**(Replication.pdf 4.2). Iceberg 는 동작하지만 백업 용도로 충돌 — 🚨 Versioning 켜기 전 파일 미복제 · 삭제의 noncurrent 누적 · 삭제 전파 딜레마 · 끌 수 없음 | [02-evidence/01 §4-2](./02-evidence/01-warm-coexistence-replication-ilm.md) |
+| 3-2 | DR | 버킷 Replication 만으로 Warm 을 Iceberg DR 로 사용 **가능(조건부)** — 파일 사본 + 카탈로그 기록 + 복구 시 검증 후 register · DR 대상 버킷 Transition 금지 | [02-evidence/01 §4-3](./02-evidence/01-warm-coexistence-replication-ilm.md) |
 | 4 | Replication | 이천 replica 는 Iceberg 스냅샷 일관성 없음(C1~C5) → 백업이므로 **백업 시점 테스트(T-B)** · 복구 시 검증 후 등록 | [02-evidence/02](./02-evidence/02-iceberg-snapshot-vs-replication.md) |
 | 5 | Replication · ILM | Scanner 가 복제 재큐잉 · Transition · 버전 정리를 함께 처리 → 지연 시 함께 악화 | [02-evidence/03](./02-evidence/03-scanner-impact.md) |
 | 6 | ILM | ILM Tier 는 AIStor **독점 영역**(직접 접근 · ILM 금지). 아카이브는 A. zip 미사용 / B. 하이브리드 / C. 전면 Rollover 중 **협의** | [02-evidence/01 P-5](./02-evidence/01-warm-coexistence-replication-ilm.md), [02-evidence/04](./02-evidence/04-ilm-archive-options.md) |
@@ -75,6 +76,7 @@ aistor-replication-review/
 | 11 | todo-milestones | 진행 관리 | INDEX |
 | 12 | replication-ilm-constraints | Replication + ILM 동시 적용 제약 | 02-evidence/01 §4-1, INDEX |
 | 13 | versioning-iceberg-backup | Versioning 필수 × Iceberg 백업 충돌 | 02-evidence/01 §4-2, INDEX |
+| 14 | dr-failover-failback | DR 전용 모드 전환 · 원복 | 02-evidence/01 §4-3, INDEX |
 
 | 파일 | 용도 | Confluence 반영 방법 |
 |---|---|---|

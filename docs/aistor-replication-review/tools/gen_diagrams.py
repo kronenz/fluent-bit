@@ -377,7 +377,7 @@ def i7():
     ms = {
         "m0": (40, 270, "M0 담당자 확인\nNo 1–3", RED),
         "m1": (320, 140, "M1 근거 · 설계\nNo 4–11 · 36–37 🚨", INK),
-        "m2": (600, 140, "M2 복제 테스트\nNo 12–16", ORANGE),
+        "m2": (600, 140, "M2 복제 테스트 · DR\nNo 12–16 · 38", ORANGE),
         "m3": (880, 140, "M3 ILM · Archive\nNo 17–21", GREEN),
         "m4": (320, 400, "M4 용인 네트워크\nNo 22–26", GREEN),
         "m5": (600, 400, "M5 HMS-Warm\nNo 27–31", TEAL),
@@ -563,13 +563,58 @@ def versioning_iceberg():
     return d
 
 
+def dr_flow():
+    d = Diagram("14-dr-failover-failback", "DR 전용 모드 — 버킷 Replication 만으로 Warm 을 복구 용도로 (Iceberg)",
+                width=1500, height=760, subtitle="복제 = 파일 사본 · 테이블 복구 = 카탈로그 기록 + 검증 후 register · DR 대상 버킷은 Transition 금지")
+    d.group("p1", 40, 100, 440, 440, "① 평시", GREEN, badge="1")
+    d.icon("h1", 150, 200, "Hot 버킷", kind="bucket_obj", color=AISTOR, size=60)
+    d.icon("r1", 370, 200, "Warm replica", kind="bucket", color=ORANGE, size=60)
+    d.icon("hm1", 150, 360, "HMS-Hot", glyph="HMS", color=TEAL, size=48)
+    d.icon("lg1", 370, 360, "metadata_location\n기록 · HMS 백업", kind="doc", glyph="LOG", color=TEAL, size=48, label_w=150)
+    d.edge([(182, 200), (338, 200)], "Replication", at=(260, 182), label_w=90, width=2.5, color=ORANGE)
+    d.edge([(176, 360), (344, 360)], "주기 기록", at=(260, 342), label_w=70, dashed=True, color=TEAL)
+
+    d.group("p2", 530, 100, 440, 440, "② 장애 → 전환", RED, badge="2")
+    d.icon("h2", 640, 190, "Hot 장애", kind="bucket_obj", dim=True, size=56)
+    d.step(672, 162, "✕", color=RED, r=13)
+    d.icon("r2", 860, 190, "Warm replica", kind="bucket", color=ORANGE, size=60)
+    d.icon("jb", 860, 320, "검증 Job", kind="k8s:job", color=PURPLE, size=48)
+    d.icon("hm2", 860, 450, "복구용 HMS", glyph="HMS", color=TEAL, size=44)
+    d.icon("dns", 640, 320, "DNS · VIP 전환", kind="res:route_53", color=GREEN, size=48, label_w=120)
+    d.icon("tr", 640, 450, "Trino · Spark", glyph="Trino", color=TRINO, size=44)
+    d.edge([(860, 296), (860, 244)], "③ HEAD", at=(900, 268), label_w=60, dashed=True, color=PURPLE)
+    d.edge([(860, 364), (860, 426)], "③ register", at=(912, 395), label_w=80, color=PURPLE)
+    d.edge([(640, 426), (640, 374)])
+    d.edge([(664, 320), (760, 320), (760, 200), (828, 200)], "④ 서비스 전환", at=(760, 260), label_w=100, width=2.5, color=RED)
+    d.edge([(662, 450), (836, 450)], color=MUTED, dashed=True)
+
+    d.group("p3", 1020, 100, 440, 440, "③ 원복", BLUE, badge="3")
+    d.icon("h3", 1130, 200, "Hot 복구", kind="bucket_obj", color=AISTOR, size=60)
+    d.icon("r3", 1350, 200, "Warm replica", kind="bucket", color=ORANGE, size=60)
+    d.edge([(1318, 185), (1162, 185)], "⑤ 역방향 복제 / resync", at=(1240, 167), label_w=150, width=2, color=BLUE)
+    d.edge([(1162, 222), (1318, 222)], "⑥ 정방향 복제 재개", at=(1240, 240), label_w=130, dashed=True, color=ORANGE)
+    d.icon("dns3", 1130, 380, "DNS 원복", kind="res:route_53", color=GREEN, size=48)
+    d.icon("cl3", 1350, 380, "복구용 HMS 정리", glyph="HMS", color=GREY, size=44, dashed=True, label_w=120)
+    d.edge([(476, 320), (528, 320)], width=3, color=MUTED)
+    d.edge([(966, 320), (1018, 320)], width=3, color=MUTED)
+
+    chips(d, 570, ["🚨 버전 일치", "Versioning + seed", "버킷명 동일", "카탈로그 기록 · HMS 백업",
+                   "삭제 전파 · 보존 기간", "DR 버킷 Transition 금지"], w=227)
+    d.box("rpo", 40, 640, 1420, 80,
+          "RPO = 복제 지연 + 마지막 완전 스냅샷까지 간격 (Scanner 지연 시 증가)     RTO = 장애 판단 + 검증 · register + 엔드포인트 전환\n"
+          "범위 밖: 용인 데이터 (Warm 에만 존재 — 별도 백업 필요)",
+          stroke=INK, fill="#F4F5F7", color=INK, size=13, bold=True)
+    return d
+
+
 def main():
     order = [("01-icheon-hot-warm-dataops", d01), ("02-warm-standalone-yongin", d02),
              ("03-warm-coexistence", r_decision), ("04-commit-unit-mismatch", i3),
              ("05-iceberg-vs-replication-timeline", d03), ("06-scanner-impact", d07),
              ("07-ilm-archive-options", archive_options), ("08-yongin-network-checkpoints", d05),
              ("09-hot-warm-catalog-split", d06), ("10-verify-and-register", i6), ("11-todo-milestones", i7), ("12-replication-ilm-constraints", rep_ilm_constraints),
-             ("13-versioning-iceberg-backup", versioning_iceberg)]
+             ("13-versioning-iceberg-backup", versioning_iceberg),
+             ("14-dr-failover-failback", dr_flow)]
     out = os.path.join(ROOT, "diagrams")
     for name, fn in order:
         dg = fn()

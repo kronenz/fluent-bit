@@ -156,6 +156,58 @@
 | T-B10 | Versioning OFF 상태 버킷에 파일 적재 → Versioning ON → 복제 규칙 추가 | 기존 파일 미복제 확인 · seed 절차로 보완되는지 |
 | T-B11 | Iceberg `expire_snapshots` · compaction 반복 | Hot · replica noncurrent 증가량, 만료 규칙 적용 후 회수량 |
 
+## 4-3. DR 전용 모드 — 버킷 Replication 만으로 Warm 을 복구(DR) 용도로 쓰기 (Iceberg)
+
+![DR 전용 모드](../diagrams/14-dr-failover-failback.svg)
+
+> **판정: 가능.** 단 버킷 복제는 **"파일 사본"** 까지만 보장한다. Iceberg **테이블 복구**는 카탈로그 복구 + 검증 후 등록으로 완성된다. 이천 DR 대상 버킷에는 **ILM Transition 을 걸지 않는 것**이 전제다.
+
+### 되는 것 / 안 되는 것
+
+| 항목 | 버킷 복제만으로 | 이유 |
+|---|---|---|
+| data · manifest · metadata.json 사본 | ✅ | 버킷 객체(버전) 전체 복제 |
+| Iceberg 테이블 즉시 조회 | ❌ | 카탈로그(HMS 포인터)는 복제 안 됨 (C2) |
+| 시점 일관 스냅샷 | ⚠️ | 객체 단위 비동기 — 마지막 스냅샷 일부 파일 미도착 가능 (C1) |
+| 실수 · 랜섬웨어 삭제 보호 | ⚠️ | 삭제 복제 ON 이면 실수도 복제 — replica noncurrent 보존 기간 안에서만 복구 |
+
+### DR 성립 조건
+
+| # | 조건 | 없으면 | 연결 |
+|---|---|---|---|
+| DR-1 | 🚨 Hot · Warm 버전 일치 | 복제 구성 불가 | P-0, No 36 |
+| DR-2 | Versioning ON + 기존 파일 seed | 구멍 난 백업 | V-1, No 37 |
+| DR-3 | 버킷명 동일 (replica = Hot 이름) | 절대경로 불일치 → 경로 재작성 필요 | 근거 2 §4 |
+| DR-4 | 카탈로그 복구 수단 — HMS(Oracle) 백업 또는 테이블별 `metadata_location` 주기 기록 | 최신 metadata.json 을 특정할 수 없음 | C2 |
+| DR-5 | 복구 시 **검증 후 등록** — 파일이 모두 있는 가장 최근 스냅샷을 골라 `register_table` | 누락 파일로 조회 실패 | 그림 10, H-30~H-35 |
+| DR-6 | 삭제 전파 정책 — delete-marker 복제 ON + replica noncurrent 보존 기간 = 되돌릴 수 있는 기간 | 실수 전파 또는 용량 누적 | V-4 |
+| DR-7 | **DR 대상 버킷 Transition 금지** (또는 복제 대상 ≠ Transition 대상) | Hot 소실 시 Tier 데이터는 Hot 메타데이터 없이 읽을 수 없음 · resync 시 Tier 단절 | §4-1 ①⑤ |
+| DR-8 | 전환(failover) · 원복(failback) Runbook | RTO 증가 · 원복 불가 | 아래 |
+
+### 전환 · 원복 흐름 (그림 14)
+
+| 단계 | 작업 | 도구 · 산출물 |
+|---|---|---|
+| ① 평시 | Hot → Warm 버킷 복제 · 테이블별 `metadata_location` 기록 · HMS 백업 | 복제 규칙, 기록 Job, Oracle 백업 |
+| ② 장애 선언 | Hot 불가 확인 · 복제 백로그 확인 | `mc replicate status` |
+| ③ 검증 · 등록 | 테이블별 가장 최근 **완전한** 스냅샷 선택 → 복구용 HMS 에 `register_table` | 검증 Job (HEAD 전수) |
+| ④ 서비스 전환 | DNS · VIP 를 Warm 으로, Trino · Spark `s3.endpoint` 전환 | DNS · L4 VIP |
+| ⑤ 원복 준비 | Hot 복구 후 Warm → Hot 역방향 복제 또는 resync | 역방향 복제 규칙 (🔍 절차 벤더 확인) |
+| ⑥ 원복 | DNS 원복 · 정방향 복제 재개 · 복구용 HMS 정리 | Runbook |
+
+| 지표 | 값 |
+|---|---|
+| RPO | 복제 지연 + 마지막 **완전한** 스냅샷까지의 간격 (Scanner 지연 시 증가) |
+| RTO | 장애 판단 + 검증 · register + 엔드포인트 전환 시간 |
+| 범위 밖 | 용인 데이터 (Warm 에만 존재 — 별도 백업 필요, Y-7) |
+
+### 방식 비교
+
+| 방식 | 구현 부담 | 일관성 | 권장 |
+|---|---|---|---|
+| **버킷 복제 + 복구 시 검증 후 등록** | 낮음 | 복구 시점 사후 검증 | ✅ 1차 권장 (DR-1~DR-8 충족) |
+| Iceberg 인식 복사 (`rewrite_table_path` + 복사 + register) | 높음 (주기 Job) | 스냅샷 단위 보장 | RPO · 일관성 요구가 엄격한 핵심 테이블만 |
+
 ## 5. 용인 — Warm 전용 사용 검토
 
 | # | 검토 항목 | 문제 여부 | 설명 | 대응 |
@@ -205,5 +257,6 @@
 | E1-6 | T-B1 ~ T-B9 수행 | 데이터엔지니어링 | ☐ |
 | E1-9 | **Hot Iceberg 버킷의 현재 Versioning 상태** 와 활성화 시점 · 기존 객체 seed 방법 (V-1) | 플랫폼 · `mc version info` | ☐ |
 | E1-10 | 삭제 전파 · noncurrent 보존 기간 (V-4) | 담당자 · 데이터 오너 | ☐ |
+| E1-11 | DR 전용 모드 채택 여부 · DR 대상 버킷(Transition 금지) 목록 · RPO/RTO 목표 · 전환/원복 Runbook | 담당자 · 플랫폼 | ☐ |
 | E1-7 | **Hot/Warm 버전 일치 계획** — 업그레이드 대상(Hot → 2026-06-06 또는 동일 릴리스), 순서, 복제 중단 여부, 롤백 | 벤더 · 플랫폼 (PDF-5, PDF-1) | ☐ |
 | E1-8 | 버전 일치 후 운영 규칙 — 향후 업그레이드는 Hot · Warm 동시(같은 창) 수행 | 플랫폼 | ☐ |

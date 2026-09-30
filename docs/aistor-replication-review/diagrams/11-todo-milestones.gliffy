@@ -789,7 +789,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:15px;line-height:18px;color:#232F3E;font-weight:bold;\">M2 복제 테스트<br>No 12–16</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:15px;line-height:18px;color:#232F3E;font-weight:bold;\">M2 복제 테스트 · DR<br>No 12–16 · 38</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
