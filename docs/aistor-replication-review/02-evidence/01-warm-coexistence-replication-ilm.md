@@ -104,6 +104,58 @@
 | **P-D resync 통제** | Tiering 버킷의 resync 는 승인 절차 + Tier 데이터 처리 계획 수립 후에만 | ① |
 | **P-E 역할 분리** | tier 버킷/prefix 와 replica 버킷 분리, tier 는 복제 대상에서 제외 | ⑤ |
 
+## 4-2. Versioning 필수 요구 × Hot Iceberg 버킷 — 백업 용도와의 충돌
+
+![Versioning × Iceberg 백업](../diagrams/13-versioning-iceberg-backup.svg)
+
+> **출발점**: Replication.pdf **4.2 사전 요구사항** — Replication 은 원본·대상 버킷 모두 **Versioning 필수** (공개 문서 동일: [M1](./06-official-reference-links.md#m1)). Hot 버킷은 Iceberg 테이블 저장소로 사용 중.
+>
+> **판정: 부분적으로 맞다.** Iceberg 는 파일을 덮어쓰지 않고 매번 새 이름으로 쓰므로 **Versioning 버킷에서 동작 자체는 문제없다.** 그러나 **백업(Replication) 용도**로는 아래 V-1 ~ V-6 의 충돌이 생긴다.
+
+### Iceberg 스냅샷 × 버킷 Versioning — 무엇이 충돌하나
+
+| 구분 | Iceberg 스냅샷 | 버킷 Versioning |
+|---|---|---|
+| 이력 단위 | **테이블 스냅샷** (metadata.json → manifest → data 묶음) | **객체 하나의 버전** |
+| 되돌리기 | `rollback_to_snapshot` · time travel — 카탈로그 포인터 변경 | 객체 버전 복원 — 카탈로그와 무관 |
+| 정리 | `expire_snapshots` · `remove_orphan_files` 가 파일 DELETE | DELETE 는 **delete marker** 만 생성, 이전 버전은 noncurrent 로 **보관** |
+| 파일 덮어쓰기 | 없음 (매번 새 파일명) → 키당 버전 거의 1개 | 덮어쓰기 대비 기능 — Iceberg 에는 이득이 작음 |
+
+| 충돌 | 결과 | 성격 |
+|---|---|---|
+| **S1 정리 무력화** | Iceberg 가 스냅샷을 만료해도 파일이 noncurrent 로 남아 **용량이 줄지 않음** | 운영 · 용량 (가장 큰 문제) |
+| **S2 이력 이중 보관** | 같은 이력을 스냅샷과 객체 버전으로 두 번 저장 → 비용 · 객체 수 증가 → Scanner 부하 | 비용 · 성능 |
+| **S3 복원 불일치** | 객체 버전을 되살려도 Iceberg 테이블은 복구되지 않음 (스냅샷 · 카탈로그 기준 필요) | 복구 절차 |
+| **S4 orphan 판정 사각지대** | `remove_orphan_files` 는 현재 객체만 보므로 noncurrent 버전은 대상이 아님 | 운영 |
+| 데이터 손상 | **없음** — Iceberg 는 덮어쓰지 않으므로 Versioning 이 테이블을 깨뜨리지는 않음 | — |
+
+> 결론: **Versioning 은 Iceberg 에 기능적 이득이 거의 없고(이력은 스냅샷이 담당) 정리를 무력화한다.** 그런데 Replication(백업)은 Versioning 을 필수로 요구하므로, 백업 대상 Iceberg 버킷에서는 **noncurrent 만료 규칙으로 S1·S2 를 상쇄**하는 것이 전제다 (VA-4). 이 판단은 Iceberg · AIStor 동작 원리에 근거한 분석이며, Versioning 버킷에 대한 Iceberg 공식 권고 문구는 확인하지 못했다.
+
+| # | 충돌 | 내용 | 근거 | 영향 |
+|---|---|---|---|---|
+| V-1 | **Versioning 켜기 전 객체는 복제 안 됨** | *"MinIO AIStor only excludes those objects without a version ID, such as those objects written before enabling versioning on the bucket."* → Hot 이 현재 Versioning OFF 면 **이미 적재된 Iceberg 테이블 파일은 백업되지 않음** | [M4](./06-official-reference-links.md#m4) | 🚨 백업 누락 |
+| V-2 | **Iceberg 삭제 → delete marker + noncurrent 누적 (= S1 정리 무력화)** | `expire_snapshots` · `remove_orphan_files` · compaction 이 지운 파일이 사라지지 않고 noncurrent 버전으로 남음 → Hot 용량이 줄지 않음 | [M1](./06-official-reference-links.md#m1), PDF-6 | 용량 증가 |
+| V-3 | **noncurrent 정리 규칙은 복제 안 됨** | noncurrent 를 ILM Expiration 으로 정리하면 그 삭제는 복제되지 않음 → replica 에도 **별도 noncurrent 만료** 필요 (§4-1 ②) | [M3](./06-official-reference-links.md#m3) | 양쪽 규칙 관리 |
+| V-4 | **삭제 전파 딜레마** | delete / delete-marker 복제 **ON** → Hot 에서 만료한 스냅샷 파일이 replica 에서도 "현재 버전"에서 사라짐 (noncurrent 보존 기간 안에서만 복구 가능) · **OFF** → replica 에 삭제가 반영 안 돼 용량 누적 | [M3](./06-official-reference-links.md#m3) | 백업 보존 정책 결정 필요 |
+| V-5 | **S3 버전 복원 ≠ Iceberg 복원** | Iceberg 롤백 단위는 스냅샷(카탈로그 포인터). 객체 버전을 되살려도 테이블 일관성은 보장 안 됨 → 복구는 반드시 스냅샷 · register 기준 | [I2](./06-official-reference-links.md#i2) | 복구 절차 |
+| V-6 | **Versioning 은 끌 수 없음** | 한 번 켜면 unversioned 로 되돌릴 수 없고 suspend 만 가능 (S3 동작, AIStor 동일 여부 PDF-6 확인) · Scanner 는 누적 버전만큼 느려짐 | [M22](./06-official-reference-links.md#m22), [근거 3](./03-scanner-impact.md) | 되돌리기 어려움 |
+
+### 대응
+
+| # | 대응 | 해소 |
+|---|---|---|
+| VA-1 | **현재 Versioning 상태 확인** — `mc version info HOT/<bucket>` (OFF / Enabled / Suspended) | 판단 출발점 |
+| VA-2 | **초기 적재(seed) 절차** — Versioning 활성화 후 기존 객체를 별도로 Warm 에 복사 (`mc mirror` · 배치 복제 🔍 · 또는 Iceberg `rewrite_table_path` + 복사 + `register_table`) 후 증분은 Replication | V-1 |
+| VA-3 | **백업 대상 버킷만 Versioning** — 모든 Hot 버킷이 아니라 백업이 필요한 Iceberg 버킷만 선별 | V-2, V-6 |
+| VA-4 | **noncurrent 만료를 양쪽에 동일하게** — Hot: 짧게(용량), replica: 백업 보존 기간만큼 | V-2, V-3, V-4 |
+| VA-5 | **삭제 전파 정책 확정** — 권장: delete-marker 복제 ON + replica noncurrent 보존 기간 = 허용 복구 기간 | V-4 |
+| VA-6 | **복구는 스냅샷 기준** — 복구 시 검증 후 register (그림 10) | V-5 |
+
+| 추가 테스트 | 절차 | 판정 |
+|---|---|---|
+| T-B10 | Versioning OFF 상태 버킷에 파일 적재 → Versioning ON → 복제 규칙 추가 | 기존 파일 미복제 확인 · seed 절차로 보완되는지 |
+| T-B11 | Iceberg `expire_snapshots` · compaction 반복 | Hot · replica noncurrent 증가량, 만료 규칙 적용 후 회수량 |
+
 ## 5. 용인 — Warm 전용 사용 검토
 
 | # | 검토 항목 | 문제 여부 | 설명 | 대응 |
@@ -151,5 +203,7 @@
 | E1-4 | Warm 용량 산정 = replica + tier + 용인 (+ 버전) | 플랫폼 | ☐ |
 | E1-5 | 역할별 버킷 · 명명 규칙 · access key 정책 확정 | 플랫폼 · 보안 | ☐ |
 | E1-6 | T-B1 ~ T-B9 수행 | 데이터엔지니어링 | ☐ |
+| E1-9 | **Hot Iceberg 버킷의 현재 Versioning 상태** 와 활성화 시점 · 기존 객체 seed 방법 (V-1) | 플랫폼 · `mc version info` | ☐ |
+| E1-10 | 삭제 전파 · noncurrent 보존 기간 (V-4) | 담당자 · 데이터 오너 | ☐ |
 | E1-7 | **Hot/Warm 버전 일치 계획** — 업그레이드 대상(Hot → 2026-06-06 또는 동일 릴리스), 순서, 복제 중단 여부, 롤백 | 벤더 · 플랫폼 (PDF-5, PDF-1) | ☐ |
 | E1-8 | 버전 일치 후 운영 규칙 — 향후 업그레이드는 Hot · Warm 동시(같은 창) 수행 | 플랫폼 | ☐ |

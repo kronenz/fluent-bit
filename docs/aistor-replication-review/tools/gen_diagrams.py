@@ -376,7 +376,7 @@ def i7():
                 subtitle="박스 안 No = INDEX §3 작업 번호 · 빨간 게이트 = 착수 전 확정할 결정 · 위 줄 = 이천 Replication/ILM · 아래 줄 = 용인 Warm 전용")
     ms = {
         "m0": (40, 270, "M0 담당자 확인\nNo 1–3", RED),
-        "m1": (320, 140, "M1 근거 · 설계\nNo 4–11 · 36 🚨버전", INK),
+        "m1": (320, 140, "M1 근거 · 설계\nNo 4–11 · 36–37 🚨", INK),
         "m2": (600, 140, "M2 복제 테스트\nNo 12–16", ORANGE),
         "m3": (880, 140, "M3 ILM · Archive\nNo 17–21", GREEN),
         "m4": (320, 400, "M4 용인 네트워크\nNo 22–26", GREEN),
@@ -524,12 +524,52 @@ def rep_ilm_constraints():
     return d
 
 
+def versioning_iceberg():
+    d = Diagram("13-versioning-iceberg-backup", "Iceberg 스냅샷 × 버킷 Versioning — 백업 용도에서의 충돌",
+                width=1500, height=740, subtitle="Replication 은 Versioning 필수 (Replication.pdf 4.2) · Iceberg 는 동작하지만 이력이 이중화되고 정리가 무력화됨")
+    d.group("ice", 40, 100, 420, 440, "Iceberg 스냅샷 (테이블 이력)", PURPLE, badge="ICE")
+    for i, x in enumerate((110, 230, 350)):
+        d.icon(f"s{i}", x, 190, "", kind="doc", glyph=f"snap {i + 1}", color=PURPLE, size=50)
+        if i:
+            d.edge([(x - 94, 190), (x - 27, 190)], color=PURPLE)
+    d.text(60, 225, 380, 20, "이력 = 스냅샷 · 롤백 = 카탈로그 포인터", size=12, color=PURPLE, bold=True)
+    d.icon("job", 230, 350, "expire_snapshots\ncompaction", kind="k8s:job", color=PURPLE, size=54, label_w=150)
+
+    d.group("hot", 520, 100, 440, 440, "Hot · Versioning ON", AISTOR, badge="S3")
+    d.icon("hb", 740, 180, "Hot Iceberg 버킷", kind="bucket_obj", color=AISTOR, size=62)
+    d.icon("cur", 610, 360, "현재", kind="doc", glyph="current", color=INK, size=50)
+    d.icon("dm", 740, 360, "delete marker", kind="doc", glyph="DM", color=RED, size=50, label_w=110)
+    d.icon("nc", 870, 360, "noncurrent 보관", kind="doc", glyph="v1 v2", color=GREY, size=50, dashed=True, label_w=120)
+    d.icon("nul", 610, 470, "Versioning 전 파일", kind="doc", glyph="null", color=GREY, size=46, label_w=130)
+    d.edge([(257, 350), (540, 350), (540, 300), (740, 300), (740, 333)], "DELETE", at=(400, 350), label_w=60, color=PURPLE)
+    d.edge([(766, 360), (843, 360)], color=GREY, dashed=True)
+
+    d.group("wr", 1010, 100, 450, 440, "Warm replica", WARMC, badge="W")
+    d.icon("rb", 1230, 180, "replica 버킷", kind="bucket", color=ORANGE, size=62)
+    d.icon("rc", 1110, 360, "현재", kind="doc", glyph="current", color=INK, size=50)
+    d.icon("rdm", 1250, 360, "삭제 전파 ON / OFF ?", kind="doc", glyph="DM ?", color=RED, size=50, label_w=150)
+    d.icon("rnul", 1110, 470, "미복제", kind="doc", glyph="✕", color=RED, size=46, dashed=True)
+    d.edge([(774, 180), (1196, 180)], "Replication", at=(985, 162), label_w=90, width=2.5, color=ORANGE)
+    d.edge([(636, 470), (1084, 470)], "✕ version ID 없음 → 제외", at=(860, 452), label_w=170, dashed=True, color=RED)
+
+    for x, y, t in [(895, 330, "S1"), (640, 445, "V1"), (1280, 330, "V4"), (930, 128, "V6")]:
+        d.step(x, y, t, color=RED, r=14)
+    chips(d, 570, ["S1 정리 무력화 (용량↑)", "S2 이력 이중 보관", "S3 버전 복원 ≠ 테이블 복원",
+                   "V1 켜기 전 파일 미복제", "V4 삭제 전파 딜레마", "V6 Versioning 끌 수 없음"], w=227)
+    d.box("rec", 40, 640, 1420, 70,
+          "대응: ① Versioning 상태 확인 → ② 기존 파일 seed (mirror · rewrite_table_path) → ③ Hot · replica 에 noncurrent 만료\n"
+          "④ 삭제 전파 결정 (delete-marker ON + replica 보존 기간) → ⑤ 복구는 스냅샷 · register 기준",
+          stroke=GREEN, fill="#F0F7E6", color=INK, size=13, bold=True)
+    return d
+
+
 def main():
     order = [("01-icheon-hot-warm-dataops", d01), ("02-warm-standalone-yongin", d02),
              ("03-warm-coexistence", r_decision), ("04-commit-unit-mismatch", i3),
              ("05-iceberg-vs-replication-timeline", d03), ("06-scanner-impact", d07),
              ("07-ilm-archive-options", archive_options), ("08-yongin-network-checkpoints", d05),
-             ("09-hot-warm-catalog-split", d06), ("10-verify-and-register", i6), ("11-todo-milestones", i7), ("12-replication-ilm-constraints", rep_ilm_constraints)]
+             ("09-hot-warm-catalog-split", d06), ("10-verify-and-register", i6), ("11-todo-milestones", i7), ("12-replication-ilm-constraints", rep_ilm_constraints),
+             ("13-versioning-iceberg-backup", versioning_iceberg)]
     out = os.path.join(ROOT, "diagrams")
     for name, fn in order:
         dg = fn()

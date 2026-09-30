@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="740" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="100" width="420" height="440" fill="#FFFFFF" stroke="#8C4FFF" stroke-width="1.5"/>
+<rect x="40" y="100" width="26" height="26" fill="#8C4FFF"/>
+<text x="53.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">ICE</text>
+<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Iceberg 스냅샷 (테이블 이력)</text>
+<rect x="520" y="100" width="440" height="440" fill="#FFFFFF" stroke="#C72C48" stroke-width="1.5"/>
+<rect x="520" y="100" width="26" height="26" fill="#C72C48"/>
+<text x="533.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<text x="554" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Hot · Versioning ON</text>
+<rect x="1010" y="100" width="450" height="440" fill="#FFFFFF" stroke="#8A1C2E" stroke-width="1.5"/>
+<rect x="1010" y="100" width="26" height="26" fill="#8A1C2E"/>
+<text x="1023.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">W</text>
+<text x="1044" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Warm replica</text>
+<polyline points="136.0,190.0 203.0,190.0" fill="none" stroke="#8C4FFF" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="256.0,190.0 323.0,190.0" fill="none" stroke="#8C4FFF" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="257.0,350.0 540.0,350.0 540.0,300.0 740.0,300.0 740.0,333.0" fill="none" stroke="#8C4FFF" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="766.0,360.0 843.0,360.0" fill="none" stroke="#7D8998" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="774.0,180.0 1196.0,180.0" fill="none" stroke="#ED7100" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="636.0,470.0 1084.0,470.0" fill="none" stroke="#DD344C" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<path d="M85.0,165.0 L125.0,165.0 L135.0,175.0 L135.0,215.0 L85.0,215.0 Z" fill="#fff" stroke="#8C4FFF" stroke-width="1.5"/>
+<text x="110.0" y="193.33333333333334" font-size="10" fill="#8C4FFF" text-anchor="middle" font-weight="bold">snap 1</text>
+<path d="M205.0,165.0 L245.0,165.0 L255.0,175.0 L255.0,215.0 L205.0,215.0 Z" fill="#fff" stroke="#8C4FFF" stroke-width="1.5"/>
+<text x="230.0" y="193.33333333333334" font-size="10" fill="#8C4FFF" text-anchor="middle" font-weight="bold">snap 2</text>
+<path d="M325.0,165.0 L365.0,165.0 L375.0,175.0 L375.0,215.0 L325.0,215.0 Z" fill="#fff" stroke="#8C4FFF" stroke-width="1.5"/>
+<text x="350.0" y="193.33333333333334" font-size="10" fill="#8C4FFF" text-anchor="middle" font-weight="bold">snap 3</text>
+<rect x="203.0" y="323.0" width="54" height="54" rx="8" fill="#8C4FFF"/>
+<text x="230.0" y="353.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">job</text>
+<path d="M709.0,160.16 L771.0,160.16 L761.08,211.0 L718.92,211.0 Z" fill="#C72C48" stroke="#C72C48"/>
+<ellipse cx="740.0" cy="160.16" rx="31.0" ry="7.4399999999999995" fill="#fff" stroke="#C72C48" stroke-width="2"/>
+<rect x="728.84" y="176.9" width="9.92" height="8.680000000000001" fill="#fff"/>
+<rect x="741.24" y="180.0" width="9.92" height="8.680000000000001" fill="#fff"/>
+<rect x="735.04" y="191.16" width="9.92" height="8.680000000000001" fill="#fff"/>
+<path d="M585.0,335.0 L625.0,335.0 L635.0,345.0 L635.0,385.0 L585.0,385.0 Z" fill="#fff" stroke="#232F3E" stroke-width="1.5"/>
+<text x="610.0" y="363.3333333333333" font-size="10" fill="#232F3E" text-anchor="middle" font-weight="bold">current</text>
+<path d="M715.0,335.0 L755.0,335.0 L765.0,345.0 L765.0,385.0 L715.0,385.0 Z" fill="#fff" stroke="#DD344C" stroke-width="1.5"/>
+<text x="740.0" y="363.3333333333333" font-size="10" fill="#DD344C" text-anchor="middle" font-weight="bold">DM</text>
+<path d="M845.0,335.0 L885.0,335.0 L895.0,345.0 L895.0,385.0 L845.0,385.0 Z" fill="#fff" stroke="#7D8998" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="870.0" y="363.3333333333333" font-size="10" fill="#7D8998" text-anchor="middle" font-weight="bold">v1 v2</text>
+<path d="M587.0,447.0 L623.0,447.0 L633.0,457.0 L633.0,493.0 L587.0,493.0 Z" fill="#fff" stroke="#7D8998" stroke-width="1.5"/>
+<text x="610.0" y="473.3333333333333" font-size="10" fill="#7D8998" text-anchor="middle" font-weight="bold">null</text>
+<path d="M1199.0,160.16 L1261.0,160.16 L1251.08,211.0 L1208.92,211.0 Z" fill="#ED7100" stroke="#ED7100"/>
+<ellipse cx="1230.0" cy="160.16" rx="31.0" ry="7.4399999999999995" fill="#fff" stroke="#ED7100" stroke-width="2"/>
+<path d="M1085.0,335.0 L1125.0,335.0 L1135.0,345.0 L1135.0,385.0 L1085.0,385.0 Z" fill="#fff" stroke="#232F3E" stroke-width="1.5"/>
+<text x="1110.0" y="363.3333333333333" font-size="10" fill="#232F3E" text-anchor="middle" font-weight="bold">current</text>
+<path d="M1225.0,335.0 L1265.0,335.0 L1275.0,345.0 L1275.0,385.0 L1225.0,385.0 Z" fill="#fff" stroke="#DD344C" stroke-width="1.5"/>
+<text x="1250.0" y="363.3333333333333" font-size="10" fill="#DD344C" text-anchor="middle" font-weight="bold">DM ?</text>
+<path d="M1087.0,447.0 L1123.0,447.0 L1133.0,457.0 L1133.0,493.0 L1087.0,493.0 Z" fill="#fff" stroke="#DD344C" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="1110.0" y="473.3333333333333" font-size="10" fill="#DD344C" text-anchor="middle" font-weight="bold">✕</text>
+<rect x="40" y="570" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="153.5" y="597.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">S1 정리 무력화 (용량↑)</text>
+<rect x="279" y="570" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="392.5" y="597.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">S2 이력 이중 보관</text>
+<rect x="518" y="570" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="631.5" y="597.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">S3 버전 복원 ≠ 테이블 복원</text>
+<rect x="757" y="570" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="870.5" y="597.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">V1 켜기 전 파일 미복제</text>
+<rect x="996" y="570" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1109.5" y="597.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">V4 삭제 전파 딜레마</text>
+<rect x="1235" y="570" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1348.5" y="597.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">V6 Versioning 끌 수 없음</text>
+<rect x="40" y="640" width="1420" height="70" rx="6" fill="#F0F7E6" stroke="#7AA116"/>
+<text x="750.0" y="671.3333333333334" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="bold">대응: ① Versioning 상태 확인 → ② 기존 파일 seed (mirror · rewrite_table_path) → ③ Hot · replica 에 noncurrent 만료</text>
+<text x="750.0" y="687.3333333333334" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="bold">④ 삭제 전파 결정 (delete-marker ON + replica 보존 기간) → ⑤ 복구는 스냅샷 · register 기준</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">Iceberg 스냅샷 × 버킷 Versioning — 백업 용도에서의 충돌</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">Replication 은 Versioning 필수 (Replication.pdf 4.2) · Iceberg 는 동작하지만 이력이 이중화되고 정리가 무력화됨</text>
+<text x="250.0" y="239.0" font-size="12" fill="#8C4FFF" text-anchor="middle" font-weight="bold">이력 = 스냅샷 · 롤백 = 카탈로그 포인터</text>
+<text x="230.0" y="395.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">expire_snapshots</text>
+<text x="230.0" y="410.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">compaction</text>
+<text x="740.0" y="229.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Hot Iceberg 버킷</text>
+<text x="610.0" y="403.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">현재</text>
+<text x="740.0" y="403.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">delete marker</text>
+<text x="870.0" y="403.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">noncurrent 보관</text>
+<text x="610.0" y="511.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Versioning 전 파일</text>
+<rect x="370.0" y="340.5" width="60" height="19" fill="#FFFFFF"/>
+<text x="400.0" y="353.6666666666667" font-size="11" fill="#8C4FFF" text-anchor="middle" font-weight="normal">DELETE</text>
+<text x="1230.0" y="229.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">replica 버킷</text>
+<text x="1110.0" y="403.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">현재</text>
+<text x="1250.0" y="403.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">삭제 전파 ON / OFF ?</text>
+<text x="1110.0" y="511.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">미복제</text>
+<rect x="940.0" y="152.5" width="90" height="19" fill="#FFFFFF"/>
+<text x="985.0" y="165.66666666666666" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">Replication</text>
+<rect x="775.0" y="442.5" width="170" height="19" fill="#FFFFFF"/>
+<text x="860.0" y="455.6666666666667" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">✕ version ID 없음 → 제외</text>
+<circle cx="895.0" cy="330.0" r="14.0" fill="#DD344C"/>
+<text x="895.0" y="333.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S1</text>
+<circle cx="640.0" cy="445.0" r="14.0" fill="#DD344C"/>
+<text x="640.0" y="448.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">V1</text>
+<circle cx="1280.0" cy="330.0" r="14.0" fill="#DD344C"/>
+<text x="1280.0" y="333.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">V4</text>
+<circle cx="930.0" cy="128.0" r="14.0" fill="#DD344C"/>
+<text x="930.0" y="131.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">V6</text>
+</svg>
