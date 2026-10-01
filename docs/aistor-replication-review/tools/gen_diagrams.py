@@ -377,7 +377,7 @@ def i7():
     ms = {
         "m0": (40, 270, "M0 담당자 확인\nNo 1–3", RED),
         "m1": (320, 140, "M1 근거 · 설계\nNo 4–11 · 36–37 🚨", INK),
-        "m2": (600, 140, "M2 복제 테스트 · DR\nNo 12–16 · 38", ORANGE),
+        "m2": (600, 140, "M2 복제 테스트 · DR\nNo 12–16 · 38–40", ORANGE),
         "m3": (880, 140, "M3 ILM · Archive\nNo 17–21", GREEN),
         "m4": (320, 400, "M4 용인 네트워크\nNo 22–26", GREEN),
         "m5": (600, 400, "M5 HMS-Warm\nNo 27–31", TEAL),
@@ -607,6 +607,90 @@ def dr_flow():
     return d
 
 
+def ic_fdc_prefix():
+    d = Diagram("15-ic-fdc-prefix-replication", "ic-fdc 버킷 — prefix 단위 Replication (권장 방안 B)",
+                width=1500, height=760, subtitle="unstructure/(Archive) = prefix 규칙 상시 복제 · structured/(Iceberg) = Versioning 제외 + 유지보수 후 Batch Replication")
+    d.group("hot", 40, 100, 360, 470, "Hot · ic-fdc", AISTOR, badge="S3")
+    d.icon("hb", 110, 385, "ic-fdc", kind="bucket_obj", color=AISTOR, size=60)
+    d.icon("hu", 300, 260, "unstructure/\nArchive", kind="doc", glyph="ZIP", color=ORANGE, size=50, label_w=120)
+    d.icon("hs", 300, 470, "structured/\nIceberg", kind="doc", glyph="ICE", color=PURPLE, size=50, label_w=120)
+    d.text(240, 320, 120, 18, "Versioning ON", size=11, color=ORANGE, bold=True)
+    d.text(225, 530, 150, 18, "Versioning 제외", size=11, color=PURPLE, bold=True)
+    d.edge([(140, 370), (200, 370), (200, 260), (274, 260)], color=MUTED, arrow=False, width=1)
+    d.edge([(140, 400), (200, 400), (200, 470), (274, 470)], color=MUTED, arrow=False, width=1)
+
+    d.group("mid", 440, 100, 440, 470, "복제 수단", INK, badge="⇄")
+    d.icon("rep", 660, 260, "Bucket Replication\nprefix 규칙 (상시)", glyph="REP", color=ORANGE, size=52, label_w=160)
+    d.icon("mt", 530, 470, "① 유지보수\nmerge · expire", kind="k8s:job", color=PURPLE, size=50, label_w=120)
+    d.icon("bt", 780, 470, "② Batch Replication\n(1회성 · 주기 실행)", kind="k8s:job", color=ORANGE, size=50, label_w=160)
+
+    d.group("warm", 920, 100, 540, 470, "Warm · ic-fdc (replica)", WARMC, badge="W")
+    d.icon("wu", 1100, 260, "unstructure/", kind="doc", glyph="ZIP", color=ORANGE, size=50)
+    d.icon("ws", 1100, 470, "structured/", kind="doc", glyph="ICE", color=PURPLE, size=50)
+    d.icon("wb", 1340, 365, "replica 버킷", kind="bucket", color=ORANGE, size=60)
+    d.icon("wh", 1340, 500, "③ 복구 시\n검증 후 register", glyph="HMS", color=TEAL, size=44, dashed=True, label_w=130)
+    d.edge([(1126, 260), (1300, 260), (1300, 335)], color=MUTED, arrow=False, width=1)
+    d.edge([(1126, 470), (1300, 470), (1300, 395)], color=MUTED, arrow=False, width=1)
+
+    d.edge([(326, 260), (634, 260)], "상시", at=(480, 242), label_w=40, width=2.5, color=ORANGE)
+    d.edge([(686, 260), (1074, 260)], "ALIAS/ic-fdc/unstructure", at=(880, 242), label_w=170, width=2.5, color=ORANGE)
+    d.edge([(326, 470), (504, 470)], color=PURPLE)
+    d.edge([(556, 470), (754, 470)], color=PURPLE)
+    d.edge([(806, 470), (1074, 470)], "prefix: structured/ · newerThan", at=(940, 452), label_w=200, width=2.5,
+           dashed=True, color=ORANGE)
+
+    chips(d, 600, ["포함 prefix 만 (제외 규칙 없음)", "--excluded-prefixes 최대 10", "resync = 버킷 단위",
+                   "Batch = 1회성 · 스케줄러", "🚨 버전 일치 (Bucket Repl.)", "unstructure Transition 겹침 주의"], w=227)
+    d.box("opt", 40, 665, 1420, 60,
+          "A  prefix 규칙만 (structured 백업 없음)      B  ★ 권장: + structured Versioning 제외 + Batch      C  버킷 분리 (Iceberg 경로 재작성 필요)",
+          stroke=INK, fill="#F4F5F7", color=INK, size=13, bold=True)
+    return d
+
+
+def bucket_vs_batch():
+    d = Diagram("16-bucket-vs-batch-operation", "운영 모델 — Bucket Replication (AIStor 상시) vs Batch Replication (AIStor 실행 + 외부 오케스트레이션)",
+                width=1500, height=760, subtitle="Batch 는 서버에서 복사하지만 1회성 — 스케줄 · 상태 확인 · 검증은 Airflow / CronJob 이 담당")
+    d.group("a", 40, 100, 680, 240, "Bucket Replication — AIStor 가 상시 관리", ORANGE, badge="A")
+    d.icon("ah", 130, 200, "Hot · unstructure/", kind="bucket_obj", color=AISTOR, size=56, label_w=140)
+    d.icon("ae", 380, 200, "복제 엔진 (상시)", glyph="REP", color=ORANGE, size=52, label_w=130)
+    d.icon("as", 380, 300, "", glyph="SCN", color=INK, size=34)
+    d.text(400, 290, 180, 20, "실패 → Scanner 재큐잉", size=11, color=MUTED, align="left")
+    d.icon("aw", 630, 200, "Warm", kind="bucket", color=ORANGE, size=56)
+    d.edge([(162, 200), (354, 200)], "PUT 즉시", at=(258, 182), label_w=70, width=2.5, color=ORANGE)
+    d.edge([(406, 200), (598, 200)], width=2.5, color=ORANGE)
+
+    d.group("b", 760, 100, 700, 240, "Batch Replication — 복사는 AIStor 서버 (Job 단위)", PURPLE, badge="B")
+    d.icon("bh", 850, 200, "Hot · structured/", kind="bucket_obj", color=AISTOR, size=56, label_w=140)
+    d.icon("be", 1110, 200, "batch 워커\n(server-side)", kind="k8s:job", color=PURPLE, size=52, label_w=130)
+    d.icon("bw", 1370, 200, "Warm", kind="bucket", color=ORANGE, size=56)
+    d.edge([(882, 200), (1084, 200)], "1회성 Job", at=(983, 182), label_w=70, width=2.5, color=PURPLE)
+    d.edge([(1136, 200), (1338, 200)], width=2.5, color=PURPLE)
+
+    d.group("c", 40, 380, 1420, 220, "Airflow DAG / CronJob — 외부 오케스트레이션 (스케줄 · 상태 · 검증)", BLUE, badge="DAG")
+    tasks = [("t1", "① 유지보수\n완료 대기", "WAIT", BLUE), ("t2", "② Job YAML\n(워터마크)", "YAML", BLUE),
+             ("t3", "③ mc batch\nstart", "START", PURPLE), ("t4", "④ status\n폴링", "POLL", PURPLE),
+             ("t5", "⑤ 검증\n(3단계)", "✓", GREEN), ("t6", "⑥ 워터마크 ·\nmetadata 기록", "LOG", TEAL),
+             ("t7", "⑦ 알림", "!", RED)]
+    xs = [140, 340, 540, 740, 940, 1140, 1340]
+    for (tid, lab, g, c), x in zip(tasks, xs):
+        if g in ("YAML", "LOG"):
+            d.icon(tid, x, 470, lab, kind="doc", glyph=g, color=c, size=48, label_w=130)
+        else:
+            d.icon(tid, x, 470, lab, glyph=g, color=c, size=48, label_w=130)
+    for a, b in zip(xs, xs[1:]):
+        d.edge([(a + 26, 470), (b - 26, 470)], color=BLUE)
+    d.edge([(540, 444), (540, 360), (1040, 360), (1040, 214), (1082, 214)], "admin API", at=(800, 360), label_w=80,
+           dashed=True, color=PURPLE)
+    d.edge([(1138, 214), (1190, 214), (1190, 380), (760, 380), (760, 444)], "status · notify", at=(980, 380), label_w=100,
+           dashed=True, color=PURPLE)
+
+    chips(d, 625, ["workers 기본 = CPU 절반", "workers_wait 기본 = 0ms", "list_quorum = strict",
+                   "실행 창: 피크 · compaction 회피", "Warm 공유 (용인 I/O)", "재시작 재개 문구 없음 🔍"], w=227, color=ORANGE)
+    d.text(40, 690, 1420, 40, "검증 3단계: Job (실패 0) → 객체 (prefix 건수 · 용량) → Iceberg (최신 스냅샷 파일 Warm HEAD 전수)",
+           size=13, color=INK, bold=True, align="left")
+    return d
+
+
 def main():
     order = [("01-icheon-hot-warm-dataops", d01), ("02-warm-standalone-yongin", d02),
              ("03-warm-coexistence", r_decision), ("04-commit-unit-mismatch", i3),
@@ -614,7 +698,9 @@ def main():
              ("07-ilm-archive-options", archive_options), ("08-yongin-network-checkpoints", d05),
              ("09-hot-warm-catalog-split", d06), ("10-verify-and-register", i6), ("11-todo-milestones", i7), ("12-replication-ilm-constraints", rep_ilm_constraints),
              ("13-versioning-iceberg-backup", versioning_iceberg),
-             ("14-dr-failover-failback", dr_flow)]
+             ("14-dr-failover-failback", dr_flow),
+             ("15-ic-fdc-prefix-replication", ic_fdc_prefix),
+             ("16-bucket-vs-batch-operation", bucket_vs_batch)]
     out = os.path.join(ROOT, "diagrams")
     for name, fn in order:
         dg = fn()

@@ -15,6 +15,8 @@
 | 결론 3 (Replication · ILM) | 병행 **금지 문구는 없고 MinIO 는 병행 권장** — 단 같은 버킷·객체에 그대로 걸면 **8가지 제약**(resync Tier 단절 · Expiration 미복제 · ILM 비복제 · Transition 객체 복제 미기재 · Tier 독점 · 이중 저장 · Scanner 공유 · 버전) → **대상 분리(P-A)** 기본 |
 | 결론 3-1 (Replication · Versioning) | Replication 은 **Versioning 필수**(Replication.pdf 4.2) — Iceberg 는 Versioning 에서 동작하지만 백업 용도로는 충돌: 🚨 **Versioning 켜기 전 파일은 복제 안 됨** · 삭제가 noncurrent 로 누적 · 삭제 전파 딜레마 · 끌 수 없음 → seed 절차 · 양쪽 noncurrent 만료 |
 | 결론 3-2 (DR) | **버킷 Replication 만으로 Warm 을 Iceberg DR 로 사용 가능** — 단 복제는 파일 사본까지, 테이블 복구는 카탈로그 기록 + 검증 후 register · DR 대상 버킷은 Transition 금지 · RPO = 복제 지연 + 마지막 완전 스냅샷 간격 |
+| 결론 3-3 (prefix 복제) | `ic-fdc` — **`unstructure/`(Archive) 는 prefix 규칙으로 상시 Bucket Replication**, **`structured/`(Iceberg) 는 Versioning 제외(`--excluded-prefixes`) + Batch Replication 으로 유지보수 후 시점 지정 백업** (제외 규칙 없음 · resync 는 버킷 단위) |
+| 결론 3-4 (운영 모델) | Bucket Replication = **AIStor 가 상시 관리** · Batch Replication = **복사는 AIStor 서버, 스케줄 · 상태 확인 · 검증은 외부(Airflow/CronJob)** — 1회성 Job · 워커 기본 CPU 절반 · wait 0ms → 실행 창 · 스로틀 · 3단계 검증 필요 |
 | 결론 4 (Replication) | 이천 replica 는 스냅샷 일관성 없음(C1~C5) → **백업 시점 테스트(T-B)** · 복구 시 검증 후 등록 |
 | 결론 5 (Replication · ILM) | Scanner 지연 시 복제 재큐잉 · Transition · 버전 정리가 함께 지연 |
 | 결론 6 (ILM) | ILM Tier 는 AIStor 독점 영역 · 아카이브 **A / B(하이브리드) / C** 협의 |
@@ -30,6 +32,8 @@
 | 결론 3 — Replication + ILM 같이 쓰기 어려운 이유 | ![12](./diagrams/12-replication-ilm-constraints.svg) | [12 .drawio](./diagrams/12-replication-ilm-constraints.drawio) | [12 .gliffy](./diagrams/12-replication-ilm-constraints.gliffy) |
 | 결론 3-1 — Versioning × Iceberg 백업 | ![13](./diagrams/13-versioning-iceberg-backup.svg) | [13 .drawio](./diagrams/13-versioning-iceberg-backup.drawio) | [13 .gliffy](./diagrams/13-versioning-iceberg-backup.gliffy) |
 | 결론 3-2 — DR 전환 · 원복 | ![14](./diagrams/14-dr-failover-failback.svg) | [14 .drawio](./diagrams/14-dr-failover-failback.drawio) | [14 .gliffy](./diagrams/14-dr-failover-failback.gliffy) |
+| 결론 3-3 — ic-fdc prefix 복제 | ![15](./diagrams/15-ic-fdc-prefix-replication.svg) | [15 .drawio](./diagrams/15-ic-fdc-prefix-replication.drawio) | [15 .gliffy](./diagrams/15-ic-fdc-prefix-replication.gliffy) |
+| 결론 3-4 — Bucket vs Batch 운영 모델 | ![16](./diagrams/16-bucket-vs-batch-operation.svg) | [16 .drawio](./diagrams/16-bucket-vs-batch-operation.drawio) | [16 .gliffy](./diagrams/16-bucket-vs-batch-operation.gliffy) |
 | 결론 4 — 커밋 단위 불일치 (이천 replica) | ![04](./diagrams/04-commit-unit-mismatch.svg) | [04 .drawio](./diagrams/04-commit-unit-mismatch.drawio) | [04 .gliffy](./diagrams/04-commit-unit-mismatch.gliffy) |
 | 결론 4 — 복구 시 검증 후 등록 | ![10](./diagrams/10-verify-and-register.svg) | [10 .drawio](./diagrams/10-verify-and-register.drawio) | [10 .gliffy](./diagrams/10-verify-and-register.gliffy) |
 | 결론 5 — Scanner 지연 영향 | ![06](./diagrams/06-scanner-impact.svg) | [06 .drawio](./diagrams/06-scanner-impact.drawio) | [06 .gliffy](./diagrams/06-scanner-impact.gliffy) |
@@ -47,13 +51,14 @@
 | 3 | 근거 · Replication | [02-evidence/02-iceberg-snapshot-vs-replication](./02-evidence/02-iceberg-snapshot-vs-replication.md) | 충돌 C1~C5, 절대경로, 복제 → 검증 → 등록, 확인 E2-1~E2-7 | 이천 | 04, 05 |
 | 4 | 근거 · Replication/ILM | [02-evidence/03-scanner-impact](./02-evidence/03-scanner-impact.md) | Scanner 작업·주기, 3회 실패 후 재큐잉, 영향 매트릭스, 대응 S-A~S-G, 확인 E3-1~E3-6 | 이천 · Warm | 06 |
 | 5 | 근거 · ILM | [02-evidence/04-ilm-archive-options](./02-evidence/04-ilm-archive-options.md) | ILM 한계 근거, 아카이브 A/B/C, 협의 안건 AR-1~AR-5, 확인 E4-1~E4-6 | 이천 | 07 |
-| 6 | 근거 · 공통 | [02-evidence/05-internal-pdf-evidence-map](./02-evidence/05-internal-pdf-evidence-map.md) | 보안 PDF 6종 확인 매핑 R-01~R-29 | 공통 | — |
-| 7 | 근거 · 공통 | [02-evidence/06-official-reference-links](./02-evidence/06-official-reference-links.md) | 공개 공식 문서 링크 + 원문 인용 M1~M22 · A · I · P · T · C | 공통 | — |
+| 6 | 근거 · 공통 | [02-evidence/05-internal-pdf-evidence-map](./02-evidence/05-internal-pdf-evidence-map.md) | 보안 PDF 6종 확인 매핑 R-01~R-31 | 공통 | — |
+| 7 | 근거 · 공통 | [02-evidence/06-official-reference-links](./02-evidence/06-official-reference-links.md) | 공개 공식 문서 링크 + 원문 인용 M1~M26 · A · I · P · T · C | 공통 | — |
 | 8 | 아키텍처 | [01-architecture/01-hot-warm-icheon-dataops](./01-architecture/01-hot-warm-icheon-dataops.md) | 접근 경로 매트릭스, Replication(백업) → ILM(이동) 비교, 확인 A-1~A-6 | 이천 | 01 |
 | 9 | 아키텍처 | [01-architecture/02-warm-standalone-yongin](./01-architecture/02-warm-standalone-yongin.md) | 용인 Warm 전용 적재·조회, 흐름 ①~⑥, 버킷 역할, 설정 초안, 확인 B-1~B-6 | 용인 | 02 |
 | 10 | 향후 | [03-future/01-yongin-network-checklist](./03-future/01-yongin-network-checklist.md) | read/write 경로 A/B, 체크포인트 ①~⑨, 포트, Runbook, 결정 N-1~N-4 | 용인 (필수) | 08 |
 | 11 | 향후 | [03-future/02-hms-oracle-split-todo](./03-future/02-hms-oracle-split-todo.md) | HMS-Hot / HMS-Warm(용인 원본) / 복구용 HMS, To-do H-01~H-54 | 용인 · 이천 복구 | 09, 10 |
 | 12 | 향후 | [03-future/03-open-items-polaris-hot-warm-schema](./03-future/03-open-items-polaris-hot-warm-schema.md) | Polaris `lake_hot`/`lake_warm` 확인 P-01~P-08, 이천·용인 스키마 S-01~S-07 | 용인 · Lake | 09 |
+| 12-1 | 향후 | [03-future/04-ic-fdc-prefix-replication](./03-future/04-ic-fdc-prefix-replication.md) | `ic-fdc` prefix 복제 방안 A/B/C, 설정 예시(Versioning 제외 · prefix 규칙 · Batch YAML), 주의 N-1~N-7, 테스트 TP-1~TP-9, 운영 모델(Bucket vs Batch · Airflow DAG · 부하 · 검증) | 이천 | 15, 16 |
 | 13 | 도구 | [tools/gen_diagrams.py](./tools/gen_diagrams.py) | 그림 11종 → .gliffy / .drawio / .svg 재생성 | — | 전체 |
 
 ## 2-1. 그림 목록 (diagrams/)
@@ -74,6 +79,8 @@
 | 12 | [12-replication-ilm-constraints](./diagrams/12-replication-ilm-constraints.svg) | Replication + ILM 동시 적용 제약 ①~⑧ · 권장 패턴 | 이천 Replication · ILM |
 | 13 | [13-versioning-iceberg-backup](./diagrams/13-versioning-iceberg-backup.svg) | Versioning 필수 × Iceberg 백업 충돌 V-1~V-6 · 대응 | 이천 Replication |
 | 14 | [14-dr-failover-failback](./diagrams/14-dr-failover-failback.svg) | DR 전용 모드: 평시 → 전환 → 원복 · 성립 조건 DR-1~DR-8 | 이천 DR |
+| 15 | [15-ic-fdc-prefix-replication](./diagrams/15-ic-fdc-prefix-replication.svg) | ic-fdc: unstructure 상시 복제 · structured Versioning 제외 + Batch | 이천 Replication |
+| 16 | [16-bucket-vs-batch-operation](./diagrams/16-bucket-vs-batch-operation.svg) | Bucket(AIStor 상시) vs Batch(AIStor 실행 + Airflow 오케스트레이션) · 부하 설정 | 이천 Replication 운영 |
 
 ## 3. 해야 할 일 · 진행 사항 · 일정
 
@@ -82,7 +89,7 @@
 | 1 | M0 | 선행 | 담당자 우려 확인 — 이천 Replication | OC-1~OC-6 | 이천 | [03-future/00](./03-future/00-owner-concerns.md) | | | | | ☐ 미착수 | |
 | 2 | M0 | 선행 | 담당자 우려 확인 — 이천 ILM/Archive | OC-7~OC-11 | 이천 | [03-future/00](./03-future/00-owner-concerns.md) | | | | | ☐ 미착수 | |
 | 3 | M0 | 선행 | Warm 공유 · 용인 우려 확인 → **Warm 버킷 역할 분리 결정 (G0)** | OC-12~OC-16, E1-5, B-1, B-2 | 공통 | [02-evidence/01](./02-evidence/01-warm-coexistence-replication-ilm.md) | | | | | ☐ 미착수 | |
-| 4 | M1 | Replication | 보안 PDF 확인 · 페이지/절 기입 | R-01~R-29 | 공통 | [02-evidence/05](./02-evidence/05-internal-pdf-evidence-map.md) | | | | | ☐ 미착수 | |
+| 4 | M1 | Replication | 보안 PDF 확인 · 페이지/절 기입 | R-01~R-31 | 공통 | [02-evidence/05](./02-evidence/05-internal-pdf-evidence-map.md) | | | | | ☐ 미착수 | |
 | 36 | M1 | Replication | 🚨 **Hot · Warm 버전 일치** — 업그레이드 대상 · 순서 · 복제 중단 여부 · 롤백 계획 (블로커, 복제 구성 전 필수) | P-0, E1-7, E1-8, A-7, R-27 | 이천 · Warm | [02-evidence/01](./02-evidence/01-warm-coexistence-replication-ilm.md) | | | | | ☐ 미착수 | Warm 업그레이드 시 용인 영향 포함 |
 | 37 | M1 | Replication | 🚨 **Hot Iceberg 버킷 Versioning 상태 확인 · 활성화 계획 · 기존 객체 seed · 삭제 전파/noncurrent 보존 결정** | V-1~V-6, VA-1~VA-6, E1-9, E1-10, R-29, T-B10, T-B11 | 이천 | [02-evidence/01](./02-evidence/01-warm-coexistence-replication-ilm.md) | | | | | ☐ 미착수 | Replication.pdf 4.2 |
 | 5 | M1 | Replication | 복제 대상 · Transition 대상 prefix 목록과 중복 범위 확정 (G1) | E1-1, A-1, OC-2, OC-7 | 이천 | [02-evidence/01](./02-evidence/01-warm-coexistence-replication-ilm.md) | | | | | ☐ 미착수 | |
@@ -98,6 +105,8 @@
 | 15 | M2 | Replication | 복제 지연 · 백로그 · resync-backlog 절차 · Hot HEAD PoC | E2-7, E3-4, E3-5, S-B, S-C | 이천 | [02-evidence/03](./02-evidence/03-scanner-impact.md) | | | | | ☐ 미착수 | |
 | 16 | M2 | Replication | 이천 replica 복구 절차 · 리허설 | H-30~H-35, T-B6, H-54 | 이천 | [03-future/02](./03-future/02-hms-oracle-split-todo.md) | | | | | ☐ 미착수 | |
 | 38 | M2 | Replication · DR | DR 전용 모드 설계 — DR 대상 버킷(Transition 금지) · `metadata_location` 기록 · 전환/원복 Runbook · RPO/RTO 측정 리허설 | DR-1~DR-8, E1-11 | 이천 | [02-evidence/01](./02-evidence/01-warm-coexistence-replication-ilm.md) | | | | | ☐ 미착수 | |
+| 39 | M2 | Replication | `ic-fdc` prefix 복제 — `unstructure/` 규칙 · `structured/` Versioning 제외 · Batch 주기 실행 설계와 TP 테스트 | TP-1~TP-6, PX-1~PX-5, R-30 | 이천 | [03-future/04](./03-future/04-ic-fdc-prefix-replication.md) | | | | | ☐ 미착수 | |
+| 40 | M2 | Replication · 운영 | Batch 운영 모델 — Airflow DAG(①~⑦) · admin 권한 · 워커/wait 튜닝 · 3단계 검증 자동화 | TP-7~TP-9, PX-6, PX-7, R-31 | 이천 | [03-future/04 §7](./03-future/04-ic-fdc-prefix-replication.md) | | | | | ☐ 미착수 | |
 | 17 | M3 | ILM | RAW 현황 파악 (객체 수 · 크기 · 압축 설정) | E4-2, E4-3 | 이천 | [02-evidence/04](./02-evidence/04-ilm-archive-options.md) | | | | | ☐ 미착수 | |
 | 18 | M3 | ILM | 아카이브 방식 협의 A / B / C (G2) | AR-1, E4-6 | 이천 | [02-evidence/04](./02-evidence/04-ilm-archive-options.md) | | | | | ☐ 미착수 | Rollover Job 확정 아님 |
 | 19 | M3 | ILM | (B·C) 변환 정책 시점 · Job 소유 | AR-2, AR-3 | 이천 | [02-evidence/04](./02-evidence/04-ilm-archive-options.md) | | | | | ☐ 미착수 | |
@@ -133,7 +142,7 @@
 |---|---|---|---|---|---|---|
 | M0 담당자 우려 · Warm 역할 분리 | 1~3 | — | 공통 | | | ☐ |
 | M1 Replication · ILM 근거 · 설계 | 4~11, 36, 37 | M0 | 이천 (+ Warm 공통) | | | ☐ |
-| M2 이천 Replication 테스트 (백업 시점 · 병행 · 공존 부하 · 복구 · DR) | 12~16, 38 | M1 | 이천 (+ Warm 공통) | | | ☐ |
+| M2 이천 Replication 테스트 (백업 시점 · 병행 · 공존 부하 · 복구 · DR) | 12~16, 38~40 | M1 | 이천 (+ Warm 공통) | | | ☐ |
 | M3 ILM / Archive 협의 · PoC | 17~21 | M2 | 이천 | | | ☐ |
 | M4 용인 네트워크 개통 | 22~26 | M0 | 용인 | | | ☐ |
 | M5 HMS-Warm(용인) 구축 | 27~31 | M4 | 용인 | | | ☐ |
@@ -169,3 +178,5 @@
 | **v3.2** | Replication 과 ILM 을 같이 못 쓰는 이유 반영 | 공개 문서엔 금지 문구 없음(병행 권장 M19) · 같은 버킷 동시 적용 제약 ①~⑧ · 권장 패턴 P-A~P-E · M20·M21 · R-28 · 그림 12 | 02-evidence/01 §4-1 · 그림 12 |
 | **v3.3** | Replication.pdf 4.2 Versioning 필수 × Hot Iceberg 백업 충돌 | 판정 "부분적으로 맞음" · V-1~V-6 · 대응 VA-1~VA-6 · T-B10·T-B11 · No 37 · M22 · R-29 · 그림 13 | 02-evidence/01 §4-2 · 그림 13 |
 | **v3.4** | 버킷 Replication 만으로 Warm 을 Iceberg DR 로 쓸 수 있는지 | 가능(조건부) · DR-1~DR-8 · 전환/원복 ①~⑥ · RPO/RTO · No 38 · 그림 14 | 02-evidence/01 §4-3 · 그림 14 |
+| **v3.5** | Batch Replication 가능 · ic-fdc 의 structured(Iceberg) / unstructure(Archive) prefix 만 복제 방안 | 방안 A/B/C · B 권장(unstructure 상시 · structured Versioning 제외 + Batch) · M23~M25 · R-30 · No 39 · 그림 15 | 03-future/04 · 그림 15 |
+| **v3.6** | Bucket Replication 은 AIStor 관리, Batch 는 Airflow · CronJob 형태인가 (부하 · 작업 관리 · 검증) | 실행 = AIStor 서버 · 스케줄/검증 = 외부 · 역할 비교 · Airflow DAG ①~⑦ · 부하 설정(workers · wait · list_quorum) · 3단계 검증 · TP-7~TP-9 · M26 · R-31 · No 40 · 그림 16 | 03-future/04 §7 · 그림 16 |

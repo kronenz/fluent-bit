@@ -6,6 +6,7 @@
 | 1 | [01-yongin-network-checklist](./01-yongin-network-checklist.md) | 용인 → 이천 Warm **read/write** 경로 A/B, 체크포인트 ①~⑨, 포트, 검증 Runbook | 용인 (필수) | 08-yongin-network-checkpoints |
 | 2 | [02-hms-oracle-split-todo](./02-hms-oracle-split-todo.md) | HMS-Hot(이천) / HMS-Warm(용인 원본) / 복구용 HMS To-do H-01~H-54 | 용인 · 이천 복구 | 09-hot-warm-catalog-split, 10-verify-and-register |
 | 3 | [03-open-items-polaris-hot-warm-schema](./03-open-items-polaris-hot-warm-schema.md) | Polaris `lake_hot` / `lake_warm` 확인 P-01~P-08, 이천·용인 스키마 S-01~S-07 | 용인 · Lake | 09-hot-warm-catalog-split |
+| 4 | [04-ic-fdc-prefix-replication](./04-ic-fdc-prefix-replication.md) | `ic-fdc` prefix 단위 복제 — `unstructure/` 상시 · `structured/` Versioning 제외 + Batch, 운영 모델(Airflow DAG · 부하 · 검증), TP-1~TP-9 | 이천 | 15-ic-fdc-prefix-replication, 16-bucket-vs-batch-operation |
 
 ## 전체 진행 체크 요약
 

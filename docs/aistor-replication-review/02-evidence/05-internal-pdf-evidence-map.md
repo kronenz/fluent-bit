@@ -50,6 +50,8 @@
 | R-27 | **Hot(2026-02-07) · Warm(2026-06-06) 버전 불일치 시 Bucket Replication 지원 여부 · 업그레이드 순서 · 호환 릴리스 조합** · Tier 버전 호환 | PDF-5, PDF-1, PDF-2 | "version", "release", "upgrade", "matching", "compatib" | M17, M18 | | ☐ |
 | R-28 | **같은 버킷에 Replication + ILM(Transition · Expiration) 동시 적용 시 금지 · 제약 문구** (Transition 된 객체 복제 동작, resync, 대칭 규칙) | PDF-2, PDF-5, PDF-3 | "replication" × "transition", "tier", "resync", "not supported", "cannot" | M5, M19, M20, M21 | | ☐ |
 | R-29 | Versioning 활성화 전 객체의 복제 제외 · Versioning 비활성화 불가(suspend) · noncurrent 관리 — Iceberg 버킷 백업 영향 | PDF-5 (4.2), PDF-6 | "version ID", "null", "suspend", "noncurrent", "existing objects" | M4, M22 | | ☐ |
+| R-30 | prefix 단위 복제 규칙 · Versioning `--excluded-prefixes` · Batch Replication(Versioning/버전 요구, 증분 필터, 라이선스) | PDF-5, PDF-6, PDF-2 | "prefix", "excluded-prefixes", "batch", "priority" | M23, M24, M25 | | ☐ |
+| R-31 | Batch Job 실행 · 재시작 시 재개 · 스케줄 기능 유무 · 워커/스로틀 권장값 · 운영 부하 가이드 | PDF-5, PDF-1 | "batch", "workers", "schedule", "resume", "throttle" | M26 | | ☐ |
 
 ## 3. 문서별 요약 체크 (읽는 순서 권장)
 

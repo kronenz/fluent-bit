@@ -23,6 +23,8 @@
 | 3 | Replication · ILM | 병행 **금지 문구는 없고 MinIO 는 병행 권장**. 단 같은 버킷·객체에 그대로 걸면 8가지 제약(resync Tier 단절 · Expiration 미복제 · ILM 비복제 · Transition 객체 복제 미기재 · Tier 독점 · 이중 저장 · Scanner · 버전) → **복제 대상과 Transition 대상 분리**가 기본 | [02-evidence/01 §4](./02-evidence/01-warm-coexistence-replication-ilm.md) |
 | 3-1 | Replication · Versioning | Replication 은 **Versioning 필수**(Replication.pdf 4.2). Iceberg 는 동작하지만 백업 용도로 충돌 — 🚨 Versioning 켜기 전 파일 미복제 · 삭제의 noncurrent 누적 · 삭제 전파 딜레마 · 끌 수 없음 | [02-evidence/01 §4-2](./02-evidence/01-warm-coexistence-replication-ilm.md) |
 | 3-2 | DR | 버킷 Replication 만으로 Warm 을 Iceberg DR 로 사용 **가능(조건부)** — 파일 사본 + 카탈로그 기록 + 복구 시 검증 후 register · DR 대상 버킷 Transition 금지 | [02-evidence/01 §4-3](./02-evidence/01-warm-coexistence-replication-ilm.md) |
+| 3-3 | prefix 복제 | `ic-fdc` — `unstructure/`(Archive) 는 prefix 규칙 상시 복제, `structured/`(Iceberg) 는 Versioning 제외 + Batch Replication 시점 지정 백업 | [03-future/04](./03-future/04-ic-fdc-prefix-replication.md) |
+| 3-4 | 운영 모델 | Bucket Replication = AIStor 상시 관리 · Batch = 복사는 AIStor 서버, 스케줄 · 검증은 Airflow/CronJob — 워커 기본 CPU 절반 · wait 0ms → 실행 창 · 스로틀 필요 | [03-future/04 §7](./03-future/04-ic-fdc-prefix-replication.md) |
 | 4 | Replication | 이천 replica 는 Iceberg 스냅샷 일관성 없음(C1~C5) → 백업이므로 **백업 시점 테스트(T-B)** · 복구 시 검증 후 등록 | [02-evidence/02](./02-evidence/02-iceberg-snapshot-vs-replication.md) |
 | 5 | Replication · ILM | Scanner 가 복제 재큐잉 · Transition · 버전 정리를 함께 처리 → 지연 시 함께 악화 | [02-evidence/03](./02-evidence/03-scanner-impact.md) |
 | 6 | ILM | ILM Tier 는 AIStor **독점 영역**(직접 접근 · ILM 금지). 아카이브는 A. zip 미사용 / B. 하이브리드 / C. 전면 Rollover 중 **협의** | [02-evidence/01 P-5](./02-evidence/01-warm-coexistence-replication-ilm.md), [02-evidence/04](./02-evidence/04-ilm-archive-options.md) |
@@ -47,13 +49,14 @@ aistor-replication-review/
 │   ├── 02-iceberg-snapshot-vs-replication.md    Iceberg vs Replication 충돌 C1~C5
 │   ├── 03-scanner-impact.md                     Scanner 지연 영향 (복제 재큐잉 · Transition)
 │   ├── 04-ilm-archive-options.md                ILM 한계 · 아카이브 A/B/C (협의)
-│   ├── 05-internal-pdf-evidence-map.md          보안 PDF 확인 매핑 R-01~R-29
+│   ├── 05-internal-pdf-evidence-map.md          보안 PDF 확인 매핑 R-01~R-31
 │   └── 06-official-reference-links.md           공개 공식 문서 링크 · 원문 인용
 ├── 03-future/                                   ── 3. 향후 구성 대응
 │   ├── 00-owner-concerns.md                     담당자 우려 확인 (가장 먼저)
 │   ├── 01-yongin-network-checklist.md           용인 → Warm read/write 네트워크 (필수)
 │   ├── 02-hms-oracle-split-todo.md              HMS-Hot / HMS-Warm(용인) / 복구용 HMS To-do
-│   └── 03-open-items-polaris-hot-warm-schema.md Polaris lake_hot/lake_warm · 스키마
+│   ├── 03-open-items-polaris-hot-warm-schema.md Polaris lake_hot/lake_warm · 스키마
+│   └── 04-ic-fdc-prefix-replication.md          ic-fdc prefix 단위 복제 (Archive 상시 · Iceberg Batch)
 └── tools/
     ├── diagram_lib.py                           draw.io / Gliffy / SVG 동시 생성 라이브러리
     └── gen_diagrams.py                          그림 스펙 (수정 후 재실행)
@@ -77,6 +80,8 @@ aistor-replication-review/
 | 12 | replication-ilm-constraints | Replication + ILM 동시 적용 제약 | 02-evidence/01 §4-1, INDEX |
 | 13 | versioning-iceberg-backup | Versioning 필수 × Iceberg 백업 충돌 | 02-evidence/01 §4-2, INDEX |
 | 14 | dr-failover-failback | DR 전용 모드 전환 · 원복 | 02-evidence/01 §4-3, INDEX |
+| 15 | ic-fdc-prefix-replication | ic-fdc prefix 단위 복제 | 03-future/04, INDEX |
+| 16 | bucket-vs-batch-operation | Bucket vs Batch 운영 모델 · 부하 | 03-future/04 §7, INDEX |
 
 | 파일 | 용도 | Confluence 반영 방법 |
 |---|---|---|
