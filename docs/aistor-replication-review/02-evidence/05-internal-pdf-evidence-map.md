@@ -22,7 +22,7 @@
 | 근거 ID | 주장 (장표에 쓰는 문장) | 확인할 문서 | 찾아야 할 내용 (키워드) | 공개 근거 | 페이지/절 | 확인 |
 |---|---|---|---|---|---|---|
 | R-01 | 복제는 기본 **비동기**, 동기 모드는 옵션 | PDF-5 | "asynchronous", "synchronous", "--sync", PUT 응답 시점 | M1 | | ☐ |
-| R-02 | 복제는 양쪽 **Versioning ON** 필수 | PDF-5, PDF-6 | "versioning", "requirement", "prerequisite" | M1 | | ☐ |
+| R-02 | 복제는 양쪽 **Versioning ON** 필수 | PDF-5, PDF-6 | "versioning", "requirement", "prerequisite" | M1 | Replication.pdf **4.2 사전 요구사항** (요청자 확인) | ☑ |
 | R-03 | 여러 객체 간 **순서/시점 일관성 보장 없음** | PDF-5, PDF-2 | "order", "consistency", "guarantee" — *문구 부재 자체*가 근거이므로 목차 전체 확인 | M2 | | ☐ |
 | R-04 | delete / delete-marker 복제는 **플래그로 선택** | PDF-5, PDF-2 | "delete marker replication", "versioned delete", "--replicate" | M3 | | ☐ |
 | R-05 | **ILM Expiration 으로 삭제된 객체는 복제되지 않음** | PDF-2, PDF-3 | "lifecycle expiration" × "replication" 상호작용 표 | M3 | | ☐ |
@@ -48,6 +48,10 @@
 | R-25 | Tier 버킷 독점 접근 · prefix 격리 · 원격 버킷 ILM 금지 (Warm 이 replica · 용인 원본과 공유될 때) | PDF-3, PDF-1, PDF-2 | "remote tier", "exclusive", "prefix", "data loss" | M14 | | ☐ |
 | R-26 | 한 클러스터가 복제 대상 + Tier 대상 + 일반 쓰기 대상을 겸할 때 제약 · 용량/성능 권고 | PDF-1, PDF-2 | "target", "tier", "capacity", "sizing" | — (공개 문서 부재) | | ☐ |
 | R-27 | **Hot(2026-02-07) · Warm(2026-06-06) 버전 불일치 시 Bucket Replication 지원 여부 · 업그레이드 순서 · 호환 릴리스 조합** · Tier 버전 호환 | PDF-5, PDF-1, PDF-2 | "version", "release", "upgrade", "matching", "compatib" | M17, M18 | | ☐ |
+| R-28 | **같은 버킷에 Replication + ILM(Transition · Expiration) 동시 적용 시 금지 · 제약 문구** (Transition 된 객체 복제 동작, resync, 대칭 규칙) | PDF-2, PDF-5, PDF-3 | "replication" × "transition", "tier", "resync", "not supported", "cannot" | M5, M19, M20, M21 | | ☐ |
+| R-29 | Versioning 활성화 전 객체의 복제 제외 · Versioning 비활성화 불가(suspend) · noncurrent 관리 — Iceberg 버킷 백업 영향 | PDF-5 (4.2), PDF-6 | "version ID", "null", "suspend", "noncurrent", "existing objects" | M4, M22 | | ☐ |
+| R-30 | prefix 단위 복제 규칙 · Versioning `--excluded-prefixes` · Batch Replication(Versioning/버전 요구, 증분 필터, 라이선스) | PDF-5, PDF-6, PDF-2 | "prefix", "excluded-prefixes", "batch", "priority" | M23, M24, M25 | | ☐ |
+| R-31 | Batch Job 실행 · 재시작 시 재개 · 스케줄 기능 유무 · 워커/스로틀 권장값 · 운영 부하 가이드 | PDF-5, PDF-1 | "batch", "workers", "schedule", "resume", "throttle" | M26 | | ☐ |
 
 ## 3. 문서별 요약 체크 (읽는 순서 권장)
 

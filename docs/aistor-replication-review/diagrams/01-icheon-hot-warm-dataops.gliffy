@@ -2220,7 +2220,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#DD344C;\">🚨 ① 은 Hot · Warm 동일 버전 필수 (현재 불일치)<br>⚠ ①·② 동시 적용 대상 · 순서 검증 필요</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#DD344C;\">🚨 ① 동일 버전 필수 (현재 불일치)</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,

@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="100" width="360" height="470" fill="#FFFFFF" stroke="#C72C48" stroke-width="1.5"/>
+<rect x="40" y="100" width="26" height="26" fill="#C72C48"/>
+<text x="53.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Hot · ic-fdc</text>
+<rect x="440" y="100" width="440" height="470" fill="#FFFFFF" stroke="#232F3E" stroke-width="1.5"/>
+<rect x="440" y="100" width="26" height="26" fill="#232F3E"/>
+<text x="453.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">⇄</text>
+<text x="474" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">복제 수단</text>
+<rect x="920" y="100" width="540" height="470" fill="#FFFFFF" stroke="#8A1C2E" stroke-width="1.5"/>
+<rect x="920" y="100" width="26" height="26" fill="#8A1C2E"/>
+<text x="933.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">W</text>
+<text x="954" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Warm · ic-fdc (replica)</text>
+<polyline points="140.0,370.0 200.0,370.0 200.0,260.0 274.0,260.0" fill="none" stroke="#5E6C84" stroke-width="1"/>
+<polyline points="140.0,400.0 200.0,400.0 200.0,470.0 274.0,470.0" fill="none" stroke="#5E6C84" stroke-width="1"/>
+<polyline points="1126.0,260.0 1300.0,260.0 1300.0,335.0" fill="none" stroke="#5E6C84" stroke-width="1"/>
+<polyline points="1126.0,470.0 1300.0,470.0 1300.0,395.0" fill="none" stroke="#5E6C84" stroke-width="1"/>
+<polyline points="326.0,260.0 634.0,260.0" fill="none" stroke="#ED7100" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="686.0,260.0 1074.0,260.0" fill="none" stroke="#ED7100" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="326.0,470.0 504.0,470.0" fill="none" stroke="#8C4FFF" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="556.0,470.0 754.0,470.0" fill="none" stroke="#8C4FFF" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="806.0,470.0 1074.0,470.0" fill="none" stroke="#ED7100" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<path d="M80.0,365.8 L140.0,365.8 L130.4,415.0 L89.6,415.0 Z" fill="#C72C48" stroke="#C72C48"/>
+<ellipse cx="110.0" cy="365.8" rx="30.0" ry="7.199999999999999" fill="#fff" stroke="#C72C48" stroke-width="2"/>
+<rect x="99.2" y="382.0" width="9.6" height="8.4" fill="#fff"/>
+<rect x="111.2" y="385.0" width="9.6" height="8.4" fill="#fff"/>
+<rect x="105.2" y="395.8" width="9.6" height="8.4" fill="#fff"/>
+<path d="M275.0,235.0 L315.0,235.0 L325.0,245.0 L325.0,285.0 L275.0,285.0 Z" fill="#fff" stroke="#ED7100" stroke-width="1.5"/>
+<text x="300.0" y="263.3333333333333" font-size="10" fill="#ED7100" text-anchor="middle" font-weight="bold">ZIP</text>
+<path d="M275.0,445.0 L315.0,445.0 L325.0,455.0 L325.0,495.0 L275.0,495.0 Z" fill="#fff" stroke="#8C4FFF" stroke-width="1.5"/>
+<text x="300.0" y="473.3333333333333" font-size="10" fill="#8C4FFF" text-anchor="middle" font-weight="bold">ICE</text>
+<rect x="634.0" y="234.0" width="52" height="52" rx="8" fill="#ED7100"/>
+<text x="660.0" y="263.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">REP</text>
+<rect x="505.0" y="445.0" width="50" height="50" rx="8" fill="#8C4FFF"/>
+<text x="530.0" y="473.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">job</text>
+<rect x="755.0" y="445.0" width="50" height="50" rx="8" fill="#ED7100"/>
+<text x="780.0" y="473.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">job</text>
+<path d="M1075.0,235.0 L1115.0,235.0 L1125.0,245.0 L1125.0,285.0 L1075.0,285.0 Z" fill="#fff" stroke="#ED7100" stroke-width="1.5"/>
+<text x="1100.0" y="263.3333333333333" font-size="10" fill="#ED7100" text-anchor="middle" font-weight="bold">ZIP</text>
+<path d="M1075.0,445.0 L1115.0,445.0 L1125.0,455.0 L1125.0,495.0 L1075.0,495.0 Z" fill="#fff" stroke="#8C4FFF" stroke-width="1.5"/>
+<text x="1100.0" y="473.3333333333333" font-size="10" fill="#8C4FFF" text-anchor="middle" font-weight="bold">ICE</text>
+<path d="M1310.0,345.8 L1370.0,345.8 L1360.4,395.0 L1319.6,395.0 Z" fill="#ED7100" stroke="#ED7100"/>
+<ellipse cx="1340.0" cy="345.8" rx="30.0" ry="7.199999999999999" fill="#fff" stroke="#ED7100" stroke-width="2"/>
+<rect x="1318.0" y="478.0" width="44" height="44" rx="8" fill="#01A88D" stroke-dasharray="4 3"/>
+<text x="1340.0" y="503.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">HMS</text>
+<rect x="40" y="600" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="153.5" y="627.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">포함 prefix 만 (제외 규칙 없음)</text>
+<rect x="279" y="600" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="392.5" y="627.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">--excluded-prefixes 최대 10</text>
+<rect x="518" y="600" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="631.5" y="627.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">resync = 버킷 단위</text>
+<rect x="757" y="600" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="870.5" y="627.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">Batch = 1회성 · 스케줄러</text>
+<rect x="996" y="600" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1109.5" y="627.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">🚨 버전 일치 (Bucket Repl.)</text>
+<rect x="1235" y="600" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1348.5" y="627.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">unstructure Transition 겹침 주의</text>
+<rect x="40" y="665" width="1420" height="60" rx="6" fill="#F4F5F7" stroke="#232F3E"/>
+<text x="750.0" y="699.3333333333334" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="bold">A  prefix 규칙만 (structured 백업 없음)      B  ★ 권장: + structured Versioning 제외 + Batch      C  버킷 분리 (Iceberg 경로 재작성 필요)</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">ic-fdc 버킷 — prefix 단위 Replication (권장 방안 B)</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">unstructure/(Archive) = prefix 규칙 상시 복제 · structured/(Iceberg) = Versioning 제외 + 유지보수 후 Batch Replication</text>
+<text x="110.0" y="433.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">ic-fdc</text>
+<text x="300.0" y="303.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">unstructure/</text>
+<text x="300.0" y="318.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Archive</text>
+<text x="300.0" y="513.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">structured/</text>
+<text x="300.0" y="528.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Iceberg</text>
+<text x="300.0" y="332.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="bold">Versioning ON</text>
+<text x="300.0" y="542.6666666666666" font-size="11" fill="#8C4FFF" text-anchor="middle" font-weight="bold">Versioning 제외</text>
+<text x="660.0" y="304.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Bucket Replication</text>
+<text x="660.0" y="319.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">prefix 규칙 (상시)</text>
+<text x="530.0" y="513.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">① 유지보수</text>
+<text x="530.0" y="528.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">merge · expire</text>
+<text x="780.0" y="513.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">② Batch Replication</text>
+<text x="780.0" y="528.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(1회성 · 주기 실행)</text>
+<text x="1100.0" y="303.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">unstructure/</text>
+<text x="1100.0" y="513.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">structured/</text>
+<text x="1340.0" y="413.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">replica 버킷</text>
+<text x="1340.0" y="540.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">③ 복구 시</text>
+<text x="1340.0" y="555.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">검증 후 register</text>
+<rect x="460.0" y="232.5" width="40" height="19" fill="#FFFFFF"/>
+<text x="480.0" y="245.66666666666666" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">상시</text>
+<rect x="795.0" y="232.5" width="170" height="19" fill="#FFFFFF"/>
+<text x="880.0" y="245.66666666666666" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">ALIAS/ic-fdc/unstructure</text>
+<rect x="840.0" y="442.5" width="200" height="19" fill="#FFFFFF"/>
+<text x="940.0" y="455.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">prefix: structured/ · newerThan</text>
+</svg>

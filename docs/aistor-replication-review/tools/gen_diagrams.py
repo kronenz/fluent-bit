@@ -9,6 +9,12 @@ from diagram_lib import (AISTOR, BLUE, GREEN, GREY, INK, MUTED, ORANGE, PURPLE, 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SPARK, TRINO, ORACLE, POLARIS = "#E25A1C", "#DD00A1", "#C74634", "#1F6FEB"
+TIER, WARMC = "#5A6B86", "#8A1C2E"
+
+
+def chips(d, y, items, w=225, gap=12, x0=40, color=RED, h=46):
+    for i, t in enumerate(items):
+        d.box(f"chip{y}_{i}", x0 + i * (w + gap), y, w, h, t, stroke=color, fill=WARN_FILL, color=color, size=12, bold=True)
 WARN_FILL = "#FFF1F0"
 
 
@@ -57,7 +63,7 @@ def d01():
            at=(960, 450), label_w=170, width=2.5)
     d.edge([(990, 275), (1100, 275), (1100, 585), (990, 585)], "② ILM Transition\n(Remote Tier · Scanner)",
            at=(1100, 430), dashed=True, color=ORANGE, label_w=140)
-    d.box("warn1", 860, 740, 280, 64, "🚨 ① 은 Hot · Warm 동일 버전 필수 (현재 불일치)\n⚠ ①·② 동시 적용 대상 · 순서 검증 필요",
+    d.box("warn1", 860, 740, 280, 64, "🚨 ① 동일 버전 필수 (현재 불일치)",
           stroke=RED, fill=WARN_FILL, size=11, color=RED)
 
     d.group("pub", 1190, 140, 140, 680, "Public 경로", GREEN, badge="P")
@@ -120,19 +126,19 @@ def d02():
     d.edge([(780, 510), (924, 510)], "⑤ 이름 해석", at=(850, 490), label_w=80, dashed=True)
 
     d.group("ic", 1120, 100, 400, 750, "이천 IDC · AIStor", AISTOR, badge="S3")
-    d.group("wb", 1140, 150, 360, 450, "Warm 클러스터 · 2026-06-06", "#8A1C2E", badge="W")
-    d.box("by", 1160, 200, 320, 90, "용인 전용 버킷 (yongin-*)\n용인 read/write · 원본\nVersioning 선택 · ILM Expiration 가능",
-          stroke=PURPLE, fill="#F5F0FF", size=12, bold=True)
-    d.box("br", 1160, 320, 320, 110, "이천 replica 버킷 (Hot 과 동일명)\nReplication 대상 · 백업\n용인 접근 차단 · 직접 쓰기 금지",
-          stroke=ORANGE, fill="#FFF4E5", size=12)
-    d.box("bt", 1160, 460, 320, 110, "ILM Tier 버킷 (전용 prefix)\nAIStor 독점 접근\n직접 접근 · ILM 규칙 금지",
-          stroke=GREY, fill="#F4F5F7", size=12)
-    d.edge([(976, 360), (1060, 360), (1060, 245), (1158, 245)], "HTTPS :443", at=(1060, 300), label_w=80, width=2.5, both=True)
-    d.icon("hot", 1320, 720, "Hot 클러스터 · 2026-02-07\n(이천 서비스 · 용인 접근 없음)", kind="s3", dim=True, size=56, label_w=210)
-    d.edge([(1250, 692), (1250, 432)], "Replication\n(버전 일치 후)", at=(1250, 640), label_w=90, dashed=True, color=GREY)
-    d.edge([(1390, 692), (1390, 572)], "ILM", at=(1390, 640), label_w=40, dashed=True, color=GREY)
-    d.edge([(780, 800), (1100, 800), (1100, 260), (1158, 260)],
-           "⑥ Lake 엔진 데이터 read (경로·자격증명 확인)", at=(940, 800), label_w=260, dashed=True, color=RED)
+    d.group("wb", 1140, 150, 360, 450, "Warm · 2026-06-06", WARMC, badge="W")
+    d.icon("by", 1230, 230, "yongin-*\nread / write", kind="bucket", color=PURPLE, size=64)
+    d.icon("br", 1230, 400, "이천 replica", kind="bucket", color=ORANGE, size=60)
+    d.icon("bt", 1410, 400, "ILM tier", kind="res:glacier", color=TIER, size=60)
+    d.step(1268, 372, "✕", color=RED)
+    d.step(1448, 372, "✕", color=RED)
+    d.text(1160, 530, 330, 40, "✕ = 용인 접근 차단\n(replica · tier)", size=12, color=RED, bold=True)
+    d.edge([(976, 360), (1060, 360), (1060, 222), (1196, 222)], "HTTPS :443", at=(1060, 300), label_w=80, width=2.5, both=True)
+    d.icon("hot", 1320, 740, "Hot · 2026-02-07 (이천)", kind="bucket_obj", dim=True, size=56, label_w=190)
+    d.edge([(1300, 710), (1300, 650), (1230, 650), (1230, 470)], "Replication", at=(1265, 650), label_w=80, dashed=True, color=GREY)
+    d.edge([(1340, 710), (1340, 650), (1410, 650), (1410, 470)], "ILM", at=(1375, 650), label_w=40, dashed=True, color=GREY)
+    d.edge([(780, 800), (1100, 800), (1100, 242), (1196, 242)],
+           "⑥ Lake 엔진 read (확인 필요)", at=(940, 800), label_w=200, dashed=True, color=RED)
     legend(d, 885, [("데이터/메타 경로", INK, False), ("카탈로그 federation", POLARIS, False),
                     ("이천 내부 (용인 무관)", GREY, True)])
     return d
@@ -273,143 +279,113 @@ def d06():
 
     d.group("s3", 1040, 100, 470, 740, "이천 AIStor — Hot 2026-02-07 · Warm 2026-06-06", AISTOR, badge="S3")
     d.icon("hot", 1160, 250, "Hot 버킷 (이천 서비스)", kind="s3", color=AISTOR, size=56, label_w=170)
-    d.box("rep", 1080, 470, 170, 70, "Warm replica 버킷\n(백업 · 조회 안 함)", stroke=ORANGE, fill="#FFF4E5", size=11)
-    d.box("tier", 1270, 470, 170, 70, "Warm tier prefix\n(AIStor 전용)", stroke=GREY, fill="#F4F5F7", size=11)
-    d.box("yb", 1080, 620, 360, 70, "Warm 용인 버킷 (yongin-*)\n용인 원본 · read/write", stroke=PURPLE, fill="#F5F0FF", size=12, bold=True)
-    d.edge([(1140, 322), (1140, 468)], "Replication\n🚨 동일 버전 필수", at=(1140, 400), label_w=110, width=2.5, color=ORANGE)
-    d.edge([(1190, 300), (1190, 330), (1355, 330), (1355, 468)], "ILM Transition", at=(1290, 330), label_w=100,
+    d.icon("rep", 1140, 480, "replica (백업)", kind="bucket", color=ORANGE, size=56)
+    d.icon("tier", 1380, 480, "tier (AIStor 전용)", kind="res:glacier", color=TIER, size=56, label_w=130)
+    d.icon("yb", 1250, 655, "yongin-* (용인 원본)", kind="bucket", color=PURPLE, size=60, label_w=160)
+    d.edge([(1140, 322), (1140, 450)], "Replication\n🚨 동일 버전", at=(1140, 390), label_w=100, width=2.5, color=ORANGE)
+    d.edge([(1190, 300), (1190, 330), (1380, 330), (1380, 450)], "ILM", at=(1290, 330), label_w=40,
            dashed=True, color=ORANGE)
     d.edge([(680, 224), (680, 150), (1160, 150), (1160, 220)], "metadata_location", at=(950, 150), label_w=120,
            dashed=True, color=TEAL)
-    d.edge([(706, 750), (1260, 750), (1260, 692)], "data read / write (DC 간)", at=(950, 750), label_w=150, both=True)
-    d.edge([(680, 584), (680, 520), (1010, 520), (1010, 655), (1078, 655)], "metadata_location", at=(850, 520),
+    d.edge([(706, 750), (1330, 750), (1330, 655), (1282, 655)], "read / write (DC 간)", at=(950, 750), label_w=140, both=True)
+    d.edge([(680, 584), (680, 560), (1010, 560), (1010, 655), (1218, 655)], "metadata_location", at=(850, 560),
            label_w=120, dashed=True, color=TEAL)
-    d.box("note", 40, 800, 480, 60, "용인 테이블: 용인 엔진이 직접 커밋 → HMS-Warm (등록 Job 불필요)\n이천 replica: 복구 시에만 검증 후 register (그림 10)",
+    d.box("note", 40, 800, 480, 60, "용인: 직접 커밋 (등록 Job 없음)\n이천 replica: 복구 시에만 register",
           stroke=TEAL, fill="#E6F7F4", color=INK, size=12, bold=True)
     return d
 
 def d07():
-    d = Diagram("07-scanner-impact", "Scanner 가 느려지면 — ILM Transition · Replication 재처리 · 버전 정리가 함께 지연",
-                width=1500, height=780,
-                subtitle="Scanner 는 사용량 계산 · ILM/보존 규칙 · Replication 재큐잉 · Healing 을 한 사이클에서 처리 — 느려지면 네 작업이 모두 밀린다")
-    d.group("a", 40, 100, 400, 520, "Scanner 동작 방식", INK, badge="SCN")
-    rows = [(150, 60, "버킷 그룹을 순차 처리", INK, WHITE),
-            (230, 60, "버킷 스캔 완료 후 30초 대기\n→ 다음 버킷", INK, WHITE),
-            (310, 60, "객체명 해시로 대상 선택\n16회 스캔에 걸쳐 전체 객체 1회 확인", INK, WHITE),
-            (390, 60, "작업 시간 × 속도 계수(기본 10.0) 대기\n읽기/쓰기 요청에 I/O 양보(일시 정지)", INK, WHITE),
-            (480, 70, "느려지는 요인\n드라이브 종류 · 네트워크 처리량\n객체 수·크기 · 기타 부하", RED, WARN_FILL)]
-    for i, (y, h, t, c, f) in enumerate(rows):
-        d.box(f"a{i}", 60, y, 360, h, t, stroke=c, fill=f, color=c, size=12)
-        if i:
-            d.edge([(240, rows[i - 1][0] + rows[i - 1][1]), (240, y)])
+    d = Diagram("07-scanner-impact", "Scanner 가 느려지면 — 네 작업이 함께 지연",
+                width=1500, height=720, subtitle="Scanner 한 사이클 = 사용량 · ILM · 복제 재큐잉 · Healing")
+    d.group("a", 40, 100, 360, 460, "Scanner", INK, badge="SCN")
+    d.icon("scn", 220, 190, "Scanner 사이클", glyph="SCN", color=INK, size=70)
+    for i, t in enumerate(["16회 스캔 = 전체 1회", "버킷 간 30초 대기", "I/O 양보 (작업시간 × 10)"]):
+        d.box(f"a{i}", 70, 290 + i * 52, 300, 40, t, stroke=INK, size=12)
+    d.box("slow", 70, 460, 300, 70, "느려지는 요인\n드라이브 · 네트워크 · 객체 수", stroke=RED, fill=WARN_FILL, color=RED, size=12, bold=True)
 
-    d.group("b", 480, 100, 360, 520, "Scanner 가 담당하는 작업", ORANGE, badge="4")
-    tasks = [(150, "① 데이터 사용량 계산"), (260, "② ILM · 보존 규칙 평가/적용\n(Transition · Expiration)"),
-             (370, "③ Bucket/Site Replication\nPENDING · FAILED 객체 재큐잉"), (480, "④ 누락·손상 데이터 Healing")]
-    for i, (y, t) in enumerate(tasks):
-        d.box(f"b{i}", 500, y, 320, 80, t, stroke=ORANGE, fill="#FFF4E5", size=12, bold=True)
-    d.edge([(440, 360), (478, 360)], "매 사이클", at=(459, 340), label_w=60)
+    d.group("b", 460, 100, 340, 460, "담당 작업", ORANGE, badge="4")
+    tasks = [(170, "USG", "사용량 계산"), (270, "ILM", "ILM 적용"), (370, "REP", "복제 재큐잉"), (470, "HEAL", "Healing")]
+    for y, g, lab in tasks:
+        d.icon(f"t{y}", 630, y, lab, glyph=g, color=ORANGE, size=48, label_w=110)
+    d.edge([(255, 190), (430, 190), (430, 170), (604, 170)], "매 사이클", at=(345, 190), label_w=70)
 
-    d.group("c", 880, 100, 580, 520, "Scanner 가 느려질 때 영향", RED, badge="!")
-    imp = [(165, 50, "사용량·쿼터 수치 지연 (마지막 완료 스캔 기준)", 190),
-           (255, 40, "Transition 지연 → Hot 용량 압박 · 계획보다 늦은 이동", 275),
-           (305, 40, "Expiration · noncurrent 정리 지연 → 버전 누적", 325),
-           (370, 80, "3회 재시도 후 큐에서 빠진 FAILED 객체의 재큐잉 지연\n→ Warm replica 누락 지속 (C1 장기화)\n→ 백업 시점 품질 저하 · 복구 시 불완전 스냅샷", 410),
-           (495, 50, "누락·손상 객체 복구(Healing) 지연", 520)]
-    for i, (y, h, t, ey) in enumerate(imp):
-        d.box(f"c{i}", 900, y, 540, h, t, stroke=RED, fill=WARN_FILL, color=RED, size=12)
-        d.edge([(820, ey), (898, ey)], color=RED)
-    d.edge([(1440, 325), (1480, 325), (1480, 650), (240, 650), (240, 552)],
-           "악순환: 버전·객체 수 증가 → 스캔 더 느려짐", at=(860, 650), label_w=300, dashed=True, color=RED)
-    d.box("m", 40, 680, 1420, 70,
-          "대응  ·  mc admin scanner info · minio_scanner_* 지표 모니터링   ·   mc replicate status / resync-backlog 로 FAILED·PENDING 수동 재큐잉\n"
-          "·  noncurrent 만료 규칙으로 버전 수 억제 (excess versions 경보)   ·   scanner speed 조정은 읽기/쓰기 I/O 와 트레이드오프   ·   ILM·복제 완료 시점에 SLA 를 의존하지 말 것",
+    d.group("c", 860, 100, 600, 460, "지연 시 영향", RED, badge="!")
+    imp = [(170, 990, "용량 수치 지연"), (270, 990, "Transition 지연"), (270, 1250, "버전 누적"),
+           (370, 990, "replica 누락 (C1)"), (370, 1250, "복구 시 불완전"), (470, 990, "복구 지연")]
+    for y, x, lab in imp:
+        d.icon(f"i{y}{x}", x, y, lab, glyph="!", color=RED, size=40, label_w=130)
+    for y in (170, 270, 370, 470):
+        d.edge([(654, y), (968, y)], color=RED)
+    d.edge([(1010, 270), (1228, 270)], color=RED)
+    d.edge([(1010, 370), (1228, 370)], color=RED)
+    d.edge([(1270, 270), (1430, 270), (1430, 600), (220, 600), (220, 532)], "악순환: 버전↑ → 스캔 더 느려짐",
+           at=(830, 600), label_w=220, dashed=True, color=RED)
+    d.box("m", 40, 640, 1420, 50,
+          "대응: mc admin scanner info · minio_scanner_* 모니터링 | resync-backlog 수동 재큐잉 | noncurrent 만료로 버전 억제 | SLA 를 ILM·복제 완료 시점에 두지 않기",
           stroke=INK, fill="#F4F5F7", size=12, bold=True)
     return d
 
-
-# ================================================================ INDEX 개념도
 def i3():
-    d = Diagram("i3-conclusion3-unit-mismatch", "Replication 과 Iceberg 커밋 단위 불일치 — '스냅샷 묶음' vs '객체 하나씩'",
-                width=1400, height=720,
-                subtitle="Hot 에서는 한 번에 커밋된 스냅샷이 Warm 에는 객체별로 따로·늦게 도착 → Warm 에서 일관된 테이블 보장 안 됨")
-    d.group("hot", 40, 100, 380, 440, "Hot 버킷 + HMS-Hot", AISTOR, badge="S3")
-    d.box("snap", 70, 145, 320, 265, "", stroke=PURPLE, fill="#F5F0FF", dashed=True)
-    d.text(80, 150, 300, 20, "Snapshot v3 — 한 번에 커밋", size=12, bold=True, color=PURPLE, align="left")
-    d.box("hd", 100, 185, 260, 44, "data/*.parquet", stroke=INK)
-    d.box("hm", 100, 260, 260, 44, "manifest (*.avro)", stroke=INK)
-    d.box("hj", 100, 335, 260, 44, "v3.metadata.json", stroke=INK)
-    d.box("hp", 70, 450, 320, 60, "HMS-Hot 포인터 → v3\n(원자 교체)", stroke=TEAL, fill="#E6F7F4", color=TEAL, bold=True)
+    d = Diagram("i3-conclusion3-unit-mismatch", "커밋 단위 불일치 — 스냅샷 묶음 vs 객체 하나씩",
+                width=1400, height=660, subtitle="Hot 에서 한 번에 커밋된 스냅샷이 Warm replica 에는 객체별로 따로 도착")
+    d.group("hot", 40, 100, 380, 450, "Hot", AISTOR, badge="S3")
+    d.box("snap", 110, 135, 200, 300, "", stroke=PURPLE, fill="#F5F0FF", dashed=True)
+    d.text(110, 138, 200, 18, "Snapshot v3", size=12, bold=True, color=PURPLE)
+    docs = [(190, "data", "Parquet"), (280, "manifest", "Avro"), (370, "metadata", "v3.json")]
+    for y, lab, g in docs:
+        d.icon(f"h{y}", 210, y, lab, kind="doc", glyph=g, color=INK, size=46, label_w=90)
+    d.icon("hh", 210, 490, "HMS-Hot → v3", glyph="HMS", color=TEAL, size=40, label_w=120)
 
-    d.group("q", 460, 100, 440, 440, "Replication 큐 — 객체별 · 비동기", ORANGE, badge="Q")
-    d.edge([(360, 207), (1000, 207)], "PENDING … (지연 / 실패)", at=(680, 190), label_w=180, dashed=True, color=RED)
-    d.edge([(360, 282), (1000, 282)], "t + 2s  ✓", at=(680, 265), label_w=90, color=ORANGE)
-    d.edge([(360, 357), (1000, 357)], "t + 1s  ✓ (먼저 도착)", at=(680, 340), label_w=150, color=ORANGE)
-    d.edge([(390, 480), (1000, 480)], "✕ 복제 대상 아님 (Oracle 의 행)", at=(680, 463), label_w=220, dashed=True, color=RED)
+    d.group("q", 470, 100, 430, 450, "Replication (객체별 · 비동기)", ORANGE, badge="Q")
+    d.edge([(236, 190), (1122, 190)], "⏳ 지연 / 실패", at=(685, 172), label_w=110, dashed=True, color=RED, width=2)
+    d.edge([(236, 280), (1122, 280)], "✓ t+2s", at=(685, 262), label_w=70, color=ORANGE, width=2)
+    d.edge([(236, 370), (1122, 370)], "✓ t+1s (먼저)", at=(685, 352), label_w=100, color=ORANGE, width=2)
+    d.edge([(232, 490), (1128, 490)], "✕ 복제 대상 아님", at=(685, 472), label_w=120, dashed=True, color=RED, width=2)
 
-    d.group("warm", 940, 100, 420, 440, "Warm replica 버킷 (백업)", "#8A1C2E", badge="S3")
-    d.box("wd", 1000, 185, 300, 44, "data/*.parquet  ✕ 아직 없음", stroke=RED, fill=WARN_FILL, color=RED, dashed=True)
-    d.box("wm", 1000, 260, 300, 44, "manifest  ✓", stroke=INK)
-    d.box("wj", 1000, 335, 300, 44, "v3.metadata.json  ✓", stroke=INK)
-    d.box("wp", 1000, 450, 300, 60, "Warm 측 카탈로그 없음\n→ 복구 시 등록 필요", stroke=RED, fill=WARN_FILL, color=RED, bold=True)
-
-    chips = [("C1 부분 복제", "metadata 는 왔는데\ndata 가 없음"), ("C2 카탈로그 미복제", "HMS 포인터는\nS3 복제 대상 아님"),
-             ("C3 삭제 전파", "expire_snapshots 삭제가\n플래그 따라 다르게 반영"), ("C4 ILM 비인지", "ILM 은 Iceberg 참조를\n모름 · 삭제 미복제"),
-             ("C5 Object Lock", "보존 중 삭제 불가\n→ 유지보수 실패")]
-    for i, (t, b) in enumerate(chips):
-        x = 40 + i * 266
-        d.box(f"ch{i}", x, 570, 250, 110, f"{t}\n{b}", stroke=RED, fill=WARN_FILL, color=RED, size=12)
+    d.group("warm", 950, 100, 410, 450, "Warm replica", WARMC, badge="S3")
+    d.icon("w190", 1150, 190, "data 없음", kind="doc", glyph="✕", color=RED, size=46, label_w=90, dashed=True)
+    d.icon("w280", 1150, 280, "manifest", kind="doc", glyph="Avro", color=INK, size=46, label_w=90)
+    d.icon("w370", 1150, 370, "metadata", kind="doc", glyph="v3.json", color=INK, size=46, label_w=90)
+    d.icon("wh", 1150, 490, "카탈로그 없음", glyph="HMS", color=GREY, size=40, label_w=120, dashed=True)
+    chips(d, 585, ["C1 부분 복제", "C2 카탈로그 미복제", "C3 삭제 전파", "C4 ILM 비인지", "C5 Object Lock"], w=255)
     return d
-
 
 def i6():
-    d = Diagram("i6-conclusion6-hms-split-register", "[이천 replica 복구 절차] 검증 후 등록 — 평시 미사용, 복구·리허설 때만",
-                width=1400, height=720,
-                subtitle="Replication 은 데이터만 복제 → 복구 시 Warm replica 의 파일 완전성을 확인한 뒤에만 복구용 HMS 에 등록 (용인 HMS-Warm 과 별개)")
-    d.group("cat", 40, 100, 1320, 230, "카탈로그 계층", TEAL, badge="HMS")
-    d.icon("ic", 130, 210, "이천 Spark / Trino\n(쓰기·조회)", glyph="Trino", color=TRINO, size=48)
-    d.icon("hh", 360, 210, "HMS-Hot (이천)\nOracle · 기존", glyph="HMS", color=TEAL)
-    d.box("job", 560, 160, 280, 110, "복구 · 검증 Job\n① 최신 metadata_location 조회\n② Warm 에서 전체 파일 HEAD\n③ 누락 0건일 때만 register",
-          stroke=PURPLE, fill="#F5F0FF", size=12, bold=True)
-    d.icon("hw", 1040, 210, "복구용 HMS\n(임시 · 리허설용)", glyph="HMS", color=TEAL, label_w=180)
-    d.icon("ty", 1260, 160, "복구 검증 Trino", glyph="Trino", color=TRINO, size=40)
-    d.icon("pl", 1260, 260, "복구 후\n서비스 전환", glyph="DR", color=POLARIS, size=40)
-    d.edge([(154, 210), (334, 210)], "커밋", at=(245, 192), label_w=40)
-    d.edge([(386, 210), (558, 210)], "①", at=(470, 192), label_w=30, color=PURPLE)
-    d.edge([(840, 210), (1014, 210)], "③ register_table", at=(925, 192), label_w=120, color=PURPLE, width=2.5)
-    d.edge([(1240, 160), (1066, 200)])
-    d.edge([(1240, 260), (1066, 220)])
-
-    d.group("st", 40, 380, 1320, 200, "스토리지 계층 — AIStor (이천)", AISTOR, badge="S3")
-    d.icon("hot", 360, 470, "Hot 버킷  s3://<bucket>/…", kind="s3", color=AISTOR, size=56, label_w=200)
-    d.icon("warm", 1040, 470, "Warm replica 버킷  s3://<bucket>/… (동일 버킷명 권장)", kind="s3", color="#8A1C2E", size=56,
-           label_w=280)
-    d.edge([(390, 470), (1010, 470)], "Replication — 데이터 파일만 (비동기)", at=(700, 452), label_w=240, width=2.5)
-    d.edge([(360, 262), (360, 440)], "commit 대상", at=(360, 350), label_w=80, dashed=True, color=TEAL)
-    d.edge([(700, 270), (700, 430), (1010, 430)], "② HEAD 검증", at=(700, 350), label_w=90, dashed=True, color=PURPLE)
-    d.edge([(1040, 262), (1040, 440)], "metadata_location", at=(1040, 350), label_w=120, dashed=True, color=TEAL)
-    d.box("rule", 40, 610, 1320, 60,
-          "⚠ 조건: Hot 스냅샷 보존 기간 > 복제 지연 + 백업 주기   |   replica 버킷은 복구 전까지 쓰기 금지 · 용인 HMS-Warm 에 섞지 않음",
+    d = Diagram("i6-conclusion6-hms-split-register", "[이천 replica 복구] 검증 후 등록 — 평시 미사용",
+                width=1400, height=620, subtitle="Replication 은 데이터만 복제 → 복구 시 파일 완전성 확인 후에만 복구용 HMS 에 등록")
+    d.group("cat", 40, 100, 1320, 200, "카탈로그", TEAL, badge="HMS")
+    d.icon("hh", 200, 190, "HMS-Hot", glyph="HMS", color=TEAL)
+    d.icon("job", 700, 190, "복구 · 검증 Job", kind="k8s:job", color=PURPLE, size=56)
+    d.icon("hw", 1100, 190, "복구용 HMS", glyph="HMS", color=TEAL)
+    d.icon("ty", 1280, 190, "검증 Trino", glyph="Trino", color=TRINO, size=44)
+    d.edge([(226, 190), (670, 190)], "① 최신 metadata", at=(450, 172), label_w=120, color=PURPLE)
+    d.edge([(728, 190), (1074, 190)], "③ register (누락 0 일 때)", at=(900, 172), label_w=170, color=PURPLE, width=2.5)
+    d.edge([(1126, 190), (1256, 190)])
+    d.group("st", 40, 340, 1320, 180, "AIStor (이천)", AISTOR, badge="S3")
+    d.icon("hot", 200, 420, "Hot 버킷", kind="bucket_obj", color=AISTOR, size=60)
+    d.icon("warm", 1100, 420, "Warm replica (동일 버킷명)", kind="bucket", color=ORANGE, size=60, label_w=200)
+    d.edge([(232, 420), (1068, 420)], "Replication (비동기)", at=(640, 402), label_w=140, width=2.5, color=ORANGE)
+    d.edge([(700, 220), (700, 380), (1068, 380)], "② 전체 파일 HEAD", at=(700, 320), label_w=120, dashed=True, color=PURPLE)
+    d.box("rule", 40, 545, 1320, 44, "⚠ Hot 스냅샷 보존 기간 > 복제 지연 + 백업 주기  ·  replica 는 복구 전까지 쓰기 금지",
           stroke=RED, fill=WARN_FILL, color=RED, size=13, bold=True)
     return d
-
 
 def i7():
     d = Diagram("11-todo-milestones", "해야 할 일 — 마일스톤 (두 케이스 병행: 용인 Warm 전용 · 이천 Replication + ILM)",
                 width=1560, height=700,
                 subtitle="박스 안 No = INDEX §3 작업 번호 · 빨간 게이트 = 착수 전 확정할 결정 · 위 줄 = 이천 Replication/ILM · 아래 줄 = 용인 Warm 전용")
     ms = {
-        "m0": (40, 270, "M0 담당자 우려 · 요구 확인\nNo 1 ~ 3\n두 케이스 범위 · RPO\nWarm 역할 분리", RED),
-        "m1": (320, 140, "M1 Replication · ILM 근거 · 설계\nNo 4 ~ 11, 36 (버전 일치)\n보안 PDF · 대상 · 삭제 전파\nTier prefix · 용량", INK),
-        "m2": (600, 140, "M2 이천 Replication 테스트\nNo 12 ~ 16\n백업 시점(T-B) · C1~C5\n공존 부하", ORANGE),
-        "m3": (880, 140, "M3 ILM / Archive 협의 · PoC\nNo 17 ~ 21\nA · B · C · Transition 규칙", GREEN),
-        "m4": (320, 400, "M4 용인 네트워크 개통\nNo 22 ~ 26\nread/write 경로 · FW · DNS", GREEN),
-        "m5": (600, 400, "M5 HMS-Warm(용인) 구축\nNo 27 ~ 31\nOracle · 배포 · 권한 분리", TEAL),
-        "m6": (880, 400, "M6 Polaris federation PoC\nNo 32 ~ 34\nlake_hot · lake_warm", POLARIS),
-        "m7": (1220, 270, "M7 운영 이관\nNo 35\n복제·ILM·용인 운영 · 가이드", INK),
+        "m0": (40, 270, "M0 담당자 확인\nNo 1–3", RED),
+        "m1": (320, 140, "M1 근거 · 설계\nNo 4–11 · 36–37 🚨", INK),
+        "m2": (600, 140, "M2 복제 테스트 · DR\nNo 12–16 · 38–40", ORANGE),
+        "m3": (880, 140, "M3 ILM · Archive\nNo 17–21", GREEN),
+        "m4": (320, 400, "M4 용인 네트워크\nNo 22–26", GREEN),
+        "m5": (600, 400, "M5 HMS-Warm\nNo 27–31", TEAL),
+        "m6": (880, 400, "M6 Polaris\nNo 32–34", POLARIS),
+        "m7": (1220, 270, "M7 운영 이관\nNo 35", INK),
     }
     for k, (x, y, t, c) in ms.items():
-        d.box(k, x, y, 240, 120, t, stroke=c, fill=WHITE, size=12)
+        d.box(k, x, y, 240, 120, t, stroke=c, fill=WHITE, size=15, bold=True)
     d.edge([(280, 310), (300, 310), (300, 200), (318, 200)], width=2.5)
     d.edge([(280, 350), (300, 350), (300, 460), (318, 460)], width=2.5)
     for a, b, y in [(560, 598, 200), (840, 878, 200), (560, 598, 460), (840, 878, 460)]:
@@ -423,82 +399,295 @@ def i7():
     for x, y, t, a, b in gates:
         d.box(f"g{x}", x, y, 240, 60 if y > 100 else 40, t, stroke=RED, fill=WARN_FILL, color=RED, size=12, bold=True)
         d.edge([a, b], dashed=True, color=RED)
-    d.box("lg", 40, 580, 1470, 90,
-          "두 줄은 병렬 진행 — 위: 이천 서비스(Hot → Warm replica 백업 + ILM Transition) / 아래: 용인(Warm 전용 적재·조회)\n"
-          "공통 선행 = M0 · G0(Warm 버킷 역할 분리) · Warm 은 두 케이스가 공유하므로 M2 에서 공존 부하(복제 + Tier + 용인 I/O) 측정",
-          stroke=MUTED, fill="#FAFBFC", size=12, align="left")
+    d.text(40, 590, 1470, 24, "위 줄 = 이천 (Replication · ILM)     아래 줄 = 용인 (Warm 전용)     점선 = Warm 부하 공유", size=13, color=MUTED, align="left")
     return d
 
 def r_decision():
-    d = Diagram("03-warm-coexistence", "두 케이스 공존 — 용인 Warm 전용 + 이천 Replication · ILM (Warm 클러스터 3개 역할)",
-                width=1500, height=900,
-                subtitle="공존 가능 (조건부) — Warm 버킷 역할 분리 · Bucket Replication 만 사용(Site Replication 불가) · Tier prefix 독점 · replica 측 ILM 별도")
-    d.group("hot", 40, 100, 330, 400, "Hot 클러스터 (이천) · 2026-02-07", AISTOR, badge="S3")
-    d.icon("hb", 205, 190, "이천 서비스 버킷\n(Iceberg · RAW)", kind="s3", color=AISTOR, size=56, label_w=170)
-    d.box("hilm", 60, 300, 290, 80, "ILM 규칙 (Hot)\nTransition → Warm tier\nExpiration (삭제는 복제 안 됨)", stroke=ORANGE,
-          fill="#FFF4E5", size=12)
-    d.box("hrep", 60, 400, 290, 80, "Bucket Replication 규칙\nHot → Warm replica (단방향)\n목적: 백업 / DR", stroke=ORANGE,
-          fill="#FFF4E5", size=12)
+    d = Diagram("03-warm-coexistence", "두 케이스 공존 — Warm 클러스터 3개 역할",
+                width=1500, height=700, subtitle="이천: Hot → Warm Replication(백업) + ILM(용량) · 용인: Warm 전용 read/write")
+    d.group("hot", 40, 100, 330, 420, "Hot · 2026-02-07 (이천)", AISTOR, badge="S3")
+    d.icon("hb", 205, 200, "이천 서비스 버킷", kind="bucket_obj", color=AISTOR, size=64)
+    d.icon("rep", 120, 390, "Bucket\nReplication", glyph="REP", color=ORANGE, size=48)
+    d.icon("ilm", 290, 390, "ILM\nTransition", glyph="ILM", color=ORANGE, size=48)
+    d.edge([(190, 262), (190, 300), (120, 300), (120, 364)], color=MUTED, arrow=False, width=1)
+    d.edge([(220, 262), (220, 300), (290, 300), (290, 364)], color=MUTED, arrow=False, width=1)
 
-    d.group("warm", 430, 100, 560, 400, "Warm 클러스터 · 2026-06-06 — 버킷 역할 분리", "#8A1C2E", badge="W")
-    d.box("wr", 450, 150, 250, 100, "① replica 버킷 (Hot 동일명)\nReplication 대상 · Versioning\n직접 쓰기 금지 · 평시 조회 없음",
-          stroke=ORANGE, fill="#FFF4E5", size=12)
-    d.box("wt", 720, 150, 250, 100, "② tier 버킷 / 전용 prefix\nAIStor 독점 접근\n직접 접근 · ILM 규칙 금지", stroke=GREY,
-          fill="#F4F5F7", size=12)
-    d.box("wy", 450, 290, 520, 100, "③ 용인 전용 버킷 (yongin-*)\n용인 read/write 원본 · HMS-Warm 카탈로그 · 필요 시 ILM Expiration\nHot 과 복제·Tier 관계 없음",
-          stroke=PURPLE, fill="#F5F0FF", size=12, bold=True)
-    d.box("wilm", 450, 410, 520, 70, "replica 버킷 ILM 은 별도 설정 (Hot ILM 삭제는 복제 안 됨)\n→ noncurrent · 보존 기간을 Warm 에서 직접 관리",
-          stroke=RED, fill=WARN_FILL, color=RED, size=12)
-    d.edge([(350, 440), (400, 440), (400, 200), (448, 200)], "Replication", at=(400, 320), label_w=80, width=2.5, color=ORANGE)
-    d.edge([(350, 320), (385, 320), (385, 86), (845, 86), (845, 148)], "Transition", at=(620, 86), label_w=80,
-           dashed=True, color=ORANGE)
+    d.group("warm", 430, 100, 600, 420, "Warm · 2026-06-06", WARMC, badge="W")
+    d.icon("wr", 530, 250, "① replica\n(Hot 동일명)", kind="bucket", color=ORANGE, size=64)
+    d.icon("wt", 730, 250, "② tier prefix", kind="res:glacier", color=TIER, size=64)
+    d.icon("wy", 930, 250, "③ yongin-*", kind="bucket", color=PURPLE, size=64)
+    d.text(455, 330, 150, 20, "쓰기 금지 · ILM 별도", size=11, color=RED, bold=True)
+    d.text(655, 330, 150, 20, "🔒 AIStor 전용", size=11, color=RED, bold=True)
+    d.text(855, 330, 150, 20, "용인 read/write", size=11, color=PURPLE, bold=True)
+    d.edge([(120, 460), (120, 490), (395, 490), (395, 250), (496, 250)], "백업", at=(395, 420), label_w=40, width=2.5, color=ORANGE)
+    d.edge([(314, 390), (415, 390), (415, 86), (730, 86), (730, 216)], "Transition", at=(570, 86), label_w=80,
+           dashed=True, width=2, color=ORANGE)
 
-    d.group("yi", 1050, 100, 410, 400, "용인 dataops", PURPLE, badge="k8s")
-    d.icon("yt", 1150, 200, "Trino / Spark (용인)", glyph="Trino", color=TRINO, label_w=150)
-    d.icon("yh", 1350, 200, "HMS-Warm\n(Oracle)", glyph="HMS", color=TEAL)
-    d.edge([(1176, 200), (1324, 200)], "메타", at=(1250, 182), label_w=40)
-    d.edge([(972, 340), (1090, 340), (1090, 200), (1124, 200)], "read / write\n(DC 간 · VIP)", at=(1030, 316), label_w=100, width=2.5, both=True)
-    d.box("ynote", 1070, 390, 370, 90, "용인 접근 키 = yongin-* 버킷만 허용\nreplica · tier 버킷 접근 차단", stroke=PURPLE,
-          fill=WHITE, size=12)
+    d.group("yi", 1090, 100, 370, 420, "용인 dataops", PURPLE, badge="k8s")
+    d.icon("yu", 1150, 200, "용인 서비스", kind="users", color=BLUE, size=48, label_w=100)
+    d.icon("yt", 1275, 200, "Trino / Spark", glyph="Trino", color=TRINO, size=48, label_w=110)
+    d.icon("yh", 1400, 200, "HMS-Warm", glyph="HMS", color=TEAL, size=48, label_w=100)
+    d.edge([(1174, 200), (1250, 200)])
+    d.edge([(1300, 200), (1375, 200)])
+    d.edge([(1275, 250), (1275, 300), (1060, 300), (1060, 250), (964, 250)], "read / write", at=(1170, 300),
+           label_w=90, width=2.5, both=True, color=PURPLE)
+    d.text(1110, 420, 330, 40, "🔑 용인 키 = yongin-* 만\nreplica · tier 차단", size=12, color=PURPLE, bold=True)
 
-    d.group("chk", 40, 530, 1420, 350, "공존 조건 · 확인 사항", RED, badge="!")
-    conds = [("C-1 복제 방식 · 버전 🚨", "Bucket Replication · 원본/대상 동일 버전 필수\n현재 Hot 2026-02-07 ≠ Warm 2026-06-06\n→ 복제 구성 전 버전 일치 (Site Replication 불가)"),
-             ("C-2 버킷 분리", "replica · tier · 용인 버킷 분리\n이름 충돌 방지 (Hot 동일명 예약)\n키 권한 분리"),
-             ("C-3 Tier 규칙", "tier 버킷/prefix 는 AIStor 전용\n직접 수정 · 삭제 · ILM 금지\n(위반 시 데이터 유실)"),
-             ("C-4 용량", "Transition + Replication 대상이\n겹치면 Warm 에 이중 저장\n→ 대상 prefix 설계 · 용량 산정"),
-             ("C-5 부하", "Warm = 복제 수신 + Tier 수신 +\n용인 read/write + Scanner\n→ 성능 경합 측정 필요"),
-             ("C-6 백업 품질", "replica 는 스냅샷 일관성 없음\n→ 백업 시점 테스트(T-B) ·\n복구 시 검증 후 등록")]
-    for i, (t, b) in enumerate(conds):
-        x = 60 + (i % 3) * 470
-        y = 580 + (i // 3) * 145
-        d.box(f"c{i}", x, y, 450, 125, f"{t}\n{b}", stroke=RED, fill=WARN_FILL, color=INK, size=12)
+    chips(d, 560, ["🚨 C-1 동일 버전", "C-2 버킷·권한 분리", "C-3 Tier 독점", "C-4 이중 저장 용량",
+                   "C-5 공존 부하", "C-6 백업 일관성"], w=227)
+    d.text(40, 620, 1420, 20, "공존 조건 상세: 근거 1 §2 ~ §4", size=11, color=MUTED, align="left")
     return d
 
 def archive_options():
-    d = Diagram("07-ilm-archive-options", "RAW 아카이브 방식 선택지 — A. zip 미사용 · B. 하이브리드 · C. 전면 Rollover (협의 필요)",
-                width=1500, height=800,
-                subtitle="ILM 은 Transition · Expiration 만 제공 (zip 생성 불가) · 하이브리드는 '변환은 서비스, 이관은 ILM' 으로 역할 분리")
-    cols = [(40, "A. zip 미사용 — RAW 그대로 ILM", GREEN, False,
-             ["RAW 객체 (Hot)", "ILM Transition\n(prefix · 경과일)", "Warm Tier\n(객체 1:1 · Hot 엔드포인트로 조회)"],
-             "장점: 구현 없음 · 조회 경로 그대로\n고려: 소형 객체 수 유지 → Warm 객체 수·\nScanner 부하 · 압축 이득 없음\n(서버측 투명 압축으로 일부 보완)"),
-            (520, "B. 하이브리드 — 서비스 zip + ILM 이관", ORANGE, False,
-             ["① 서비스: 정책 시점에 zip 변환\n(예: 파티션 마감 N일 후)\n→ archive/ prefix 에 저장", "② ILM Transition 규칙\n(archive/ prefix 또는 tag)", "Warm Tier\n(zip 객체 이관)"],
-             "장점: 객체 수 감소 · 이관·재시도는 ILM 담당\n→ 서비스 구현 범위 축소\n고려: zip 변환·검증·원본 정리는 서비스 ·\n조회 시 zip 해제 필요 (S3 Zip 확장 🔍)"),
-            (1000, "C. 전면 Rollover (기존안)", GREY, True,
-             ["서비스: 대상 선정 · 읽기", "서비스: zip 생성 · 업로드\n(Warm archive/ 직접)", "서비스: 검증 · 원본 정리"],
-             "장점: 시점·형식 완전 제어\n고려: 구현·운영 부담 최대 ·\nWarm 직접 쓰기 시 복제 방향과 충돌 가능")]
-    for x, title, c, dashed, flow, note in cols:
-        d.group(f"g{x}", x, 100, 460, 540, title, c, badge="", dashed=dashed)
-        for i, t in enumerate(flow):
-            y = 150 + i * 105
-            d.box(f"f{x}{i}", x + 40, y, 380, 75, t, stroke=c, fill=WHITE, size=12)
-            if i:
-                d.edge([(x + 230, y - 30), (x + 230, y)], color=c)
-        d.box(f"n{x}", x + 20, 480, 420, 140, note, stroke=MUTED, fill="#FAFBFC", size=12, align="left")
-    d.box("dec", 40, 665, 1420, 105,
-          "협의 필요 — 결정 기준: ① 아카이브 데이터 조회 요구(빈도 · 방식)  ② 소형 객체 수 · Scanner 부하  ③ 압축 이득(용량)  ④ 서비스 구현 · 운영 부담  ⑤ 보존 · 삭제 정책\n"
-          "권고 순서: A 로 시작 가능한지 확인 → 객체 수·용량 문제가 확인되면 B(하이브리드) → C 는 B 로 해결되지 않는 요구가 있을 때만",
-          stroke=RED, fill=WARN_FILL, color=RED, size=13, bold=True, align="left")
+    d = Diagram("07-ilm-archive-options", "RAW 아카이브 선택지 — A · B · C (협의 필요)",
+                width=1500, height=730, subtitle="ILM = Transition · Expiration 만 (zip 생성 불가) · B 는 '변환은 서비스, 이관은 ILM'")
+    for x, t, c, dsh in [(40, "A. zip 미사용", GREEN, False), (520, "B. 하이브리드 (피드백 제안)", ORANGE, False),
+                         (1000, "C. 전면 Rollover (기존안)", GREY, True)]:
+        d.group(f"g{x}", x, 100, 460, 440, t, c, badge="", dashed=dsh)
+    # A
+    cx = 270
+    d.icon("aR", cx, 180, "RAW 버킷", kind="bucket_obj", color=AISTOR, size=56)
+    d.icon("aI", cx, 300, "ILM Transition", glyph="ILM", color=ORANGE, size=50)
+    d.icon("aT", cx, 420, "Warm Tier", kind="res:glacier", color=TIER, size=56)
+    d.edge([(cx, 236), (cx, 272)])
+    d.edge([(cx, 350), (cx, 390)])
+    # B
+    d.icon("bR", 610, 180, "RAW 버킷", kind="bucket_obj", color=AISTOR, size=56)
+    d.icon("bJ", 610, 300, "① 서비스 zip 변환", kind="k8s:job", color=BLUE, size=50, label_w=140)
+    d.icon("bZ", 610, 420, "archive/*.zip", kind="doc", glyph="ZIP", color=ORANGE, size=50)
+    d.icon("bI", 760, 420, "② ILM Transition", glyph="ILM", color=ORANGE, size=50, label_w=130)
+    d.icon("bT", 900, 420, "Warm Tier", kind="res:glacier", color=TIER, size=56)
+    d.edge([(610, 236), (610, 272)])
+    d.edge([(610, 350), (610, 392)])
+    d.edge([(636, 420), (732, 420)])
+    d.edge([(786, 420), (870, 420)])
+    # C
+    cx = 1230
+    d.icon("cR", cx, 170, "RAW 버킷", kind="bucket_obj", color=AISTOR, size=50)
+    d.icon("cJ", cx, 265, "서비스 Rollover Job", kind="k8s:job", color=GREY, size=46, label_w=150)
+    d.icon("cZ", cx, 360, "zip 생성", kind="doc", glyph="ZIP", color=GREY, size=46)
+    d.icon("cW", cx, 455, "Warm 직접 업로드", kind="bucket", color=WARMC, size=50, label_w=140)
+    d.edge([(cx, 222), (cx, 240)])
+    d.edge([(cx, 312), (cx, 335)])
+    d.edge([(cx, 406), (cx, 428)])
+    notes = [(40, "✓ 구현 없음 · 조회 그대로\n✕ 객체 수 그대로 · 압축 없음", GREEN),
+             (520, "✓ 객체 수↓ · 이관·재시도는 ILM\n✕ zip 변환·검증 · 조회 시 해제", ORANGE),
+             (1000, "✓ 시점·형식 완전 제어\n✕ 구현·운영 부담 최대", GREY)]
+    for x, t, c in notes:
+        d.box(f"n{x}", x, 560, 460, 60, t, stroke=c, fill=WHITE, size=12, align="left")
+    d.box("dec", 40, 640, 1420, 60,
+          "협의 기준: 조회 요구 · 객체 수 · 압축 이득 · 구현 부담 · 보존 정책     |     권고 순서: A → (문제 확인 시) B → C",
+          stroke=RED, fill=WARN_FILL, color=RED, size=13, bold=True)
+    return d
+
+def rep_ilm_constraints():
+    d = Diagram("12-replication-ilm-constraints", "Replication + ILM — 같은 버킷에 그대로 쓰기 어려운 이유",
+                width=1500, height=720, subtitle="공개 문서에 병행 금지 문구는 없음 (MinIO 는 병행 권장) · 같은 객체에 두 규칙을 걸 때의 제약 ①~⑧")
+    d.group("hot", 40, 100, 360, 440, "Hot · 2026-02-07", AISTOR, badge="S3")
+    d.icon("hb", 220, 210, "같은 버킷 · 같은 객체", kind="bucket_obj", color=AISTOR, size=70, label_w=170)
+    d.icon("rep", 130, 400, "Replication", glyph="REP", color=ORANGE, size=52)
+    d.icon("ilm", 310, 400, "ILM", glyph="ILM", color=ORANGE, size=52)
+    d.edge([(205, 280), (205, 320), (130, 320), (130, 372)], color=MUTED, arrow=False, width=1)
+    d.edge([(235, 280), (235, 320), (310, 320), (310, 372)], color=MUTED, arrow=False, width=1)
+
+    d.group("warm", 520, 100, 520, 440, "Warm · 2026-06-06", WARMC, badge="W")
+    d.icon("wr", 640, 220, "replica", kind="bucket", color=ORANGE, size=64)
+    d.icon("wt", 900, 220, "tier (AIStor 전용)", kind="res:glacier", color=TIER, size=64, label_w=140)
+    d.icon("wi", 640, 430, "replica 측 ILM\n(별도 설정)", glyph="ILM", color=GREY, size=48, dashed=True, label_w=130)
+    d.edge([(640, 406), (640, 290)], color=GREY, dashed=True)
+
+    d.edge([(130, 426), (130, 480), (460, 480), (460, 220), (606, 220)], "복제", at=(460, 350), label_w=40,
+           width=2.5, color=ORANGE)
+    d.edge([(336, 400), (480, 400), (480, 140), (900, 140), (900, 186)], "Transition", at=(690, 140), label_w=80,
+           width=2, dashed=True, color=ORANGE)
+    d.edge([(672, 230), (770, 230), (770, 515), (220, 515), (220, 302)], "resync", at=(600, 515),
+           label_w=60, dashed=True, color=RED)
+
+    badges = [(770, 400, "1"), (695, 430, "2"), (665, 345, "3"), (590, 180, "4"), (945, 180, "5"),
+              (800, 190, "6"), (345, 370, "7"), (165, 370, "8")]
+    for x, y, n in badges:
+        d.step(x, y, n, color=RED, r=13)
+
+    d.group("lg", 1080, 100, 380, 440, "제약", RED, badge="!")
+    items = ["resync → Tier 연결 영구 단절", "Expiration 삭제 미복제", "ILM 설정 비복제 · 비대칭",
+             "Transition 된 객체 복제 미기재", "Tier = AIStor 독점", "Warm 이중 저장 (용량)",
+             "Scanner 공유 부하", "🚨 동일 버전 필수 (Replication)"]
+    for i, t in enumerate(items):
+        y = 150 + i * 48
+        d.step(1112, y, str(i + 1), color=RED, r=13)
+        d.text(1135, y - 12, 315, 24, t, size=13, color=INK, align="left")
+    d.box("rec", 40, 570, 1420, 110,
+          "권장 패턴\n"
+          "P-A 복제 대상 ≠ Transition 대상 (최근=복제 · 오래된=Transition)   P-B 같은 객체면 복제 완료 후 Transition\n"
+          "P-C replica 에 같은 Expiration   P-D Tiering 버킷 resync 는 승인 절차   P-E tier 는 복제 대상 제외",
+          stroke=GREEN, fill="#F0F7E6", color=INK, size=13, bold=True)
+    return d
+
+
+def versioning_iceberg():
+    d = Diagram("13-versioning-iceberg-backup", "Iceberg 스냅샷 × 버킷 Versioning — 백업 용도에서의 충돌",
+                width=1500, height=740, subtitle="Replication 은 Versioning 필수 (Replication.pdf 4.2) · Iceberg 는 동작하지만 이력이 이중화되고 정리가 무력화됨")
+    d.group("ice", 40, 100, 420, 440, "Iceberg 스냅샷 (테이블 이력)", PURPLE, badge="ICE")
+    for i, x in enumerate((110, 230, 350)):
+        d.icon(f"s{i}", x, 190, "", kind="doc", glyph=f"snap {i + 1}", color=PURPLE, size=50)
+        if i:
+            d.edge([(x - 94, 190), (x - 27, 190)], color=PURPLE)
+    d.text(60, 225, 380, 20, "이력 = 스냅샷 · 롤백 = 카탈로그 포인터", size=12, color=PURPLE, bold=True)
+    d.icon("job", 230, 350, "expire_snapshots\ncompaction", kind="k8s:job", color=PURPLE, size=54, label_w=150)
+
+    d.group("hot", 520, 100, 440, 440, "Hot · Versioning ON", AISTOR, badge="S3")
+    d.icon("hb", 740, 180, "Hot Iceberg 버킷", kind="bucket_obj", color=AISTOR, size=62)
+    d.icon("cur", 610, 360, "현재", kind="doc", glyph="current", color=INK, size=50)
+    d.icon("dm", 740, 360, "delete marker", kind="doc", glyph="DM", color=RED, size=50, label_w=110)
+    d.icon("nc", 870, 360, "noncurrent 보관", kind="doc", glyph="v1 v2", color=GREY, size=50, dashed=True, label_w=120)
+    d.icon("nul", 610, 470, "Versioning 전 파일", kind="doc", glyph="null", color=GREY, size=46, label_w=130)
+    d.edge([(257, 350), (540, 350), (540, 300), (740, 300), (740, 333)], "DELETE", at=(400, 350), label_w=60, color=PURPLE)
+    d.edge([(766, 360), (843, 360)], color=GREY, dashed=True)
+
+    d.group("wr", 1010, 100, 450, 440, "Warm replica", WARMC, badge="W")
+    d.icon("rb", 1230, 180, "replica 버킷", kind="bucket", color=ORANGE, size=62)
+    d.icon("rc", 1110, 360, "현재", kind="doc", glyph="current", color=INK, size=50)
+    d.icon("rdm", 1250, 360, "삭제 전파 ON / OFF ?", kind="doc", glyph="DM ?", color=RED, size=50, label_w=150)
+    d.icon("rnul", 1110, 470, "미복제", kind="doc", glyph="✕", color=RED, size=46, dashed=True)
+    d.edge([(774, 180), (1196, 180)], "Replication", at=(985, 162), label_w=90, width=2.5, color=ORANGE)
+    d.edge([(636, 470), (1084, 470)], "✕ version ID 없음 → 제외", at=(860, 452), label_w=170, dashed=True, color=RED)
+
+    for x, y, t in [(895, 330, "S1"), (640, 445, "V1"), (1280, 330, "V4"), (930, 128, "V6")]:
+        d.step(x, y, t, color=RED, r=14)
+    chips(d, 570, ["S1 정리 무력화 (용량↑)", "S2 이력 이중 보관", "S3 버전 복원 ≠ 테이블 복원",
+                   "V1 켜기 전 파일 미복제", "V4 삭제 전파 딜레마", "V6 Versioning 끌 수 없음"], w=227)
+    d.box("rec", 40, 640, 1420, 70,
+          "대응: ① Versioning 상태 확인 → ② 기존 파일 seed (mirror · rewrite_table_path) → ③ Hot · replica 에 noncurrent 만료\n"
+          "④ 삭제 전파 결정 (delete-marker ON + replica 보존 기간) → ⑤ 복구는 스냅샷 · register 기준",
+          stroke=GREEN, fill="#F0F7E6", color=INK, size=13, bold=True)
+    return d
+
+
+def dr_flow():
+    d = Diagram("14-dr-failover-failback", "DR 전용 모드 — 버킷 Replication 만으로 Warm 을 복구 용도로 (Iceberg)",
+                width=1500, height=760, subtitle="복제 = 파일 사본 · 테이블 복구 = 카탈로그 기록 + 검증 후 register · DR 대상 버킷은 Transition 금지")
+    d.group("p1", 40, 100, 440, 440, "① 평시", GREEN, badge="1")
+    d.icon("h1", 150, 200, "Hot 버킷", kind="bucket_obj", color=AISTOR, size=60)
+    d.icon("r1", 370, 200, "Warm replica", kind="bucket", color=ORANGE, size=60)
+    d.icon("hm1", 150, 360, "HMS-Hot", glyph="HMS", color=TEAL, size=48)
+    d.icon("lg1", 370, 360, "metadata_location\n기록 · HMS 백업", kind="doc", glyph="LOG", color=TEAL, size=48, label_w=150)
+    d.edge([(182, 200), (338, 200)], "Replication", at=(260, 182), label_w=90, width=2.5, color=ORANGE)
+    d.edge([(176, 360), (344, 360)], "주기 기록", at=(260, 342), label_w=70, dashed=True, color=TEAL)
+
+    d.group("p2", 530, 100, 440, 440, "② 장애 → 전환", RED, badge="2")
+    d.icon("h2", 640, 190, "Hot 장애", kind="bucket_obj", dim=True, size=56)
+    d.step(672, 162, "✕", color=RED, r=13)
+    d.icon("r2", 860, 190, "Warm replica", kind="bucket", color=ORANGE, size=60)
+    d.icon("jb", 860, 320, "검증 Job", kind="k8s:job", color=PURPLE, size=48)
+    d.icon("hm2", 860, 450, "복구용 HMS", glyph="HMS", color=TEAL, size=44)
+    d.icon("dns", 640, 320, "DNS · VIP 전환", kind="res:route_53", color=GREEN, size=48, label_w=120)
+    d.icon("tr", 640, 450, "Trino · Spark", glyph="Trino", color=TRINO, size=44)
+    d.edge([(860, 296), (860, 244)], "③ HEAD", at=(900, 268), label_w=60, dashed=True, color=PURPLE)
+    d.edge([(860, 364), (860, 426)], "③ register", at=(912, 395), label_w=80, color=PURPLE)
+    d.edge([(640, 426), (640, 374)])
+    d.edge([(664, 320), (760, 320), (760, 200), (828, 200)], "④ 서비스 전환", at=(760, 260), label_w=100, width=2.5, color=RED)
+    d.edge([(662, 450), (836, 450)], color=MUTED, dashed=True)
+
+    d.group("p3", 1020, 100, 440, 440, "③ 원복", BLUE, badge="3")
+    d.icon("h3", 1130, 200, "Hot 복구", kind="bucket_obj", color=AISTOR, size=60)
+    d.icon("r3", 1350, 200, "Warm replica", kind="bucket", color=ORANGE, size=60)
+    d.edge([(1318, 185), (1162, 185)], "⑤ 역방향 복제 / resync", at=(1240, 167), label_w=150, width=2, color=BLUE)
+    d.edge([(1162, 222), (1318, 222)], "⑥ 정방향 복제 재개", at=(1240, 240), label_w=130, dashed=True, color=ORANGE)
+    d.icon("dns3", 1130, 380, "DNS 원복", kind="res:route_53", color=GREEN, size=48)
+    d.icon("cl3", 1350, 380, "복구용 HMS 정리", glyph="HMS", color=GREY, size=44, dashed=True, label_w=120)
+    d.edge([(476, 320), (528, 320)], width=3, color=MUTED)
+    d.edge([(966, 320), (1018, 320)], width=3, color=MUTED)
+
+    chips(d, 570, ["🚨 버전 일치", "Versioning + seed", "버킷명 동일", "카탈로그 기록 · HMS 백업",
+                   "삭제 전파 · 보존 기간", "DR 버킷 Transition 금지"], w=227)
+    d.box("rpo", 40, 640, 1420, 80,
+          "RPO = 복제 지연 + 마지막 완전 스냅샷까지 간격 (Scanner 지연 시 증가)     RTO = 장애 판단 + 검증 · register + 엔드포인트 전환\n"
+          "범위 밖: 용인 데이터 (Warm 에만 존재 — 별도 백업 필요)",
+          stroke=INK, fill="#F4F5F7", color=INK, size=13, bold=True)
+    return d
+
+
+def ic_fdc_prefix():
+    d = Diagram("15-ic-fdc-prefix-replication", "ic-fdc 버킷 — prefix 단위 Replication (권장 방안 B)",
+                width=1500, height=760, subtitle="unstructure/(Archive) = prefix 규칙 상시 복제 · structured/(Iceberg) = Versioning 제외 + 유지보수 후 Batch Replication")
+    d.group("hot", 40, 100, 360, 470, "Hot · ic-fdc", AISTOR, badge="S3")
+    d.icon("hb", 110, 385, "ic-fdc", kind="bucket_obj", color=AISTOR, size=60)
+    d.icon("hu", 300, 260, "unstructure/\nArchive", kind="doc", glyph="ZIP", color=ORANGE, size=50, label_w=120)
+    d.icon("hs", 300, 470, "structured/\nIceberg", kind="doc", glyph="ICE", color=PURPLE, size=50, label_w=120)
+    d.text(240, 320, 120, 18, "Versioning ON", size=11, color=ORANGE, bold=True)
+    d.text(225, 530, 150, 18, "Versioning 제외", size=11, color=PURPLE, bold=True)
+    d.edge([(140, 370), (200, 370), (200, 260), (274, 260)], color=MUTED, arrow=False, width=1)
+    d.edge([(140, 400), (200, 400), (200, 470), (274, 470)], color=MUTED, arrow=False, width=1)
+
+    d.group("mid", 440, 100, 440, 470, "복제 수단", INK, badge="⇄")
+    d.icon("rep", 660, 260, "Bucket Replication\nprefix 규칙 (상시)", glyph="REP", color=ORANGE, size=52, label_w=160)
+    d.icon("mt", 530, 470, "① 유지보수\nmerge · expire", kind="k8s:job", color=PURPLE, size=50, label_w=120)
+    d.icon("bt", 780, 470, "② Batch Replication\n(1회성 · 주기 실행)", kind="k8s:job", color=ORANGE, size=50, label_w=160)
+
+    d.group("warm", 920, 100, 540, 470, "Warm · ic-fdc (replica)", WARMC, badge="W")
+    d.icon("wu", 1100, 260, "unstructure/", kind="doc", glyph="ZIP", color=ORANGE, size=50)
+    d.icon("ws", 1100, 470, "structured/", kind="doc", glyph="ICE", color=PURPLE, size=50)
+    d.icon("wb", 1340, 365, "replica 버킷", kind="bucket", color=ORANGE, size=60)
+    d.icon("wh", 1340, 500, "③ 복구 시\n검증 후 register", glyph="HMS", color=TEAL, size=44, dashed=True, label_w=130)
+    d.edge([(1126, 260), (1300, 260), (1300, 335)], color=MUTED, arrow=False, width=1)
+    d.edge([(1126, 470), (1300, 470), (1300, 395)], color=MUTED, arrow=False, width=1)
+
+    d.edge([(326, 260), (634, 260)], "상시", at=(480, 242), label_w=40, width=2.5, color=ORANGE)
+    d.edge([(686, 260), (1074, 260)], "ALIAS/ic-fdc/unstructure", at=(880, 242), label_w=170, width=2.5, color=ORANGE)
+    d.edge([(326, 470), (504, 470)], color=PURPLE)
+    d.edge([(556, 470), (754, 470)], color=PURPLE)
+    d.edge([(806, 470), (1074, 470)], "prefix: structured/ · newerThan", at=(940, 452), label_w=200, width=2.5,
+           dashed=True, color=ORANGE)
+
+    chips(d, 600, ["포함 prefix 만 (제외 규칙 없음)", "--excluded-prefixes 최대 10", "resync = 버킷 단위",
+                   "Batch = 1회성 · 스케줄러", "🚨 버전 일치 (Bucket Repl.)", "unstructure Transition 겹침 주의"], w=227)
+    d.box("opt", 40, 665, 1420, 60,
+          "A  prefix 규칙만 (structured 백업 없음)      B  ★ 권장: + structured Versioning 제외 + Batch      C  버킷 분리 (Iceberg 경로 재작성 필요)",
+          stroke=INK, fill="#F4F5F7", color=INK, size=13, bold=True)
+    return d
+
+
+def bucket_vs_batch():
+    d = Diagram("16-bucket-vs-batch-operation", "운영 모델 — Bucket Replication (AIStor 상시) vs Batch Replication (AIStor 실행 + 외부 오케스트레이션)",
+                width=1500, height=760, subtitle="Batch 는 서버에서 복사하지만 1회성 — 스케줄 · 상태 확인 · 검증은 Airflow / CronJob 이 담당")
+    d.group("a", 40, 100, 680, 240, "Bucket Replication — AIStor 가 상시 관리", ORANGE, badge="A")
+    d.icon("ah", 130, 200, "Hot · unstructure/", kind="bucket_obj", color=AISTOR, size=56, label_w=140)
+    d.icon("ae", 380, 200, "복제 엔진 (상시)", glyph="REP", color=ORANGE, size=52, label_w=130)
+    d.icon("as", 380, 300, "", glyph="SCN", color=INK, size=34)
+    d.text(400, 290, 180, 20, "실패 → Scanner 재큐잉", size=11, color=MUTED, align="left")
+    d.icon("aw", 630, 200, "Warm", kind="bucket", color=ORANGE, size=56)
+    d.edge([(162, 200), (354, 200)], "PUT 즉시", at=(258, 182), label_w=70, width=2.5, color=ORANGE)
+    d.edge([(406, 200), (598, 200)], width=2.5, color=ORANGE)
+
+    d.group("b", 760, 100, 700, 240, "Batch Replication — 복사는 AIStor 서버 (Job 단위)", PURPLE, badge="B")
+    d.icon("bh", 850, 200, "Hot · structured/", kind="bucket_obj", color=AISTOR, size=56, label_w=140)
+    d.icon("be", 1110, 200, "batch 워커\n(server-side)", kind="k8s:job", color=PURPLE, size=52, label_w=130)
+    d.icon("bw", 1370, 200, "Warm", kind="bucket", color=ORANGE, size=56)
+    d.edge([(882, 200), (1084, 200)], "1회성 Job", at=(983, 182), label_w=70, width=2.5, color=PURPLE)
+    d.edge([(1136, 200), (1338, 200)], width=2.5, color=PURPLE)
+
+    d.group("c", 40, 380, 1420, 220, "Airflow DAG / CronJob — 외부 오케스트레이션 (스케줄 · 상태 · 검증)", BLUE, badge="DAG")
+    tasks = [("t1", "① 유지보수\n완료 대기", "WAIT", BLUE), ("t2", "② Job YAML\n(워터마크)", "YAML", BLUE),
+             ("t3", "③ mc batch\nstart", "START", PURPLE), ("t4", "④ status\n폴링", "POLL", PURPLE),
+             ("t5", "⑤ 검증\n(3단계)", "✓", GREEN), ("t6", "⑥ 워터마크 ·\nmetadata 기록", "LOG", TEAL),
+             ("t7", "⑦ 알림", "!", RED)]
+    xs = [140, 340, 540, 740, 940, 1140, 1340]
+    for (tid, lab, g, c), x in zip(tasks, xs):
+        if g in ("YAML", "LOG"):
+            d.icon(tid, x, 470, lab, kind="doc", glyph=g, color=c, size=48, label_w=130)
+        else:
+            d.icon(tid, x, 470, lab, glyph=g, color=c, size=48, label_w=130)
+    for a, b in zip(xs, xs[1:]):
+        d.edge([(a + 26, 470), (b - 26, 470)], color=BLUE)
+    d.edge([(540, 444), (540, 360), (1040, 360), (1040, 214), (1082, 214)], "admin API", at=(800, 360), label_w=80,
+           dashed=True, color=PURPLE)
+    d.edge([(1138, 214), (1190, 214), (1190, 380), (760, 380), (760, 444)], "status · notify", at=(980, 380), label_w=100,
+           dashed=True, color=PURPLE)
+
+    chips(d, 625, ["workers 기본 = CPU 절반", "workers_wait 기본 = 0ms", "list_quorum = strict",
+                   "실행 창: 피크 · compaction 회피", "Warm 공유 (용인 I/O)", "재시작 재개 문구 없음 🔍"], w=227, color=ORANGE)
+    d.text(40, 690, 1420, 40, "검증 3단계: Job (실패 0) → 객체 (prefix 건수 · 용량) → Iceberg (최신 스냅샷 파일 Warm HEAD 전수)",
+           size=13, color=INK, bold=True, align="left")
     return d
 
 
@@ -507,7 +696,11 @@ def main():
              ("03-warm-coexistence", r_decision), ("04-commit-unit-mismatch", i3),
              ("05-iceberg-vs-replication-timeline", d03), ("06-scanner-impact", d07),
              ("07-ilm-archive-options", archive_options), ("08-yongin-network-checkpoints", d05),
-             ("09-hot-warm-catalog-split", d06), ("10-verify-and-register", i6), ("11-todo-milestones", i7)]
+             ("09-hot-warm-catalog-split", d06), ("10-verify-and-register", i6), ("11-todo-milestones", i7), ("12-replication-ilm-constraints", rep_ilm_constraints),
+             ("13-versioning-iceberg-backup", versioning_iceberg),
+             ("14-dr-failover-failback", dr_flow),
+             ("15-ic-fdc-prefix-replication", ic_fdc_prefix),
+             ("16-bucket-vs-batch-operation", bucket_vs_batch)]
     out = os.path.join(ROOT, "diagrams")
     for name, fn in order:
         dg = fn()

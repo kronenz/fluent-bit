@@ -61,8 +61,7 @@
 <rect x="930.0" y="570.0" width="60" height="60" rx="8" fill="#8A1C2E"/>
 <text x="960.0" y="603.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
 <rect x="860" y="740" width="280" height="64" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
-<text x="1000.0" y="768.6666666666666" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">🚨 ① 은 Hot · Warm 동일 버전 필수 (현재 불일치)</text>
-<text x="1000.0" y="782.6666666666666" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">⚠ ①·② 동시 적용 대상 · 순서 검증 필요</text>
+<text x="1000.0" y="775.6666666666666" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">🚨 ① 동일 버전 필수 (현재 불일치)</text>
 <rect x="1234.0" y="219.0" width="52" height="52" rx="8" fill="#326CE5"/>
 <text x="1260.0" y="248.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">ing</text>
 <rect x="1234.0" y="589.0" width="52" height="52" rx="8" fill="#7AA116"/>

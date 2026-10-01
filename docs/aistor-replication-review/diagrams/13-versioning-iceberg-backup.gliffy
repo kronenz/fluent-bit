@@ -4,10 +4,10 @@
  "stage": {
   "background": "#FFFFFF",
   "width": 1500,
-  "height": 700,
+  "height": 740,
   "maxWidth": 5000,
   "maxHeight": 5000,
-  "nodeIndex": 72,
+  "nodeIndex": 86,
   "autoFit": true,
   "exportBorder": false,
   "gridOn": true,
@@ -32,8 +32,8 @@
     "rotation": 0,
     "id": 1,
     "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
-    "width": 330,
-    "height": 420,
+    "width": 420,
+    "height": 440,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 0,
@@ -42,7 +42,7 @@
      "Shape": {
       "tid": "com.gliffy.stencil.rectangle.basic_v1",
       "strokeWidth": 1.5,
-      "strokeColor": "#C72C48",
+      "strokeColor": "#8C4FFF",
       "fillColor": "#FFFFFF",
       "gradient": false,
       "dashStyle": null,
@@ -73,8 +73,8 @@
      "Shape": {
       "tid": "com.gliffy.stencil.rectangle.basic_v1",
       "strokeWidth": 0,
-      "strokeColor": "#C72C48",
-      "fillColor": "#C72C48",
+      "strokeColor": "#8C4FFF",
+      "fillColor": "#8C4FFF",
       "gradient": false,
       "dashStyle": null,
       "dropShadow": false,
@@ -104,7 +104,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#FFFFFF;font-weight:bold;\">S3</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#FFFFFF;font-weight:bold;\">ICE</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -123,7 +123,7 @@
     "rotation": 0,
     "id": 4,
     "uid": "com.gliffy.shape.basic.basic_v1.default.text",
-    "width": 296,
+    "width": 386,
     "height": 22,
     "lockAspectRatio": false,
     "lockShape": false,
@@ -136,7 +136,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:left;\"><span style=\"font-size:13px;line-height:16px;color:#232F3E;\">Hot · 2026-02-07 (이천)</span></p>",
+      "html": "<p style=\"text-align:left;\"><span style=\"font-size:13px;line-height:16px;color:#232F3E;\">Iceberg 스냅샷 (테이블 이력)</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,
@@ -148,13 +148,13 @@
     "hidden": false
    },
    {
-    "x": 430,
+    "x": 520,
     "y": 100,
     "rotation": 0,
     "id": 5,
     "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
-    "width": 600,
-    "height": 420,
+    "width": 440,
+    "height": 440,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 3,
@@ -163,7 +163,7 @@
      "Shape": {
       "tid": "com.gliffy.stencil.rectangle.basic_v1",
       "strokeWidth": 1.5,
-      "strokeColor": "#8A1C2E",
+      "strokeColor": "#C72C48",
       "fillColor": "#FFFFFF",
       "gradient": false,
       "dashStyle": null,
@@ -179,7 +179,7 @@
     "hidden": false
    },
    {
-    "x": 430,
+    "x": 520,
     "y": 100,
     "rotation": 0,
     "id": 7,
@@ -194,8 +194,8 @@
      "Shape": {
       "tid": "com.gliffy.stencil.rectangle.basic_v1",
       "strokeWidth": 0,
-      "strokeColor": "#8A1C2E",
-      "fillColor": "#8A1C2E",
+      "strokeColor": "#C72C48",
+      "fillColor": "#C72C48",
       "gradient": false,
       "dashStyle": null,
       "dropShadow": false,
@@ -225,7 +225,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#FFFFFF;font-weight:bold;\">W</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#FFFFFF;font-weight:bold;\">S3</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -239,12 +239,12 @@
     "hidden": false
    },
    {
-    "x": 460,
+    "x": 550,
     "y": 102,
     "rotation": 0,
     "id": 8,
     "uid": "com.gliffy.shape.basic.basic_v1.default.text",
-    "width": 566,
+    "width": 406,
     "height": 22,
     "lockAspectRatio": false,
     "lockShape": false,
@@ -257,7 +257,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:left;\"><span style=\"font-size:13px;line-height:16px;color:#232F3E;\">Warm · 2026-06-06</span></p>",
+      "html": "<p style=\"text-align:left;\"><span style=\"font-size:13px;line-height:16px;color:#232F3E;\">Hot · Versioning ON</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,
@@ -269,13 +269,13 @@
     "hidden": false
    },
    {
-    "x": 1090,
+    "x": 1010,
     "y": 100,
     "rotation": 0,
     "id": 9,
     "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
-    "width": 370,
-    "height": 420,
+    "width": 450,
+    "height": 440,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 6,
@@ -284,7 +284,7 @@
      "Shape": {
       "tid": "com.gliffy.stencil.rectangle.basic_v1",
       "strokeWidth": 1.5,
-      "strokeColor": "#8C4FFF",
+      "strokeColor": "#8A1C2E",
       "fillColor": "#FFFFFF",
       "gradient": false,
       "dashStyle": null,
@@ -300,7 +300,7 @@
     "hidden": false
    },
    {
-    "x": 1090,
+    "x": 1010,
     "y": 100,
     "rotation": 0,
     "id": 11,
@@ -315,8 +315,8 @@
      "Shape": {
       "tid": "com.gliffy.stencil.rectangle.basic_v1",
       "strokeWidth": 0,
-      "strokeColor": "#8C4FFF",
-      "fillColor": "#8C4FFF",
+      "strokeColor": "#8A1C2E",
+      "fillColor": "#8A1C2E",
       "gradient": false,
       "dashStyle": null,
       "dropShadow": false,
@@ -346,7 +346,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#FFFFFF;font-weight:bold;\">k8s</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#FFFFFF;font-weight:bold;\">W</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -360,12 +360,12 @@
     "hidden": false
    },
    {
-    "x": 1120,
+    "x": 1040,
     "y": 102,
     "rotation": 0,
     "id": 12,
     "uid": "com.gliffy.shape.basic.basic_v1.default.text",
-    "width": 336,
+    "width": 416,
     "height": 22,
     "lockAspectRatio": false,
     "lockShape": false,
@@ -378,7 +378,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:left;\"><span style=\"font-size:13px;line-height:16px;color:#232F3E;\">용인 dataops</span></p>",
+      "html": "<p style=\"text-align:left;\"><span style=\"font-size:13px;line-height:16px;color:#232F3E;\">Warm replica</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,
@@ -395,40 +395,32 @@
     "rotation": 0,
     "id": 13,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 70.0,
-    "height": 102.0,
+    "width": 67.0,
+    "height": 1,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 9,
     "graphic": {
      "type": "Line",
      "Line": {
-      "strokeWidth": 1,
-      "strokeColor": "#5E6C84",
+      "strokeWidth": 1.5,
+      "strokeColor": "#8C4FFF",
       "fillColor": "none",
       "dashStyle": null,
       "startArrow": 0,
-      "endArrow": 0,
+      "endArrow": 1,
       "startArrowRotation": "auto",
       "endArrowRotation": "auto",
       "interpolationType": "linear",
       "cornerRadius": null,
       "controlPath": [
        [
-        190.0,
-        262.0
+        136.0,
+        190.0
        ],
        [
-        190.0,
-        300.0
-       ],
-       [
-        120.0,
-        300.0
-       ],
-       [
-        120.0,
-        364.0
+        203.0,
+        190.0
        ]
       ],
       "lockSegments": {},
@@ -450,40 +442,32 @@
     "rotation": 0,
     "id": 14,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 70.0,
-    "height": 102.0,
+    "width": 67.0,
+    "height": 1,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 10,
     "graphic": {
      "type": "Line",
      "Line": {
-      "strokeWidth": 1,
-      "strokeColor": "#5E6C84",
+      "strokeWidth": 1.5,
+      "strokeColor": "#8C4FFF",
       "fillColor": "none",
       "dashStyle": null,
       "startArrow": 0,
-      "endArrow": 0,
+      "endArrow": 1,
       "startArrowRotation": "auto",
       "endArrowRotation": "auto",
       "interpolationType": "linear",
       "cornerRadius": null,
       "controlPath": [
        [
-        220.0,
-        262.0
+        256.0,
+        190.0
        ],
        [
-        220.0,
-        300.0
-       ],
-       [
-        290.0,
-        300.0
-       ],
-       [
-        290.0,
-        364.0
+        323.0,
+        190.0
        ]
       ],
       "lockSegments": {},
@@ -505,16 +489,16 @@
     "rotation": 0,
     "id": 15,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 376.0,
-    "height": 240.0,
+    "width": 483.0,
+    "height": 50.0,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 11,
     "graphic": {
      "type": "Line",
      "Line": {
-      "strokeWidth": 2.5,
-      "strokeColor": "#ED7100",
+      "strokeWidth": 1.5,
+      "strokeColor": "#8C4FFF",
       "fillColor": "none",
       "dashStyle": null,
       "startArrow": 0,
@@ -525,24 +509,24 @@
       "cornerRadius": null,
       "controlPath": [
        [
-        120.0,
-        460.0
+        257.0,
+        350.0
        ],
        [
-        120.0,
-        490.0
+        540.0,
+        350.0
        ],
        [
-        395.0,
-        490.0
+        540.0,
+        300.0
        ],
        [
-        395.0,
-        250.0
+        740.0,
+        300.0
        ],
        [
-        496.0,
-        250.0
+        740.0,
+        333.0
        ]
       ],
       "lockSegments": {},
@@ -564,16 +548,16 @@
     "rotation": 0,
     "id": 16,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 416.0,
-    "height": 304.0,
+    "width": 77.0,
+    "height": 1,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 12,
     "graphic": {
      "type": "Line",
      "Line": {
-      "strokeWidth": 2,
-      "strokeColor": "#ED7100",
+      "strokeWidth": 1.5,
+      "strokeColor": "#7D8998",
       "fillColor": "none",
       "dashStyle": "6,4",
       "startArrow": 0,
@@ -584,24 +568,12 @@
       "cornerRadius": null,
       "controlPath": [
        [
-        314.0,
-        390.0
+        766.0,
+        360.0
        ],
        [
-        415.0,
-        390.0
-       ],
-       [
-        415.0,
-        86.0
-       ],
-       [
-        730.0,
-        86.0
-       ],
-       [
-        730.0,
-        216.0
+        843.0,
+        360.0
        ]
       ],
       "lockSegments": {},
@@ -623,7 +595,7 @@
     "rotation": 0,
     "id": 17,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 76.0,
+    "width": 422.0,
     "height": 1,
     "lockAspectRatio": false,
     "lockShape": false,
@@ -631,8 +603,8 @@
     "graphic": {
      "type": "Line",
      "Line": {
-      "strokeWidth": 1.5,
-      "strokeColor": "#232F3E",
+      "strokeWidth": 2.5,
+      "strokeColor": "#ED7100",
       "fillColor": "none",
       "dashStyle": null,
       "startArrow": 0,
@@ -643,12 +615,12 @@
       "cornerRadius": null,
       "controlPath": [
        [
-        1174.0,
-        200.0
+        774.0,
+        180.0
        ],
        [
-        1250.0,
-        200.0
+        1196.0,
+        180.0
        ]
       ],
       "lockSegments": {},
@@ -670,7 +642,7 @@
     "rotation": 0,
     "id": 18,
     "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 75.0,
+    "width": 448.0,
     "height": 1,
     "lockAspectRatio": false,
     "lockShape": false,
@@ -679,9 +651,9 @@
      "type": "Line",
      "Line": {
       "strokeWidth": 1.5,
-      "strokeColor": "#232F3E",
+      "strokeColor": "#DD344C",
       "fillColor": "none",
-      "dashStyle": null,
+      "dashStyle": "6,4",
       "startArrow": 0,
       "endArrow": 1,
       "startArrowRotation": "auto",
@@ -690,12 +662,12 @@
       "cornerRadius": null,
       "controlPath": [
        [
-        1300.0,
-        200.0
+        636.0,
+        470.0
        ],
        [
-        1375.0,
-        200.0
+        1084.0,
+        470.0
        ]
       ],
       "lockSegments": {},
@@ -712,82 +684,83 @@
     }
    },
    {
-    "x": 0,
-    "y": 0,
+    "x": 85.0,
+    "y": 165.0,
     "rotation": 0,
-    "id": 19,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.line",
-    "width": 311.0,
-    "height": 50.0,
+    "id": 20,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+    "width": 50,
+    "height": 50,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 15,
     "graphic": {
-     "type": "Line",
-     "Line": {
-      "strokeWidth": 2.5,
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.rectangle.basic_v1",
+      "strokeWidth": 1.5,
       "strokeColor": "#8C4FFF",
-      "fillColor": "none",
+      "fillColor": "#FFFFFF",
+      "gradient": false,
       "dashStyle": null,
-      "startArrow": 1,
-      "endArrow": 1,
-      "startArrowRotation": "auto",
-      "endArrowRotation": "auto",
-      "interpolationType": "linear",
-      "cornerRadius": null,
-      "controlPath": [
-       [
-        1275.0,
-        250.0
-       ],
-       [
-        1275.0,
-        300.0
-       ],
-       [
-        1060.0,
-        300.0
-       ],
-       [
-        1060.0,
-        250.0
-       ],
-       [
-        964.0,
-        250.0
-       ]
-      ],
-      "lockSegments": {},
-      "ortho": false
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
      }
     },
-    "children": [],
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 19,
+      "uid": null,
+      "width": 50,
+      "height": 50,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:10px;line-height:13px;color:#8C4FFF;font-weight:bold;\">snap 1</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
     "linkMap": [],
-    "hidden": false,
-    "constraints": {
-     "constraints": [],
-     "startConstraint": null,
-     "endConstraint": null
-    }
+    "hidden": false
    },
    {
-    "x": 173.0,
-    "y": 168.0,
+    "x": 205.0,
+    "y": 165.0,
     "rotation": 0,
-    "id": 21,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
-    "width": 64,
-    "height": 64,
+    "id": 22,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+    "width": 50,
+    "height": 50,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 16,
     "graphic": {
      "type": "Shape",
      "Shape": {
-      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
-      "strokeWidth": 1,
-      "strokeColor": "#C72C48",
-      "fillColor": "#C72C48",
+      "tid": "com.gliffy.stencil.rectangle.basic_v1",
+      "strokeWidth": 1.5,
+      "strokeColor": "#8C4FFF",
+      "fillColor": "#FFFFFF",
       "gradient": false,
       "dashStyle": null,
       "dropShadow": false,
@@ -802,10 +775,10 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 20,
+      "id": 21,
       "uid": null,
-      "width": 64,
-      "height": 64,
+      "width": 50,
+      "height": 50,
       "lockAspectRatio": false,
       "lockShape": false,
       "order": 0,
@@ -817,7 +790,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#FFFFFF;font-weight:bold;\">Bucket</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:10px;line-height:13px;color:#8C4FFF;font-weight:bold;\">snap 2</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -831,23 +804,23 @@
     "hidden": false
    },
    {
-    "x": 96.0,
-    "y": 366.0,
+    "x": 325.0,
+    "y": 165.0,
     "rotation": 0,
-    "id": 23,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
-    "width": 48,
-    "height": 48,
+    "id": 24,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+    "width": 50,
+    "height": 50,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 17,
     "graphic": {
      "type": "Shape",
      "Shape": {
-      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
-      "strokeWidth": 1,
-      "strokeColor": "#ED7100",
-      "fillColor": "#ED7100",
+      "tid": "com.gliffy.stencil.rectangle.basic_v1",
+      "strokeWidth": 1.5,
+      "strokeColor": "#8C4FFF",
+      "fillColor": "#FFFFFF",
       "gradient": false,
       "dashStyle": null,
       "dropShadow": false,
@@ -862,10 +835,10 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 22,
+      "id": 23,
       "uid": null,
-      "width": 48,
-      "height": 48,
+      "width": 50,
+      "height": 50,
       "lockAspectRatio": false,
       "lockShape": false,
       "order": 0,
@@ -877,7 +850,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#FFFFFF;font-weight:bold;\">REP</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:10px;line-height:13px;color:#8C4FFF;font-weight:bold;\">snap 3</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -891,196 +864,16 @@
     "hidden": false
    },
    {
-    "x": 266.0,
-    "y": 366.0,
+    "x": 203.0,
+    "y": 323.0,
     "rotation": 0,
-    "id": 25,
+    "id": 26,
     "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
-    "width": 48,
-    "height": 48,
+    "width": 54,
+    "height": 54,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 18,
-    "graphic": {
-     "type": "Shape",
-     "Shape": {
-      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
-      "strokeWidth": 1,
-      "strokeColor": "#ED7100",
-      "fillColor": "#ED7100",
-      "gradient": false,
-      "dashStyle": null,
-      "dropShadow": false,
-      "state": 0,
-      "opacity": 1,
-      "shadowX": 0,
-      "shadowY": 0
-     }
-    },
-    "children": [
-     {
-      "x": 0,
-      "y": 0,
-      "rotation": 0,
-      "id": 24,
-      "uid": null,
-      "width": 48,
-      "height": 48,
-      "lockAspectRatio": false,
-      "lockShape": false,
-      "order": 0,
-      "graphic": {
-       "type": "Text",
-       "Text": {
-        "tid": null,
-        "valign": "middle",
-        "overflow": "none",
-        "vposition": "none",
-        "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#FFFFFF;font-weight:bold;\">ILM</span></p>",
-        "paddingLeft": 4,
-        "paddingRight": 4,
-        "paddingBottom": 3,
-        "paddingTop": 3
-       }
-      },
-      "linkMap": []
-     }
-    ],
-    "linkMap": [],
-    "hidden": false
-   },
-   {
-    "x": 498.0,
-    "y": 218.0,
-    "rotation": 0,
-    "id": 27,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
-    "width": 64,
-    "height": 64,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 19,
-    "graphic": {
-     "type": "Shape",
-     "Shape": {
-      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
-      "strokeWidth": 1,
-      "strokeColor": "#ED7100",
-      "fillColor": "#ED7100",
-      "gradient": false,
-      "dashStyle": null,
-      "dropShadow": false,
-      "state": 0,
-      "opacity": 1,
-      "shadowX": 0,
-      "shadowY": 0
-     }
-    },
-    "children": [
-     {
-      "x": 0,
-      "y": 0,
-      "rotation": 0,
-      "id": 26,
-      "uid": null,
-      "width": 64,
-      "height": 64,
-      "lockAspectRatio": false,
-      "lockShape": false,
-      "order": 0,
-      "graphic": {
-       "type": "Text",
-       "Text": {
-        "tid": null,
-        "valign": "middle",
-        "overflow": "none",
-        "vposition": "none",
-        "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#FFFFFF;font-weight:bold;\">Bucket</span></p>",
-        "paddingLeft": 4,
-        "paddingRight": 4,
-        "paddingBottom": 3,
-        "paddingTop": 3
-       }
-      },
-      "linkMap": []
-     }
-    ],
-    "linkMap": [],
-    "hidden": false
-   },
-   {
-    "x": 698.0,
-    "y": 218.0,
-    "rotation": 0,
-    "id": 29,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
-    "width": 64,
-    "height": 64,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 20,
-    "graphic": {
-     "type": "Shape",
-     "Shape": {
-      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
-      "strokeWidth": 1,
-      "strokeColor": "#5A6B86",
-      "fillColor": "#5A6B86",
-      "gradient": false,
-      "dashStyle": null,
-      "dropShadow": false,
-      "state": 0,
-      "opacity": 1,
-      "shadowX": 0,
-      "shadowY": 0
-     }
-    },
-    "children": [
-     {
-      "x": 0,
-      "y": 0,
-      "rotation": 0,
-      "id": 28,
-      "uid": null,
-      "width": 64,
-      "height": 64,
-      "lockAspectRatio": false,
-      "lockShape": false,
-      "order": 0,
-      "graphic": {
-       "type": "Text",
-       "Text": {
-        "tid": null,
-        "valign": "middle",
-        "overflow": "none",
-        "vposition": "none",
-        "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#FFFFFF;font-weight:bold;\">Tier</span></p>",
-        "paddingLeft": 4,
-        "paddingRight": 4,
-        "paddingBottom": 3,
-        "paddingTop": 3
-       }
-      },
-      "linkMap": []
-     }
-    ],
-    "linkMap": [],
-    "hidden": false
-   },
-   {
-    "x": 898.0,
-    "y": 218.0,
-    "rotation": 0,
-    "id": 31,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
-    "width": 64,
-    "height": 64,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 21,
     "graphic": {
      "type": "Shape",
      "Shape": {
@@ -1102,10 +895,70 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 30,
+      "id": 25,
       "uid": null,
-      "width": 64,
-      "height": 64,
+      "width": 54,
+      "height": 54,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#FFFFFF;font-weight:bold;\">Job</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 709.0,
+    "y": 149.0,
+    "rotation": 0,
+    "id": 28,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
+    "width": 62,
+    "height": 62,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 19,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
+      "strokeWidth": 1,
+      "strokeColor": "#C72C48",
+      "fillColor": "#C72C48",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 27,
+      "uid": null,
+      "width": 62,
+      "height": 62,
       "lockAspectRatio": false,
       "lockShape": false,
       "order": 0,
@@ -1131,25 +984,145 @@
     "hidden": false
    },
    {
-    "x": 1126.0,
-    "y": 176.0,
+    "x": 585.0,
+    "y": 335.0,
     "rotation": 0,
-    "id": 33,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.ellipse",
-    "width": 48,
-    "height": 48,
+    "id": 30,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+    "width": 50,
+    "height": 50,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 20,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.rectangle.basic_v1",
+      "strokeWidth": 1.5,
+      "strokeColor": "#232F3E",
+      "fillColor": "#FFFFFF",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 29,
+      "uid": null,
+      "width": 50,
+      "height": 50,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:10px;line-height:13px;color:#232F3E;font-weight:bold;\">current</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 715.0,
+    "y": 335.0,
+    "rotation": 0,
+    "id": 32,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+    "width": 50,
+    "height": 50,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 21,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.rectangle.basic_v1",
+      "strokeWidth": 1.5,
+      "strokeColor": "#DD344C",
+      "fillColor": "#FFFFFF",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 31,
+      "uid": null,
+      "width": 50,
+      "height": 50,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:10px;line-height:13px;color:#DD344C;font-weight:bold;\">DM</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 845.0,
+    "y": 335.0,
+    "rotation": 0,
+    "id": 34,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+    "width": 50,
+    "height": 50,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 22,
     "graphic": {
      "type": "Shape",
      "Shape": {
-      "tid": "com.gliffy.stencil.ellipse.basic_v1",
-      "strokeWidth": 1,
-      "strokeColor": "#326CE5",
-      "fillColor": "#326CE5",
+      "tid": "com.gliffy.stencil.rectangle.basic_v1",
+      "strokeWidth": 1.5,
+      "strokeColor": "#7D8998",
+      "fillColor": "#FFFFFF",
       "gradient": false,
-      "dashStyle": null,
+      "dashStyle": "4,3",
       "dropShadow": false,
       "state": 0,
       "opacity": 1,
@@ -1162,10 +1135,10 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 32,
+      "id": 33,
       "uid": null,
-      "width": 48,
-      "height": 48,
+      "width": 50,
+      "height": 50,
       "lockAspectRatio": false,
       "lockShape": false,
       "order": 0,
@@ -1177,7 +1150,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#FFFFFF;font-weight:bold;\">Users</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:10px;line-height:13px;color:#7D8998;font-weight:bold;\">v1 v2</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -1191,23 +1164,23 @@
     "hidden": false
    },
    {
-    "x": 1251.0,
-    "y": 176.0,
+    "x": 587.0,
+    "y": 447.0,
     "rotation": 0,
-    "id": 35,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
-    "width": 48,
-    "height": 48,
+    "id": 36,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+    "width": 46,
+    "height": 46,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 23,
     "graphic": {
      "type": "Shape",
      "Shape": {
-      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
-      "strokeWidth": 1,
-      "strokeColor": "#DD00A1",
-      "fillColor": "#DD00A1",
+      "tid": "com.gliffy.stencil.rectangle.basic_v1",
+      "strokeWidth": 1.5,
+      "strokeColor": "#7D8998",
+      "fillColor": "#FFFFFF",
       "gradient": false,
       "dashStyle": null,
       "dropShadow": false,
@@ -1222,10 +1195,10 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 34,
+      "id": 35,
       "uid": null,
-      "width": 48,
-      "height": 48,
+      "width": 46,
+      "height": 46,
       "lockAspectRatio": false,
       "lockShape": false,
       "order": 0,
@@ -1237,7 +1210,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#FFFFFF;font-weight:bold;\">Trino</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:10px;line-height:13px;color:#7D8998;font-weight:bold;\">null</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -1251,13 +1224,13 @@
     "hidden": false
    },
    {
-    "x": 1376.0,
-    "y": 176.0,
+    "x": 1199.0,
+    "y": 149.0,
     "rotation": 0,
-    "id": 37,
+    "id": 38,
     "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
-    "width": 48,
-    "height": 48,
+    "width": 62,
+    "height": 62,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 24,
@@ -1266,8 +1239,8 @@
      "Shape": {
       "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
       "strokeWidth": 1,
-      "strokeColor": "#01A88D",
-      "fillColor": "#01A88D",
+      "strokeColor": "#ED7100",
+      "fillColor": "#ED7100",
       "gradient": false,
       "dashStyle": null,
       "dropShadow": false,
@@ -1282,10 +1255,10 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 36,
+      "id": 37,
       "uid": null,
-      "width": 48,
-      "height": 48,
+      "width": 62,
+      "height": 62,
       "lockAspectRatio": false,
       "lockShape": false,
       "order": 0,
@@ -1297,7 +1270,187 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#FFFFFF;font-weight:bold;\">HMS</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#FFFFFF;font-weight:bold;\">Bucket</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 1085.0,
+    "y": 335.0,
+    "rotation": 0,
+    "id": 40,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+    "width": 50,
+    "height": 50,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 25,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.rectangle.basic_v1",
+      "strokeWidth": 1.5,
+      "strokeColor": "#232F3E",
+      "fillColor": "#FFFFFF",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 39,
+      "uid": null,
+      "width": 50,
+      "height": 50,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:10px;line-height:13px;color:#232F3E;font-weight:bold;\">current</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 1225.0,
+    "y": 335.0,
+    "rotation": 0,
+    "id": 42,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+    "width": 50,
+    "height": 50,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 26,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.rectangle.basic_v1",
+      "strokeWidth": 1.5,
+      "strokeColor": "#DD344C",
+      "fillColor": "#FFFFFF",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 41,
+      "uid": null,
+      "width": 50,
+      "height": 50,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:10px;line-height:13px;color:#DD344C;font-weight:bold;\">DM ?</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 1087.0,
+    "y": 447.0,
+    "rotation": 0,
+    "id": 44,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+    "width": 46,
+    "height": 46,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 27,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.rectangle.basic_v1",
+      "strokeWidth": 1.5,
+      "strokeColor": "#DD344C",
+      "fillColor": "#FFFFFF",
+      "gradient": false,
+      "dashStyle": "4,3",
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 43,
+      "uid": null,
+      "width": 46,
+      "height": 46,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:10px;line-height:13px;color:#DD344C;font-weight:bold;\">✕</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -1312,189 +1465,9 @@
    },
    {
     "x": 40,
-    "y": 560,
+    "y": 570,
     "rotation": 0,
-    "id": 39,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
-    "width": 227,
-    "height": 46,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 25,
-    "graphic": {
-     "type": "Shape",
-     "Shape": {
-      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
-      "strokeWidth": 1.5,
-      "strokeColor": "#DD344C",
-      "fillColor": "#FFF1F0",
-      "gradient": false,
-      "dashStyle": null,
-      "dropShadow": false,
-      "state": 0,
-      "opacity": 1,
-      "shadowX": 0,
-      "shadowY": 0
-     }
-    },
-    "children": [
-     {
-      "x": 0,
-      "y": 0,
-      "rotation": 0,
-      "id": 38,
-      "uid": null,
-      "width": 227,
-      "height": 46,
-      "lockAspectRatio": false,
-      "lockShape": false,
-      "order": 0,
-      "graphic": {
-       "type": "Text",
-       "Text": {
-        "tid": null,
-        "valign": "middle",
-        "overflow": "none",
-        "vposition": "none",
-        "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">🚨 C-1 동일 버전</span></p>",
-        "paddingLeft": 4,
-        "paddingRight": 4,
-        "paddingBottom": 3,
-        "paddingTop": 3
-       }
-      },
-      "linkMap": []
-     }
-    ],
-    "linkMap": [],
-    "hidden": false
-   },
-   {
-    "x": 279,
-    "y": 560,
-    "rotation": 0,
-    "id": 41,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
-    "width": 227,
-    "height": 46,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 26,
-    "graphic": {
-     "type": "Shape",
-     "Shape": {
-      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
-      "strokeWidth": 1.5,
-      "strokeColor": "#DD344C",
-      "fillColor": "#FFF1F0",
-      "gradient": false,
-      "dashStyle": null,
-      "dropShadow": false,
-      "state": 0,
-      "opacity": 1,
-      "shadowX": 0,
-      "shadowY": 0
-     }
-    },
-    "children": [
-     {
-      "x": 0,
-      "y": 0,
-      "rotation": 0,
-      "id": 40,
-      "uid": null,
-      "width": 227,
-      "height": 46,
-      "lockAspectRatio": false,
-      "lockShape": false,
-      "order": 0,
-      "graphic": {
-       "type": "Text",
-       "Text": {
-        "tid": null,
-        "valign": "middle",
-        "overflow": "none",
-        "vposition": "none",
-        "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">C-2 버킷·권한 분리</span></p>",
-        "paddingLeft": 4,
-        "paddingRight": 4,
-        "paddingBottom": 3,
-        "paddingTop": 3
-       }
-      },
-      "linkMap": []
-     }
-    ],
-    "linkMap": [],
-    "hidden": false
-   },
-   {
-    "x": 518,
-    "y": 560,
-    "rotation": 0,
-    "id": 43,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
-    "width": 227,
-    "height": 46,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 27,
-    "graphic": {
-     "type": "Shape",
-     "Shape": {
-      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
-      "strokeWidth": 1.5,
-      "strokeColor": "#DD344C",
-      "fillColor": "#FFF1F0",
-      "gradient": false,
-      "dashStyle": null,
-      "dropShadow": false,
-      "state": 0,
-      "opacity": 1,
-      "shadowX": 0,
-      "shadowY": 0
-     }
-    },
-    "children": [
-     {
-      "x": 0,
-      "y": 0,
-      "rotation": 0,
-      "id": 42,
-      "uid": null,
-      "width": 227,
-      "height": 46,
-      "lockAspectRatio": false,
-      "lockShape": false,
-      "order": 0,
-      "graphic": {
-       "type": "Text",
-       "Text": {
-        "tid": null,
-        "valign": "middle",
-        "overflow": "none",
-        "vposition": "none",
-        "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">C-3 Tier 독점</span></p>",
-        "paddingLeft": 4,
-        "paddingRight": 4,
-        "paddingBottom": 3,
-        "paddingTop": 3
-       }
-      },
-      "linkMap": []
-     }
-    ],
-    "linkMap": [],
-    "hidden": false
-   },
-   {
-    "x": 757,
-    "y": 560,
-    "rotation": 0,
-    "id": 45,
+    "id": 46,
     "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
     "width": 227,
     "height": 46,
@@ -1522,7 +1495,7 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 44,
+      "id": 45,
       "uid": null,
       "width": 227,
       "height": 46,
@@ -1537,7 +1510,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">C-4 이중 저장 용량</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">S1 정리 무력화 (용량↑)</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -1551,10 +1524,10 @@
     "hidden": false
    },
    {
-    "x": 996,
-    "y": 560,
+    "x": 279,
+    "y": 570,
     "rotation": 0,
-    "id": 47,
+    "id": 48,
     "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
     "width": 227,
     "height": 46,
@@ -1582,7 +1555,7 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 46,
+      "id": 47,
       "uid": null,
       "width": 227,
       "height": 46,
@@ -1597,7 +1570,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">C-5 공존 부하</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">S2 이력 이중 보관</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -1611,10 +1584,10 @@
     "hidden": false
    },
    {
-    "x": 1235,
-    "y": 560,
+    "x": 518,
+    "y": 570,
     "rotation": 0,
-    "id": 49,
+    "id": 50,
     "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
     "width": 227,
     "height": 46,
@@ -1642,7 +1615,7 @@
       "x": 0,
       "y": 0,
       "rotation": 0,
-      "id": 48,
+      "id": 49,
       "uid": null,
       "width": 227,
       "height": 46,
@@ -1657,7 +1630,247 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">C-6 백업 일관성</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">S3 버전 복원 ≠ 테이블 복원</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 757,
+    "y": 570,
+    "rotation": 0,
+    "id": 52,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
+    "width": 227,
+    "height": 46,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 31,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
+      "strokeWidth": 1.5,
+      "strokeColor": "#DD344C",
+      "fillColor": "#FFF1F0",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 51,
+      "uid": null,
+      "width": 227,
+      "height": 46,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">V1 켜기 전 파일 미복제</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 996,
+    "y": 570,
+    "rotation": 0,
+    "id": 54,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
+    "width": 227,
+    "height": 46,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 32,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
+      "strokeWidth": 1.5,
+      "strokeColor": "#DD344C",
+      "fillColor": "#FFF1F0",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 53,
+      "uid": null,
+      "width": 227,
+      "height": 46,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">V4 삭제 전파 딜레마</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 1235,
+    "y": 570,
+    "rotation": 0,
+    "id": 56,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
+    "width": 227,
+    "height": 46,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 33,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
+      "strokeWidth": 1.5,
+      "strokeColor": "#DD344C",
+      "fillColor": "#FFF1F0",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 55,
+      "uid": null,
+      "width": 227,
+      "height": 46,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#DD344C;font-weight:bold;\">V6 Versioning 끌 수 없음</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 40,
+    "y": 640,
+    "rotation": 0,
+    "id": 58,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.round_rectangle",
+    "width": 1420,
+    "height": 70,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 34,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.round_rectangle.basic_v1",
+      "strokeWidth": 1.5,
+      "strokeColor": "#7AA116",
+      "fillColor": "#F0F7E6",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 57,
+      "uid": null,
+      "width": 1420,
+      "height": 70,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:13px;line-height:16px;color:#232F3E;font-weight:bold;\">대응: ① Versioning 상태 확인 → ② 기존 파일 seed (mirror · rewrite_table_path) → ③ Hot · replica 에 noncurrent 만료<br>④ 삭제 전파 결정 (delete-marker ON + replica 보존 기간) → ⑤ 복구는 스냅샷 · register 기준</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -1674,13 +1887,13 @@
     "x": 40,
     "y": 16,
     "rotation": 0,
-    "id": 50,
+    "id": 59,
     "uid": "com.gliffy.shape.basic.basic_v1.default.text",
     "width": 1420,
     "height": 30,
     "lockAspectRatio": false,
     "lockShape": false,
-    "order": 31,
+    "order": 35,
     "graphic": {
      "type": "Text",
      "Text": {
@@ -1689,7 +1902,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:left;\"><span style=\"font-size:22px;line-height:25px;color:#000000;font-weight:bold;\">두 케이스 공존 — Warm 클러스터 3개 역할</span></p>",
+      "html": "<p style=\"text-align:left;\"><span style=\"font-size:22px;line-height:25px;color:#000000;font-weight:bold;\">Iceberg 스냅샷 × 버킷 Versioning — 백업 용도에서의 충돌</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,
@@ -1704,130 +1917,10 @@
     "x": 40,
     "y": 48,
     "rotation": 0,
-    "id": 51,
+    "id": 60,
     "uid": "com.gliffy.shape.basic.basic_v1.default.text",
     "width": 1420,
     "height": 20,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 32,
-    "graphic": {
-     "type": "Text",
-     "Text": {
-      "tid": null,
-      "valign": "middle",
-      "overflow": "none",
-      "vposition": "none",
-      "hposition": "none",
-      "html": "<p style=\"text-align:left;\"><span style=\"font-size:12px;line-height:15px;color:#5E6C84;\">이천: Hot → Warm Replication(백업) + ILM(용량) · 용인: Warm 전용 read/write</span></p>",
-      "paddingLeft": 4,
-      "paddingRight": 4,
-      "paddingBottom": 3,
-      "paddingTop": 3
-     }
-    },
-    "children": [],
-    "linkMap": [],
-    "hidden": false
-   },
-   {
-    "x": 130.0,
-    "y": 236.0,
-    "rotation": 0,
-    "id": 52,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.text",
-    "width": 150,
-    "height": 20,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 33,
-    "graphic": {
-     "type": "Text",
-     "Text": {
-      "tid": null,
-      "valign": "middle",
-      "overflow": "none",
-      "vposition": "none",
-      "hposition": "none",
-      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">이천 서비스 버킷</span></p>",
-      "paddingLeft": 4,
-      "paddingRight": 4,
-      "paddingBottom": 3,
-      "paddingTop": 3
-     }
-    },
-    "children": [],
-    "linkMap": [],
-    "hidden": false
-   },
-   {
-    "x": 45.0,
-    "y": 418.0,
-    "rotation": 0,
-    "id": 53,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.text",
-    "width": 150,
-    "height": 36,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 34,
-    "graphic": {
-     "type": "Text",
-     "Text": {
-      "tid": null,
-      "valign": "middle",
-      "overflow": "none",
-      "vposition": "none",
-      "hposition": "none",
-      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">Bucket<br>Replication</span></p>",
-      "paddingLeft": 4,
-      "paddingRight": 4,
-      "paddingBottom": 3,
-      "paddingTop": 3
-     }
-    },
-    "children": [],
-    "linkMap": [],
-    "hidden": false
-   },
-   {
-    "x": 215.0,
-    "y": 418.0,
-    "rotation": 0,
-    "id": 54,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.text",
-    "width": 150,
-    "height": 36,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 35,
-    "graphic": {
-     "type": "Text",
-     "Text": {
-      "tid": null,
-      "valign": "middle",
-      "overflow": "none",
-      "vposition": "none",
-      "hposition": "none",
-      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">ILM<br>Transition</span></p>",
-      "paddingLeft": 4,
-      "paddingRight": 4,
-      "paddingBottom": 3,
-      "paddingTop": 3
-     }
-    },
-    "children": [],
-    "linkMap": [],
-    "hidden": false
-   },
-   {
-    "x": 455.0,
-    "y": 286.0,
-    "rotation": 0,
-    "id": 55,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.text",
-    "width": 150,
-    "height": 36,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 36,
@@ -1839,7 +1932,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">① replica<br>(Hot 동일명)</span></p>",
+      "html": "<p style=\"text-align:left;\"><span style=\"font-size:12px;line-height:15px;color:#5E6C84;\">Replication 은 Versioning 필수 (Replication.pdf 4.2) · Iceberg 는 동작하지만 이력이 이중화되고 정리가 무력화됨</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,
@@ -1851,12 +1944,12 @@
     "hidden": false
    },
    {
-    "x": 655.0,
-    "y": 286.0,
+    "x": 60,
+    "y": 225,
     "rotation": 0,
-    "id": 56,
+    "id": 61,
     "uid": "com.gliffy.shape.basic.basic_v1.default.text",
-    "width": 150,
+    "width": 380,
     "height": 20,
     "lockAspectRatio": false,
     "lockShape": false,
@@ -1869,7 +1962,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">② tier prefix</span></p>",
+      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#8C4FFF;font-weight:bold;\">이력 = 스냅샷 · 롤백 = 카탈로그 포인터</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,
@@ -1881,13 +1974,13 @@
     "hidden": false
    },
    {
-    "x": 855.0,
-    "y": 286.0,
+    "x": 155.0,
+    "y": 381.0,
     "rotation": 0,
-    "id": 57,
+    "id": 62,
     "uid": "com.gliffy.shape.basic.basic_v1.default.text",
     "width": 150,
-    "height": 20,
+    "height": 36,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 38,
@@ -1899,7 +1992,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">③ yongin-*</span></p>",
+      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">expire_snapshots<br>compaction</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,
@@ -1911,10 +2004,10 @@
     "hidden": false
    },
    {
-    "x": 455,
-    "y": 330,
+    "x": 665.0,
+    "y": 215.0,
     "rotation": 0,
-    "id": 58,
+    "id": 63,
     "uid": "com.gliffy.shape.basic.basic_v1.default.text",
     "width": 150,
     "height": 20,
@@ -1929,7 +2022,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#DD344C;font-weight:bold;\">쓰기 금지 · ILM 별도</span></p>",
+      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">Hot Iceberg 버킷</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,
@@ -1941,10 +2034,10 @@
     "hidden": false
    },
    {
-    "x": 655,
-    "y": 330,
+    "x": 535.0,
+    "y": 389.0,
     "rotation": 0,
-    "id": 59,
+    "id": 64,
     "uid": "com.gliffy.shape.basic.basic_v1.default.text",
     "width": 150,
     "height": 20,
@@ -1959,7 +2052,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#DD344C;font-weight:bold;\">🔒 AIStor 전용</span></p>",
+      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">현재</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,
@@ -1971,12 +2064,12 @@
     "hidden": false
    },
    {
-    "x": 855,
-    "y": 330,
+    "x": 685.0,
+    "y": 389.0,
     "rotation": 0,
-    "id": 60,
+    "id": 65,
     "uid": "com.gliffy.shape.basic.basic_v1.default.text",
-    "width": 150,
+    "width": 110,
     "height": 20,
     "lockAspectRatio": false,
     "lockShape": false,
@@ -1989,7 +2082,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#8C4FFF;font-weight:bold;\">용인 read/write</span></p>",
+      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">delete marker</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,
@@ -2001,137 +2094,47 @@
     "hidden": false
    },
    {
-    "x": 375.0,
-    "y": 410.5,
+    "x": 810.0,
+    "y": 389.0,
     "rotation": 0,
-    "id": 62,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
-    "width": 40,
-    "height": 19,
+    "id": 66,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.text",
+    "width": 120,
+    "height": 20,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 42,
     "graphic": {
-     "type": "Shape",
-     "Shape": {
-      "tid": "com.gliffy.stencil.rectangle.basic_v1",
-      "strokeWidth": 0,
-      "strokeColor": "#FFFFFF",
-      "fillColor": "#FFFFFF",
-      "gradient": false,
-      "dashStyle": null,
-      "dropShadow": false,
-      "state": 0,
-      "opacity": 1,
-      "shadowX": 0,
-      "shadowY": 0
+     "type": "Text",
+     "Text": {
+      "tid": null,
+      "valign": "middle",
+      "overflow": "none",
+      "vposition": "none",
+      "hposition": "none",
+      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">noncurrent 보관</span></p>",
+      "paddingLeft": 4,
+      "paddingRight": 4,
+      "paddingBottom": 3,
+      "paddingTop": 3
      }
     },
-    "children": [
-     {
-      "x": 0,
-      "y": 0,
-      "rotation": 0,
-      "id": 61,
-      "uid": null,
-      "width": 40,
-      "height": 19,
-      "lockAspectRatio": false,
-      "lockShape": false,
-      "order": 0,
-      "graphic": {
-       "type": "Text",
-       "Text": {
-        "tid": null,
-        "valign": "middle",
-        "overflow": "none",
-        "vposition": "none",
-        "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#ED7100;\">백업</span></p>",
-        "paddingLeft": 4,
-        "paddingRight": 4,
-        "paddingBottom": 3,
-        "paddingTop": 3
-       }
-      },
-      "linkMap": []
-     }
-    ],
+    "children": [],
     "linkMap": [],
     "hidden": false
    },
    {
-    "x": 530.0,
-    "y": 76.5,
+    "x": 545.0,
+    "y": 497.0,
     "rotation": 0,
-    "id": 64,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
-    "width": 80,
-    "height": 19,
+    "id": 67,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.text",
+    "width": 130,
+    "height": 20,
     "lockAspectRatio": false,
     "lockShape": false,
     "order": 43,
     "graphic": {
-     "type": "Shape",
-     "Shape": {
-      "tid": "com.gliffy.stencil.rectangle.basic_v1",
-      "strokeWidth": 0,
-      "strokeColor": "#FFFFFF",
-      "fillColor": "#FFFFFF",
-      "gradient": false,
-      "dashStyle": null,
-      "dropShadow": false,
-      "state": 0,
-      "opacity": 1,
-      "shadowX": 0,
-      "shadowY": 0
-     }
-    },
-    "children": [
-     {
-      "x": 0,
-      "y": 0,
-      "rotation": 0,
-      "id": 63,
-      "uid": null,
-      "width": 80,
-      "height": 19,
-      "lockAspectRatio": false,
-      "lockShape": false,
-      "order": 0,
-      "graphic": {
-       "type": "Text",
-       "Text": {
-        "tid": null,
-        "valign": "middle",
-        "overflow": "none",
-        "vposition": "none",
-        "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#ED7100;\">Transition</span></p>",
-        "paddingLeft": 4,
-        "paddingRight": 4,
-        "paddingBottom": 3,
-        "paddingTop": 3
-       }
-      },
-      "linkMap": []
-     }
-    ],
-    "linkMap": [],
-    "hidden": false
-   },
-   {
-    "x": 1100.0,
-    "y": 228.0,
-    "rotation": 0,
-    "id": 65,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.text",
-    "width": 100,
-    "height": 20,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 44,
-    "graphic": {
      "type": "Text",
      "Text": {
       "tid": null,
@@ -2139,7 +2142,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">용인 서비스</span></p>",
+      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">Versioning 전 파일</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,
@@ -2151,76 +2154,16 @@
     "hidden": false
    },
    {
-    "x": 1220.0,
-    "y": 228.0,
-    "rotation": 0,
-    "id": 66,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.text",
-    "width": 110,
-    "height": 20,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 45,
-    "graphic": {
-     "type": "Text",
-     "Text": {
-      "tid": null,
-      "valign": "middle",
-      "overflow": "none",
-      "vposition": "none",
-      "hposition": "none",
-      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">Trino / Spark</span></p>",
-      "paddingLeft": 4,
-      "paddingRight": 4,
-      "paddingBottom": 3,
-      "paddingTop": 3
-     }
-    },
-    "children": [],
-    "linkMap": [],
-    "hidden": false
-   },
-   {
-    "x": 1350.0,
-    "y": 228.0,
-    "rotation": 0,
-    "id": 67,
-    "uid": "com.gliffy.shape.basic.basic_v1.default.text",
-    "width": 100,
-    "height": 20,
-    "lockAspectRatio": false,
-    "lockShape": false,
-    "order": 46,
-    "graphic": {
-     "type": "Text",
-     "Text": {
-      "tid": null,
-      "valign": "middle",
-      "overflow": "none",
-      "vposition": "none",
-      "hposition": "none",
-      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">HMS-Warm</span></p>",
-      "paddingLeft": 4,
-      "paddingRight": 4,
-      "paddingBottom": 3,
-      "paddingTop": 3
-     }
-    },
-    "children": [],
-    "linkMap": [],
-    "hidden": false
-   },
-   {
-    "x": 1125.0,
-    "y": 290.5,
+    "x": 370.0,
+    "y": 340.5,
     "rotation": 0,
     "id": 69,
     "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
-    "width": 90,
+    "width": 60,
     "height": 19,
     "lockAspectRatio": false,
     "lockShape": false,
-    "order": 47,
+    "order": 44,
     "graphic": {
      "type": "Shape",
      "Shape": {
@@ -2244,7 +2187,7 @@
       "rotation": 0,
       "id": 68,
       "uid": null,
-      "width": 90,
+      "width": 60,
       "height": 19,
       "lockAspectRatio": false,
       "lockShape": false,
@@ -2257,7 +2200,7 @@
         "overflow": "none",
         "vposition": "none",
         "hposition": "none",
-        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#8C4FFF;\">read / write</span></p>",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#8C4FFF;\">DELETE</span></p>",
         "paddingLeft": 4,
         "paddingRight": 4,
         "paddingBottom": 3,
@@ -2271,16 +2214,16 @@
     "hidden": false
    },
    {
-    "x": 1110,
-    "y": 420,
+    "x": 1155.0,
+    "y": 215.0,
     "rotation": 0,
     "id": 70,
     "uid": "com.gliffy.shape.basic.basic_v1.default.text",
-    "width": 330,
-    "height": 40,
+    "width": 150,
+    "height": 20,
     "lockAspectRatio": false,
     "lockShape": false,
-    "order": 48,
+    "order": 45,
     "graphic": {
      "type": "Text",
      "Text": {
@@ -2289,7 +2232,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#8C4FFF;font-weight:bold;\">🔑 용인 키 = yongin-* 만<br>replica · tier 차단</span></p>",
+      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">replica 버킷</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,
@@ -2301,16 +2244,16 @@
     "hidden": false
    },
    {
-    "x": 40,
-    "y": 620,
+    "x": 1035.0,
+    "y": 389.0,
     "rotation": 0,
     "id": 71,
     "uid": "com.gliffy.shape.basic.basic_v1.default.text",
-    "width": 1420,
+    "width": 150,
     "height": 20,
     "lockAspectRatio": false,
     "lockShape": false,
-    "order": 49,
+    "order": 46,
     "graphic": {
      "type": "Text",
      "Text": {
@@ -2319,7 +2262,7 @@
       "overflow": "none",
       "vposition": "none",
       "hposition": "none",
-      "html": "<p style=\"text-align:left;\"><span style=\"font-size:11px;line-height:14px;color:#5E6C84;\">공존 조건 상세: 근거 1 §2 ~ §4</span></p>",
+      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">현재</span></p>",
       "paddingLeft": 4,
       "paddingRight": 4,
       "paddingBottom": 3,
@@ -2327,6 +2270,426 @@
      }
     },
     "children": [],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 1175.0,
+    "y": 389.0,
+    "rotation": 0,
+    "id": 72,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.text",
+    "width": 150,
+    "height": 20,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 47,
+    "graphic": {
+     "type": "Text",
+     "Text": {
+      "tid": null,
+      "valign": "middle",
+      "overflow": "none",
+      "vposition": "none",
+      "hposition": "none",
+      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">삭제 전파 ON / OFF ?</span></p>",
+      "paddingLeft": 4,
+      "paddingRight": 4,
+      "paddingBottom": 3,
+      "paddingTop": 3
+     }
+    },
+    "children": [],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 1035.0,
+    "y": 497.0,
+    "rotation": 0,
+    "id": 73,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.text",
+    "width": 150,
+    "height": 20,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 48,
+    "graphic": {
+     "type": "Text",
+     "Text": {
+      "tid": null,
+      "valign": "middle",
+      "overflow": "none",
+      "vposition": "none",
+      "hposition": "none",
+      "html": "<p style=\"text-align:center;\"><span style=\"font-size:12px;line-height:15px;color:#232F3E;\">미복제</span></p>",
+      "paddingLeft": 4,
+      "paddingRight": 4,
+      "paddingBottom": 3,
+      "paddingTop": 3
+     }
+    },
+    "children": [],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 940.0,
+    "y": 152.5,
+    "rotation": 0,
+    "id": 75,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+    "width": 90,
+    "height": 19,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 49,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.rectangle.basic_v1",
+      "strokeWidth": 0,
+      "strokeColor": "#FFFFFF",
+      "fillColor": "#FFFFFF",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 74,
+      "uid": null,
+      "width": 90,
+      "height": 19,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#ED7100;\">Replication</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 775.0,
+    "y": 442.5,
+    "rotation": 0,
+    "id": 77,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.rectangle",
+    "width": 170,
+    "height": 19,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 50,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.rectangle.basic_v1",
+      "strokeWidth": 0,
+      "strokeColor": "#FFFFFF",
+      "fillColor": "#FFFFFF",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 76,
+      "uid": null,
+      "width": 170,
+      "height": 19,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#DD344C;\">✕ version ID 없음 → 제외</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 881,
+    "y": 316,
+    "rotation": 0,
+    "id": 79,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.ellipse",
+    "width": 28,
+    "height": 28,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 51,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.ellipse.basic_v1",
+      "strokeWidth": 2,
+      "strokeColor": "#FFFFFF",
+      "fillColor": "#DD344C",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 78,
+      "uid": null,
+      "width": 28,
+      "height": 28,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#FFFFFF;font-weight:bold;\">S1</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 626,
+    "y": 431,
+    "rotation": 0,
+    "id": 81,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.ellipse",
+    "width": 28,
+    "height": 28,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 52,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.ellipse.basic_v1",
+      "strokeWidth": 2,
+      "strokeColor": "#FFFFFF",
+      "fillColor": "#DD344C",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 80,
+      "uid": null,
+      "width": 28,
+      "height": 28,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#FFFFFF;font-weight:bold;\">V1</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 1266,
+    "y": 316,
+    "rotation": 0,
+    "id": 83,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.ellipse",
+    "width": 28,
+    "height": 28,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 53,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.ellipse.basic_v1",
+      "strokeWidth": 2,
+      "strokeColor": "#FFFFFF",
+      "fillColor": "#DD344C",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 82,
+      "uid": null,
+      "width": 28,
+      "height": 28,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#FFFFFF;font-weight:bold;\">V4</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
+    "linkMap": [],
+    "hidden": false
+   },
+   {
+    "x": 916,
+    "y": 114,
+    "rotation": 0,
+    "id": 85,
+    "uid": "com.gliffy.shape.basic.basic_v1.default.ellipse",
+    "width": 28,
+    "height": 28,
+    "lockAspectRatio": false,
+    "lockShape": false,
+    "order": 54,
+    "graphic": {
+     "type": "Shape",
+     "Shape": {
+      "tid": "com.gliffy.stencil.ellipse.basic_v1",
+      "strokeWidth": 2,
+      "strokeColor": "#FFFFFF",
+      "fillColor": "#DD344C",
+      "gradient": false,
+      "dashStyle": null,
+      "dropShadow": false,
+      "state": 0,
+      "opacity": 1,
+      "shadowX": 0,
+      "shadowY": 0
+     }
+    },
+    "children": [
+     {
+      "x": 0,
+      "y": 0,
+      "rotation": 0,
+      "id": 84,
+      "uid": null,
+      "width": 28,
+      "height": 28,
+      "lockAspectRatio": false,
+      "lockShape": false,
+      "order": 0,
+      "graphic": {
+       "type": "Text",
+       "Text": {
+        "tid": null,
+        "valign": "middle",
+        "overflow": "none",
+        "vposition": "none",
+        "hposition": "none",
+        "html": "<p style=\"text-align:center;\"><span style=\"font-size:11px;line-height:14px;color:#FFFFFF;font-weight:bold;\">V6</span></p>",
+        "paddingLeft": 4,
+        "paddingRight": 4,
+        "paddingBottom": 3,
+        "paddingTop": 3
+       }
+      },
+      "linkMap": []
+     }
+    ],
     "linkMap": [],
     "hidden": false
    }
@@ -2344,7 +2707,7 @@
   ]
  },
  "metadata": {
-  "title": "03-warm-coexistence",
+  "title": "13-versioning-iceberg-backup",
   "revision": 0,
   "exportBorder": false,
   "loadPosition": "default",

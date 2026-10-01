@@ -1,69 +1,65 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="720" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
-<rect x="40" y="100" width="380" height="440" fill="#FFFFFF" stroke="#C72C48" stroke-width="1.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="660" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="100" width="380" height="450" fill="#FFFFFF" stroke="#C72C48" stroke-width="1.5"/>
 <rect x="40" y="100" width="26" height="26" fill="#C72C48"/>
 <text x="53.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
-<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Hot 버킷 + HMS-Hot</text>
-<rect x="460" y="100" width="440" height="440" fill="#FFFFFF" stroke="#ED7100" stroke-width="1.5"/>
-<rect x="460" y="100" width="26" height="26" fill="#ED7100"/>
-<text x="473.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Q</text>
-<text x="494" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Replication 큐 — 객체별 · 비동기</text>
-<rect x="940" y="100" width="420" height="440" fill="#FFFFFF" stroke="#8A1C2E" stroke-width="1.5"/>
-<rect x="940" y="100" width="26" height="26" fill="#8A1C2E"/>
-<text x="953.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
-<text x="974" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Warm replica 버킷 (백업)</text>
-<polyline points="360.0,207.0 1000.0,207.0" fill="none" stroke="#DD344C" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
-<polyline points="360.0,282.0 1000.0,282.0" fill="none" stroke="#ED7100" stroke-width="1.5" marker-end="url(#a)"/>
-<polyline points="360.0,357.0 1000.0,357.0" fill="none" stroke="#ED7100" stroke-width="1.5" marker-end="url(#a)"/>
-<polyline points="390.0,480.0 1000.0,480.0" fill="none" stroke="#DD344C" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
-<rect x="70" y="145" width="320" height="265" rx="6" fill="#F5F0FF" stroke="#8C4FFF" stroke-dasharray="6 4"/>
-<text x="230.0" y="281.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal"></text>
-<rect x="100" y="185" width="260" height="44" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
-<text x="230.0" y="211.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">data/*.parquet</text>
-<rect x="100" y="260" width="260" height="44" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
-<text x="230.0" y="286.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">manifest (*.avro)</text>
-<rect x="100" y="335" width="260" height="44" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
-<text x="230.0" y="361.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">v3.metadata.json</text>
-<rect x="70" y="450" width="320" height="60" rx="6" fill="#E6F7F4" stroke="#01A88D"/>
-<text x="230.0" y="476.5" font-size="12" fill="#01A88D" text-anchor="middle" font-weight="bold">HMS-Hot 포인터 → v3</text>
-<text x="230.0" y="491.5" font-size="12" fill="#01A88D" text-anchor="middle" font-weight="bold">(원자 교체)</text>
-<rect x="1000" y="185" width="300" height="44" rx="6" fill="#FFF1F0" stroke="#DD344C" stroke-dasharray="6 4"/>
-<text x="1150.0" y="211.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">data/*.parquet  ✕ 아직 없음</text>
-<rect x="1000" y="260" width="300" height="44" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
-<text x="1150.0" y="286.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">manifest  ✓</text>
-<rect x="1000" y="335" width="300" height="44" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
-<text x="1150.0" y="361.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">v3.metadata.json  ✓</text>
-<rect x="1000" y="450" width="300" height="60" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
-<text x="1150.0" y="476.5" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">Warm 측 카탈로그 없음</text>
-<text x="1150.0" y="491.5" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">→ 복구 시 등록 필요</text>
-<rect x="40" y="570" width="250" height="110" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
-<text x="165.0" y="614.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">C1 부분 복제</text>
-<text x="165.0" y="629.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">metadata 는 왔는데</text>
-<text x="165.0" y="644.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">data 가 없음</text>
-<rect x="306" y="570" width="250" height="110" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
-<text x="431.0" y="614.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">C2 카탈로그 미복제</text>
-<text x="431.0" y="629.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">HMS 포인터는</text>
-<text x="431.0" y="644.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">S3 복제 대상 아님</text>
-<rect x="572" y="570" width="250" height="110" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
-<text x="697.0" y="614.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">C3 삭제 전파</text>
-<text x="697.0" y="629.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">expire_snapshots 삭제가</text>
-<text x="697.0" y="644.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">플래그 따라 다르게 반영</text>
-<rect x="838" y="570" width="250" height="110" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
-<text x="963.0" y="614.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">C4 ILM 비인지</text>
-<text x="963.0" y="629.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">ILM 은 Iceberg 참조를</text>
-<text x="963.0" y="644.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">모름 · 삭제 미복제</text>
-<rect x="1104" y="570" width="250" height="110" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
-<text x="1229.0" y="614.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">C5 Object Lock</text>
-<text x="1229.0" y="629.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">보존 중 삭제 불가</text>
-<text x="1229.0" y="644.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="normal">→ 유지보수 실패</text>
-<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">Replication 과 Iceberg 커밋 단위 불일치 — '스냅샷 묶음' vs '객체 하나씩'</text>
-<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">Hot 에서는 한 번에 커밋된 스냅샷이 Warm 에는 객체별로 따로·늦게 도착 → Warm 에서 일관된 테이블 보장 안 됨</text>
-<text x="84" y="164.0" font-size="12" fill="#8C4FFF" text-anchor="start" font-weight="bold">Snapshot v3 — 한 번에 커밋</text>
-<rect x="590.0" y="180.5" width="180" height="19" fill="#FFFFFF"/>
-<text x="680.0" y="193.66666666666666" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">PENDING … (지연 / 실패)</text>
-<rect x="635.0" y="255.5" width="90" height="19" fill="#FFFFFF"/>
-<text x="680.0" y="268.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">t + 2s  ✓</text>
-<rect x="605.0" y="330.5" width="150" height="19" fill="#FFFFFF"/>
-<text x="680.0" y="343.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">t + 1s  ✓ (먼저 도착)</text>
-<rect x="570.0" y="453.5" width="220" height="19" fill="#FFFFFF"/>
-<text x="680.0" y="466.6666666666667" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">✕ 복제 대상 아님 (Oracle 의 행)</text>
+<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Hot</text>
+<rect x="470" y="100" width="430" height="450" fill="#FFFFFF" stroke="#ED7100" stroke-width="1.5"/>
+<rect x="470" y="100" width="26" height="26" fill="#ED7100"/>
+<text x="483.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Q</text>
+<text x="504" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Replication (객체별 · 비동기)</text>
+<rect x="950" y="100" width="410" height="450" fill="#FFFFFF" stroke="#8A1C2E" stroke-width="1.5"/>
+<rect x="950" y="100" width="26" height="26" fill="#8A1C2E"/>
+<text x="963.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<text x="984" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Warm replica</text>
+<polyline points="236.0,190.0 1122.0,190.0" fill="none" stroke="#DD344C" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="236.0,280.0 1122.0,280.0" fill="none" stroke="#ED7100" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="236.0,370.0 1122.0,370.0" fill="none" stroke="#ED7100" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="232.0,490.0 1128.0,490.0" fill="none" stroke="#DD344C" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<rect x="110" y="135" width="200" height="300" rx="6" fill="#F5F0FF" stroke="#8C4FFF" stroke-dasharray="6 4"/>
+<text x="210.0" y="289.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal"></text>
+<path d="M187.0,167.0 L223.0,167.0 L233.0,177.0 L233.0,213.0 L187.0,213.0 Z" fill="#fff" stroke="#232F3E" stroke-width="1.5"/>
+<text x="210.0" y="193.33333333333334" font-size="10" fill="#232F3E" text-anchor="middle" font-weight="bold">Parquet</text>
+<path d="M187.0,257.0 L223.0,257.0 L233.0,267.0 L233.0,303.0 L187.0,303.0 Z" fill="#fff" stroke="#232F3E" stroke-width="1.5"/>
+<text x="210.0" y="283.3333333333333" font-size="10" fill="#232F3E" text-anchor="middle" font-weight="bold">Avro</text>
+<path d="M187.0,347.0 L223.0,347.0 L233.0,357.0 L233.0,393.0 L187.0,393.0 Z" fill="#fff" stroke="#232F3E" stroke-width="1.5"/>
+<text x="210.0" y="373.3333333333333" font-size="10" fill="#232F3E" text-anchor="middle" font-weight="bold">v3.json</text>
+<rect x="190.0" y="470.0" width="40" height="40" rx="8" fill="#01A88D"/>
+<text x="210.0" y="493.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">HMS</text>
+<path d="M1127.0,167.0 L1163.0,167.0 L1173.0,177.0 L1173.0,213.0 L1127.0,213.0 Z" fill="#fff" stroke="#DD344C" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="1150.0" y="193.33333333333334" font-size="10" fill="#DD344C" text-anchor="middle" font-weight="bold">✕</text>
+<path d="M1127.0,257.0 L1163.0,257.0 L1173.0,267.0 L1173.0,303.0 L1127.0,303.0 Z" fill="#fff" stroke="#232F3E" stroke-width="1.5"/>
+<text x="1150.0" y="283.3333333333333" font-size="10" fill="#232F3E" text-anchor="middle" font-weight="bold">Avro</text>
+<path d="M1127.0,347.0 L1163.0,347.0 L1173.0,357.0 L1173.0,393.0 L1127.0,393.0 Z" fill="#fff" stroke="#232F3E" stroke-width="1.5"/>
+<text x="1150.0" y="373.3333333333333" font-size="10" fill="#232F3E" text-anchor="middle" font-weight="bold">v3.json</text>
+<rect x="1130.0" y="470.0" width="40" height="40" rx="8" fill="#7D8998" stroke-dasharray="4 3"/>
+<text x="1150.0" y="493.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">HMS</text>
+<rect x="40" y="585" width="255" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="167.5" y="612.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">C1 부분 복제</text>
+<rect x="307" y="585" width="255" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="434.5" y="612.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">C2 카탈로그 미복제</text>
+<rect x="574" y="585" width="255" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="701.5" y="612.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">C3 삭제 전파</text>
+<rect x="841" y="585" width="255" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="968.5" y="612.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">C4 ILM 비인지</text>
+<rect x="1108" y="585" width="255" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1235.5" y="612.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">C5 Object Lock</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">커밋 단위 불일치 — 스냅샷 묶음 vs 객체 하나씩</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">Hot 에서 한 번에 커밋된 스냅샷이 Warm replica 에는 객체별로 따로 도착</text>
+<text x="210.0" y="151.0" font-size="12" fill="#8C4FFF" text-anchor="middle" font-weight="bold">Snapshot v3</text>
+<text x="210.0" y="231.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">data</text>
+<text x="210.0" y="321.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">manifest</text>
+<text x="210.0" y="411.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">metadata</text>
+<text x="210.0" y="528.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">HMS-Hot → v3</text>
+<rect x="630.0" y="162.5" width="110" height="19" fill="#FFFFFF"/>
+<text x="685.0" y="175.66666666666666" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">⏳ 지연 / 실패</text>
+<rect x="650.0" y="252.5" width="70" height="19" fill="#FFFFFF"/>
+<text x="685.0" y="265.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">✓ t+2s</text>
+<rect x="635.0" y="342.5" width="100" height="19" fill="#FFFFFF"/>
+<text x="685.0" y="355.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">✓ t+1s (먼저)</text>
+<rect x="625.0" y="462.5" width="120" height="19" fill="#FFFFFF"/>
+<text x="685.0" y="475.6666666666667" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">✕ 복제 대상 아님</text>
+<text x="1150.0" y="231.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">data 없음</text>
+<text x="1150.0" y="321.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">manifest</text>
+<text x="1150.0" y="411.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">metadata</text>
+<text x="1150.0" y="528.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">카탈로그 없음</text>
 </svg>

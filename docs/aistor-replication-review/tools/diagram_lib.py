@@ -21,6 +21,9 @@ TEAL = "#01A88D"     # 카탈로그
 GREY = "#7D8998"
 AISTOR = "#C72C48"   # AIStor(MinIO) 브랜드 계열 레드
 
+RES_GLYPH = {"res:glacier": "Tier", "res:route_53": "DNS", "res:elastic_load_balancing": "LB",
+             "res:network_firewall": "FW", "res:backup": "Backup"}
+
 
 def _lines(text):
     return escape(text).replace("\n", "<br>")
@@ -48,11 +51,14 @@ class Diagram:
         self.groups.append(dict(kind="group", id=gid, x=x, y=y, w=w, h=h, label=label,
                                 color=color, badge=badge, dashed=dashed, fill=fill, stroke=stroke))
 
-    def icon(self, iid, cx, cy, label, kind="app", color=BLUE, glyph="", size=52, label_w=150, dim=False):
+    def icon(self, iid, cx, cy, label, kind="app", color=BLUE, glyph="", size=52, label_w=150, dim=False,
+             dashed=False):
         x, y = cx - size / 2, cy - size / 2
         self.bbox[iid] = (x, y, size, size)
         self.nodes.append(dict(kind="icon", id=iid, x=x, y=y, w=size, h=size, icon=kind,
-                               color=GREY if dim else color, glyph=glyph, dim=dim))
+                               color=GREY if dim else color, glyph=glyph, dim=dim, dashed=dashed))
+        if not label:
+            return
         nl = label.count("\n") + 1
         self.text(cx - label_w / 2, y + size + 4, label_w, 16 * nl + 4, label, size=12,
                   color=GREY if dim else INK, align="center")
@@ -100,6 +106,17 @@ class Diagram:
         k = n["icon"]
         if k == "s3":
             return base + "sketch=0;outlineConnect=0;dashed=0;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;"
+        if k.startswith("res:"):
+            return base + f"sketch=0;outlineConnect=0;dashed=0;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.{k[4:]};"
+        if k in ("bucket", "bucket_obj", "users"):
+            shp = {"bucket": "bucket", "bucket_obj": "bucket_with_objects", "users": "users"}[k]
+            dash = "dashed=1;" if n.get("dashed") else "dashed=0;"
+            return ("sketch=0;outlineConnect=0;html=1;verticalLabelPosition=bottom;verticalAlign=top;align=center;"
+                    f"aspect=fixed;pointerEvents=1;fillColor={c};strokeColor=none;{dash}shape=mxgraph.aws4.{shp};")
+        if k == "doc":
+            dash = "dashed=1;dashPattern=4 3;" if n.get("dashed") else ""
+            return (f"shape=note;size=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor={c};strokeWidth=1.5;"
+                    f"{dash}fontColor={c};fontSize=10;fontStyle=1;")
         if k.startswith("k8s:"):
             return base + f"sketch=0;dashed=0;shape=mxgraph.kubernetes.icon;prIcon={k[4:]};"
         if k == "db":
@@ -147,7 +164,8 @@ class Diagram:
 
         for n in self.nodes:
             if n["kind"] == "icon":
-                val = "" if n["icon"] in ("s3", "user") or n["icon"].startswith("k8s:") else n["glyph"]
+                val = "" if n["icon"] in ("s3", "user", "bucket", "bucket_obj", "users") or \
+                    n["icon"].startswith(("k8s:", "res:")) else n["glyph"]
                 cells.append(f'<mxCell id="{n["id"]}" value="{escape(_lines(val))}" style="{self._drawio_icon_style(n)}" '
                              f'vertex="1" parent="1">{geo(n["x"], n["y"], n["w"], n["h"])}</mxCell>')
             else:
@@ -246,11 +264,17 @@ class Diagram:
         for n in self.nodes:
             if n["kind"] == "icon":
                 k = n["icon"]
-                glyph = n["glyph"] or {"s3": "S3", "db": "DB", "user": "User", "k8s:user": "User",
-                                       "k8s:ing": "Ingress"}.get(k, "") or ("K8s" if k.startswith("k8s:") else "")
-                uid, tid = ("ellipse", "ellipse") if k == "user" else ("round_rectangle", "round_rectangle")
+                glyph = n["glyph"] or {"s3": "S3", "db": "DB", "user": "User", "k8s:user": "User", "users": "Users",
+                                       "k8s:ing": "Ingress", "k8s:job": "Job", "bucket": "Bucket",
+                                       "bucket_obj": "Bucket"}.get(k, "") or RES_GLYPH.get(k, "") or (
+                    "K8s" if k.startswith("k8s:") else "")
+                if k == "doc":
+                    shape("rectangle", "rectangle", n["x"], n["y"], n["w"], n["h"], n["color"], WHITE, sw=1.5,
+                          dash="4,3" if n.get("dashed") else None, text_html=html(glyph, 10, n["color"], True))
+                    continue
+                uid, tid = ("ellipse", "ellipse") if k in ("user", "users") else ("round_rectangle", "round_rectangle")
                 shape(uid, tid, n["x"], n["y"], n["w"], n["h"], n["color"], n["color"], sw=1,
-                      text_html=html(glyph, 12, WHITE, True))
+                      dash="4,3" if n.get("dashed") else None, text_html=html(glyph, 12, WHITE, True))
             else:
                 uid, tid = ("round_rectangle", "round_rectangle") if n["rounded"] else ("rectangle", "rectangle")
                 shape(uid, tid, n["x"], n["y"], n["w"], n["h"], n["stroke"], n["fill"], sw=1.5,
@@ -321,10 +345,31 @@ class Diagram:
         for n in self.nodes:
             if n["kind"] == "icon":
                 k = n["icon"]
-                glyph = n["glyph"] or {"s3": "S3", "db": "DB", "user": "USER"}.get(k, "") or (
+                x, y, w, h, c = n["x"], n["y"], n["w"], n["h"], n["color"]
+                dsh = ' stroke-dasharray="4 3"' if n.get("dashed") else ""
+                if k in ("bucket", "bucket_obj"):
+                    op = ' fill-opacity="0.35"' if n.get("dashed") else ""
+                    o.append(f'<path d="M{x},{y + h * .18} L{x + w},{y + h * .18} L{x + w * .84},{y + h} L{x + w * .16},{y + h} Z" '
+                             f'fill="{c}"{op}{dsh} stroke="{c}"/>')
+                    o.append(f'<ellipse cx="{x + w / 2}" cy="{y + h * .18}" rx="{w / 2}" ry="{h * .12}" fill="#fff" stroke="{c}" stroke-width="2"/>')
+                    if k == "bucket_obj":
+                        for i, (dx, dy) in enumerate([(.32, .45), (.52, .5), (.42, .68)]):
+                            o.append(f'<rect x="{x + w * dx}" y="{y + h * dy}" width="{w * .16}" height="{h * .14}" fill="#fff"/>')
+                    continue
+                if k == "users":
+                    for dx in (.35, .65):
+                        o.append(f'<circle cx="{x + w * dx}" cy="{y + h * .3}" r="{w * .13}" fill="{c}"/>')
+                        o.append(f'<path d="M{x + w * (dx - .2)},{y + h * .85} Q{x + w * dx},{y + h * .35} {x + w * (dx + .2)},{y + h * .85} Z" fill="{c}"/>')
+                    continue
+                if k == "doc":
+                    o.append(f'<path d="M{x},{y} L{x + w - 10},{y} L{x + w},{y + 10} L{x + w},{y + h} L{x},{y + h} Z" fill="#fff" '
+                             f'stroke="{c}" stroke-width="1.5"{dsh}/>')
+                    tx(x, y, w, h, n["glyph"], 10, c, True)
+                    continue
+                glyph = n["glyph"] or {"s3": "S3", "db": "DB", "user": "USER"}.get(k, "") or RES_GLYPH.get(k, "") or (
                     k[4:] if k.startswith("k8s:") else "")
-                o.append(f'<rect x="{n["x"]}" y="{n["y"]}" width="{n["w"]}" height="{n["h"]}" rx="8" fill="{n["color"]}"/>')
-                tx(n["x"], n["y"], n["w"], n["h"], glyph, 11, WHITE, True)
+                o.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" fill="{c}"{dsh}/>')
+                tx(x, y, w, h, glyph, 11, WHITE, True)
             else:
                 d = ' stroke-dasharray="6 4"' if n["dashed"] else ""
                 o.append(f'<rect x="{n["x"]}" y="{n["y"]}" width="{n["w"]}" height="{n["h"]}" rx="{6 if n["rounded"] else 0}" '
