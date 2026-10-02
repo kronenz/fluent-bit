@@ -59,6 +59,8 @@
 | 11 | 향후 | [03-future/02-hms-oracle-split-todo](./03-future/02-hms-oracle-split-todo.md) | HMS-Hot / HMS-Warm(용인 원본) / 복구용 HMS, To-do H-01~H-54 | 용인 · 이천 복구 | 09, 10 |
 | 12 | 향후 | [03-future/03-open-items-polaris-hot-warm-schema](./03-future/03-open-items-polaris-hot-warm-schema.md) | Polaris `lake_hot`/`lake_warm` 확인 P-01~P-08, 이천·용인 스키마 S-01~S-07 | 용인 · Lake | 09 |
 | 12-1 | 향후 | [03-future/04-ic-fdc-prefix-replication](./03-future/04-ic-fdc-prefix-replication.md) | `ic-fdc` prefix 복제 방안 A/B/C, 설정 예시(Versioning 제외 · prefix 규칙 · Batch YAML), 주의 N-1~N-7, 테스트 TP-1~TP-9, 운영 모델(Bucket vs Batch · Airflow DAG · 부하 · 검증) | 이천 | 15, 16 |
+| 12-2 | 시나리오 | [04-scenarios](./04-scenarios/README.md) | 시나리오 1 Tiering · 2 Replication DR · 3 용인 이관 아키텍처 | 공통 | 17, 18, 19 |
+| 12-3 | 시나리오 | [04-scenarios/01-test-plan](./04-scenarios/01-test-plan.md) | 테스트 시나리오 48건 · 일정 W1(10/06)~W7(11/20) · 게이트 G0/G1/G2 · 결과 · 지표 기입표 | 공통 | 17, 18, 19 |
 | 13 | 도구 | [tools/gen_diagrams.py](./tools/gen_diagrams.py) | 그림 11종 → .gliffy / .drawio / .svg 재생성 | — | 전체 |
 
 ## 2-1. 그림 목록 (diagrams/)
@@ -81,6 +83,9 @@
 | 14 | [14-dr-failover-failback](./diagrams/14-dr-failover-failback.svg) | DR 전용 모드: 평시 → 전환 → 원복 · 성립 조건 DR-1~DR-8 | 이천 DR |
 | 15 | [15-ic-fdc-prefix-replication](./diagrams/15-ic-fdc-prefix-replication.svg) | ic-fdc: unstructure 상시 복제 · structured Versioning 제외 + Batch | 이천 Replication |
 | 16 | [16-bucket-vs-batch-operation](./diagrams/16-bucket-vs-batch-operation.svg) | Bucket(AIStor 상시) vs Batch(AIStor 실행 + Airflow 오케스트레이션) · 부하 설정 | 이천 Replication 운영 |
+| 17 | [17-scenario1-tiering](./diagrams/17-scenario1-tiering.svg) | 시나리오 1 — Tiering (RAW · Archive → Warm ILM) | 시나리오 |
+| 18 | [18-scenario2-replication-dr](./diagrams/18-scenario2-replication-dr.svg) | 시나리오 2 — Replication 백업 · DR (실시간 / 주기) | 시나리오 |
+| 19 | [19-scenario3-yongin-migration](./diagrams/19-scenario3-yongin-migration.svg) | 시나리오 3 — 용인 Warm 임시 적재 → 신규 S3 일괄 이관 | 시나리오 |
 
 ## 3. 해야 할 일 · 진행 사항 · 일정
 
@@ -125,6 +130,7 @@
 | 32 | M6 | Polaris | 버전 · 빌드 · feature flag · 인증 | P-01~P-03, B-4 | 용인 · Lake | [03-future/03](./03-future/03-open-items-polaris-hot-warm-schema.md) | | | | | ☐ 미착수 | |
 | 33 | M6 | Polaris | lake_hot / lake_warm catalog · RBAC · 스토리지 | P-04~P-06 | 용인 · Lake | [03-future/03](./03-future/03-open-items-polaris-hot-warm-schema.md) | | | | | ☐ 미착수 | |
 | 34 | M6 | Polaris | Lake 엔진 경로 · 교차 조회 · 비 Iceberg 테이블 | P-07, P-08, B-5, S-01~S-06 | 용인 · Lake | [03-future/03](./03-future/03-open-items-polaris-hot-warm-schema.md) | | | | | ☐ 미착수 | |
+| 41 | M2 · M3 · M5 | 시나리오 테스트 | 시나리오 1·2·3 테스트 수행 (48건) — W1 10/06 ~ W7 11/20 | TC-00 · TC-S1 · TC-S2 · TC-S3 | 공통 | [04-scenarios/01](./04-scenarios/01-test-plan.md) | | 2026-10-06 | 2026-11-20 | | ☐ 미착수 | 일정은 안 |
 | 35 | M7 | 운영 | 복제 · ILM · 용인 운영 이관, 용인 데이터 백업 방안, 사용자 가이드 | S-07, Y-7, B-6, OC-14 | 공통 | [02-evidence/01](./02-evidence/01-warm-coexistence-replication-ilm.md) | | | | | ☐ 미착수 | |
 
 ## 4. 상태 표기
@@ -180,3 +186,5 @@
 | **v3.4** | 버킷 Replication 만으로 Warm 을 Iceberg DR 로 쓸 수 있는지 | 가능(조건부) · DR-1~DR-8 · 전환/원복 ①~⑥ · RPO/RTO · No 38 · 그림 14 | 02-evidence/01 §4-3 · 그림 14 |
 | **v3.5** | Batch Replication 가능 · ic-fdc 의 structured(Iceberg) / unstructure(Archive) prefix 만 복제 방안 | 방안 A/B/C · B 권장(unstructure 상시 · structured Versioning 제외 + Batch) · M23~M25 · R-30 · No 39 · 그림 15 | 03-future/04 · 그림 15 |
 | **v3.6** | Bucket Replication 은 AIStor 관리, Batch 는 Airflow · CronJob 형태인가 (부하 · 작업 관리 · 검증) | 실행 = AIStor 서버 · 스케줄/검증 = 외부 · 역할 비교 · Airflow DAG ①~⑦ · 부하 설정(workers · wait · list_quorum) · 3단계 검증 · TP-7~TP-9 · M26 · R-31 · No 40 · 그림 16 | 03-future/04 §7 · 그림 16 |
+| **v3.7** | 시나리오 3개 아키텍처 (Tiering · Replication DR · 용인 이관) — 다이어그램 중심 | 그림 17 · 18 · 19, 04-scenarios | 04-scenarios · 그림 17~19 |
+| **v3.8** | 시나리오 테스트 · 일정 수립 | 테스트 48건 · 일정 W1~W7 · 게이트 · 결과/지표 기입표 · No 41 | 04-scenarios/01-test-plan |

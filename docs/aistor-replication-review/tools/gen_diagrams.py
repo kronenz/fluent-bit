@@ -691,6 +691,117 @@ def bucket_vs_batch():
     return d
 
 
+def sc1_tiering():
+    d = Diagram("17-scenario1-tiering", "시나리오 1 — Tiering (비정형 RAW · Archive → Warm, ILM 비용 절감)", width=1600, height=880)
+    d.group("src", 40, 100, 170, 700, "원천", GREY, badge="SRC")
+    d.icon("raw", 125, 300, "비정형 원천", glyph="RAW", color=ORANGE, size=52, label_w=110)
+    d.group("ic", 250, 100, 380, 700, "이천 dataops", PURPLE, badge="k8s")
+    d.icon("sp", 360, 300, "Spark 수집", glyph="Spark", color=SPARK, size=52)
+    d.icon("af", 360, 540, "Airflow", glyph="DAG", color=BLUE, size=52)
+    d.icon("zj", 540, 540, "zip 변환 Job", kind="k8s:job", color=BLUE, size=52, label_w=120)
+    d.icon("us", 360, 720, "사용자 · Trino", kind="users", color=BLUE, size=52, label_w=120)
+    d.group("hot", 670, 100, 400, 700, "Hot AIStor · 2026-02-07", AISTOR, badge="S3")
+    d.icon("ilm", 780, 175, "ILM 규칙", glyph="ILM", color=ORANGE, size=44)
+    d.icon("scn", 950, 175, "Scanner", glyph="SCN", color=INK, size=44)
+    d.icon("rb", 780, 330, "raw/", kind="bucket_obj", color=AISTOR, size=64)
+    d.icon("ab", 960, 540, "archive/", kind="bucket", color=ORANGE, size=60)
+    d.group("warm", 1110, 100, 450, 700, "Warm AIStor · 2026-06-06", WARMC, badge="W")
+    d.icon("tier", 1340, 430, "Warm Tier", kind="res:glacier", color=TIER, size=96)
+
+    d.edge([(151, 300), (334, 300)], "① 수집", at=(240, 282), label_w=60, width=2)
+    d.edge([(386, 300), (746, 300)], "② 적재", at=(560, 282), label_w=60, width=2)
+    d.edge([(780, 215), (780, 296)], "③ 규칙", at=(820, 255), label_w=50, dashed=True, color=ORANGE)
+    d.edge([(950, 215), (950, 320), (814, 320)], "④ 평가", at=(950, 270), label_w=50, dashed=True, color=INK)
+    d.edge([(814, 345), (1080, 345), (1080, 410), (1290, 410)], "⑤ Transition", at=(1180, 410), label_w=90,
+           width=2.5, color=ORANGE)
+    d.edge([(386, 540), (514, 540)], "⑥ 트리거", at=(450, 522), label_w=60, color=BLUE)
+    d.edge([(780, 380), (780, 450), (540, 450), (540, 514)], "⑦ 읽기", at=(660, 450), label_w=50, color=BLUE)
+    d.edge([(566, 540), (928, 540)], "⑧ zip 저장", at=(750, 522), label_w=70, color=BLUE)
+    d.edge([(990, 540), (1080, 540), (1080, 450), (1290, 450)], "⑨ Transition", at=(1180, 450), label_w=90,
+           width=2.5, color=ORANGE)
+    d.edge([(386, 720), (720, 720), (720, 360), (746, 360)], "⑩ GET", at=(560, 702), label_w=50, width=2, color=INK)
+    d.edge([(1340, 480), (1340, 760), (740, 760), (740, 720)], "⑪ 투명 조회", at=(1040, 760), label_w=80,
+           dashed=True, color=TIER)
+    return d
+
+
+def sc2_dr():
+    d = Diagram("18-scenario2-replication-dr", "시나리오 2 — Replication (정형 Iceberg 백업 · DR, 실시간 / 주기)", width=1600, height=880)
+    d.group("ic", 40, 100, 440, 700, "이천 dataops", PURPLE, badge="k8s")
+    d.icon("sp", 140, 230, "Spark", glyph="Spark", color=SPARK, size=50)
+    d.icon("tr", 340, 230, "Trino", glyph="Trino", color=TRINO, size=50)
+    d.icon("hh", 240, 410, "HMS-Hot", glyph="HMS", color=TEAL, size=50)
+    d.icon("or", 240, 580, "Oracle", kind="db", glyph="Oracle", color=ORACLE, size=50)
+    d.icon("af", 140, 730, "Airflow", glyph="DAG", color=BLUE, size=50)
+    d.icon("lg", 340, 730, "metadata 기록", kind="doc", glyph="LOG", color=TEAL, size=48, label_w=110)
+    d.group("hot", 520, 100, 380, 700, "Hot AIStor · 2026-02-07", AISTOR, badge="S3")
+    d.icon("hb", 710, 230, "structured/ (Iceberg)", kind="bucket_obj", color=AISTOR, size=64, label_w=160)
+    d.icon("rep", 610, 450, "Bucket Repl.", glyph="REP", color=ORANGE, size=50)
+    d.icon("bat", 810, 600, "Batch Repl.", kind="k8s:job", color=ORANGE, size=50)
+    d.step(742, 196, "✕", color=RED, r=13)
+    d.group("warm", 940, 100, 300, 700, "Warm AIStor · 2026-06-06", WARMC, badge="W")
+    d.icon("rb", 1090, 450, "replica", kind="bucket", color=ORANGE, size=72)
+    d.group("dr", 1280, 100, 280, 700, "복구 (DR)", RED, badge="DR")
+    d.icon("vj", 1420, 230, "검증 Job", kind="k8s:job", color=PURPLE, size=50)
+    d.icon("rh", 1420, 410, "복구용 HMS", glyph="HMS", color=TEAL, size=50)
+    d.icon("dns", 1420, 580, "DNS · VIP", kind="res:route_53", color=GREEN, size=50)
+    d.icon("dt", 1420, 730, "Trino · Spark", glyph="Trino", color=TRINO, size=50)
+
+    d.edge([(165, 230), (200, 230), (200, 170), (690, 170), (690, 196)], "① 커밋", at=(440, 170), label_w=60, width=2)
+    d.edge([(140, 256), (140, 410), (214, 410)], "① 포인터", at=(140, 330), label_w=60, color=TEAL)
+    d.edge([(240, 436), (240, 554)], color=TEAL)
+    d.edge([(690, 290), (690, 330), (610, 330), (610, 424)], color=ORANGE)
+    d.edge([(636, 450), (1052, 450)], "② 실시간", at=(720, 432), label_w=70, width=2.5, color=ORANGE)
+    d.edge([(730, 290), (730, 330), (810, 330), (810, 574)], color=ORANGE, dashed=True)
+    d.edge([(166, 730), (240, 730), (240, 790), (810, 790), (810, 626)], "③ start", at=(520, 790), label_w=60, color=BLUE)
+    d.edge([(836, 600), (1010, 600), (1010, 475), (1054, 475)], "③ 주기", at=(920, 600), label_w=60, width=2.5, dashed=True, color=ORANGE)
+    d.edge([(166, 712), (314, 712)], "④ 기록", at=(240, 694), label_w=50, color=TEAL)
+    d.text(680, 120, 200, 20, "⑤ 장애", size=13, color=RED, bold=True)
+    d.edge([(1395, 230), (1200, 230), (1200, 430), (1128, 430)], "⑥ HEAD", at=(1290, 230), label_w=60, dashed=True, color=PURPLE)
+    d.edge([(1420, 278), (1420, 384)], "⑦ register", at=(1480, 320), label_w=70, color=PURPLE)
+    d.edge([(1395, 580), (1200, 580), (1200, 470), (1128, 470)], "⑧ 전환", at=(1290, 580), label_w=50, width=2.5, color=RED)
+    d.edge([(1420, 704), (1420, 626)], "⑨ 재개", at=(1470, 655), label_w=50, color=RED)
+    return d
+
+
+def sc3_yongin():
+    d = Diagram("19-scenario3-yongin-migration", "시나리오 3 — 용인 데이터 (Warm 임시 적재 → 신규 S3 일괄 이관)", width=1600, height=880)
+    d.group("yi", 40, 100, 420, 700, "용인 dataops", PURPLE, badge="k8s")
+    d.icon("src", 110, 250, "용인 원천", glyph="RAW", color=ORANGE, size=50)
+    d.icon("sp", 300, 250, "Spark 적재", glyph="Spark", color=SPARK, size=50)
+    d.icon("tr", 110, 450, "Trino", glyph="Trino", color=TRINO, size=50)
+    d.icon("hw", 270, 450, "HMS-Warm", glyph="HMS", color=TEAL, size=50)
+    d.icon("or", 400, 450, "Oracle", kind="db", glyph="Oracle", color=ORACLE, size=44)
+    d.icon("af", 110, 650, "Airflow", glyph="DAG", color=BLUE, size=50)
+    d.group("net", 500, 100, 170, 700, "네트워크", GREEN, badge="⇄")
+    d.icon("fw", 545, 250, "방화벽", kind="res:network_firewall", color=RED, size=40, label_w=70)
+    d.icon("vip", 625, 250, "L4 VIP", kind="res:elastic_load_balancing", color=GREEN, size=40, label_w=70)
+    d.icon("dns", 585, 760, "DNS", kind="res:route_53", color=GREEN, size=44)
+    d.group("warm", 710, 100, 330, 700, "Warm AIStor · 2026-06-06 (이천)", WARMC, badge="W")
+    d.icon("yb", 830, 250, "yongin-* (임시)", kind="bucket", color=PURPLE, size=64, label_w=130)
+    d.icon("cl", 980, 250, "임시 정리", glyph="DEL", color=GREY, size=42)
+    d.icon("bat", 830, 650, "Batch Repl.", kind="k8s:job", color=ORANGE, size=52)
+    d.group("new", 1080, 100, 480, 700, "신규 S3 클러스터 (향후)", BLUE, badge="NEW")
+    d.icon("nb", 1320, 450, "신규 버킷", kind="bucket", color=BLUE, size=72)
+    d.icon("vj", 1180, 650, "검증 Job", kind="k8s:job", color=PURPLE, size=50)
+    d.icon("nh", 1460, 250, "HMS (신규 위치)", glyph="HMS", color=TEAL, size=50, label_w=120)
+
+    d.edge([(136, 250), (274, 250)], "① 수집", at=(205, 232), label_w=50, width=2)
+    d.edge([(326, 250), (524, 250)], "② 적재", at=(430, 232), label_w=50, width=2, color=PURPLE)
+    d.edge([(566, 250), (604, 250)], width=2, color=PURPLE)
+    d.edge([(646, 250), (797, 250)], width=2, color=PURPLE)
+    d.edge([(136, 450), (244, 450)], "③ 조회", at=(190, 432), label_w=50, color=TEAL)
+    d.edge([(296, 450), (378, 450)], color=TEAL)
+    d.edge([(136, 650), (804, 650)], "④ mc batch start", at=(470, 632), label_w=110, color=BLUE)
+    d.edge([(830, 310), (830, 624)], "⑤ 읽기", at=(870, 470), label_w=50, color=ORANGE)
+    d.edge([(856, 650), (1000, 650), (1000, 450), (1283, 450)], "⑥ 일괄 이관", at=(1140, 450), label_w=80,
+           width=2.5, color=ORANGE)
+    d.edge([(1180, 624), (1180, 475), (1284, 475)], "⑦ 검증", at=(1180, 560), label_w=50, dashed=True, color=PURPLE)
+    d.edge([(1357, 430), (1460, 430), (1460, 300)], "⑧ register", at=(1460, 365), label_w=70, color=TEAL)
+    d.edge([(610, 760), (1320, 760), (1320, 512)], "⑨ 전환", at=(960, 760), label_w=50, width=2.5, color=RED)
+    d.edge([(959, 250), (864, 250)], "⑩ 정리", at=(912, 210), label_w=50, dashed=True, color=GREY)
+    return d
+
 def main():
     order = [("01-icheon-hot-warm-dataops", d01), ("02-warm-standalone-yongin", d02),
              ("03-warm-coexistence", r_decision), ("04-commit-unit-mismatch", i3),
@@ -700,7 +811,9 @@ def main():
              ("13-versioning-iceberg-backup", versioning_iceberg),
              ("14-dr-failover-failback", dr_flow),
              ("15-ic-fdc-prefix-replication", ic_fdc_prefix),
-             ("16-bucket-vs-batch-operation", bucket_vs_batch)]
+             ("16-bucket-vs-batch-operation", bucket_vs_batch),
+             ("17-scenario1-tiering", sc1_tiering), ("18-scenario2-replication-dr", sc2_dr),
+             ("19-scenario3-yongin-migration", sc3_yongin)]
     out = os.path.join(ROOT, "diagrams")
     for name, fn in order:
         dg = fn()

@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="880" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="100" width="170" height="700" fill="#FFFFFF" stroke="#7D8998" stroke-width="1.5"/>
+<rect x="40" y="100" width="26" height="26" fill="#7D8998"/>
+<text x="53.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">SRC</text>
+<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">원천</text>
+<rect x="250" y="100" width="380" height="700" fill="#FFFFFF" stroke="#8C4FFF" stroke-width="1.5"/>
+<rect x="250" y="100" width="26" height="26" fill="#8C4FFF"/>
+<text x="263.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">k8s</text>
+<text x="284" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">이천 dataops</text>
+<rect x="670" y="100" width="400" height="700" fill="#FFFFFF" stroke="#C72C48" stroke-width="1.5"/>
+<rect x="670" y="100" width="26" height="26" fill="#C72C48"/>
+<text x="683.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<text x="704" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Hot AIStor · 2026-02-07</text>
+<rect x="1110" y="100" width="450" height="700" fill="#FFFFFF" stroke="#8A1C2E" stroke-width="1.5"/>
+<rect x="1110" y="100" width="26" height="26" fill="#8A1C2E"/>
+<text x="1123.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">W</text>
+<text x="1144" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Warm AIStor · 2026-06-06</text>
+<polyline points="151.0,300.0 334.0,300.0" fill="none" stroke="#232F3E" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="386.0,300.0 746.0,300.0" fill="none" stroke="#232F3E" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="780.0,215.0 780.0,296.0" fill="none" stroke="#ED7100" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="950.0,215.0 950.0,320.0 814.0,320.0" fill="none" stroke="#232F3E" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="814.0,345.0 1080.0,345.0 1080.0,410.0 1290.0,410.0" fill="none" stroke="#ED7100" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="386.0,540.0 514.0,540.0" fill="none" stroke="#326CE5" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="780.0,380.0 780.0,450.0 540.0,450.0 540.0,514.0" fill="none" stroke="#326CE5" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="566.0,540.0 928.0,540.0" fill="none" stroke="#326CE5" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="990.0,540.0 1080.0,540.0 1080.0,450.0 1290.0,450.0" fill="none" stroke="#ED7100" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="386.0,720.0 720.0,720.0 720.0,360.0 746.0,360.0" fill="none" stroke="#232F3E" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="1340.0,480.0 1340.0,760.0 740.0,760.0 740.0,720.0" fill="none" stroke="#5A6B86" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<rect x="99.0" y="274.0" width="52" height="52" rx="8" fill="#ED7100"/>
+<text x="125.0" y="303.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">RAW</text>
+<rect x="334.0" y="274.0" width="52" height="52" rx="8" fill="#E25A1C"/>
+<text x="360.0" y="303.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Spark</text>
+<rect x="334.0" y="514.0" width="52" height="52" rx="8" fill="#326CE5"/>
+<text x="360.0" y="543.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">DAG</text>
+<rect x="514.0" y="514.0" width="52" height="52" rx="8" fill="#326CE5"/>
+<text x="540.0" y="543.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">job</text>
+<circle cx="352.2" cy="709.6" r="6.76" fill="#326CE5"/>
+<path d="M341.8,738.2 Q352.2,712.2 362.6,738.2 Z" fill="#326CE5"/>
+<circle cx="367.8" cy="709.6" r="6.76" fill="#326CE5"/>
+<path d="M357.4,738.2 Q367.8,712.2 378.2,738.2 Z" fill="#326CE5"/>
+<rect x="758.0" y="153.0" width="44" height="44" rx="8" fill="#ED7100"/>
+<text x="780.0" y="178.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">ILM</text>
+<rect x="928.0" y="153.0" width="44" height="44" rx="8" fill="#232F3E"/>
+<text x="950.0" y="178.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">SCN</text>
+<path d="M748.0,309.52 L812.0,309.52 L801.76,362.0 L758.24,362.0 Z" fill="#C72C48" stroke="#C72C48"/>
+<ellipse cx="780.0" cy="309.52" rx="32.0" ry="7.68" fill="#fff" stroke="#C72C48" stroke-width="2"/>
+<rect x="768.48" y="326.8" width="10.24" height="8.96" fill="#fff"/>
+<rect x="781.28" y="330.0" width="10.24" height="8.96" fill="#fff"/>
+<rect x="774.88" y="341.52" width="10.24" height="8.96" fill="#fff"/>
+<path d="M930.0,520.8 L990.0,520.8 L980.4,570.0 L939.6,570.0 Z" fill="#ED7100" stroke="#ED7100"/>
+<ellipse cx="960.0" cy="520.8" rx="30.0" ry="7.199999999999999" fill="#fff" stroke="#ED7100" stroke-width="2"/>
+<rect x="1292.0" y="382.0" width="96" height="96" rx="8" fill="#5A6B86"/>
+<text x="1340.0" y="433.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Tier</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">시나리오 1 — Tiering (비정형 RAW · Archive → Warm, ILM 비용 절감)</text>
+<text x="125.0" y="344.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">비정형 원천</text>
+<text x="360.0" y="344.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Spark 수집</text>
+<text x="360.0" y="584.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Airflow</text>
+<text x="540.0" y="584.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">zip 변환 Job</text>
+<text x="360.0" y="764.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">사용자 · Trino</text>
+<text x="780.0" y="215.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">ILM 규칙</text>
+<text x="950.0" y="215.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Scanner</text>
+<text x="780.0" y="380.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">raw/</text>
+<text x="960.0" y="588.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">archive/</text>
+<text x="1340.0" y="496.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Warm Tier</text>
+<rect x="210.0" y="272.5" width="60" height="19" fill="#FFFFFF"/>
+<text x="240.0" y="285.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">① 수집</text>
+<rect x="530.0" y="272.5" width="60" height="19" fill="#FFFFFF"/>
+<text x="560.0" y="285.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">② 적재</text>
+<rect x="795.0" y="245.5" width="50" height="19" fill="#FFFFFF"/>
+<text x="820.0" y="258.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">③ 규칙</text>
+<rect x="925.0" y="260.5" width="50" height="19" fill="#FFFFFF"/>
+<text x="950.0" y="273.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">④ 평가</text>
+<rect x="1135.0" y="400.5" width="90" height="19" fill="#FFFFFF"/>
+<text x="1180.0" y="413.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">⑤ Transition</text>
+<rect x="420.0" y="512.5" width="60" height="19" fill="#FFFFFF"/>
+<text x="450.0" y="525.6666666666666" font-size="11" fill="#326CE5" text-anchor="middle" font-weight="normal">⑥ 트리거</text>
+<rect x="635.0" y="440.5" width="50" height="19" fill="#FFFFFF"/>
+<text x="660.0" y="453.6666666666667" font-size="11" fill="#326CE5" text-anchor="middle" font-weight="normal">⑦ 읽기</text>
+<rect x="715.0" y="512.5" width="70" height="19" fill="#FFFFFF"/>
+<text x="750.0" y="525.6666666666666" font-size="11" fill="#326CE5" text-anchor="middle" font-weight="normal">⑧ zip 저장</text>
+<rect x="1135.0" y="440.5" width="90" height="19" fill="#FFFFFF"/>
+<text x="1180.0" y="453.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">⑨ Transition</text>
+<rect x="535.0" y="692.5" width="50" height="19" fill="#FFFFFF"/>
+<text x="560.0" y="705.6666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">⑩ GET</text>
+<rect x="1000.0" y="750.5" width="80" height="19" fill="#FFFFFF"/>
+<text x="1040.0" y="763.6666666666666" font-size="11" fill="#5A6B86" text-anchor="middle" font-weight="normal">⑪ 투명 조회</text>
+</svg>

@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="880" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="100" width="420" height="700" fill="#FFFFFF" stroke="#8C4FFF" stroke-width="1.5"/>
+<rect x="40" y="100" width="26" height="26" fill="#8C4FFF"/>
+<text x="53.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">k8s</text>
+<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">용인 dataops</text>
+<rect x="500" y="100" width="170" height="700" fill="#FFFFFF" stroke="#7AA116" stroke-width="1.5"/>
+<rect x="500" y="100" width="26" height="26" fill="#7AA116"/>
+<text x="513.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">⇄</text>
+<text x="534" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">네트워크</text>
+<rect x="710" y="100" width="330" height="700" fill="#FFFFFF" stroke="#8A1C2E" stroke-width="1.5"/>
+<rect x="710" y="100" width="26" height="26" fill="#8A1C2E"/>
+<text x="723.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">W</text>
+<text x="744" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Warm AIStor · 2026-06-06 (이천)</text>
+<rect x="1080" y="100" width="480" height="700" fill="#FFFFFF" stroke="#326CE5" stroke-width="1.5"/>
+<rect x="1080" y="100" width="26" height="26" fill="#326CE5"/>
+<text x="1093.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">NEW</text>
+<text x="1114" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">신규 S3 클러스터 (향후)</text>
+<polyline points="136.0,250.0 274.0,250.0" fill="none" stroke="#232F3E" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="326.0,250.0 524.0,250.0" fill="none" stroke="#8C4FFF" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="566.0,250.0 604.0,250.0" fill="none" stroke="#8C4FFF" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="646.0,250.0 797.0,250.0" fill="none" stroke="#8C4FFF" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="136.0,450.0 244.0,450.0" fill="none" stroke="#01A88D" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="296.0,450.0 378.0,450.0" fill="none" stroke="#01A88D" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="136.0,650.0 804.0,650.0" fill="none" stroke="#326CE5" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="830.0,310.0 830.0,624.0" fill="none" stroke="#ED7100" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="856.0,650.0 1000.0,650.0 1000.0,450.0 1283.0,450.0" fill="none" stroke="#ED7100" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="1180.0,624.0 1180.0,475.0 1284.0,475.0" fill="none" stroke="#8C4FFF" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="1357.0,430.0 1460.0,430.0 1460.0,300.0" fill="none" stroke="#01A88D" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="610.0,760.0 1320.0,760.0 1320.0,512.0" fill="none" stroke="#DD344C" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="959.0,250.0 864.0,250.0" fill="none" stroke="#7D8998" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<rect x="85.0" y="225.0" width="50" height="50" rx="8" fill="#ED7100"/>
+<text x="110.0" y="253.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">RAW</text>
+<rect x="275.0" y="225.0" width="50" height="50" rx="8" fill="#E25A1C"/>
+<text x="300.0" y="253.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Spark</text>
+<rect x="85.0" y="425.0" width="50" height="50" rx="8" fill="#DD00A1"/>
+<text x="110.0" y="453.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Trino</text>
+<rect x="245.0" y="425.0" width="50" height="50" rx="8" fill="#01A88D"/>
+<text x="270.0" y="453.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">HMS</text>
+<rect x="378.0" y="428.0" width="44" height="44" rx="8" fill="#C74634"/>
+<text x="400.0" y="453.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Oracle</text>
+<rect x="85.0" y="625.0" width="50" height="50" rx="8" fill="#326CE5"/>
+<text x="110.0" y="653.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">DAG</text>
+<rect x="525.0" y="230.0" width="40" height="40" rx="8" fill="#DD344C"/>
+<text x="545.0" y="253.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">FW</text>
+<rect x="605.0" y="230.0" width="40" height="40" rx="8" fill="#7AA116"/>
+<text x="625.0" y="253.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">LB</text>
+<rect x="563.0" y="738.0" width="44" height="44" rx="8" fill="#7AA116"/>
+<text x="585.0" y="763.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">DNS</text>
+<path d="M798.0,229.52 L862.0,229.52 L851.76,282.0 L808.24,282.0 Z" fill="#8C4FFF" stroke="#8C4FFF"/>
+<ellipse cx="830.0" cy="229.52" rx="32.0" ry="7.68" fill="#fff" stroke="#8C4FFF" stroke-width="2"/>
+<rect x="959.0" y="229.0" width="42" height="42" rx="8" fill="#7D8998"/>
+<text x="980.0" y="253.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">DEL</text>
+<rect x="804.0" y="624.0" width="52" height="52" rx="8" fill="#ED7100"/>
+<text x="830.0" y="653.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">job</text>
+<path d="M1284.0,426.96 L1356.0,426.96 L1344.48,486.0 L1295.52,486.0 Z" fill="#326CE5" stroke="#326CE5"/>
+<ellipse cx="1320.0" cy="426.96" rx="36.0" ry="8.64" fill="#fff" stroke="#326CE5" stroke-width="2"/>
+<rect x="1155.0" y="625.0" width="50" height="50" rx="8" fill="#8C4FFF"/>
+<text x="1180.0" y="653.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">job</text>
+<rect x="1435.0" y="225.0" width="50" height="50" rx="8" fill="#01A88D"/>
+<text x="1460.0" y="253.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">HMS</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">시나리오 3 — 용인 데이터 (Warm 임시 적재 → 신규 S3 일괄 이관)</text>
+<text x="110.0" y="293.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">용인 원천</text>
+<text x="300.0" y="293.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Spark 적재</text>
+<text x="110.0" y="493.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Trino</text>
+<text x="270.0" y="493.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">HMS-Warm</text>
+<text x="400.0" y="490.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Oracle</text>
+<text x="110.0" y="693.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Airflow</text>
+<text x="545.0" y="288.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">방화벽</text>
+<text x="625.0" y="288.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">L4 VIP</text>
+<text x="585.0" y="800.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">DNS</text>
+<text x="830.0" y="300.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">yongin-* (임시)</text>
+<text x="980.0" y="289.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">임시 정리</text>
+<text x="830.0" y="694.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Batch Repl.</text>
+<text x="1320.0" y="504.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">신규 버킷</text>
+<text x="1180.0" y="693.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">검증 Job</text>
+<text x="1460.0" y="293.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">HMS (신규 위치)</text>
+<rect x="180.0" y="222.5" width="50" height="19" fill="#FFFFFF"/>
+<text x="205.0" y="235.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">① 수집</text>
+<rect x="405.0" y="222.5" width="50" height="19" fill="#FFFFFF"/>
+<text x="430.0" y="235.66666666666666" font-size="11" fill="#8C4FFF" text-anchor="middle" font-weight="normal">② 적재</text>
+<rect x="165.0" y="422.5" width="50" height="19" fill="#FFFFFF"/>
+<text x="190.0" y="435.6666666666667" font-size="11" fill="#01A88D" text-anchor="middle" font-weight="normal">③ 조회</text>
+<rect x="415.0" y="622.5" width="110" height="19" fill="#FFFFFF"/>
+<text x="470.0" y="635.6666666666666" font-size="11" fill="#326CE5" text-anchor="middle" font-weight="normal">④ mc batch start</text>
+<rect x="845.0" y="460.5" width="50" height="19" fill="#FFFFFF"/>
+<text x="870.0" y="473.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">⑤ 읽기</text>
+<rect x="1100.0" y="440.5" width="80" height="19" fill="#FFFFFF"/>
+<text x="1140.0" y="453.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">⑥ 일괄 이관</text>
+<rect x="1155.0" y="550.5" width="50" height="19" fill="#FFFFFF"/>
+<text x="1180.0" y="563.6666666666666" font-size="11" fill="#8C4FFF" text-anchor="middle" font-weight="normal">⑦ 검증</text>
+<rect x="1425.0" y="355.5" width="70" height="19" fill="#FFFFFF"/>
+<text x="1460.0" y="368.6666666666667" font-size="11" fill="#01A88D" text-anchor="middle" font-weight="normal">⑧ register</text>
+<rect x="935.0" y="750.5" width="50" height="19" fill="#FFFFFF"/>
+<text x="960.0" y="763.6666666666666" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="normal">⑨ 전환</text>
+<rect x="887.0" y="200.5" width="50" height="19" fill="#FFFFFF"/>
+<text x="912.0" y="213.66666666666666" font-size="11" fill="#7D8998" text-anchor="middle" font-weight="normal">⑩ 정리</text>
+</svg>

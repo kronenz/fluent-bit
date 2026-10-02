@@ -57,6 +57,7 @@ aistor-replication-review/
 │   ├── 02-hms-oracle-split-todo.md              HMS-Hot / HMS-Warm(용인) / 복구용 HMS To-do
 │   ├── 03-open-items-polaris-hot-warm-schema.md Polaris lake_hot/lake_warm · 스키마
 │   └── 04-ic-fdc-prefix-replication.md          ic-fdc prefix 단위 복제 (Archive 상시 · Iceberg Batch)
+├── 04-scenarios/                                ── 4. 시나리오 아키텍처 (그림 17~19) · 01-test-plan.md 테스트 · 일정
 └── tools/
     ├── diagram_lib.py                           draw.io / Gliffy / SVG 동시 생성 라이브러리
     └── gen_diagrams.py                          그림 스펙 (수정 후 재실행)
@@ -82,6 +83,9 @@ aistor-replication-review/
 | 14 | dr-failover-failback | DR 전용 모드 전환 · 원복 | 02-evidence/01 §4-3, INDEX |
 | 15 | ic-fdc-prefix-replication | ic-fdc prefix 단위 복제 | 03-future/04, INDEX |
 | 16 | bucket-vs-batch-operation | Bucket vs Batch 운영 모델 · 부하 | 03-future/04 §7, INDEX |
+| 17 | scenario1-tiering | 시나리오 1 Tiering | 04-scenarios |
+| 18 | scenario2-replication-dr | 시나리오 2 Replication DR | 04-scenarios |
+| 19 | scenario3-yongin-migration | 시나리오 3 용인 이관 | 04-scenarios |
 
 | 파일 | 용도 | Confluence 반영 방법 |
 |---|---|---|
