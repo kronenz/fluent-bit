@@ -1,0 +1,2 @@
+{"event":"ilmtest.perfphase","phase":"obj-expire-applied","ts":"2026-10-26T02:05:31Z"}
+{"event":"ilmtest.perfphase","phase":"iceberg-expiration-applied","ts":"2026-10-26T02:07:16Z"}

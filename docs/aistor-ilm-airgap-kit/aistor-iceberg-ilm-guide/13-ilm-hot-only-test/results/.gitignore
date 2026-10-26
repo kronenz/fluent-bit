@@ -1,0 +1,2 @@
+# 원시 audit 로그는 요청 서명 헤더 · 내부 IP 를 담고 있어 커밋하지 않는다 (요약은 REPORT-*.md)
+**/audit-minio-*.jsonl

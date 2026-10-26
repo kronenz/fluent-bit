@@ -1,0 +1,44 @@
+# ★ http input 은 URI 경로로 태그를 만들며 '-' 를 '_' 로 바꾼다: /minio-hot → 태그 minio_hot
+#   (match: minio-hot 으로 두면 에러 없이 아무것도 안 걸린다 — 2026-10-25 실측)
+# Hot/Warm audit webhook 수신 → 공유 볼륨 JSONL (OpenSearch 가 없는 테스트베드용)
+#   POST /minio-hot  → ${EVIDENCE_DIR}/audit-minio-hot.jsonl
+#   POST /minio-warm → ${EVIDENCE_DIR}/audit-minio-warm.jsonl
+#   Warm 에서 tier 계정 외 accessKey → ${EVIDENCE_DIR}/alert-warm-access.jsonl  (J-7)
+#   EVIDENCE_DIR 은 ConfigMap ilmtest-config — 실행(run)마다 하위 디렉터리로 바꾼다
+# OpenSearch 로 보내려면 audit-receiver.yaml 을 쓴다.
+service:
+  flush: 1
+  log_level: info
+  http_server: on
+  http_port: 2020
+
+pipeline:
+  inputs:
+    - name: http
+      listen: 0.0.0.0
+      port: 8888
+
+  filters:
+    - name: rewrite_tag
+      match: minio_warm
+      rule: '$accessKey ^(?!${TIER_ACCESS_KEY}$).*$ ilmtest.alert.warm_access true'
+      emitter_name: warm_access_alert
+
+  outputs:
+    - name: file
+      match: minio_hot
+      path: ${EVIDENCE_DIR}
+      file: audit-minio-hot.jsonl
+      format: plain
+
+    - name: file
+      match: minio_warm
+      path: ${EVIDENCE_DIR}
+      file: audit-minio-warm.jsonl
+      format: plain
+
+    - name: file
+      match: 'ilmtest.alert.*'
+      path: ${EVIDENCE_DIR}
+      file: alert-warm-access.jsonl
+      format: plain

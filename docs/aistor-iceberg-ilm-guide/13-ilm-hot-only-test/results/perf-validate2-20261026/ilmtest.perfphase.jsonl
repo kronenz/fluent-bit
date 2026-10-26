@@ -1,0 +1,3 @@
+{"event":"ilmtest.perfphase","phase":"baseline-start","ts":"2026-10-26T02:14:32Z"}
+{"event":"ilmtest.perfphase","phase":"rule-applied","ts":"2026-10-26T02:16:46Z"}
+{"event":"ilmtest.perfphase","phase":"transition-done","ts":"2026-10-26T02:21:48Z"}

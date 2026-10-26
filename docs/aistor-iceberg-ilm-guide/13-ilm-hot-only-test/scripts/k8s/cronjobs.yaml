@@ -1,0 +1,123 @@
+# ilmtest CronJob — Writer(10분) · Verifier(30분) · State(1시간) · Maintenance(수동)
+# 공유 볼륨 ilmtest-shared(RWX): /shared/bin/mc · /shared/jars(Iceberg) · /shared/evidence(증적 JSONL)
+# 이미지 버전은 사내 레지스트리 기준으로 고정할 것 🔍
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ilmtest-writer
+  labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: writer }
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 10
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: writer }
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: spark
+              image: apache/spark:3.5.3-python3
+              command: ["/bin/bash", "/jobs/run-spark.sh", "writer.py"]
+              env: [{ name: TZ, value: UTC }, { name: AWS_REGION, value: us-east-1 }]
+              envFrom: [{ configMapRef: { name: ilmtest-config } }, { secretRef: { name: ilmtest-s3 } }]
+              resources: { requests: { cpu: "1", memory: 4Gi }, limits: { memory: 4Gi } }
+              volumeMounts: [{ name: jobs, mountPath: /jobs }, { name: shared, mountPath: /shared }]
+          volumes:
+            - { name: jobs, configMap: { name: ilmtest-jobs } }
+            - { name: shared, persistentVolumeClaim: { claimName: ilmtest-shared } }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ilmtest-verifier
+  labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: verifier }
+spec:
+  schedule: "5,35 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 10
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: verifier }
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: spark
+              image: apache/spark:3.5.3-python3
+              command: ["/bin/bash", "/jobs/run-spark.sh", "verifier.py"]
+              env: [{ name: TZ, value: UTC }, { name: AWS_REGION, value: us-east-1 }]
+              envFrom: [{ configMapRef: { name: ilmtest-config } }, { secretRef: { name: ilmtest-s3 } }]
+              resources: { requests: { cpu: "1", memory: 4Gi }, limits: { memory: 4Gi } }
+              volumeMounts: [{ name: jobs, mountPath: /jobs }, { name: shared, mountPath: /shared }]
+          volumes:
+            - { name: jobs, configMap: { name: ilmtest-jobs } }
+            - { name: shared, persistentVolumeClaim: { claimName: ilmtest-shared } }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ilmtest-state
+  labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: state }
+spec:
+  schedule: "15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 10
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: state }
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: state
+              image: python:3.12-slim
+              command: ["python3", "/jobs/state_snapshot.py"]
+              env:
+                - { name: PATH, value: "/shared/bin:/usr/local/bin:/usr/bin:/bin" }   # mc = 공유 볼륨
+                - { name: HOME, value: /tmp }
+                - { name: MC_CONFIG_DIR, value: /tmp/.mc }
+              envFrom: [{ configMapRef: { name: ilmtest-config } }, { secretRef: { name: ilmtest-s3 } }]  # MC_HOST_HOT
+              volumeMounts: [{ name: jobs, mountPath: /jobs }, { name: shared, mountPath: /shared }]
+          volumes:
+            - { name: jobs, configMap: { name: ilmtest-jobs } }
+            - { name: shared, persistentVolumeClaim: { claimName: ilmtest-shared } }
+---
+# 수동 실행: kubectl -n ilm-test create job --from=cronjob/ilmtest-maintenance ilmtest-maint-$(date +%H%M)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ilmtest-maintenance
+  labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: maintenance }
+spec:
+  schedule: "0 0 1 1 *"
+  suspend: true
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: maintenance }
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: spark
+              image: apache/spark:3.5.3-python3
+              command: ["/bin/bash", "/jobs/run-spark.sh", "maintenance.py"]
+              env: [{ name: TZ, value: UTC }, { name: AWS_REGION, value: us-east-1 }]
+              envFrom: [{ configMapRef: { name: ilmtest-config } }, { secretRef: { name: ilmtest-s3 } }]
+              resources: { requests: { cpu: "2", memory: 6Gi }, limits: { memory: 6Gi } }
+              volumeMounts: [{ name: jobs, mountPath: /jobs }, { name: shared, mountPath: /shared }]
+          volumes:
+            - { name: jobs, configMap: { name: ilmtest-jobs } }
+            - { name: shared, persistentVolumeClaim: { claimName: ilmtest-shared } }

@@ -1,0 +1,54 @@
+# ★ http input 은 URI 경로로 태그를 만들며 '-' 를 '_' 로 바꾼다: /minio-hot → 태그 minio_hot
+#   (match: minio-hot 으로 두면 에러 없이 아무것도 안 걸린다 — 2026-10-25 실측)
+# Hot/Warm audit webhook 수신 → OpenSearch
+#   POST /minio-hot  → tag minio_hot
+#   POST /minio-warm → tag minio_warm
+# J-7: Warm audit 중 accessKey 가 tier 계정이 아닌 요청 → ilmtest-alert 인덱스로 복제
+service:
+  flush: 1
+  log_level: info
+  http_server: on
+  http_port: 2020
+
+pipeline:
+  inputs:
+    - name: http
+      listen: 0.0.0.0
+      port: 8888
+      # 🔍 수신 인증(Bearer) 검증은 http input 버전별 지원 여부 확인 — 미지원 시 NetworkPolicy 로 출발지 제한
+
+  filters:
+    - name: modify
+      match: 'minio_*'
+      add: ilmtest_kind audit
+
+    - name: rewrite_tag
+      match: minio_warm
+      # tier 계정 외 accessKey(빈 값=익명 포함) → 경보 태그로 복제, 원본은 유지
+      rule: '$accessKey ^(?!${TIER_ACCESS_KEY}$).*$ ilmtest.alert.warm_access true'
+      emitter_name: warm_access_alert
+
+  outputs:
+    - name: opensearch
+      match: 'minio_*'
+      host: ${OS_HOST}
+      port: ${OS_PORT}
+      http_user: ${OS_USER}
+      http_passwd: ${OS_PASSWORD}
+      index: ilmtest-audit
+      suppress_type_name: on
+      replace_dots: on
+      tls: on
+      tls.verify: off
+
+    - name: opensearch
+      match: 'ilmtest.alert.*'
+      host: ${OS_HOST}
+      port: ${OS_PORT}
+      http_user: ${OS_USER}
+      http_passwd: ${OS_PASSWORD}
+      index: ilmtest-alert
+      suppress_type_name: on
+      replace_dots: on
+      tls: on
+      tls.verify: off

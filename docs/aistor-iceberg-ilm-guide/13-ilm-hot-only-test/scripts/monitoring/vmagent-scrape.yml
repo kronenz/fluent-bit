@@ -1,0 +1,40 @@
+# vmagent scrape — Hot/Warm MinIO(AIStor) 메트릭
+# 토큰: mc admin prometheus generate HOT  (또는 MINIO_PROMETHEUS_AUTH_TYPE=public)
+# 🔍 AIStor 신규 릴리스는 v3 경로(/minio/metrics/v3/...)를 쓸 수 있다 — 버전 확인 후 경로 교체
+# ⚠️ 배포 구분 라벨을 `tier` 로 두면 MinIO 자체 tier 라벨과 충돌한다 → `deployment` 사용
+scrape_configs:
+  - job_name: minio-cluster
+    metrics_path: /minio/v2/metrics/cluster
+    scheme: https
+    tls_config: { insecure_skip_verify: true }
+    scrape_interval: 60s
+    static_configs:
+      - targets: ["hot-s3.example.internal"]
+        labels: { deployment: hot }
+      - targets: ["warm-s3.example.internal"]
+        labels: { deployment: warm }
+    authorization: { credentials_file: /etc/vmagent/minio-token }   # hot/warm 토큰이 다르면 job 분리
+
+  - job_name: minio-node
+    metrics_path: /minio/v2/metrics/node
+    scheme: https
+    tls_config: { insecure_skip_verify: true }
+    scrape_interval: 60s
+    static_configs:
+      - targets: ["hot-s3.example.internal"]
+        labels: { deployment: hot }
+      - targets: ["warm-s3.example.internal"]
+        labels: { deployment: warm }
+    authorization: { credentials_file: /etc/vmagent/minio-token }
+
+  - job_name: minio-bucket
+    metrics_path: /minio/v2/metrics/bucket
+    scheme: https
+    tls_config: { insecure_skip_verify: true }
+    scrape_interval: 300s
+    static_configs:
+      - targets: ["hot-s3.example.internal"]
+        labels: { deployment: hot }
+      - targets: ["warm-s3.example.internal"]
+        labels: { deployment: warm }
+    authorization: { credentials_file: /etc/vmagent/minio-token }
