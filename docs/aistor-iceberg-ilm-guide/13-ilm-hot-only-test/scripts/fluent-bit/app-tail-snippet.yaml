@@ -1,0 +1,37 @@
+# 기존 Fluent Bit DaemonSet 에 병합할 조각 — ilm-test ns 의 Job/trace Pod 로그 → OpenSearch
+# Job 은 한 줄 JSON({"event":"ilmtest.*", ...}), trace 는 mc trace JSON 을 stdout 으로 낸다.
+# merge_log 로 JSON 을 루트에 펼치고, JSON 이 아닌 줄(Spark 로그)은 버린다.
+pipeline:
+  inputs:
+    - name: tail
+      tag: ilmtest.kube.*
+      path: /var/log/containers/*_ilm-test_*.log
+      multiline.parser: cri, docker
+      db: /var/fluent-bit/state/ilmtest-tail.db
+      refresh_interval: 5
+
+  filters:
+    - name: kubernetes
+      match: ilmtest.kube.*
+      kube_tag_prefix: ilmtest.kube.var.log.containers.
+      merge_log: on
+      keep_log: off
+      labels: on
+      annotations: off
+
+    - name: grep
+      match: ilmtest.kube.*
+      exclude: log .*          # JSON 으로 병합되지 않은 줄(log 키가 남은 것) 제거
+
+  outputs:
+    - name: opensearch
+      match: ilmtest.kube.*
+      host: ${OS_HOST}
+      port: ${OS_PORT}
+      http_user: ${OS_USER}
+      http_passwd: ${OS_PASSWORD}
+      index: ilmtest-app
+      suppress_type_name: on
+      replace_dots: on
+      tls: on
+      tls.verify: off

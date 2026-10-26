@@ -1,0 +1,76 @@
+# 공유 볼륨(RWX) — MinIO/mc 바이너리 · Iceberg jar · 증적(evidence)
+#
+# ★ 2026-10 기준 MinIO 커뮤니티 배포물은 전부 내려갔다:
+#   quay.io/minio/* → 401, docker.io/minio/* → 저장소 없음, dl.min.io → 410 Gone.
+#   corp 노드에 JuiceFS 가 쓰는 이미지가 캐시돼 있어(imagePullPolicy: Never) 거기서 바이너리를 꺼낸다.
+#   운영 AIStor 환경에서는 벤더가 제공한 mc 를 /shared/bin 에 넣으면 같은 구성으로 쓸 수 있다.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ilmtest-shared
+  labels: { app.kubernetes.io/part-of: ilmtest }
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: juicefs
+  resources: { requests: { storage: 10Gi } }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ilmtest-bootstrap-bins
+  labels: { app.kubernetes.io/part-of: ilmtest }
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels: { app.kubernetes.io/part-of: ilmtest }
+    spec:
+      restartPolicy: Never
+      nodeName: corp-md-0-rtcnn-h8b5k          # 캐시된 이미지가 있는 노드
+      containers:
+        - name: copy
+          image: quay.io/minio/minio:RELEASE.2024-10-13T13-34-11Z
+          imagePullPolicy: Never
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              mkdir -p /shared/bin /shared/jars /shared/evidence
+              cp /usr/bin/minio /usr/bin/mc /shared/bin/
+              chmod 755 /shared/bin/minio /shared/bin/mc
+              chmod 1777 /shared/evidence; chmod 755 /shared/jars
+              /shared/bin/minio --version | head -1; /shared/bin/mc --version | head -1
+          volumeMounts: [{ name: shared, mountPath: /shared }]
+      volumes: [{ name: shared, persistentVolumeClaim: { claimName: ilmtest-shared } }]
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ilmtest-bootstrap-jars
+  labels: { app.kubernetes.io/part-of: ilmtest }
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels: { app.kubernetes.io/part-of: ilmtest }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: fetch
+          image: curlimages/curl:8.10.1
+          securityContext: { runAsUser: 0 }
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              M=https://repo1.maven.org/maven2/org/apache/iceberg
+              V=1.9.0
+              cd /shared/jars
+              for a in iceberg-spark-runtime-3.5_2.12 iceberg-aws-bundle; do
+                test -s $a-$V.jar || curl -fsSL -o $a-$V.jar $M/$a/$V/$a-$V.jar
+              done
+              chmod 644 *.jar; ls -l
+          volumeMounts: [{ name: shared, mountPath: /shared }]
+      volumes: [{ name: shared, persistentVolumeClaim: { claimName: ilmtest-shared } }]

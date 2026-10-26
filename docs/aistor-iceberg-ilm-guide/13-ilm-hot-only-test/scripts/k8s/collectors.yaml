@@ -1,0 +1,61 @@
+# ILM/Scanner trace 수집기 + Hot/Warm audit webhook 수신기(Fluent Bit)
+# trace 는 admin 권한 계정 필요 — MC_HOST_HOT 가 admin 권한인지 확인 🔍
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ilmtest-trace
+  labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: trace }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app.kubernetes.io/name: trace } }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: trace }
+    spec:
+      containers:
+        - name: mc
+          image: debian:12-slim
+          # mc 는 공유 볼륨. stdout(Pod 로그 수집용) + 증적 파일 양쪽에 남긴다.
+          # 🔍 --call 값(ilm, scanner)은 mc admin trace --help 로 확인
+          command: [sh, -c, 'mkdir -p "$EVIDENCE_DIR"; exec /shared/bin/mc admin trace --call ilm,scanner --json HOT | tee -a "$EVIDENCE_DIR/trace.jsonl"']
+          env: [{ name: MC_CONFIG_DIR, value: /tmp/.mc }, { name: HOME, value: /tmp }]
+          envFrom: [{ secretRef: { name: ilmtest-s3 } }, { configMapRef: { name: ilmtest-config } }]
+          resources: { requests: { cpu: 50m, memory: 64Mi }, limits: { memory: 256Mi } }
+          volumeMounts: [{ name: shared, mountPath: /shared }]
+      volumes: [{ name: shared, persistentVolumeClaim: { claimName: ilmtest-shared } }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fluent-bit-audit
+  labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: fluent-bit-audit }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app.kubernetes.io/name: fluent-bit-audit } }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: fluent-bit-audit }
+    spec:
+      containers:
+        - name: fluent-bit
+          image: fluent/fluent-bit:4.0.3        # 🔍 사내 표준 버전으로 고정
+          args: ["-c", "/fluent-bit/etc/conf/fluent-bit.yaml"]
+          ports: [{ name: http, containerPort: 8888 }, { name: metrics, containerPort: 2020 }]
+          # OS_HOST, OS_PORT, OS_USER, OS_PASSWORD (Secret) · TIER_ACCESS_KEY (ConfigMap, 경보 규칙)
+          envFrom: [{ secretRef: { name: ilmtest-os, optional: true } }, { configMapRef: { name: ilmtest-config } }]
+          resources: { requests: { cpu: 100m, memory: 128Mi }, limits: { memory: 512Mi } }
+          volumeMounts: [{ name: conf, mountPath: /fluent-bit/etc/conf }, { name: shared, mountPath: /shared }]
+      volumes:
+        - { name: conf, configMap: { name: ilmtest-fluent-bit } }
+        - { name: shared, persistentVolumeClaim: { claimName: ilmtest-shared } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fluent-bit-audit
+  labels: { app.kubernetes.io/part-of: ilmtest }
+spec:
+  selector: { app.kubernetes.io/name: fluent-bit-audit }
+  ports: [{ name: http, port: 8888, targetPort: http }]
+# Hot/Warm 이 클러스터 밖에 있으면 이 Service 를 NodePort/LoadBalancer 로 노출하고
+# config.env 의 AUDIT_ENDPOINT 를 그 주소로 바꾼다.

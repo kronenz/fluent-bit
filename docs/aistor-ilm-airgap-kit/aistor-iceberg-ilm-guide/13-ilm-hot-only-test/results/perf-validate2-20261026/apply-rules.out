@@ -1,0 +1,427 @@
+== 0) 사전 확인
+HOT/warehouse versioning is enabled
+== 1) 기존 규칙 백업 → backup/ilm-warehouse-20261026T021646.json
+== 2) 규칙 생성
+{
+  "Rules": [
+    {
+      "ID": "r1-data-transition",
+      "Filter": {
+        "Prefix": "ilmtest.db/events/data/"
+      },
+      "Status": "Enabled",
+      "Transition": {
+        "StorageClass": "WARM-TIER",
+        "Days": 1
+      }
+    },
+    {
+      "ID": "r3-data-noncurrent-expire",
+      "Filter": {
+        "Prefix": "ilmtest.db/events/data/"
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 3
+      },
+      "Status": "Enabled"
+    },
+    {
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      },
+      "ID": "r6-expired-delete-marker",
+      "Filter": {
+        "Prefix": "ilmtest.db/events/"
+      },
+      "Status": "Enabled"
+    },
+    {
+      "ID": "perf-r1-data-transition",
+      "Filter": {
+        "Prefix": "ilmperf.db/events/data/"
+      },
+      "Status": "Enabled",
+      "Transition": {
+        "StorageClass": "WARM-TIER",
+        "Days": 0
+      }
+    },
+    {
+      "ID": "perf-r3-data-noncurrent-expire",
+      "Filter": {
+        "Prefix": "ilmperf.db/events/data/"
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 3
+      },
+      "Status": "Enabled"
+    },
+    {
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      },
+      "ID": "perf-r6-expired-delete-marker",
+      "Filter": {
+        "Prefix": "ilmperf.db/events/"
+      },
+      "Status": "Enabled"
+    },
+    {
+      "ID": "perf2-r1-data-transition",
+      "Filter": {
+        "Prefix": "ilmperf2.db/events/data/"
+      },
+      "Status": "Enabled",
+      "Transition": {
+        "StorageClass": "WARM-TIER",
+        "Days": 0
+      }
+    },
+    {
+      "ID": "perf2-r3-data-noncurrent-expire",
+      "Filter": {
+        "Prefix": "ilmperf2.db/events/data/"
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 3
+      },
+      "Status": "Enabled"
+    },
+    {
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      },
+      "ID": "perf2-r6-expired-delete-marker",
+      "Filter": {
+        "Prefix": "ilmperf2.db/events/"
+      },
+      "Status": "Enabled"
+    },
+    {
+      "ID": "ilmexp2-r1-data-transition",
+      "Filter": {
+        "Prefix": "ilmexp2.db/events/data/"
+      },
+      "Status": "Enabled",
+      "Transition": {
+        "StorageClass": "WARM-EXPI",
+        "Days": 1
+      }
+    },
+    {
+      "ID": "ilmexp2-r3-data-noncurrent-expire",
+      "Filter": {
+        "Prefix": "ilmexp2.db/events/data/"
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 1
+      },
+      "Status": "Enabled"
+    },
+    {
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      },
+      "ID": "ilmexp2-r6-expired-delete-marker",
+      "Filter": {
+        "Prefix": "ilmexp2.db/events/"
+      },
+      "Status": "Enabled"
+    },
+    {
+      "Expiration": {
+        "Days": 5
+      },
+      "ID": "ilmexp-r1-data-transition",
+      "Filter": {
+        "Prefix": "ilmexp.db/events/data/"
+      },
+      "Status": "Enabled",
+      "Transition": {
+        "StorageClass": "WARM-EXPI",
+        "Days": 1
+      }
+    },
+    {
+      "ID": "ilmexp-r3-data-noncurrent-expire",
+      "Filter": {
+        "Prefix": "ilmexp.db/events/data/"
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 1
+      },
+      "Status": "Enabled"
+    },
+    {
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      },
+      "ID": "ilmexp-r6-expired-delete-marker",
+      "Filter": {
+        "Prefix": "ilmexp.db/events/"
+      },
+      "Status": "Enabled"
+    },
+    {
+      "ID": "ilmexp4-r1-data-transition",
+      "Filter": {
+        "Prefix": "ilmexp4.db/events/data/"
+      },
+      "Status": "Enabled",
+      "Transition": {
+        "StorageClass": "WARM-EXPI",
+        "Days": 1
+      }
+    },
+    {
+      "ID": "ilmexp4-r3-data-noncurrent-expire",
+      "Filter": {
+        "Prefix": "ilmexp4.db/events/data/"
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 1
+      },
+      "Status": "Enabled"
+    },
+    {
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      },
+      "ID": "ilmexp4-r6-expired-delete-marker",
+      "Filter": {
+        "Prefix": "ilmexp4.db/events/"
+      },
+      "Status": "Enabled"
+    },
+    {
+      "Expiration": {
+        "Days": 5
+      },
+      "ID": "ilmexp3-r1-data-transition",
+      "Filter": {
+        "Prefix": "ilmexp3.db/events/data/"
+      },
+      "Status": "Enabled",
+      "Transition": {
+        "StorageClass": "WARM-EXPI",
+        "Days": 1
+      }
+    },
+    {
+      "ID": "ilmexp3-r3-data-noncurrent-expire",
+      "Filter": {
+        "Prefix": "ilmexp3.db/events/data/"
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 1
+      },
+      "Status": "Enabled"
+    },
+    {
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      },
+      "ID": "ilmexp3-r6-expired-delete-marker",
+      "Filter": {
+        "Prefix": "ilmexp3.db/events/"
+      },
+      "Status": "Enabled"
+    },
+    {
+      "ID": "ilmexp6-r1-data-transition",
+      "Filter": {
+        "Prefix": "ilmexp6.db/events/data/"
+      },
+      "Status": "Enabled",
+      "Transition": {
+        "StorageClass": "WARM-EXPI",
+        "Days": 1
+      }
+    },
+    {
+      "ID": "ilmexp6-r3-data-noncurrent-expire",
+      "Filter": {
+        "Prefix": "ilmexp6.db/events/data/"
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 1
+      },
+      "Status": "Enabled"
+    },
+    {
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      },
+      "ID": "ilmexp6-r6-expired-delete-marker",
+      "Filter": {
+        "Prefix": "ilmexp6.db/events/"
+      },
+      "Status": "Enabled"
+    },
+    {
+      "Expiration": {
+        "Days": 5
+      },
+      "ID": "ilmexp5-r1-data-transition",
+      "Filter": {
+        "Prefix": "ilmexp5.db/events/data/"
+      },
+      "Status": "Enabled",
+      "Transition": {
+        "StorageClass": "WARM-EXPI",
+        "Days": 1
+      }
+    },
+    {
+      "ID": "ilmexp5-r3-data-noncurrent-expire",
+      "Filter": {
+        "Prefix": "ilmexp5.db/events/data/"
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 1
+      },
+      "Status": "Enabled"
+    },
+    {
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      },
+      "ID": "ilmexp5-r6-expired-delete-marker",
+      "Filter": {
+        "Prefix": "ilmexp5.db/events/"
+      },
+      "Status": "Enabled"
+    },
+    {
+      "ID": "ilmperfv-r1-data-transition",
+      "Filter": {
+        "Prefix": "ilmperfv.db/events/data/"
+      },
+      "Status": "Enabled",
+      "Transition": {
+        "StorageClass": "WARM-TIER",
+        "Days": 0
+      }
+    },
+    {
+      "ID": "ilmperfv-r3-data-noncurrent-expire",
+      "Filter": {
+        "Prefix": "ilmperfv.db/events/data/"
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 3
+      },
+      "Status": "Enabled"
+    },
+    {
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      },
+      "ID": "ilmperfv-r6-expired-delete-marker",
+      "Filter": {
+        "Prefix": "ilmperfv.db/events/"
+      },
+      "Status": "Enabled"
+    },
+    {
+      "ID": "ilmperfv2-r1-data-transition",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "ilmperfv2.db/events/data/"
+      },
+      "Transition": {
+        "Days": 0,
+        "StorageClass": "WARM-TIER"
+      }
+    },
+    {
+      "ID": "ilmperfv2-r3-data-noncurrent-expire",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "ilmperfv2.db/events/data/"
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 3
+      }
+    },
+    {
+      "ID": "ilmperfv2-r6-expired-delete-marker",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "ilmperfv2.db/events/"
+      },
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      }
+    }
+  ]
+}
+== 3) 위험 규칙 검사 (적용 전 — 병합 결과 전체)
+ilmexp-r1-data-transition: current Expiration (prefix='ilmexp.db/events/data/') — Iceberg 데이터 유실 위험
+ilmexp3-r1-data-transition: current Expiration (prefix='ilmexp3.db/events/data/') — Iceberg 데이터 유실 위험
+ilmexp5-r1-data-transition: current Expiration (prefix='ilmexp5.db/events/data/') — Iceberg 데이터 유실 위험
+⚠️  ALLOW_CURRENT_EXPIRATION=1 — 시험용으로 허용 (Iceberg 운영 테이블에는 쓰지 말 것)
+== 4) 적용 (기존 규칙 유지 + 추가)
+Lifecycle configuration imported successfully to `HOT/warehouse`.
+   적용 후 재검사
+ilmexp-r1-data-transition: current Expiration (prefix='ilmexp.db/events/data/') — Iceberg 데이터 유실 위험
+ilmexp3-r1-data-transition: current Expiration (prefix='ilmexp3.db/events/data/') — Iceberg 데이터 유실 위험
+ilmexp5-r1-data-transition: current Expiration (prefix='ilmexp5.db/events/data/') — Iceberg 데이터 유실 위험
+⚠️  ALLOW_CURRENT_EXPIRATION=1 — 시험용으로 허용 (Iceberg 운영 테이블에는 쓰지 말 것)
+== 5) Warm tier 버킷 규칙 없음 확인
+OK — WARM/warm-tier 규칙 없음
+== 6) 현재 규칙
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Expiration for latest version (Expiration)                                                                           │
+├────────────────────────────────────┬─────────┬─────────────────────────┬──────┬────────────────┬─────────────────────┤
+│ ID                                 │ STATUS  │ PREFIX                  │ TAGS │ DAYS TO EXPIRE │ EXPIRE DELETEMARKER │
+├────────────────────────────────────┼─────────┼─────────────────────────┼──────┼────────────────┼─────────────────────┤
+│ r6-expired-delete-marker           │ Enabled │ ilmtest.db/events/      │ -    │              0 │ true                │
+│ perf-r6-expired-delete-marker      │ Enabled │ ilmperf.db/events/      │ -    │              0 │ true                │
+│ perf2-r6-expired-delete-marker     │ Enabled │ ilmperf2.db/events/     │ -    │              0 │ true                │
+│ ilmexp2-r6-expired-delete-marker   │ Enabled │ ilmexp2.db/events/      │ -    │              0 │ true                │
+│ ilmexp-r1-data-transition          │ Enabled │ ilmexp.db/events/data/  │ -    │              5 │ false               │
+│ ilmexp-r6-expired-delete-marker    │ Enabled │ ilmexp.db/events/       │ -    │              0 │ true                │
+│ ilmexp4-r6-expired-delete-marker   │ Enabled │ ilmexp4.db/events/      │ -    │              0 │ true                │
+│ ilmexp3-r1-data-transition         │ Enabled │ ilmexp3.db/events/data/ │ -    │              5 │ false               │
+│ ilmexp3-r6-expired-delete-marker   │ Enabled │ ilmexp3.db/events/      │ -    │              0 │ true                │
+│ ilmexp6-r6-expired-delete-marker   │ Enabled │ ilmexp6.db/events/      │ -    │              0 │ true                │
+│ ilmexp5-r1-data-transition         │ Enabled │ ilmexp5.db/events/data/ │ -    │              5 │ false               │
+│ ilmexp5-r6-expired-delete-marker   │ Enabled │ ilmexp5.db/events/      │ -    │              0 │ true                │
+│ ilmperfv-r6-expired-delete-marker  │ Enabled │ ilmperfv.db/events/     │ -    │              0 │ true                │
+│ ilmperfv2-r6-expired-delete-marker │ Enabled │ ilmperfv2.db/events/    │ -    │              0 │ true                │
+└────────────────────────────────────┴─────────┴─────────────────────────┴──────┴────────────────┴─────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Expiration for older versions (NoncurrentVersionExpiration)                                                       │
+├─────────────────────────────────────┬─────────┬───────────────────────────┬──────┬────────────────┬───────────────┤
+│ ID                                  │ STATUS  │ PREFIX                    │ TAGS │ DAYS TO EXPIRE │ KEEP VERSIONS │
+├─────────────────────────────────────┼─────────┼───────────────────────────┼──────┼────────────────┼───────────────┤
+│ r3-data-noncurrent-expire           │ Enabled │ ilmtest.db/events/data/   │ -    │              3 │             0 │
+│ perf-r3-data-noncurrent-expire      │ Enabled │ ilmperf.db/events/data/   │ -    │              3 │             0 │
+│ perf2-r3-data-noncurrent-expire     │ Enabled │ ilmperf2.db/events/data/  │ -    │              3 │             0 │
+│ ilmexp2-r3-data-noncurrent-expire   │ Enabled │ ilmexp2.db/events/data/   │ -    │              1 │             0 │
+│ ilmexp-r3-data-noncurrent-expire    │ Enabled │ ilmexp.db/events/data/    │ -    │              1 │             0 │
+│ ilmexp4-r3-data-noncurrent-expire   │ Enabled │ ilmexp4.db/events/data/   │ -    │              1 │             0 │
+│ ilmexp3-r3-data-noncurrent-expire   │ Enabled │ ilmexp3.db/events/data/   │ -    │              1 │             0 │
+│ ilmexp6-r3-data-noncurrent-expire   │ Enabled │ ilmexp6.db/events/data/   │ -    │              1 │             0 │
+│ ilmexp5-r3-data-noncurrent-expire   │ Enabled │ ilmexp5.db/events/data/   │ -    │              1 │             0 │
+│ ilmperfv-r3-data-noncurrent-expire  │ Enabled │ ilmperfv.db/events/data/  │ -    │              3 │             0 │
+│ ilmperfv2-r3-data-noncurrent-expire │ Enabled │ ilmperfv2.db/events/data/ │ -    │              3 │             0 │
+└─────────────────────────────────────┴─────────┴───────────────────────────┴──────┴────────────────┴───────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Transition for latest version (Transition)                                                           │
+├──────────────────────────────┬─────────┬───────────────────────────┬──────┬──────────────┬───────────┤
+│ ID                           │ STATUS  │ PREFIX                    │ TAGS │ DAYS TO TIER │ TIER      │
+├──────────────────────────────┼─────────┼───────────────────────────┼──────┼──────────────┼───────────┤
+│ r1-data-transition           │ Enabled │ ilmtest.db/events/data/   │ -    │            1 │ WARM-TIER │
+│ perf-r1-data-transition      │ Enabled │ ilmperf.db/events/data/   │ -    │            0 │ WARM-TIER │
+│ perf2-r1-data-transition     │ Enabled │ ilmperf2.db/events/data/  │ -    │            0 │ WARM-TIER │
+│ ilmexp2-r1-data-transition   │ Enabled │ ilmexp2.db/events/data/   │ -    │            1 │ WARM-EXPI │
+│ ilmexp-r1-data-transition    │ Enabled │ ilmexp.db/events/data/    │ -    │            1 │ WARM-EXPI │
+│ ilmexp4-r1-data-transition   │ Enabled │ ilmexp4.db/events/data/   │ -    │            1 │ WARM-EXPI │
+│ ilmexp3-r1-data-transition   │ Enabled │ ilmexp3.db/events/data/   │ -    │            1 │ WARM-EXPI │
+│ ilmexp6-r1-data-transition   │ Enabled │ ilmexp6.db/events/data/   │ -    │            1 │ WARM-EXPI │
+│ ilmexp5-r1-data-transition   │ Enabled │ ilmexp5.db/events/data/   │ -    │            1 │ WARM-EXPI │
+│ ilmperfv-r1-data-transition  │ Enabled │ ilmperfv.db/events/data/  │ -    │            0 │ WARM-TIER │
+│ ilmperfv2-r1-data-transition │ Enabled │ ilmperfv2.db/events/data/ │ -    │            0 │ WARM-TIER │
+└──────────────────────────────┴─────────┴───────────────────────────┴──────┴──────────────┴───────────┘

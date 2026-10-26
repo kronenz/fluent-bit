@@ -1,0 +1,107 @@
+# PostgreSQL + Hive Metastore 3.1.3
+# 출처: miribit-lab ops/airgap-obs-testbed/ilm/k8s/00-metastore.yaml (2026-09-04 실측 함정 반영본)
+#  - 자격증명은 Secret 마운트 hive-site.xml 에만 (apache/hive 는 SERVICE_OPTS 를 set -x 로 로그에 찍는다)
+#  - 번들 postgresql-9.4 드라이버(SCRAM 미지원)를 subPath 로 42.7.4 로 교체
+#  - HMS 4.x 는 get_table 제거 → Spark 3.5(Hive 2.3.9 클라이언트)와 맞는 3.1.3
+#  - HMS 가 s3:// LOCATION 을 직접 열기 때문에 hadoop-aws/aws-sdk 를 auxlib 로 복사
+#  - IS_RESUME=true (스키마 초기화는 setup.sh 의 1회성 Job)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ilmtest-pg-data
+  labels: { app.kubernetes.io/part-of: ilmtest }
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: csi-cinder-sc-delete
+  resources: { requests: { storage: 5Gi } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: postgres }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector: { matchLabels: { app.kubernetes.io/name: postgres } }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: postgres }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          env:
+            - { name: POSTGRES_DB, value: metastore }
+            - { name: POSTGRES_USER, value: hive }
+            - { name: POSTGRES_PASSWORD, valueFrom: { secretKeyRef: { name: ilmtest-hms-db, key: password } } }
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+          ports: [{ containerPort: 5432 }]
+          readinessProbe: { exec: { command: [pg_isready, -U, hive, -d, metastore] }, initialDelaySeconds: 10, periodSeconds: 5 }
+          resources: { requests: { cpu: 200m, memory: 512Mi }, limits: { memory: 1Gi } }
+          volumeMounts: [{ name: data, mountPath: /var/lib/postgresql/data }]
+      volumes: [{ name: data, persistentVolumeClaim: { claimName: ilmtest-pg-data } }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels: { app.kubernetes.io/part-of: ilmtest }
+spec:
+  selector: { app.kubernetes.io/name: postgres }
+  ports: [{ port: 5432, targetPort: 5432 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hive-metastore
+  labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: hive-metastore }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector: { matchLabels: { app.kubernetes.io/name: hive-metastore } }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/part-of: ilmtest, app.kubernetes.io/name: hive-metastore }
+    spec:
+      initContainers:
+        - name: jdbc
+          image: curlimages/curl:8.10.1
+          command: [sh, -c, 'test -f /pg/postgresql.jar || curl -fsSL -o /pg/postgresql.jar https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar']
+          volumeMounts: [{ name: pgdriver, mountPath: /pg }]
+        - name: awsjars
+          image: apache/hive:3.1.3
+          command: [sh, -c, 'cp -n /opt/hadoop/share/hadoop/tools/lib/hadoop-aws-3.1.0.jar /opt/hadoop/share/hadoop/tools/lib/aws-java-sdk-bundle-1.11.271.jar /auxlib/ && ls -1 /auxlib']
+          volumeMounts: [{ name: auxlib, mountPath: /auxlib }]
+        - name: wait-db
+          image: postgres:16
+          command: [sh, -c, 'until pg_isready -h postgres -U hive -d metastore; do sleep 3; done']
+      containers:
+        - name: metastore
+          image: apache/hive:3.1.3
+          env:
+            - { name: SERVICE_NAME, value: metastore }
+            - { name: DB_DRIVER, value: postgres }
+            - { name: HIVE_CUSTOM_CONF_DIR, value: /hive_custom_conf }
+            - { name: IS_RESUME, value: "true" }
+            - { name: SERVICE_OPTS, value: "-Xmx1G" }     # ★ 자격증명 금지
+          ports: [{ containerPort: 9083 }]
+          readinessProbe: { tcpSocket: { port: 9083 }, initialDelaySeconds: 30, periodSeconds: 10 }
+          resources: { requests: { cpu: 300m, memory: 1Gi }, limits: { memory: 2Gi } }
+          volumeMounts:
+            - { name: conf, mountPath: /hive_custom_conf, readOnly: true }
+            - { name: pgdriver, mountPath: /opt/hive/lib/postgresql-9.4.1208.jre7.jar, subPath: postgresql.jar }
+            - { name: auxlib, mountPath: /opt/hive/auxlib }
+      volumes:
+        - { name: conf, secret: { secretName: ilmtest-hive-site } }
+        - { name: auxlib, emptyDir: {} }
+        - { name: pgdriver, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hive-metastore
+  labels: { app.kubernetes.io/part-of: ilmtest }
+spec:
+  selector: { app.kubernetes.io/name: hive-metastore }
+  ports: [{ port: 9083, targetPort: 9083 }]

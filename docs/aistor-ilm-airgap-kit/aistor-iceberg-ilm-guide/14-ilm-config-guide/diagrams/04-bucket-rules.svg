@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="700" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="100" width="520" height="460" fill="#FFFFFF" stroke="#C72C48" stroke-width="1.5"/>
+<rect x="40" y="100" width="26" height="26" fill="#C72C48"/>
+<text x="53.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">버킷 구조 — Hot warehouse (Versioning ON) · Warm warm-tier</text>
+<rect x="600" y="100" width="400" height="460" fill="#FFFFFF" stroke="#7AA116" stroke-width="1.5"/>
+<rect x="600" y="100" width="26" height="26" fill="#7AA116"/>
+<text x="613.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">✓</text>
+<text x="634" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">건다</text>
+<rect x="1040" y="100" width="420" height="460" fill="#FFFFFF" stroke="#DD344C" stroke-width="1.5"/>
+<rect x="1040" y="100" width="26" height="26" fill="#DD344C"/>
+<text x="1053.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">✗</text>
+<text x="1074" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">걸지 않는다</text>
+<polyline points="80.0,186.0 80.0,220.0 100.0,220.0" fill="none" stroke="#7D8998" stroke-width="1"/>
+<polyline points="120.0,246.0 120.0,288.0 140.0,288.0" fill="none" stroke="#7D8998" stroke-width="1"/>
+<polyline points="120.0,322.0 120.0,364.0 140.0,364.0" fill="none" stroke="#7D8998" stroke-width="1"/>
+<rect x="60" y="140" width="480" height="40" rx="6" fill="#FFFFFF" stroke="#232F3E"/>
+<text x="64" y="164.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="bold">warehouse/</text>
+<rect x="100" y="200" width="440" height="40" rx="6" fill="#FFFFFF" stroke="#7AA116"/>
+<text x="104" y="216.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">&lt;db&gt;.db/&lt;tbl&gt;/</text>
+<text x="104" y="231.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">R-6 고아 delete marker 정리</text>
+<rect x="140" y="260" width="400" height="56" rx="6" fill="#FFFFFF" stroke="#01A88D"/>
+<text x="144" y="277.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">metadata/</text>
+<text x="144" y="292.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">규칙 없음 — 항상 Hot</text>
+<text x="144" y="307.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">(*.metadata.json · snap-*.avro · manifest)</text>
+<rect x="140" y="336" width="400" height="56" rx="6" fill="#FFFFFF" stroke="#ED7100"/>
+<text x="144" y="353.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">data/&lt;partition&gt;/*.parquet</text>
+<text x="144" y="368.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">R-1 Transition 1d → WARM-TIER</text>
+<text x="144" y="383.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">R-3 Noncurrent 만료 1d</text>
+<rect x="60" y="440" width="480" height="90" rx="6" fill="#FFF1F0" stroke="#8A1C2E"/>
+<text x="64" y="474.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">Warm · warm-tier 버킷</text>
+<text x="64" y="489.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">규칙 없음 · 접근은 tier-svc 만</text>
+<text x="64" y="504.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">(Hot 의 tier 가 객체를 opaque 이름으로 보관)</text>
+<rect x="620" y="145" width="360" height="84" rx="6" fill="#F0F7E6" stroke="#7AA116"/>
+<text x="624" y="183.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">R-1  data/ Transition 1d → WARM-TIER</text>
+<text x="624" y="198.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">전이 대상은 데이터 파일만</text>
+<rect x="620" y="245" width="360" height="84" rx="6" fill="#F0F7E6" stroke="#7AA116"/>
+<text x="624" y="283.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">R-3  data/ NoncurrentVersionExpiration 1d</text>
+<text x="624" y="298.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">Iceberg 가 지운 파일의 Warm 공간 회수 (최소 1)</text>
+<rect x="620" y="345" width="360" height="84" rx="6" fill="#F0F7E6" stroke="#7AA116"/>
+<text x="624" y="383.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">R-6  &lt;tbl&gt;/ ExpiredObjectDeleteMarker</text>
+<text x="624" y="398.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">남은 delete marker 정리</text>
+<rect x="620" y="445" width="360" height="84" rx="6" fill="#F0F7E6" stroke="#7AA116"/>
+<text x="624" y="483.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">보존  Iceberg 보존 작업 (Spark 배치)</text>
+<text x="624" y="498.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">DELETE 기한 경과 → expire_snapshots</text>
+<rect x="1060" y="145" width="380" height="84" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1064" y="183.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">data/ current Expiration</text>
+<text x="1064" y="198.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">스냅샷이 참조하는 파일 삭제 → 테이블 깨짐 (E-3)</text>
+<rect x="1060" y="245" width="380" height="84" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1064" y="283.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">metadata/ Transition</text>
+<text x="1064" y="298.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">모든 쿼리 계획이 Warm 왕복</text>
+<rect x="1060" y="345" width="380" height="84" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1064" y="383.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">Warm tier 버킷 규칙</text>
+<text x="1064" y="398.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">Hot 에 stub 만 남고 실데이터 소실</text>
+<rect x="1060" y="445" width="380" height="84" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1064" y="483.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">버킷 전체(prefix 없음) 규칙</text>
+<text x="1064" y="498.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">다른 테이블 · 경로까지 적용</text>
+<rect x="40" y="590" width="1420" height="80" rx="6" fill="#F4F6F8" stroke="#ED7100"/>
+<text x="44" y="634.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">Scanner 속도: 기본(default) 4,000 객체 전이 약 15분 · fastest 25초 — 대신 유휴 CPU 상시 사용, 전이 순간 Warm CPU·메모리 급증 → 기존 대량 버킷에 처음 적용할 때만 한시적으로 올리고 반드시 원복</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">버킷 · 규칙 배치 — 무엇을 걸고 무엇을 걸지 않는가</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">규칙은 테이블 prefix 단위 · 한 버킷에 여러 테이블이면 규칙 ID 에 테이블 접두사 (mc ilm rule import 는 전체 교체)</text>
+</svg>
