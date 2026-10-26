@@ -1,7 +1,7 @@
 # AIStor Hot→Warm ILM × Iceberg — 폐쇄망 적용 키트
 
 > 폐쇄망 안에서 **Hot 1일 → Warm** ILM 정책을 Iceberg 테이블에 적용 · 시험하고 결과서를 내기 위한 묶음 (2026-10-26)
-> 원본: [`docs/aistor-iceberg-ilm-guide/`](../aistor-iceberg-ilm-guide/) 13장 · 14장 — 이 폴더는 반입용 사본이다. 고칠 때는 원본을 고치고 키트를 다시 만든다 (§5).
+> 원본: [`docs/aistor-iceberg-ilm-guide/`](../aistor-iceberg-ilm-guide/) (핵심은 13장 · 14장) — 이 폴더는 반입용 사본이다. 고칠 때는 원본을 고치고 키트를 다시 만든다 (§5).
 > 압축본: [`../aistor-ilm-airgap-kit.zip`](../aistor-ilm-airgap-kit.zip)
 
 ## 1. 폐쇄망 시험 기준
@@ -19,8 +19,9 @@
 ```
 aistor-ilm-airgap-kit/
 ├── README.md                          ← 지금 이 문서 (시작점)
-└── aistor-iceberg-ilm-guide/
-    ├── README.md                      가이드 전체 목차 (원본 사본)
+└── aistor-iceberg-ilm-guide/          가이드 전체 사본 (00~12장 배경 · 설계 · 운영 · 리스크 포함)
+    ├── README.md                      가이드 목차 — 목적별 빠른 진입
+    ├── 00-overview/ … 12-appendix/    배경 장 (04 ILM 설계 · 05 Iceberg on S3 · 09 운영 · 11 리스크 등)
     ├── 14-ilm-config-guide/           ★ 가이드
     │   ├── 01-s3-bucket-setup.md        운영 버킷 · 계정 · tier · ILM 규칙 · 기한 삭제 · Scanner · 모니터링
     │   ├── 02-test-environment.md       폐쇄망 반입 목록 · 레지스트리/스토리지 치환 · 구성 순서
@@ -84,9 +85,8 @@ runbook §2 의 금지 사항(자격증명 출력 금지, 시험 버킷만, MERG
 
 ```bash
 cd docs
-rm -rf aistor-ilm-airgap-kit/aistor-iceberg-ilm-guide && mkdir -p aistor-ilm-airgap-kit/aistor-iceberg-ilm-guide
-cp aistor-iceberg-ilm-guide/README.md aistor-ilm-airgap-kit/aistor-iceberg-ilm-guide/
-cp -r aistor-iceberg-ilm-guide/13-ilm-hot-only-test aistor-iceberg-ilm-guide/14-ilm-config-guide aistor-ilm-airgap-kit/aistor-iceberg-ilm-guide/
+rm -rf aistor-ilm-airgap-kit/aistor-iceberg-ilm-guide
+cp -r aistor-iceberg-ilm-guide aistor-ilm-airgap-kit/
 find aistor-ilm-airgap-kit -name 'audit-minio-*.jsonl' -delete      # 서명 헤더 · 내부 IP
 python3 -c "import shutil; shutil.make_archive('aistor-ilm-airgap-kit', 'zip', '.', 'aistor-ilm-airgap-kit')"
 ```

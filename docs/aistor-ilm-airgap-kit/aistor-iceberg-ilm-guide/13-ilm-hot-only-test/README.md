@@ -76,7 +76,7 @@ Hot → Warm ILM Transition 정책이 걸린 상태에서
 | 전이 진행 | `minio_cluster_ilm_transitioned_{objects,bytes}` · `minio_node_ilm_transition_{pending,active}_tasks` · `minio_node_ilm_transition_missed_immediate_tasks` 🔍 | vmagent ([`scripts/monitoring/vmagent-scrape.yml`](./scripts/monitoring/vmagent-scrape.yml)) |
 | Scanner | `minio_node_scanner_*` · `mc admin scanner status` 🔍 | 메트릭 + State snapshot |
 | 용량 | Hot · Warm 버킷 사용량 추이 | 메트릭 |
-| ILM 이벤트 | `mc admin trace --call ilm,scanner --json` 🔍 | [`scripts/k8s/trace-collector.yaml`](./scripts/k8s/trace-collector.yaml) |
+| ILM 이벤트 | `mc admin trace --call ilm,scanner --json` 🔍 | [`scripts/k8s/trace-collector.yaml`](./scripts/k8s/collectors.yaml) |
 | 접근 통제 | Hot · Warm **audit log** | `audit_webhook` → Fluent Bit ([`scripts/fluent-bit/`](./scripts/fluent-bit/)) |
 | 애플리케이션 | Writer · Verifier · State | Pod 로그 → Fluent Bit |
 
