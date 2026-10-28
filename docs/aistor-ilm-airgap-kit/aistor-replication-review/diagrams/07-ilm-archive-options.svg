@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="730" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="100" width="460" height="440" fill="#FFFFFF" stroke="#7AA116" stroke-width="1.5"/>
+<rect x="40" y="100" width="26" height="26" fill="#7AA116"/>
+<text x="53.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold"></text>
+<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">A. zip 미사용</text>
+<rect x="520" y="100" width="460" height="440" fill="#FFFFFF" stroke="#ED7100" stroke-width="1.5"/>
+<rect x="520" y="100" width="26" height="26" fill="#ED7100"/>
+<text x="533.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold"></text>
+<text x="554" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">B. 하이브리드 (피드백 제안)</text>
+<rect x="1000" y="100" width="460" height="440" fill="#FFFFFF" stroke="#7D8998" stroke-width="1.5" stroke-dasharray="6 4"/>
+<rect x="1000" y="100" width="26" height="26" fill="#7D8998"/>
+<text x="1013.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold"></text>
+<text x="1034" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">C. 전면 Rollover (기존안)</text>
+<polyline points="270.0,236.0 270.0,272.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="270.0,350.0 270.0,390.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="610.0,236.0 610.0,272.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="610.0,350.0 610.0,392.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="636.0,420.0 732.0,420.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="786.0,420.0 870.0,420.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="1230.0,222.0 1230.0,240.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="1230.0,312.0 1230.0,335.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="1230.0,406.0 1230.0,428.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<path d="M242.0,162.08 L298.0,162.08 L289.04,208.0 L250.96,208.0 Z" fill="#C72C48" stroke="#C72C48"/>
+<ellipse cx="270.0" cy="162.08" rx="28.0" ry="6.72" fill="#fff" stroke="#C72C48" stroke-width="2"/>
+<rect x="259.92" y="177.2" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="271.12" y="180.0" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="265.52" y="190.08" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="245.0" y="275.0" width="50" height="50" rx="8" fill="#ED7100"/>
+<text x="270.0" y="303.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">ILM</text>
+<rect x="242.0" y="392.0" width="56" height="56" rx="8" fill="#5A6B86"/>
+<text x="270.0" y="423.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Tier</text>
+<path d="M582.0,162.08 L638.0,162.08 L629.04,208.0 L590.96,208.0 Z" fill="#C72C48" stroke="#C72C48"/>
+<ellipse cx="610.0" cy="162.08" rx="28.0" ry="6.72" fill="#fff" stroke="#C72C48" stroke-width="2"/>
+<rect x="599.92" y="177.2" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="611.12" y="180.0" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="605.52" y="190.08" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="585.0" y="275.0" width="50" height="50" rx="8" fill="#326CE5"/>
+<text x="610.0" y="303.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">job</text>
+<path d="M585.0,395.0 L625.0,395.0 L635.0,405.0 L635.0,445.0 L585.0,445.0 Z" fill="#fff" stroke="#ED7100" stroke-width="1.5"/>
+<text x="610.0" y="423.3333333333333" font-size="10" fill="#ED7100" text-anchor="middle" font-weight="bold">ZIP</text>
+<rect x="735.0" y="395.0" width="50" height="50" rx="8" fill="#ED7100"/>
+<text x="760.0" y="423.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">ILM</text>
+<rect x="872.0" y="392.0" width="56" height="56" rx="8" fill="#5A6B86"/>
+<text x="900.0" y="423.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Tier</text>
+<path d="M1205.0,154.0 L1255.0,154.0 L1247.0,195.0 L1213.0,195.0 Z" fill="#C72C48" stroke="#C72C48"/>
+<ellipse cx="1230.0" cy="154.0" rx="25.0" ry="6.0" fill="#fff" stroke="#C72C48" stroke-width="2"/>
+<rect x="1221.0" y="167.5" width="8.0" height="7.000000000000001" fill="#fff"/>
+<rect x="1231.0" y="170.0" width="8.0" height="7.000000000000001" fill="#fff"/>
+<rect x="1226.0" y="179.0" width="8.0" height="7.000000000000001" fill="#fff"/>
+<rect x="1207.0" y="242.0" width="46" height="46" rx="8" fill="#7D8998"/>
+<text x="1230.0" y="268.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">job</text>
+<path d="M1207.0,337.0 L1243.0,337.0 L1253.0,347.0 L1253.0,383.0 L1207.0,383.0 Z" fill="#fff" stroke="#7D8998" stroke-width="1.5"/>
+<text x="1230.0" y="363.3333333333333" font-size="10" fill="#7D8998" text-anchor="middle" font-weight="bold">ZIP</text>
+<path d="M1205.0,439.0 L1255.0,439.0 L1247.0,480.0 L1213.0,480.0 Z" fill="#8A1C2E" stroke="#8A1C2E"/>
+<ellipse cx="1230.0" cy="439.0" rx="25.0" ry="6.0" fill="#fff" stroke="#8A1C2E" stroke-width="2"/>
+<rect x="40" y="560" width="460" height="60" rx="6" fill="#FFFFFF" stroke="#7AA116"/>
+<text x="44" y="586.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">✓ 구현 없음 · 조회 그대로</text>
+<text x="44" y="601.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">✕ 객체 수 그대로 · 압축 없음</text>
+<rect x="520" y="560" width="460" height="60" rx="6" fill="#FFFFFF" stroke="#ED7100"/>
+<text x="524" y="586.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">✓ 객체 수↓ · 이관·재시도는 ILM</text>
+<text x="524" y="601.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">✕ zip 변환·검증 · 조회 시 해제</text>
+<rect x="1000" y="560" width="460" height="60" rx="6" fill="#FFFFFF" stroke="#7D8998"/>
+<text x="1004" y="586.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">✓ 시점·형식 완전 제어</text>
+<text x="1004" y="601.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">✕ 구현·운영 부담 최대</text>
+<rect x="40" y="640" width="1420" height="60" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="750.0" y="674.3333333333334" font-size="13" fill="#DD344C" text-anchor="middle" font-weight="bold">협의 기준: 조회 요구 · 객체 수 · 압축 이득 · 구현 부담 · 보존 정책     |     권고 순서: A → (문제 확인 시) B → C</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">RAW 아카이브 선택지 — A · B · C (협의 필요)</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">ILM = Transition · Expiration 만 (zip 생성 불가) · B 는 '변환은 서비스, 이관은 ILM'</text>
+<text x="270.0" y="226.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">RAW 버킷</text>
+<text x="270.0" y="343.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">ILM Transition</text>
+<text x="270.0" y="466.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Warm Tier</text>
+<text x="610.0" y="226.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">RAW 버킷</text>
+<text x="610.0" y="343.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">① 서비스 zip 변환</text>
+<text x="610.0" y="463.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">archive/*.zip</text>
+<text x="760.0" y="463.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">② ILM Transition</text>
+<text x="900.0" y="466.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Warm Tier</text>
+<text x="1230.0" y="213.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">RAW 버킷</text>
+<text x="1230.0" y="306.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">서비스 Rollover Job</text>
+<text x="1230.0" y="401.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">zip 생성</text>
+<text x="1230.0" y="498.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Warm 직접 업로드</text>
+</svg>

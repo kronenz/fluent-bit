@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="700" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="100" width="330" height="420" fill="#FFFFFF" stroke="#C72C48" stroke-width="1.5"/>
+<rect x="40" y="100" width="26" height="26" fill="#C72C48"/>
+<text x="53.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Hot · 2026-02-07 (이천)</text>
+<rect x="430" y="100" width="600" height="420" fill="#FFFFFF" stroke="#8A1C2E" stroke-width="1.5"/>
+<rect x="430" y="100" width="26" height="26" fill="#8A1C2E"/>
+<text x="443.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">W</text>
+<text x="464" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Warm · 2026-06-06</text>
+<rect x="1090" y="100" width="370" height="420" fill="#FFFFFF" stroke="#8C4FFF" stroke-width="1.5"/>
+<rect x="1090" y="100" width="26" height="26" fill="#8C4FFF"/>
+<text x="1103.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">k8s</text>
+<text x="1124" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">용인 dataops</text>
+<polyline points="190.0,262.0 190.0,300.0 120.0,300.0 120.0,364.0" fill="none" stroke="#5E6C84" stroke-width="1"/>
+<polyline points="220.0,262.0 220.0,300.0 290.0,300.0 290.0,364.0" fill="none" stroke="#5E6C84" stroke-width="1"/>
+<polyline points="120.0,460.0 120.0,490.0 395.0,490.0 395.0,250.0 496.0,250.0" fill="none" stroke="#ED7100" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="314.0,390.0 415.0,390.0 415.0,86.0 730.0,86.0 730.0,216.0" fill="none" stroke="#ED7100" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="1174.0,200.0 1250.0,200.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="1300.0,200.0 1375.0,200.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="1275.0,250.0 1275.0,300.0 1060.0,300.0 1060.0,250.0 964.0,250.0" fill="none" stroke="#8C4FFF" stroke-width="2.5" marker-end="url(#a)" marker-start="url(#a)"/>
+<path d="M173.0,179.52 L237.0,179.52 L226.76,232.0 L183.24,232.0 Z" fill="#C72C48" stroke="#C72C48"/>
+<ellipse cx="205.0" cy="179.52" rx="32.0" ry="7.68" fill="#fff" stroke="#C72C48" stroke-width="2"/>
+<rect x="193.48" y="196.8" width="10.24" height="8.96" fill="#fff"/>
+<rect x="206.28" y="200.0" width="10.24" height="8.96" fill="#fff"/>
+<rect x="199.88" y="211.52" width="10.24" height="8.96" fill="#fff"/>
+<rect x="96.0" y="366.0" width="48" height="48" rx="8" fill="#ED7100"/>
+<text x="120.0" y="393.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">REP</text>
+<rect x="266.0" y="366.0" width="48" height="48" rx="8" fill="#ED7100"/>
+<text x="290.0" y="393.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">ILM</text>
+<path d="M498.0,229.52 L562.0,229.52 L551.76,282.0 L508.24,282.0 Z" fill="#ED7100" stroke="#ED7100"/>
+<ellipse cx="530.0" cy="229.52" rx="32.0" ry="7.68" fill="#fff" stroke="#ED7100" stroke-width="2"/>
+<rect x="698.0" y="218.0" width="64" height="64" rx="8" fill="#5A6B86"/>
+<text x="730.0" y="253.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Tier</text>
+<path d="M898.0,229.52 L962.0,229.52 L951.76,282.0 L908.24,282.0 Z" fill="#8C4FFF" stroke="#8C4FFF"/>
+<ellipse cx="930.0" cy="229.52" rx="32.0" ry="7.68" fill="#fff" stroke="#8C4FFF" stroke-width="2"/>
+<circle cx="1142.8" cy="190.4" r="6.24" fill="#326CE5"/>
+<path d="M1133.2,216.8 Q1142.8,192.8 1152.4,216.8 Z" fill="#326CE5"/>
+<circle cx="1157.2" cy="190.4" r="6.24" fill="#326CE5"/>
+<path d="M1147.6,216.8 Q1157.2,192.8 1166.8,216.8 Z" fill="#326CE5"/>
+<rect x="1251.0" y="176.0" width="48" height="48" rx="8" fill="#DD00A1"/>
+<text x="1275.0" y="203.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Trino</text>
+<rect x="1376.0" y="176.0" width="48" height="48" rx="8" fill="#01A88D"/>
+<text x="1400.0" y="203.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">HMS</text>
+<rect x="40" y="560" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="153.5" y="587.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">🚨 C-1 동일 버전</text>
+<rect x="279" y="560" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="392.5" y="587.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">C-2 버킷·권한 분리</text>
+<rect x="518" y="560" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="631.5" y="587.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">C-3 Tier 독점</text>
+<rect x="757" y="560" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="870.5" y="587.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">C-4 이중 저장 용량</text>
+<rect x="996" y="560" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1109.5" y="587.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">C-5 공존 부하</text>
+<rect x="1235" y="560" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1348.5" y="587.0" font-size="12" fill="#DD344C" text-anchor="middle" font-weight="bold">C-6 백업 일관성</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">두 케이스 공존 — Warm 클러스터 3개 역할</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">이천: Hot → Warm Replication(백업) + ILM(용량) · 용인: Warm 전용 read/write</text>
+<text x="205.0" y="250.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">이천 서비스 버킷</text>
+<text x="120.0" y="432.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Bucket</text>
+<text x="120.0" y="447.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Replication</text>
+<text x="290.0" y="432.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">ILM</text>
+<text x="290.0" y="447.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Transition</text>
+<text x="530.0" y="300.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">① replica</text>
+<text x="530.0" y="315.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(Hot 동일명)</text>
+<text x="730.0" y="300.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">② tier prefix</text>
+<text x="930.0" y="300.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">③ yongin-*</text>
+<text x="530.0" y="343.6666666666667" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="bold">쓰기 금지 · ILM 별도</text>
+<text x="730.0" y="343.6666666666667" font-size="11" fill="#DD344C" text-anchor="middle" font-weight="bold">🔒 AIStor 전용</text>
+<text x="930.0" y="343.6666666666667" font-size="11" fill="#8C4FFF" text-anchor="middle" font-weight="bold">용인 read/write</text>
+<rect x="375.0" y="410.5" width="40" height="19" fill="#FFFFFF"/>
+<text x="395.0" y="423.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">백업</text>
+<rect x="530.0" y="76.5" width="80" height="19" fill="#FFFFFF"/>
+<text x="570.0" y="89.66666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">Transition</text>
+<text x="1150.0" y="242.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">용인 서비스</text>
+<text x="1275.0" y="242.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Trino / Spark</text>
+<text x="1400.0" y="242.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">HMS-Warm</text>
+<rect x="1125.0" y="290.5" width="90" height="19" fill="#FFFFFF"/>
+<text x="1170.0" y="303.6666666666667" font-size="11" fill="#8C4FFF" text-anchor="middle" font-weight="normal">read / write</text>
+<text x="1275.0" y="436.5" font-size="12" fill="#8C4FFF" text-anchor="middle" font-weight="bold">🔑 용인 키 = yongin-* 만</text>
+<text x="1275.0" y="451.5" font-size="12" fill="#8C4FFF" text-anchor="middle" font-weight="bold">replica · tier 차단</text>
+<text x="44" y="633.6666666666666" font-size="11" fill="#5E6C84" text-anchor="start" font-weight="normal">공존 조건 상세: 근거 1 §2 ~ §4</text>
+</svg>

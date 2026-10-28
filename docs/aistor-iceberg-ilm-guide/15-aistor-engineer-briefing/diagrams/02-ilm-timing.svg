@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="330" width="1420" height="210" fill="#FFFFFF" stroke="#7AA116" stroke-width="1.5"/>
+<rect x="40" y="330" width="26" height="26" fill="#7AA116"/>
+<text x="53.0" y="346.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">⚡</text>
+<text x="74" y="347.3333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Scanner 를 거치지 않는 길 — PUT 순간 이미 만기</text>
+<rect x="40" y="570" width="1420" height="160" fill="#FFFFFF" stroke="#232F3E" stroke-width="1.5"/>
+<rect x="40" y="570" width="26" height="26" fill="#232F3E"/>
+<text x="53.0" y="586.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">실측</text>
+<text x="74" y="587.3333333333334" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">실측 예</text>
+<polyline points="80.0,190.0 1440.0,190.0" fill="none" stroke="#232F3E" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="158.0,262.0 542.0,262.0" fill="none" stroke="#ED7100" stroke-width="1.5" marker-end="url(#a)" marker-start="url(#a)"/>
+<polyline points="578.0,262.0 882.0,262.0" fill="none" stroke="#ED7100" stroke-width="1.5" marker-end="url(#a)" marker-start="url(#a)"/>
+<polyline points="918.0,262.0 1182.0,262.0" fill="none" stroke="#7D8998" stroke-width="1.5" marker-end="url(#a)" marker-start="url(#a)"/>
+<polyline points="370.0,445.0 425.0,445.0" fill="none" stroke="#7AA116" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="715.0,445.0 770.0,445.0" fill="none" stroke="#7AA116" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="1060.0,445.0 1115.0,445.0" fill="none" stroke="#7AA116" stroke-width="2" marker-end="url(#a)"/>
+<rect x="80" y="390" width="290" height="110" rx="6" fill="#FFFFFF" stroke="#7AA116"/>
+<text x="225.0" y="433.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">PUT 요청</text>
+<text x="225.0" y="449.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal"></text>
+<text x="225.0" y="465.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">새 파일 · 소급 PUT · 태그 붙인 PUT</text>
+<rect x="425" y="390" width="290" height="110" rx="6" fill="#FFFFFF" stroke="#7AA116"/>
+<text x="570.0" y="433.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">규칙 평가 (PUT 시)</text>
+<text x="570.0" y="449.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal"></text>
+<text x="570.0" y="465.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">만기 ≤ 지금 ?</text>
+<rect x="770" y="390" width="290" height="110" rx="6" fill="#FFFFFF" stroke="#7AA116"/>
+<text x="915.0" y="433.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">즉시 작업 큐</text>
+<text x="915.0" y="449.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal"></text>
+<text x="915.0" y="465.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">Scanner 무관</text>
+<rect x="1115" y="390" width="290" height="110" rx="6" fill="#F0F7E6" stroke="#7AA116"/>
+<text x="1260.0" y="433.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="bold">Warm 전이 / 만료</text>
+<text x="1260.0" y="449.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="bold"></text>
+<text x="1260.0" y="465.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="bold">같은 초 (실측 T-1)</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">ILM 실행 시각 — mtime + Days → 다음 00:00 UTC → Scanner 방문</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">1d 규칙의 실제 지연 = 1일 + (0~24시간 올림) + Scanner 대기 · 실측 1d 연속: 10-25 20:54 적재 → 10-27 00:15 전이</text>
+<circle cx="140.0" cy="190.0" r="16.0" fill="#C72C48"/>
+<text x="140.0" y="193.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">①</text>
+<text x="140.0" y="143.33333333333334" font-size="13" fill="#C72C48" text-anchor="middle" font-weight="bold">10-25 20:54</text>
+<text x="140.0" y="229.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">객체 생성 (mtime)</text>
+<circle cx="560.0" cy="190.0" r="16.0" fill="#ED7100"/>
+<text x="560.0" y="193.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">②</text>
+<text x="560.0" y="143.33333333333334" font-size="13" fill="#ED7100" text-anchor="middle" font-weight="bold">10-26 20:54</text>
+<text x="560.0" y="229.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">mtime + Days(1)</text>
+<circle cx="900.0" cy="190.0" r="16.0" fill="#ED7100"/>
+<text x="900.0" y="193.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">③</text>
+<text x="900.0" y="143.33333333333334" font-size="13" fill="#ED7100" text-anchor="middle" font-weight="bold">10-27 00:00 UTC</text>
+<text x="900.0" y="229.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">다음 00:00 으로 올림 = 만기</text>
+<circle cx="1200.0" cy="190.0" r="16.0" fill="#7AA116"/>
+<text x="1200.0" y="193.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">④</text>
+<text x="1200.0" y="143.33333333333334" font-size="13" fill="#7AA116" text-anchor="middle" font-weight="bold">10-27 00:15</text>
+<text x="1200.0" y="229.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Scanner 방문 → 전이 ✓</text>
+<rect x="220.0" y="252.5" width="260" height="19" fill="#FFFFFF"/>
+<text x="350.0" y="265.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">Days = 1일</text>
+<rect x="600.0" y="252.5" width="260" height="19" fill="#FFFFFF"/>
+<text x="730.0" y="265.6666666666667" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">올림: 0 ~ 24시간 (3시간 6분)</text>
+<rect x="920.0" y="252.5" width="260" height="19" fill="#FFFFFF"/>
+<text x="1050.0" y="265.6666666666667" font-size="11" fill="#7D8998" text-anchor="middle" font-weight="normal">Scanner 대기: 사이클 위치에 따라 (15분)</text>
+<text x="74" y="626.3333333333334" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">1d 연속 첫 배치    10-25 20:54 + 1d = 10-26 20:54 → 10-27 00:00 → 10-27 00:15 전이</text>
+<text x="74" y="654.3333333333334" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">기한 삭제 age-4.5   10-21 13:49 + 5d = 10-26 13:49 → 10-27 00:00 → 10-27 00:07 delete marker</text>
+<text x="74" y="682.3333333333334" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">비현행 만료         DM 10-26 01:50 + 1d = 10-27 01:50 → 10-28 00:00 → 이후 첫 방문에 소멸</text>
+<text x="74" y="710.3333333333334" font-size="13" fill="#DD344C" text-anchor="start" font-weight="bold">하루치 객체가 모두 같은 00:00 UTC (= KST 09:00) 에 만기 → 업무 시작 시각에 쏠림</text>
+</svg>

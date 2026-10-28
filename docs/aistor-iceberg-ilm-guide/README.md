@@ -42,6 +42,7 @@
 | 13 | [12-appendix](./12-appendix/) | 명령어 레퍼런스, 트러블슈팅 FAQ, 설정 템플릿 | 참조 | 수시 |
 | 14 | [13-ilm-hot-only-test](./13-ilm-hot-only-test/) | **Replication 없이 Hot→Warm ILM 만** 적용 시 Iceberg 연동 시험 — 기능 J · 성능 P · 영향도 I · 기한 삭제 E, 테스트베드 · 결과서 | 절차 (테스트) | 30분 |
 | 15 | [14-ilm-config-guide](./14-ilm-config-guide/) | 13장 결과 기반 **운영 구성 가이드**(버킷 · tier · 규칙 · 기한 삭제) · **폐쇄망 재현 · 에이전트 지시서** · **서비스 개발자 안내**(draw.io 그림) | 절차 · 안내 | 40분 |
+| 16 | [15-aistor-engineer-briefing](./15-aistor-engineer-briefing/) | AIStor 엔지니어 방문 **사전 학습** — Scanner 원리 · 부하 줄이기 · 태그 기반 즉시 전이 · Iceberg soft delete · Replication 충돌 · 질의 해설 (그림 9) | 기술 이해 | 2시간 |
 
 ### 목적별 빠른 진입
 
@@ -57,6 +58,7 @@
 | 리스크 보고서를 써야 한다 | 11 §9(리스크 레지스터) → 00 §5 |
 | Hot→Warm ILM 만 운영에 적용한다 | **14 (01 → 04)** → 13 §10 결과 |
 | 폐쇄망에서 ILM 시험을 다시 돌린다 | **14/02 → 14/03 (에이전트 지시서)** |
+| AIStor 엔지니어에게 Scanner · ILM 을 질의한다 | **15 (01 → 06)** → 14/05 질의서 |
 
 ---
 
@@ -96,3 +98,4 @@ SELECT * FROM hive_prod.system.iceberg_version;   -- 미지원 시 spark-shell �
 | 1.0 | 2026-08-27 | - | 최초 작성 (13개 챕터) |
 | 1.1 | 2026-10-25 | - | 13장 추가 — Hot→Warm ILM 단독(Replication 미사용) 연동 테스트 개요·스크립트 |
 | 1.2 | 2026-10-26 | - | 13장 성능·부하 · 영향도 · 기한 삭제(mtime 소급) 시험 추가 · 14장 구성 가이드(운영 설정 · 폐쇄망 에이전트 지시서 · 개발자 안내 · draw.io) 추가 |
+| 1.3 | 2026-10-28 | - | 1d 연속 · 기한 삭제 실시간 확인 결과 반영 · 태그 기반 전이/soft delete 실측(T-1 · T-2) · 14장 05 엔지니어 질의서 · 15장 사전 학습(해설 6 · 그림 9) 추가 |

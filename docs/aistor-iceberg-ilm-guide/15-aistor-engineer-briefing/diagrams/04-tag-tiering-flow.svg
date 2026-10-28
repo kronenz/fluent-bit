@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="800" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="100" width="380" height="520" fill="#FFFFFF" stroke="#8C4FFF" stroke-width="1.5"/>
+<rect x="40" y="100" width="26" height="26" fill="#8C4FFF"/>
+<text x="53.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">k8s</text>
+<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Spark (Kubernetes)</text>
+<rect x="480" y="100" width="520" height="520" fill="#FFFFFF" stroke="#C72C48" stroke-width="1.5"/>
+<rect x="480" y="100" width="26" height="26" fill="#C72C48"/>
+<text x="493.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<text x="514" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Hot · warehouse 버킷</text>
+<rect x="1060" y="100" width="400" height="520" fill="#FFFFFF" stroke="#8A1C2E" stroke-width="1.5"/>
+<rect x="1060" y="100" width="26" height="26" fill="#8A1C2E"/>
+<text x="1073.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">W</text>
+<text x="1094" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Warm · tier</text>
+<rect x="40" y="650" width="1420" height="130" fill="#FFFFFF" stroke="#232F3E" stroke-width="1.5"/>
+<rect x="40" y="650" width="26" height="26" fill="#232F3E"/>
+<text x="53.0" y="666.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">실측</text>
+<text x="74" y="667.3333333333334" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">T-1 실측 · 한계</text>
+<polyline points="166.0,200.0 510.0,190.0" fill="none" stroke="#232F3E" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="400.0,420.0 450.0,420.0 450.0,375.0 510.0,375.0" fill="none" stroke="#ED7100" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="970.0,375.0 1020.0,375.0 1020.0,250.0 1228.0,250.0" fill="none" stroke="#ED7100" stroke-width="2" marker-end="url(#a)"/>
+<rect x="114.0" y="174.0" width="52" height="52" rx="8" fill="#E25A1C"/>
+<text x="140.0" y="203.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Spark</text>
+<rect x="114.0" y="394.0" width="52" height="52" rx="8" fill="#ED7100"/>
+<text x="140.0" y="423.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Job</text>
+<rect x="240" y="380" width="160" height="80" rx="6" fill="#FFFFFF" stroke="#ED7100"/>
+<text x="320.0" y="409.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">rewrite_data_files</text>
+<text x="320.0" y="423.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">where: &lt; 오늘-1일</text>
+<text x="320.0" y="437.6666666666667" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">4 파일 → 1 파일</text>
+<rect x="510" y="160" width="460" height="60" rx="6" fill="#FFFFFF" stroke="#C72C48"/>
+<text x="740.0" y="194.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">data/p=오늘/  새 파일 (태그 없음) → STANDARD</text>
+<rect x="510" y="250" width="460" height="60" rx="6" fill="#FFFFFF" stroke="#7D8998"/>
+<text x="740.0" y="276.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">data/p=옛날/  작은 파일들 (태그 없음) → STANDARD</text>
+<text x="740.0" y="291.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">다음 expire_snapshots 에서 정리</text>
+<rect x="510" y="340" width="460" height="70" rx="6" fill="#FFF4E8" stroke="#ED7100"/>
+<text x="740.0" y="371.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">data/p=옛날/  compaction 결과 (태그 ilm-tier=warm)</text>
+<text x="740.0" y="386.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">→ 규칙 만족 → PUT 순간 Warm 전이 ⚡</text>
+<rect x="510" y="440" width="460" height="70" rx="6" fill="#FFFFFF" stroke="#01A88D"/>
+<text x="740.0" y="471.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">metadata/  같은 커밋 파일 — 태그는 붙지만</text>
+<text x="740.0" y="486.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">prefix 조건(data/) 때문에 STANDARD 유지 ✓</text>
+<rect x="510" y="535" width="460" height="70" rx="6" fill="#F4F6F8" stroke="#232F3E"/>
+<text x="514" y="566.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">R-T  0d · And{data/, ilm-tier=warm}  (가속 경로)</text>
+<text x="514" y="581.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">R-1  3d · data/  (안전망 — Scanner)</text>
+<path d="M1228.0,229.52 L1292.0,229.52 L1281.76,282.0 L1238.24,282.0 Z" fill="#8A1C2E" stroke="#8A1C2E"/>
+<ellipse cx="1260.0" cy="229.52" rx="32.0" ry="7.68" fill="#fff" stroke="#8A1C2E" stroke-width="2"/>
+<rect x="1090" y="420" width="340" height="90" rx="6" fill="#FFFFFF" stroke="#8A1C2E"/>
+<text x="1260.0" y="461.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">compaction 된 큰 파일만 도착</text>
+<text x="1260.0" y="476.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">→ Warm 파일 수 ↓ · Warm 경유 읽기 ↓</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">태그 기반 즉시 전이 — compaction 이 태그 붙여 쓰면 PUT 순간 Warm</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">규칙 Transition 0d · And{Prefix &lt;tbl&gt;/data/, Tag ilm-tier=warm} · 안전망 Transition 3d (태그 없음) · 실측 T-1 실측</text>
+<text x="140.0" y="244.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">평소 적재</text>
+<text x="140.0" y="259.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">카탈로그 hive_prod (태그 없음)</text>
+<text x="140.0" y="465.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">tiering compaction (매일 02:00)</text>
+<text x="140.0" y="480.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">카탈로그 hive_tier</text>
+<text x="140.0" y="495.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">s3.write.tags.ilm-tier=warm</text>
+<text x="1260.0" y="300.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">warm-tier 버킷</text>
+<rect x="310.0" y="172.5" width="40" height="19" fill="#FFFFFF"/>
+<text x="330.0" y="185.66666666666666" font-size="11" fill="#232F3E" text-anchor="middle" font-weight="normal">PUT</text>
+<rect x="1040.0" y="225.5" width="140" height="19" fill="#FFFFFF"/>
+<text x="1110.0" y="238.66666666666666" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">즉시 전이 (같은 초)</text>
+<text x="74" y="706.3333333333334" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">새 파일 00:34:15 PUT → 00:34:15 WARM-TIER · metadata 4개 STANDARD · old/new 조회 checksum 일치</text>
+<text x="74" y="734.3333333333334" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">이미 있는 객체에 나중에 태그(PutObjectTagging) → 즉시 전이 안 됨 (Scanner 대기) → 태그는 쓸 때 붙인다</text>
+<text x="74" y="762.3333333333334" font-size="13" fill="#DD344C" text-anchor="start" font-weight="normal">질의 Q-I1 즉시 전이 큐 보장 · 넘칠 때 동작 — 안전망 규칙과 missed_immediate_tasks 감시 필수</text>
+</svg>

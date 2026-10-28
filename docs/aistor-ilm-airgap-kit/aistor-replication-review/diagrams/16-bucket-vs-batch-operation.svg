@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="100" width="680" height="240" fill="#FFFFFF" stroke="#ED7100" stroke-width="1.5"/>
+<rect x="40" y="100" width="26" height="26" fill="#ED7100"/>
+<text x="53.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">A</text>
+<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Bucket Replication — AIStor 가 상시 관리</text>
+<rect x="760" y="100" width="700" height="240" fill="#FFFFFF" stroke="#8C4FFF" stroke-width="1.5"/>
+<rect x="760" y="100" width="26" height="26" fill="#8C4FFF"/>
+<text x="773.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">B</text>
+<text x="794" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Batch Replication — 복사는 AIStor 서버 (Job 단위)</text>
+<rect x="40" y="380" width="1420" height="220" fill="#FFFFFF" stroke="#326CE5" stroke-width="1.5"/>
+<rect x="40" y="380" width="26" height="26" fill="#326CE5"/>
+<text x="53.0" y="396.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">DAG</text>
+<text x="74" y="397.3333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Airflow DAG / CronJob — 외부 오케스트레이션 (스케줄 · 상태 · 검증)</text>
+<polyline points="162.0,200.0 354.0,200.0" fill="none" stroke="#ED7100" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="406.0,200.0 598.0,200.0" fill="none" stroke="#ED7100" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="882.0,200.0 1084.0,200.0" fill="none" stroke="#8C4FFF" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="1136.0,200.0 1338.0,200.0" fill="none" stroke="#8C4FFF" stroke-width="2.5" marker-end="url(#a)"/>
+<polyline points="166.0,470.0 314.0,470.0" fill="none" stroke="#326CE5" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="366.0,470.0 514.0,470.0" fill="none" stroke="#326CE5" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="566.0,470.0 714.0,470.0" fill="none" stroke="#326CE5" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="766.0,470.0 914.0,470.0" fill="none" stroke="#326CE5" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="966.0,470.0 1114.0,470.0" fill="none" stroke="#326CE5" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="1166.0,470.0 1314.0,470.0" fill="none" stroke="#326CE5" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="540.0,444.0 540.0,360.0 1040.0,360.0 1040.0,214.0 1082.0,214.0" fill="none" stroke="#8C4FFF" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="1138.0,214.0 1190.0,214.0 1190.0,380.0 760.0,380.0 760.0,444.0" fill="none" stroke="#8C4FFF" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<path d="M102.0,182.08 L158.0,182.08 L149.04,228.0 L110.96000000000001,228.0 Z" fill="#C72C48" stroke="#C72C48"/>
+<ellipse cx="130.0" cy="182.08" rx="28.0" ry="6.72" fill="#fff" stroke="#C72C48" stroke-width="2"/>
+<rect x="119.92" y="197.2" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="131.12" y="200.0" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="125.52" y="210.08" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="354.0" y="174.0" width="52" height="52" rx="8" fill="#ED7100"/>
+<text x="380.0" y="203.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">REP</text>
+<rect x="363.0" y="283.0" width="34" height="34" rx="8" fill="#232F3E"/>
+<text x="380.0" y="303.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">SCN</text>
+<path d="M602.0,182.08 L658.0,182.08 L649.04,228.0 L610.96,228.0 Z" fill="#ED7100" stroke="#ED7100"/>
+<ellipse cx="630.0" cy="182.08" rx="28.0" ry="6.72" fill="#fff" stroke="#ED7100" stroke-width="2"/>
+<path d="M822.0,182.08 L878.0,182.08 L869.04,228.0 L830.96,228.0 Z" fill="#C72C48" stroke="#C72C48"/>
+<ellipse cx="850.0" cy="182.08" rx="28.0" ry="6.72" fill="#fff" stroke="#C72C48" stroke-width="2"/>
+<rect x="839.92" y="197.2" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="851.12" y="200.0" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="845.52" y="210.08" width="8.96" height="7.840000000000001" fill="#fff"/>
+<rect x="1084.0" y="174.0" width="52" height="52" rx="8" fill="#8C4FFF"/>
+<text x="1110.0" y="203.66666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">job</text>
+<path d="M1342.0,182.08 L1398.0,182.08 L1389.04,228.0 L1350.96,228.0 Z" fill="#ED7100" stroke="#ED7100"/>
+<ellipse cx="1370.0" cy="182.08" rx="28.0" ry="6.72" fill="#fff" stroke="#ED7100" stroke-width="2"/>
+<rect x="116.0" y="446.0" width="48" height="48" rx="8" fill="#326CE5"/>
+<text x="140.0" y="473.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">WAIT</text>
+<path d="M316.0,446.0 L354.0,446.0 L364.0,456.0 L364.0,494.0 L316.0,494.0 Z" fill="#fff" stroke="#326CE5" stroke-width="1.5"/>
+<text x="340.0" y="473.3333333333333" font-size="10" fill="#326CE5" text-anchor="middle" font-weight="bold">YAML</text>
+<rect x="516.0" y="446.0" width="48" height="48" rx="8" fill="#8C4FFF"/>
+<text x="540.0" y="473.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">START</text>
+<rect x="716.0" y="446.0" width="48" height="48" rx="8" fill="#8C4FFF"/>
+<text x="740.0" y="473.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">POLL</text>
+<rect x="916.0" y="446.0" width="48" height="48" rx="8" fill="#7AA116"/>
+<text x="940.0" y="473.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">✓</text>
+<path d="M1116.0,446.0 L1154.0,446.0 L1164.0,456.0 L1164.0,494.0 L1116.0,494.0 Z" fill="#fff" stroke="#01A88D" stroke-width="1.5"/>
+<text x="1140.0" y="473.3333333333333" font-size="10" fill="#01A88D" text-anchor="middle" font-weight="bold">LOG</text>
+<rect x="1316.0" y="446.0" width="48" height="48" rx="8" fill="#DD344C"/>
+<text x="1340.0" y="473.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">!</text>
+<rect x="40" y="625" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#ED7100"/>
+<text x="153.5" y="652.0" font-size="12" fill="#ED7100" text-anchor="middle" font-weight="bold">workers 기본 = CPU 절반</text>
+<rect x="279" y="625" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#ED7100"/>
+<text x="392.5" y="652.0" font-size="12" fill="#ED7100" text-anchor="middle" font-weight="bold">workers_wait 기본 = 0ms</text>
+<rect x="518" y="625" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#ED7100"/>
+<text x="631.5" y="652.0" font-size="12" fill="#ED7100" text-anchor="middle" font-weight="bold">list_quorum = strict</text>
+<rect x="757" y="625" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#ED7100"/>
+<text x="870.5" y="652.0" font-size="12" fill="#ED7100" text-anchor="middle" font-weight="bold">실행 창: 피크 · compaction 회피</text>
+<rect x="996" y="625" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#ED7100"/>
+<text x="1109.5" y="652.0" font-size="12" fill="#ED7100" text-anchor="middle" font-weight="bold">Warm 공유 (용인 I/O)</text>
+<rect x="1235" y="625" width="227" height="46" rx="6" fill="#FFF1F0" stroke="#ED7100"/>
+<text x="1348.5" y="652.0" font-size="12" fill="#ED7100" text-anchor="middle" font-weight="bold">재시작 재개 문구 없음 🔍</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">운영 모델 — Bucket Replication (AIStor 상시) vs Batch Replication (AIStor 실행 + 외부 오케스트레이션)</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">Batch 는 서버에서 복사하지만 1회성 — 스케줄 · 상태 확인 · 검증은 Airflow / CronJob 이 담당</text>
+<text x="130.0" y="246.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Hot · unstructure/</text>
+<text x="380.0" y="244.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">복제 엔진 (상시)</text>
+<text x="404" y="303.6666666666667" font-size="11" fill="#5E6C84" text-anchor="start" font-weight="normal">실패 → Scanner 재큐잉</text>
+<text x="630.0" y="246.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Warm</text>
+<rect x="223.0" y="172.5" width="70" height="19" fill="#FFFFFF"/>
+<text x="258.0" y="185.66666666666666" font-size="11" fill="#ED7100" text-anchor="middle" font-weight="normal">PUT 즉시</text>
+<text x="850.0" y="246.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Hot · structured/</text>
+<text x="1110.0" y="244.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">batch 워커</text>
+<text x="1110.0" y="259.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(server-side)</text>
+<text x="1370.0" y="246.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Warm</text>
+<rect x="948.0" y="172.5" width="70" height="19" fill="#FFFFFF"/>
+<text x="983.0" y="185.66666666666666" font-size="11" fill="#8C4FFF" text-anchor="middle" font-weight="normal">1회성 Job</text>
+<text x="140.0" y="512.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">① 유지보수</text>
+<text x="140.0" y="527.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">완료 대기</text>
+<text x="340.0" y="512.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">② Job YAML</text>
+<text x="340.0" y="527.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(워터마크)</text>
+<text x="540.0" y="512.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">③ mc batch</text>
+<text x="540.0" y="527.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">start</text>
+<text x="740.0" y="512.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">④ status</text>
+<text x="740.0" y="527.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">폴링</text>
+<text x="940.0" y="512.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">⑤ 검증</text>
+<text x="940.0" y="527.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(3단계)</text>
+<text x="1140.0" y="512.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">⑥ 워터마크 ·</text>
+<text x="1140.0" y="527.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">metadata 기록</text>
+<text x="1340.0" y="512.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">⑦ 알림</text>
+<rect x="760.0" y="350.5" width="80" height="19" fill="#FFFFFF"/>
+<text x="800.0" y="363.6666666666667" font-size="11" fill="#8C4FFF" text-anchor="middle" font-weight="normal">admin API</text>
+<rect x="930.0" y="370.5" width="100" height="19" fill="#FFFFFF"/>
+<text x="980.0" y="383.6666666666667" font-size="11" fill="#8C4FFF" text-anchor="middle" font-weight="normal">status · notify</text>
+<text x="44" y="714.3333333333334" font-size="13" fill="#232F3E" text-anchor="start" font-weight="bold">검증 3단계: Job (실패 0) → 객체 (prefix 건수 · 용량) → Iceberg (최신 스냅샷 파일 Warm HEAD 전수)</text>
+</svg>

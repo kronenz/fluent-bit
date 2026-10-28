@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="800" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="100" width="1420" height="300" fill="#FFFFFF" stroke="#7AA116" stroke-width="1.5"/>
+<rect x="40" y="100" width="26" height="26" fill="#7AA116"/>
+<text x="53.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">A</text>
+<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">R-A  버킷 Replication 그대로 + replica 쪽 검증 작업 → register_table</text>
+<rect x="40" y="430" width="1420" height="300" fill="#FFFFFF" stroke="#326CE5" stroke-width="1.5"/>
+<rect x="40" y="430" width="26" height="26" fill="#326CE5"/>
+<text x="53.0" y="446.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">B</text>
+<text x="74" y="447.3333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">R-B  Iceberg 수준 복사 (1.8+) — 스냅샷 단위 일관성</text>
+<polyline points="280.0,250.0 360.0,250.0" fill="none" stroke="#7AA116" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="570.0,250.0 650.0,250.0" fill="none" stroke="#7AA116" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="860.0,250.0 940.0,250.0" fill="none" stroke="#7AA116" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="1150.0,250.0 1230.0,250.0" fill="none" stroke="#7AA116" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="280.0,580.0 360.0,580.0" fill="none" stroke="#326CE5" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="570.0,580.0 650.0,580.0" fill="none" stroke="#326CE5" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="860.0,580.0 940.0,580.0" fill="none" stroke="#326CE5" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="1150.0,580.0 1230.0,580.0" fill="none" stroke="#326CE5" stroke-width="2" marker-end="url(#a)"/>
+<rect x="70" y="160" width="210" height="180" rx="6" fill="#FFFFFF" stroke="#C72C48"/>
+<text x="175.0" y="239.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Hot</text>
+<text x="175.0" y="254.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal"></text>
+<text x="175.0" y="269.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">평소 쓰기</text>
+<rect x="360" y="160" width="210" height="180" rx="6" fill="#FFFFFF" stroke="#ED7100"/>
+<text x="465.0" y="231.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">버킷 Replication</text>
+<text x="465.0" y="246.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal"></text>
+<text x="465.0" y="261.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">data/ · metadata/</text>
+<text x="465.0" y="276.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">객체 단위 비동기</text>
+<rect x="650" y="160" width="210" height="180" rx="6" fill="#FFFFFF" stroke="#8A1C2E"/>
+<text x="755.0" y="239.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Replica 버킷</text>
+<text x="755.0" y="254.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal"></text>
+<text x="755.0" y="269.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">도착 순서 무작위</text>
+<rect x="940" y="160" width="210" height="180" rx="6" fill="#FFFFFF" stroke="#01A88D"/>
+<text x="1045.0" y="224.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">검증 작업 (15분)</text>
+<text x="1045.0" y="239.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal"></text>
+<text x="1045.0" y="254.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">최신 metadata.json →</text>
+<text x="1045.0" y="269.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">manifest → data HEAD</text>
+<text x="1045.0" y="284.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">전부 있으면 통과</text>
+<rect x="1230" y="160" width="210" height="180" rx="6" fill="#F0F7E6" stroke="#7AA116"/>
+<text x="1335.0" y="231.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">Replica 카탈로그</text>
+<text x="1335.0" y="246.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold"></text>
+<text x="1335.0" y="261.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">register_table</text>
+<text x="1335.0" y="276.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">(실패 시 이전 스냅샷 유지)</text>
+<rect x="70" y="490" width="210" height="180" rx="6" fill="#FFFFFF" stroke="#C72C48"/>
+<text x="175.0" y="554.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Hot</text>
+<text x="175.0" y="569.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal"></text>
+<text x="175.0" y="584.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">rewrite_table_path</text>
+<text x="175.0" y="599.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">source → target prefix</text>
+<text x="175.0" y="614.0" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">증분: start/end version</text>
+<rect x="360" y="490" width="210" height="180" rx="6" fill="#FFFFFF" stroke="#01A88D"/>
+<text x="465.0" y="561.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">복사 목록</text>
+<text x="465.0" y="576.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal"></text>
+<text x="465.0" y="591.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">file_list_location</text>
+<text x="465.0" y="606.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">(원본 → 대상 경로)</text>
+<rect x="650" y="490" width="210" height="180" rx="6" fill="#FFFFFF" stroke="#ED7100"/>
+<text x="755.0" y="561.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">복사</text>
+<text x="755.0" y="576.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal"></text>
+<text x="755.0" y="591.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">Batch Replication 질의</text>
+<text x="755.0" y="606.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">· distcp · mc mirror</text>
+<rect x="940" y="490" width="210" height="180" rx="6" fill="#FFFFFF" stroke="#8A1C2E"/>
+<text x="1045.0" y="561.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">대상 버킷</text>
+<text x="1045.0" y="576.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal"></text>
+<text x="1045.0" y="591.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">경로 재작성된 metadata</text>
+<text x="1045.0" y="606.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">+ data</text>
+<rect x="1230" y="490" width="210" height="180" rx="6" fill="#F0F7E6" stroke="#7AA116"/>
+<text x="1335.0" y="561.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">대상 카탈로그</text>
+<text x="1335.0" y="576.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold"></text>
+<text x="1335.0" y="591.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">register_table</text>
+<text x="1335.0" y="606.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="bold">(latest_version)</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">복제 해결안 — R-A 파일 복제 + 검증 후 등록 · R-B Iceberg rewrite_table_path</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">공통 원칙: replica 카탈로그는 '모든 파일이 도착한 스냅샷' 만 가리킨다</text>
+<text x="44" y="769.3333333333334" font-size="13" fill="#5E6C84" text-anchor="start" font-weight="normal">R-A: 기존 기능 그대로 · 같은 경로 · RPO = 복제 지연 + 검증 주기   |   R-B: 경로 달라도 됨 · 정확한 시점 · 복사 오케스트레이션 필요 · partition statistics 테이블 미지원</text>
+</svg>
