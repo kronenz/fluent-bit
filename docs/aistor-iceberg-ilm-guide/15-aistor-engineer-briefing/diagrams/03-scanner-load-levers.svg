@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="260" width="450" height="400" fill="#FFFFFF" stroke="#7AA116" stroke-width="1.5"/>
+<rect x="40" y="260" width="26" height="26" fill="#7AA116"/>
+<text x="53.0" y="276.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">A</text>
+<text x="74" y="277.3333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">A. 셀 대상 줄이기</text>
+<rect x="525" y="260" width="450" height="400" fill="#FFFFFF" stroke="#ED7100" stroke-width="1.5"/>
+<rect x="525" y="260" width="26" height="26" fill="#ED7100"/>
+<text x="538.0" y="276.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">B</text>
+<text x="559" y="277.3333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">B. ILM 을 Scanner 밖으로</text>
+<rect x="1010" y="260" width="450" height="400" fill="#FFFFFF" stroke="#326CE5" stroke-width="1.5"/>
+<rect x="1010" y="260" width="26" height="26" fill="#326CE5"/>
+<text x="1023.0" y="276.6666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">C</text>
+<text x="1044" y="277.3333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">C. 시간대별 속도</text>
+<polyline points="265.0,260.0 265.0,214.0" fill="none" stroke="#7D8998" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="750.0,260.0 750.0,214.0" fill="none" stroke="#7D8998" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<polyline points="1235.0,260.0 1235.0,214.0" fill="none" stroke="#7D8998" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<rect x="250" y="100" width="1000" height="56" rx="6" fill="#F4F6F8" stroke="#232F3E"/>
+<text x="750.0" y="132.66666666666666" font-size="14" fill="#232F3E" text-anchor="middle" font-weight="bold">사이클 비용 ∝ (객체 수 × 평균 버전 수 + 폴더 수) × 객체당 처리(ILM · 사용량 · healing · 복제)</text>
+<rect x="250" y="170" width="1000" height="44" rx="6" fill="#F4F6F8" stroke="#232F3E"/>
+<text x="750.0" y="196.66666666666666" font-size="14" fill="#232F3E" text-anchor="middle" font-weight="bold">ILM 반응 시간 ≈ Days + 00:00 올림(0~24h) + 사이클 길이(= 비용 ÷ 속도)</text>
+<rect x="65" y="305" width="400" height="70" rx="6" fill="#F0F7E6" stroke="#7AA116"/>
+<text x="69" y="336.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">파일 수 — compaction 256~512 MB</text>
+<text x="69" y="351.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">10 MB × 1만 → 512 MB × 200 (1/50)</text>
+<rect x="65" y="390" width="400" height="70" rx="6" fill="#F0F7E6" stroke="#7AA116"/>
+<text x="69" y="421.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">버전 수 — Noncurrent 1d · NewerNoncurrent 질의</text>
+<text x="69" y="436.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">Iceberg 삭제 = 비현행 + DM</text>
+<rect x="65" y="475" width="400" height="70" rx="6" fill="#F0F7E6" stroke="#7AA116"/>
+<text x="69" y="514.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">delete marker — ExpiredObjectDeleteMarker</text>
+<rect x="65" y="560" width="400" height="70" rx="6" fill="#F0F7E6" stroke="#7AA116"/>
+<text x="69" y="599.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">폴더 — 파티션 너무 잘게 X · 폴더당 객체 경보</text>
+<rect x="550" y="305" width="400" height="70" rx="6" fill="#FFF4E8" stroke="#ED7100"/>
+<text x="554" y="336.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">태그 기반 즉시 전이 (03 문서)</text>
+<text x="554" y="351.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">compaction 이 태그 붙여 쓰면 PUT 순간 Warm</text>
+<rect x="550" y="390" width="400" height="70" rx="6" fill="#FFF4E8" stroke="#ED7100"/>
+<text x="554" y="421.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">Soft delete 태그 (04 문서)</text>
+<text x="554" y="436.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">ILM 은 Iceberg 가 지운 파일만 만료</text>
+<rect x="550" y="475" width="400" height="70" rx="6" fill="#FFFFFF" stroke="#ED7100"/>
+<text x="554" y="514.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">Batch 전이 작업 질의 Q-I7</text>
+<rect x="550" y="560" width="400" height="70" rx="6" fill="#FFFFFF" stroke="#ED7100"/>
+<text x="554" y="599.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">효과: 전이가 사이클과 무관 → Scanner 를 낮춰도 됨</text>
+<rect x="1035" y="305" width="400" height="70" rx="6" fill="#FFFFFF" stroke="#326CE5"/>
+<text x="1039" y="336.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">업무 시간 slow · 야간 default/fast</text>
+<text x="1039" y="351.5" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">CronJob 으로 speed 변경</text>
+<rect x="1035" y="390" width="400" height="70" rx="6" fill="#FFFFFF" stroke="#326CE5"/>
+<text x="1039" y="429.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">전제: 즉시 반영 질의 Q-S4</text>
+<rect x="1035" y="475" width="400" height="70" rx="6" fill="#FFFFFF" stroke="#326CE5"/>
+<text x="1039" y="514.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">자정(KST 09:00) 쏠림 — B 로 제거가 확실</text>
+<rect x="1035" y="560" width="400" height="70" rx="6" fill="#FFFFFF" stroke="#326CE5"/>
+<text x="1039" y="599.0" font-size="12" fill="#232F3E" text-anchor="start" font-weight="normal">주의: 반응 시간은 오히려 늘 수 있다</text>
+<rect x="40" y="680" width="1420" height="56" rx="6" fill="#F4F6F8" stroke="#232F3E"/>
+<text x="44" y="712.3333333333334" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">실측: fastest 유휴 Hot CPU 14m → 82m · 기본 4.5 객체/s (단일 노드) · 전이 후 읽기 지연은 파일 수에 비례 (파티션 +26% · 전체 스캔 +40%)</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">Scanner 부하 모델 — 무엇이 비용을 만들고, 어떤 손잡이로 줄이나</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">권장 순서: A 셀 대상 줄이기 → B ILM 을 Scanner 밖으로 → C 시간대별 속도</text>
+</svg>

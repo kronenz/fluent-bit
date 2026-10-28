@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" font-family="sans-serif"><rect width="100%" height="100%" fill="#fff"/><defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto-start-reverse"><path d="M0,0 L10,4 L0,8 z" fill="context-stroke"/></marker></defs>
+<rect x="40" y="100" width="420" height="480" fill="#FFFFFF" stroke="#C72C48" stroke-width="1.5"/>
+<rect x="40" y="100" width="26" height="26" fill="#C72C48"/>
+<text x="53.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">S3</text>
+<text x="74" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Hot — 커밋 순서</text>
+<rect x="520" y="100" width="420" height="480" fill="#FFFFFF" stroke="#ED7100" stroke-width="1.5"/>
+<rect x="520" y="100" width="26" height="26" fill="#ED7100"/>
+<text x="533.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">⇄</text>
+<text x="554" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">복제 큐 — 객체 단위</text>
+<rect x="1000" y="100" width="460" height="480" fill="#FFFFFF" stroke="#8A1C2E" stroke-width="1.5"/>
+<rect x="1000" y="100" width="26" height="26" fill="#8A1C2E"/>
+<text x="1013.0" y="116.66666666666667" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">W</text>
+<text x="1034" y="117.33333333333333" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">Replica</text>
+<rect x="40" y="610" width="1420" height="120" fill="#FFFFFF" stroke="#DD344C" stroke-width="1.5"/>
+<rect x="40" y="610" width="26" height="26" fill="#DD344C"/>
+<text x="53.0" y="626.6666666666666" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="bold">!</text>
+<text x="74" y="627.3333333333334" font-size="13" fill="#232F3E" text-anchor="start" font-weight="normal">충돌 C1~C4 (aistor-replication-review 근거 2)</text>
+<polyline points="250.0,206.0 250.0,230.0" fill="none" stroke="#7D8998" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="250.0,286.0 250.0,310.0" fill="none" stroke="#7D8998" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="250.0,366.0 250.0,390.0" fill="none" stroke="#7D8998" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="250.0,446.0 250.0,470.0" fill="none" stroke="#7D8998" stroke-width="1.5" marker-end="url(#a)"/>
+<polyline points="430.0,330.0 550.0,330.0" fill="none" stroke="#ED7100" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="910.0,220.0 1030.0,220.0" fill="none" stroke="#ED7100" stroke-width="2" marker-end="url(#a)"/>
+<rect x="70" y="150" width="360" height="56" rx="6" fill="#FFFFFF" stroke="#C72C48"/>
+<text x="250.0" y="182.33333333333334" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">① data 파일 a · b · c</text>
+<rect x="70" y="230" width="360" height="56" rx="6" fill="#FFFFFF" stroke="#C72C48"/>
+<text x="250.0" y="262.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">② manifest (a · b · c 목록)</text>
+<rect x="70" y="310" width="360" height="56" rx="6" fill="#FFFFFF" stroke="#C72C48"/>
+<text x="250.0" y="342.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">③ manifest list (snap)</text>
+<rect x="70" y="390" width="360" height="56" rx="6" fill="#FFFFFF" stroke="#C72C48"/>
+<text x="250.0" y="422.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">④ metadata.json v5</text>
+<rect x="70" y="470" width="360" height="56" rx="6" fill="#FFFFFF" stroke="#01A88D"/>
+<text x="250.0" y="502.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="bold">⑤ HMS 포인터 → v5 (커밋)</text>
+<rect x="550" y="150" width="360" height="70" rx="6" fill="#FFFFFF" stroke="#7AA116"/>
+<text x="730.0" y="181.33333333333334" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">metadata.json v5</text>
+<text x="730.0" y="197.33333333333334" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">도착 ✓</text>
+<rect x="550" y="245" width="360" height="70" rx="6" fill="#FFFFFF" stroke="#7AA116"/>
+<text x="730.0" y="276.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">manifest · manifest list</text>
+<text x="730.0" y="292.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">도착 ✓</text>
+<rect x="550" y="340" width="360" height="70" rx="6" fill="#FFFFFF" stroke="#7AA116"/>
+<text x="730.0" y="371.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">data a · b</text>
+<text x="730.0" y="387.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">도착 ✓</text>
+<rect x="550" y="435" width="360" height="70" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="730.0" y="466.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">data c</text>
+<text x="730.0" y="482.3333333333333" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">대기 / 실패 → 재큐 (Scanner)</text>
+<rect x="1030" y="160" width="400" height="120" rx="6" fill="#FFFFFF" stroke="#8A1C2E"/>
+<text x="1230.0" y="216.33333333333334" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">metadata.json v5 · manifest 있음</text>
+<text x="1230.0" y="232.33333333333334" font-size="13" fill="#232F3E" text-anchor="middle" font-weight="normal">data c 없음</text>
+<rect x="1030" y="310" width="400" height="110" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1230.0" y="361.3333333333333" font-size="13" fill="#DD344C" text-anchor="middle" font-weight="bold">이 시점에 v5 를 등록 · 조회하면</text>
+<text x="1230.0" y="377.3333333333333" font-size="13" fill="#DD344C" text-anchor="middle" font-weight="bold">✗ NotFoundException (C1)</text>
+<rect x="1030" y="450" width="400" height="100" rx="6" fill="#FFFFFF" stroke="#01A88D"/>
+<text x="1230.0" y="496.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">HMS 는 복제되지 않음 (C2)</text>
+<text x="1230.0" y="511.5" font-size="12" fill="#232F3E" text-anchor="middle" font-weight="normal">→ 어느 metadata.json 을 등록할지 판단 필요</text>
+<rect x="70" y="650" width="320" height="56" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="230.0" y="682.3333333333334" font-size="13" fill="#DD344C" text-anchor="middle" font-weight="bold">C1 부분 복제 스냅샷</text>
+<rect x="415" y="650" width="320" height="56" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="575.0" y="682.3333333333334" font-size="13" fill="#DD344C" text-anchor="middle" font-weight="bold">C2 카탈로그 미복제</text>
+<rect x="760" y="650" width="320" height="56" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="920.0" y="682.3333333333334" font-size="13" fill="#DD344C" text-anchor="middle" font-weight="bold">C3 삭제 전파 불일치 (백업 vs 미러)</text>
+<rect x="1105" y="650" width="320" height="56" rx="6" fill="#FFF1F0" stroke="#DD344C"/>
+<text x="1265.0" y="682.3333333333334" font-size="13" fill="#DD344C" text-anchor="middle" font-weight="bold">C4 replica ILM 이 참조를 모름</text>
+<text x="44" y="38.333333333333336" font-size="22" fill="#000000" text-anchor="start" font-weight="bold">Iceberg 커밋 vs 객체 복제 — replica 가 깨진 스냅샷을 보는 순간</text>
+<text x="44" y="62.0" font-size="12" fill="#5E6C84" text-anchor="start" font-weight="normal">Iceberg: 파일을 다 쓰고 마지막에 포인터를 바꾼다 · 복제: 객체마다 독립 · 비동기 · 재시도 → 도착 순서 보장 없음</text>
+</svg>

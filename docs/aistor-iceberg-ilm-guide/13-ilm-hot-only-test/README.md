@@ -191,6 +191,7 @@ kubectl delete ns ilm-test
 | `perf/perf_sampler.py` · `hms_snapshot.sh` · `perf-job.sh` | 전이 진행 · Hot 메트릭 샘플 · HMS 정의 기록 · Spark Job 1회 실행 |
 | `perf/s3_backdate.py` · `exp-object-test.sh` · `exp-status-cronjob.yaml` | 객체 mtime 소급(SigV4, 표준 라이브러리) · 객체 단위 만료 시험 · 확인점 추적 |
 | `perf/perf_report.py` · `exp_report.py` | 결과 Markdown 생성 |
+| `spark/tag_tiering.py` | 태그 기반 즉시 전이(T-1) · soft delete(T-2) 시험 — 별도 카탈로그에 `s3.write.tags.*` / `s3.delete-enabled=false` ([15장](../15-aistor-engineer-briefing/)) |
 
 ## 9. 주의사항
 
@@ -221,14 +222,14 @@ kubectl delete ns ilm-test
 
 | # | 0d 스모크 (2026-10-25) | 1d 연속 (`run-1d-20261025`) | 증적 위치 | 비고 |
 |---|---|---|---|---|
-| J-1 | ✅ 전이율 1.0 · overdue 0 | ⏳ 첫 전이 10-27 00:00 UTC 이후 (00:00 올림) | `ilmtest.state.jsonl` | |
-| J-2 | ✅ metadata 전이 0 | ⏳ | `ilmtest.state.jsonl` | |
-| J-3 | ✅ 4/4 일치 | ⏳ | `ilmtest.verify.jsonl` | |
-| J-4 | ✅ old_read 4 · time travel 실패 0 | ⏳ | `ilmtest.verify.jsonl` | |
-| J-5 | ✅ 실패 0 · p50 2457 → 2345 ms | ⏳ | `ilmtest.write.jsonl` | |
-| J-6 | ✅ | ⏳ 10-27 21:00 UTC 자동 | `ilmtest.maintenance.jsonl` | |
-| J-7 | ✅ Warm 접근 = `tier-svc` 뿐 | ⏳ | `audit-minio-warm.jsonl` · `alert-warm-access.jsonl` | |
-| J-8 | ✅ missed 0 · trace 에러 0 | ⏳ | `trace.jsonl` · state metrics | |
+| J-1 | ✅ 전이율 1.0 · overdue 0 | ✅ 첫 전이 10-27 00:15 UTC (00:00 올림 확인) · 전이율 0.53 · overdue 0 | `ilmtest.state.jsonl` | |
+| J-2 | ✅ metadata 전이 0 | ✅ metadata 전이 0 | `ilmtest.state.jsonl` | |
+| J-3 | ✅ 4/4 일치 | ✅ 103/103 일치 | `ilmtest.verify.jsonl` | |
+| J-4 | ✅ old_read 4 · time travel 실패 0 | ✅ old_read 7 · time travel 실패 0 · 읽기 p50 417 → 642 ms | `ilmtest.verify.jsonl` | |
+| J-5 | ✅ 실패 0 · p50 2457 → 2345 ms | ✅ 311회 실패 0 · p50 2505 → 2541 ms | `ilmtest.write.jsonl` | |
+| J-6 | ✅ | ✅ 유지보수 3 이벤트 · 실패 0 (10-27 21:00 UTC) | `ilmtest.maintenance.jsonl` | |
+| J-7 | ✅ Warm 접근 = `tier-svc` 뿐 | ✅ `tier-svc` 95,667건 · 그 외 `warmadmin` 274건 = 시험 도구(기한 삭제 추적 CronJob · 수동 조회)만, 서비스 계정 0 | `audit-minio-warm.jsonl` · `alert-warm-access.jsonl` | |
+| J-8 | ✅ missed 0 · trace 에러 0 | ✅ missed(전이 · 만료 · tier journal) 0 · trace 680만 줄 중 에러 0 | `trace.jsonl` · state metrics | |
 
 상세: [`results/REPORT-smoke-20261025.md`](./results/REPORT-smoke-20261025.md)
 
@@ -240,7 +241,7 @@ kubectl delete ns ilm-test
 | P-4 | 자원 | ✅ 기본 속도 Hot CPU +11% · ⚠️ `fastest` 유휴 Hot 82m 상시 · Warm 피크 380m/990 Mi | 같음 |
 | I-1~I-5 | HMS · Iceberg 정의 · 파일 경로 · 스키마 변경 · Spark 설정 | ✅ 3시점 동일 · ADD/DROP COLUMN 정상 | 같음 |
 | E-0~E-4 | 기한 삭제 (mtime 소급) | ✅ 객체 만료 · Warm 삭제 · Iceberg 보존 작업 정상 / ❌(의도) ILM 만료가 Iceberg 를 깸 / ⚠️ F-1 | [expiry](./results/REPORT-expiry-20261026.md) |
-| E-5 | 실시간 확인점 | ⏳ 10-27 00:00 · 10-28 00:00 UTC | 같음 |
+| E-5 | 실시간 확인점 | ✅ 10-27 00:00: age-4.5 만료 · age-0.5 전이 / 10-28 00:00: Iceberg 가 지운 파일의 비현행 Warm 버전 · DM 소멸 | 같음 |
 
 ## 11. 성능 · 부하(②) · 영향도(③) 시험
 
